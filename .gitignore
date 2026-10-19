@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+work/
+# Full row-level files are distributed via release/full_data_bundle.tar.gz
+data/ba_clean.csv
+data/ba_raw2.tar.gz
+results/hof_eval_clean.csv
+results/unified_percell.csv
+results/gru_pred.csv
+results/resgru_pred.csv
+results/losource_hof_pred.csv
+# Never upload credentials/PDFs
+*.pem
+id_*
+*.pdf
