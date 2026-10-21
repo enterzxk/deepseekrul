@@ -44,13 +44,16 @@
 |---|---:|---:|---:|---:|
 | tf（纯 Transformer） | 144,146 | 14.388 / 13.722 | RUNNING | 16.239 / 16.248 |
 | tfA（完整 A 特征） | 87,122 | 14.086 / 13.340 | RUNNING | 15.036 / 14.182 |
-| A | 41,858 | RUNNING | RUNNING | RUNNING |
-| Aid | 42,754 | 12.094 (1 seed) | RUNNING | 12.284 (1 seed) |
+| A | 41,858 | 12.676 / 12.343 | RUNNING | **12.395 / 12.672** |
+| Aid | 42,754 | 12.094 (1 seed) | RUNNING | **12.284 (1 seed)** |
 | S2（参数匹配、无身份） | 42,754 | RUNNING | RUNNING | RUNNING |
 | S3 / S4 / RACDR | - | RUNNING | RUNNING | RUNNING |
 
-**已可读出的信号（1–2 seed，暂不作为结论）**：Aid 在 FD002 的 matched-cutoff 上
-12.284，明显低于 tfA 的 14.182–15.036；与 ORDER_01 的方向一致。
+**已可读出的信号（1–2 seed，暂不作为结论）**：FD002 matched-cutoff 上
+A（12.395 / 12.672）与 Aid（12.284，1 seed）明显低于 tfA（14.182 / 15.036）
+与 tf（16.239 / 16.248）。即：**候选主干 + Track A 特征比 Transformer 系低 1.5–3.9**，
+方向与 ORDER_01 一致。Aid 相对 A 的优势目前只有单个种子支持（12.284 vs 12.395/12.672），
+不足以确认 Sensor-ID 的净贡献。
 
 ### FD001
 
