@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{FD001 five-seed confirmatory ablation (clip125). Mean $\pm$ std over seeds 101/202/303/404/505.}
+\label{tab:fd001-ablation}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Variant & RMSE & NASA & MAE & Late & Severe & Mono & Params \\
+\midrule
+w/o A-GCN & 15.17 $\pm$ 2.58 & 498.93 $\pm$ 373.94 & 11.32 & 0.580 & 27.8 & 0.463 & 143,816 \\
+Identity-Graph (A=I) & 14.85 $\pm$ 0.88 & 409.66 $\pm$ 66.12 & 10.87 & 0.520 & 23.8 & 0.470 & 143,816 \\
+w/o SSM-Block (matched LSTM) & 14.14 $\pm$ 0.14 & 347.94 $\pm$ 32.12 & 10.08 & 0.482 & 18.6 & 0.326 & 142,806 \\
+w/o Physics Loss & 14.15 $\pm$ 0.44 & 346.61 $\pm$ 29.72 & 10.22 & 0.488 & 19.2 & 0.473 & 144,265 \\
+w/o Mono Loss & \textbf{13.74 $\pm$ 0.64} & \textbf{319.99 $\pm$ 32.09} & 10.02 & 0.476 & 19.6 & 0.469 & 144,265 \\
+Full Model (Ours) & 14.13 $\pm$ 0.88 & 344.62 $\pm$ 97.02 & 10.21 & 0.458 & 18.8 & 0.473 & 144,265 \\
+\bottomrule
+\end{tabular}
+\end{table}

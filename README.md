@@ -106,3 +106,10 @@ PYTHON=<python-with-deps> bash code/run_all.sh
 ## Contact/usage
 
 This is a research snapshot for review and GPT-assisted reading. If you use the data, cite Battery Archive and the original studies; if you use the HOF baseline, cite this repo/report and the original data sources.
+
+## Other research lines in this repository
+
+- [`cmapss-rul/`](cmapss-rul/) — C-MAPSS remaining-useful-life prediction (STG-MambaNet):
+  identity-prior graph, SSM/LSTM, physics-guided + monotonic loss; FD001 5-seed
+  confirmatory results and FD002 external validity. See `cmapss-rul/README.md`.
+

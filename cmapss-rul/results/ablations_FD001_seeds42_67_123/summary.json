@@ -1,0 +1,143 @@
+{
+  "run_dirs": [
+    "experiments/ablations/FD001_seed42_20261020",
+    "experiments/ablations/FD001_seeds67_123_20261020"
+  ],
+  "summary": [
+    {
+      "variant": "wo_agcn",
+      "variant_label": "w/o A-GCN",
+      "seeds": 3,
+      "rmse_mean": 15.048229869672502,
+      "rmse_std": 0.3078041573525662,
+      "nasa_mean": 347.37037735935183,
+      "nasa_std": 41.61438990954393,
+      "mae_mean": 11.422840436299643,
+      "mae_std": 0.3756412333264906,
+      "params": 143816,
+      "seeds_list": "42 67 123"
+    },
+    {
+      "variant": "wo_ssm",
+      "variant_label": "w/o SSM-Block",
+      "seeds": 3,
+      "rmse_mean": 14.755852748298798,
+      "rmse_std": 0.3038734166724489,
+      "nasa_mean": 383.4655747278937,
+      "nasa_std": 60.82871467512993,
+      "mae_mean": 11.006619453430176,
+      "mae_std": 0.05615496129661346,
+      "params": 126981,
+      "seeds_list": "42 67 123"
+    },
+    {
+      "variant": "wo_physics",
+      "variant_label": "w/o Physics Loss",
+      "seeds": 3,
+      "rmse_mean": 15.308108436046666,
+      "rmse_std": 0.44226509998116653,
+      "nasa_mean": 450.91814964176274,
+      "nasa_std": 101.56753314815107,
+      "mae_mean": 11.248271942138672,
+      "mae_std": 0.25392199078533845,
+      "params": 144264,
+      "seeds_list": "42 67 123"
+    },
+    {
+      "variant": "full",
+      "variant_label": "Full Model (Ours)",
+      "seeds": 3,
+      "rmse_mean": 14.878051876981639,
+      "rmse_std": 0.7124576452398951,
+      "nasa_mean": 379.77093742540023,
+      "nasa_std": 81.42078225940065,
+      "mae_mean": 11.106605529785156,
+      "mae_std": 0.7897367874031274,
+      "params": 144264,
+      "seeds_list": "42 67 123"
+    }
+  ],
+  "paired_deltas": [
+    {
+      "variant": "wo_agcn",
+      "variant_label": "w/o A-GCN",
+      "seed": 42,
+      "delta_rmse_vs_full": -0.30276782749806763,
+      "delta_nasa_vs_full": -25.123197592713893,
+      "full_rmse": 15.422278630588844,
+      "full_nasa": 412.8072335869394
+    },
+    {
+      "variant": "wo_agcn",
+      "variant_label": "w/o A-GCN",
+      "seed": 67,
+      "delta_rmse_vs_full": -0.42918301229749467,
+      "delta_nasa_vs_full": -134.91432350506278,
+      "full_rmse": 15.140221970589012,
+      "full_nasa": 439.48136755305615
+    },
+    {
+      "variant": "wo_agcn",
+      "variant_label": "w/o A-GCN",
+      "seed": 123,
+      "delta_rmse_vs_full": 1.2424848178681511,
+      "delta_nasa_vs_full": 62.83584089963159,
+      "full_rmse": 14.071655029767058,
+      "full_nasa": 287.0242111362052
+    },
+    {
+      "variant": "wo_ssm",
+      "variant_label": "w/o SSM-Block",
+      "seed": 42,
+      "delta_rmse_vs_full": -0.9578482616483619,
+      "delta_nasa_vs_full": -53.27360211511376,
+      "full_rmse": 15.422278630588844,
+      "full_nasa": 412.8072335869394
+    },
+    {
+      "variant": "wo_ssm",
+      "variant_label": "w/o SSM-Block",
+      "seed": 67,
+      "delta_rmse_vs_full": -0.0694132366289022,
+      "delta_nasa_vs_full": 13.139155870306695,
+      "full_rmse": 15.140221970589012,
+      "full_nasa": 439.48136755305615
+    },
+    {
+      "variant": "wo_ssm",
+      "variant_label": "w/o SSM-Block",
+      "seed": 123,
+      "delta_rmse_vs_full": 0.6606641122287407,
+      "delta_nasa_vs_full": 51.21835815228735,
+      "full_rmse": 14.071655029767058,
+      "full_nasa": 287.0242111362052
+    },
+    {
+      "variant": "wo_physics",
+      "variant_label": "w/o Physics Loss",
+      "seed": 42,
+      "delta_rmse_vs_full": -0.15421485041681038,
+      "delta_nasa_vs_full": 2.5618864501099097,
+      "full_rmse": 15.422278630588844,
+      "full_nasa": 412.8072335869394
+    },
+    {
+      "variant": "wo_physics",
+      "variant_label": "w/o Physics Loss",
+      "seed": 67,
+      "delta_rmse_vs_full": 0.6288121136515326,
+      "delta_nasa_vs_full": 126.00057140236021,
+      "full_rmse": 15.140221970589012,
+      "full_nasa": 439.48136755305615
+    },
+    {
+      "variant": "wo_physics",
+      "variant_label": "w/o Physics Loss",
+      "seed": 123,
+      "delta_rmse_vs_full": 0.8155724139603571,
+      "delta_nasa_vs_full": 84.87917879661751,
+      "full_rmse": 14.071655029767058,
+      "full_nasa": 287.0242111362052
+    }
+  ]
+}

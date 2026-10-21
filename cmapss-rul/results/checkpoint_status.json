@@ -1,0 +1,17 @@
+{
+  "started_at": "2026-10-21T01:00:00+08:00",
+  "phase6_started_at": "2026-10-21T08:10:00+08:00",
+  "phase7_started_at": "2026-10-21T10:44:00+08:00",
+  "finished_at": "2026-10-21T11:35:00+08:00",
+  "mode": "unattended_overnight",
+  "phases": {
+    "P0": {"status": "complete", "note": "protocol, src unification, identity prior, trajectory/mono, 34 tests OK (6 sealed skips)"},
+    "P1": {"status": "complete", "note": "9 configs x 3 seeds; locked w50/d0.15/wd1e-4, val RMSE 11.917 +/- 0.534"},
+    "P2": {"status": "complete", "note": "9 loss configs x 3 seeds; full asym1.0/lambda0.05; asym1.0 best validation"},
+    "P3": {"status": "complete", "note": "5 seeds x 6 variants; Full RMSE 13.423 +/- 0.487, NASA 327.119 +/- 59.184"},
+    "P4": {"status": "complete", "note": "FD002 3 seeds x 4 variants; Full 14.955/1456.569, matched LSTM 14.363/1001.130"},
+    "P5": {"status": "complete", "note": "4 figures, final_tables.tex, MORNING_REPORT.md written; test files resealed"},
+    "P6": {"status": "complete", "note": "structural mono PASS (0.000); hollow graph hurt; P6 Full 15.168/429.336; BiLSTM 14.145/332.595"},
+    "P7": {"status": "complete", "note": "clean input + BiLSTM-Attn + alpha0.15; FD001 Full 14.155/357.740, w/o Mono 13.587/313.152; FD002 Full 14.120/799.204, Transformer 12.679/785.018; FD001 gate still failed"}
+  }
+}
