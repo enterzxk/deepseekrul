@@ -33,8 +33,18 @@ COLORS = {
 
 
 def main() -> None:
-    data = json.loads((ROOT / "results" / "p9" / "p9_stats.json").read_text())
-    subsets = [s for s in ("FD001", "FD002") if s in data]
+    main_stats = json.loads((ROOT / "results" / "p9" / "p9_stats.json").read_text())
+    ep6_path = ROOT / "results" / "p9" / "ep6" / "p9_stats.json"
+    ep6_stats = json.loads(ep6_path.read_text()) if ep6_path.is_file() else main_stats
+    data = {
+        "FD001": [r for r in main_stats.get("FD001", []) if r.get("params", 1) > 0],
+        "FD002": [r for r in ep6_stats.get("FD002", []) if r.get("params", 1) > 0],
+    }
+    stats = {
+        "FD001": main_stats.get("stats", {}).get("FD001", {}),
+        "FD002": ep6_stats.get("stats", {}).get("FD002", {}),
+    }
+    subsets = [s for s in ("FD001", "FD002") if data.get(s)]
 
     # Figure 1: RMSE with seed-level spread
     fig, axes = plt.subplots(1, len(subsets), figsize=(6.2 * len(subsets), 4.2), squeeze=False)
@@ -64,9 +74,10 @@ def main() -> None:
 
     # Figure 2: paired deltas vs full
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
+    stats_by_subset = stats
     ys, labels, lows, highs, means = [], [], [], [], []
     for subset in subsets:
-        stats = data.get("stats", {}).get(subset, {})
+        stats = stats_by_subset.get(subset, {})
         for variant, st in stats.items():
             if variant not in SHORT:
                 continue
