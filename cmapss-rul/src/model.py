@@ -1346,6 +1346,74 @@ class ConditionRoutedGraphBranch(nn.Module):
         return self.out_norm(spatial), adjacency.mean(dim=(0, 1))
 
 
+class NativeSensorGraphFilter(nn.Module):
+    """14x14 sensor-space graph filter (no projection, no pooling).
+
+    The graph acts directly on the physical sensor channels:
+
+        pi_t     = softmax(Linear(c_t))                    (B, L, K)
+        A_t      = sum_k pi_tk A_k                         (B, L, N, N), hollow
+        filtered = LayerNorm_N(einsum("bln,blnm->blm", X, A_t))
+        alpha_t  = tanh(alpha_base + Linear_zero(c_t)) * max_alpha   (B, L, N)
+        X_graph  = X + alpha_t * filtered
+
+    alpha_base is initialised to zero, so at step 0 X_graph == X exactly and
+    the whole model is mathematically identical to the graph-free backbone.
+    Every channel keeps its physical identity: the output is (B, L, N).
+    """
+
+    def __init__(
+        self,
+        num_sensors: int = 14,
+        graph_embed_dim: int = 6,
+        num_bases: int = 3,
+        cond_dim: int = 3,
+        max_alpha: float = 0.15,
+        dropout: float = 0.0,
+    ) -> None:
+        super().__init__()
+        self.num_sensors = int(num_sensors)
+        self.num_bases = int(num_bases)
+        self.cond_dim = int(cond_dim)
+        self.max_alpha = float(max_alpha)
+        self.E1 = nn.Parameter(torch.empty(num_bases, num_sensors, graph_embed_dim))
+        self.E2 = nn.Parameter(torch.empty(num_bases, num_sensors, graph_embed_dim))
+        nn.init.xavier_uniform_(self.E1)
+        nn.init.xavier_uniform_(self.E2)
+        self.router = nn.Linear(cond_dim, num_bases)
+        self.alpha_base = nn.Parameter(torch.zeros(1, 1, num_sensors))
+        self.alpha_cond = nn.Linear(cond_dim, num_sensors)
+        nn.init.zeros_(self.alpha_cond.weight)
+        nn.init.zeros_(self.alpha_cond.bias)
+        self.norm = nn.LayerNorm(num_sensors)
+        self.dropout = nn.Dropout(dropout)
+
+    def base_matrices(self) -> torch.Tensor:
+        logits = torch.relu(torch.matmul(self.E1, self.E2.transpose(1, 2)))
+        mask = torch.eye(self.num_sensors, device=logits.device, dtype=torch.bool)
+        logits = logits.masked_fill(mask.unsqueeze(0), -1.0e9)
+        return torch.softmax(logits, dim=-1)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        cond: Optional[torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        # x: (B, L, N)
+        batch, length, sensors = x.shape
+        if cond is None:
+            cond = x.new_zeros(batch, length, self.cond_dim)
+        elif cond.ndim == 2:
+            cond = cond.unsqueeze(1).expand(-1, length, -1)
+
+        pi = torch.softmax(self.router(cond), dim=-1)  # (B, L, K)
+        adjacency = torch.einsum("blk,knm->blnm", pi, self.base_matrices())
+        filtered = torch.einsum("bln,blnm->blm", x, adjacency)
+        filtered = self.norm(filtered)
+        alpha = torch.tanh(self.alpha_base + self.alpha_cond(cond)) * self.max_alpha
+        return x + alpha * filtered, adjacency.mean(dim=(0, 1))
+
+
 class CRGraphTransformer(nn.Module):
     """Sequential CR-GCN -> ConvTransformer -> synergized monotonic head.
 
@@ -1375,8 +1443,16 @@ class CRGraphTransformer(nn.Module):
         max_rul: float = 125.0,
         use_delta_features: bool = False,
         ff_mult: float = 2.0,
+        native_graph: bool = False,
+        tail_mode: str = "fixed",
+        use_spatial: bool = True,
     ) -> None:
         super().__init__()
+        if tail_mode not in {"fixed", "adaptive"}:
+            raise ValueError("tail_mode must be 'fixed' or 'adaptive'.")
+        self.tail_mode = tail_mode
+        self.native_graph = bool(native_graph)
+        self.use_spatial = bool(use_spatial)
         if tail_window < 1:
             raise ValueError("tail_window must be positive.")
         self.num_sensors = int(num_sensors)
@@ -1388,7 +1464,19 @@ class CRGraphTransformer(nn.Module):
         self.max_rul = float(max_rul)
         self.cond_dim = int(cond_dim)
 
-        if self.use_crgcn:
+        if not self.use_spatial:
+            self.spatial = None
+            cond_features = cond_dim
+        elif self.use_crgcn and self.native_graph:
+            self.spatial = NativeSensorGraphFilter(
+                num_sensors=num_sensors,
+                graph_embed_dim=6,
+                num_bases=num_bases,
+                cond_dim=cond_dim,
+                max_alpha=0.15,
+            )
+            cond_features = cond_dim
+        elif self.use_crgcn:
             self.spatial = ConditionRoutedGraphBranch(
                 num_sensors=num_sensors,
                 d_model=d_model,
@@ -1434,8 +1522,10 @@ class CRGraphTransformer(nn.Module):
         )
         # Tail-smoothing weights, initialised to favour the newest step while
         # still trusting the 1-cycle trend of the previous four steps.
-        prior = torch.tensor([2.0, 0.5, 0.0, -0.5, -1.0])[: self.tail_window]
+        prior = torch.tensor([3.0, 0.5, 0.0, -0.5, -1.0])[: self.tail_window]
         self.tail_logits = nn.Parameter(prior.clone())
+        # Adaptive slope coefficient beta_k in [0, 1] (adaptive mode only).
+        self.tail_beta = nn.Parameter(torch.full((self.tail_window,), 2.2))
         # Start the free trajectory in a sane RUL range so the first gradient
         # steps are informative.
         nn.init.constant_(self.trajectory_head[-1].bias, 2.0)
@@ -1448,7 +1538,14 @@ class CRGraphTransformer(nn.Module):
             return raw[:, -1:]
         tail = raw[:, -m:]  # (B, m)
         offsets = torch.arange(m, device=raw.device, dtype=raw.dtype)
-        corrected = tail - offsets  # y~_{L-k} - k
+        if self.tail_mode == "adaptive":
+            # The true slope is 0 on the healthy plateau and ~-1 cycle/step
+            # once degradation starts; gate the -k correction accordingly.
+            beta = torch.sigmoid(self.tail_beta)  # (m,)
+            decay = torch.sigmoid((115.0 - tail) / 10.0)
+            corrected = tail - beta * offsets * decay
+        else:
+            corrected = tail - offsets  # y~_{L-k} - k
         weights = torch.softmax(self.tail_logits, dim=0)
         terminal = (corrected * weights).sum(dim=-1, keepdim=True)
         if self.training:
@@ -1470,25 +1567,35 @@ class CRGraphTransformer(nn.Module):
         if x.ndim != 3:
             raise ValueError(f"Expected a 2-D or 3-D input tensor, got {tuple(x.shape)}.")
 
-        if self.use_crgcn:
-            spatial, adjacency = self.spatial(x, cond)
-        else:
-            spatial = self.spatial(x)
-            adjacency = None
-
         if cond is None:
             cond_vec = x.new_zeros(x.shape[0], x.shape[1], self.cond_dim)
         else:
             cond_vec = cond if cond.ndim == 3 else cond.unsqueeze(1).expand(-1, x.shape[1], -1)
+
         sensor_source = x
         if self.use_delta_features:
             delta = torch.zeros_like(x)
             if x.shape[1] > 1:
                 delta[:, 1:, :] = x[:, 1:, :] - x[:, :-1, :]
             sensor_source = torch.cat([x, delta], dim=-1)
-        spatial = spatial + self.sensor_proj(sensor_source)
+
+        if not self.use_spatial:
+            adjacency = None
+            temporal_input = self.sensor_proj(sensor_source)
+        elif self.use_crgcn and self.native_graph:
+            # Graph filtering stays in sensor space: (B, L, N) -> (B, L, D).
+            filtered, adjacency = self.spatial(x, cond_vec)
+            temporal_input = self.sensor_proj(filtered)
+        elif self.use_crgcn:
+            spatial, adjacency = self.spatial(x, cond)
+            temporal_input = spatial + self.sensor_proj(sensor_source)
+        else:
+            spatial = self.spatial(x)
+            adjacency = None
+            temporal_input = spatial + self.sensor_proj(sensor_source)
+
         gamma, beta = self.film(cond_vec).chunk(2, dim=-1)
-        temporal_input = spatial * (1.0 + gamma) + beta
+        temporal_input = temporal_input * (1.0 + gamma) + beta
 
         temporal, _ = self.temporal_branch(temporal_input, cond=cond_vec)
 
@@ -1537,6 +1644,7 @@ __all__ = [
     "SinusoidalPositionalEncoding",
     "ConvTransformerTemporalBranch",
     "ConditionRoutedGraphBranch",
+    "NativeSensorGraphFilter",
     "CRGraphTransformer",
     "monotonic_envelope",
     "STG_MambaNet",

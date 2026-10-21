@@ -77,6 +77,9 @@ VARIANT_ORDER = (
     "p9_wo_crgcn",
     "p9_wo_synergy_mono",
     "p9_full",
+    "p10_wo_crgcn",
+    "p10_wo_synergy_mono",
+    "p10_full",
 )
 VARIANT_LABELS = {
     "wo_agcn": "w/o A-GCN",
@@ -97,6 +100,9 @@ VARIANT_LABELS = {
     "p9_wo_crgcn": "P9 w/o CR-GCN",
     "p9_wo_synergy_mono": "P9 w/o Synergy+Mono (Pure MSE)",
     "p9_full": "Ours Full (CR-GraphTransformer)",
+    "p10_wo_crgcn": "P10 w/o Sensor-Graph",
+    "p10_wo_synergy_mono": "P10 w/o Adaptive Tail+Mono",
+    "p10_full": "Ours Full (Native Sensor-Graph Transformer)",
 }
 STG_VARIANTS = {
     "wo_agcn",
@@ -114,6 +120,9 @@ STG_VARIANTS = {
     "p9_wo_crgcn",
     "p9_wo_synergy_mono",
     "p9_full",
+    "p10_wo_crgcn",
+    "p10_wo_synergy_mono",
+    "p10_full",
 }
 BASELINE_VARIANTS = {"bilstm", "tcn", "transformer"}
 VARIANT_CONFIG = {
@@ -175,6 +184,38 @@ VARIANT_CONFIG = {
     "tcn": {"loss_mode": "mse", "model_type": "tcn", "d_model": 84},
     "transformer": {"loss_mode": "mse", "model_type": "transformer", "d_model": 88},
     # ---- P8: PA-GraphTransformer with lossless terminal-anchored envelope ----
+    # ---- P10: native 14x14 sensor-space graph + adaptive tail slope ----
+    "p10_full": {
+        "model_class": "crgraph",
+        "d_model": 88,
+        "ff_mult": 1.6,
+        "use_crgcn": True,
+        "use_synergy": True,
+        "native_graph": True,
+        "tail_mode": "adaptive",
+        "loss_mode": "full",
+    },
+    "p10_wo_crgcn": {
+        "model_class": "crgraph",
+        "d_model": 88,
+        "ff_mult": 1.6,
+        "use_crgcn": False,
+        "use_spatial": False,
+        "use_synergy": True,
+        "native_graph": False,
+        "tail_mode": "adaptive",
+        "loss_mode": "full",
+    },
+    "p10_wo_synergy_mono": {
+        "model_class": "crgraph",
+        "d_model": 88,
+        "ff_mult": 1.6,
+        "use_crgcn": True,
+        "use_synergy": False,
+        "native_graph": True,
+        "tail_mode": "adaptive",
+        "loss_mode": "mse",
+    },
     # ---- P9: sequential CR-GCN -> ConvTransformer -> synergized envelope ----
     "p9_full": {
         "model_class": "crgraph",
@@ -657,7 +698,10 @@ def model_config_from_args(args: argparse.Namespace, variant: str) -> dict:
             "use_crgcn": variant_cfg["use_crgcn"],
             "use_synergy": variant_cfg["use_synergy"],
             "tail_window": 5,
-            "ff_mult": 1.8,
+            "ff_mult": variant_cfg.get("ff_mult", 1.8),
+            "native_graph": variant_cfg.get("native_graph", False),
+            "use_spatial": variant_cfg.get("use_spatial", True),
+            "tail_mode": variant_cfg.get("tail_mode", "fixed"),
         }
     if variant in BASELINE_VARIANTS:
         return {

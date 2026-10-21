@@ -1,6 +1,13 @@
 # C-MAPSS Remaining Useful Life Prediction
 
-Current milestone: **P9 complete. Sequential CR-GCN -> ConvTransformer ->
+Current milestone: **P10 complete.** Native 14x14 sensor-space graph filter
+(no pooling, exact identity at init) + adaptive tail slope. It fixes the FD002
+graph sign (-0.266 -> +0.257) and passes the FD002 80/20 gate, but the plain
+Transformer still wins at 5 seeds (13.289 / 12.707 vs ours 13.753 / 13.709);
+P9 remains the FD001 record (13.209 / 12.868 ensemble). See
+[`P10_FINAL_VICTORY_REPORT.md`](P10_FINAL_VICTORY_REPORT.md).
+
+Previous milestone: **P9 complete. Sequential CR-GCN -> ConvTransformer ->
 synergized monotonic head, trained on 100% of engines for five seeds
 (2027-2031). FD001 13.209 single / 12.868 ensemble (best to date, beats the
 Transformer); FD002 13.490 / 12.904, still behind the Transformer by 0.51.
