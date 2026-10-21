@@ -3,7 +3,7 @@
 - 仓库：https://github.com/enterzxk/deepseekrul/tree/main/cmapss-rul
 - 基线 commit（本轮开始前）：`50769d8c84564b70405787dca14beb10168cc139`
 - 服务器：`/home/yndx/zxk/bearing-rul-pi`，单卡 A40
-- 本轮结束 commit：见文末（提交后填写）
+- 本轮结束 commit：`e46afd17f7f13e81585d473d5737af4423ab1224`
 
 > 本轮所有数字均由 `experiments/order01/**/metrics.json` 与
 > `pseudo_test_predictions.csv` 自动汇总，可用文末命令复算。
