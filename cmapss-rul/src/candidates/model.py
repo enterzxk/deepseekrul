@@ -94,6 +94,7 @@ class CandidateModel(nn.Module):
         use_dual_head: bool = True,
         max_rul: float = 125.0,
         use_sensor_id: bool = False,
+        use_shuffled_id: bool = False,
         use_independent_channels: bool = False,
         use_reliability: bool = False,
     ) -> None:
@@ -108,6 +109,7 @@ class CandidateModel(nn.Module):
         self.use_dual_head = bool(use_dual_head)
         self.max_rul = float(max_rul)
         self.use_sensor_id = bool(use_sensor_id)
+        self.use_shuffled_id = bool(use_shuffled_id)
         self.use_independent_channels = bool(use_independent_channels)
         self.use_reliability = bool(use_reliability)
 
@@ -119,12 +121,12 @@ class CandidateModel(nn.Module):
             )
         else:
             self.sensor_in = nn.Linear(per_sensor, d_model)
-        if self.use_sensor_id:
+        if self.use_sensor_id or self.use_shuffled_id:
             self.sensor_embed = nn.Embedding(self.num_sensors, d_model)
         if self.use_reliability:
             # reliability of the health reference, from conditioning + evidence count
             self.reliability = nn.Sequential(
-                nn.Linear(2, 16), nn.GELU(), nn.Linear(16, 1)
+                nn.Linear(4, 16), nn.GELU(), nn.Linear(16, 1)
             )
         self.time_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1, groups=d_model)
         self.time_norm = nn.LayerNorm(d_model)
@@ -181,11 +183,11 @@ class CandidateModel(nn.Module):
         if extras is not None:
             baseline = extras[:, :sensors].unsqueeze(1)  # (B, 1, N)
             cycle = extras[:, sensors : sensors + 1]  # (B, 1)
-            ref_count = extras[:, sensors + 1 : sensors + 2]  # (B, 1)
+            evidence_feats = extras[:, sensors + 1 : sensors + 5]  # (B, 4)
         else:
             baseline = x[:, :1, :]
             cycle = x.new_zeros(batch, 1)
-            ref_count = x.new_ones(batch, 1)
+            evidence_feats = x.new_zeros(batch, 4)
 
         feats = [x]
         if self.use_baseline:
@@ -200,10 +202,10 @@ class CandidateModel(nn.Module):
             # Reliability-aware degradation representation: mix the reference
             # residual with the raw measurement according to how trustworthy the
             # reference is (evidence count + operating condition).
-            evidence = torch.cat(
-                [ref_count.unsqueeze(1).expand(-1, length, -1),
-                 cycle.unsqueeze(1).expand(-1, length, -1)], dim=-1
-            )  # (B, L, 2): reference evidence count, cycle position
+            # Evidence: reference count, early-reference stability, current
+            # deviation from the reference, recent trend. All observable at
+            # prediction time (no future information).
+            evidence = evidence_feats.unsqueeze(1).expand(-1, length, -1)
             weight = torch.sigmoid(self.reliability(evidence))  # (B, L, 1)
             residual = x - baseline
             feats = [x, weight * residual + (1.0 - weight) * x]
@@ -225,7 +227,13 @@ class CandidateModel(nn.Module):
         conv_out = hh.reshape(batch, sensors, self.d_model, length).permute(0, 3, 1, 2)
         h = self.time_norm(h + self.dropout(conv_out))
 
-        if self.use_sensor_id:
+        if self.use_shuffled_id:
+            # Parameter-matched null control: same embedding table, but the
+            # identity assignment is randomly permuted every forward pass, so
+            # capacity matches Sensor-ID while identity information is destroyed.
+            ids = torch.randperm(sensors, device=x.device)
+            h = h + self.sensor_embed(ids).view(1, 1, sensors, -1)
+        elif self.use_sensor_id:
             ids = torch.arange(sensors, device=x.device)
             h = h + self.sensor_embed(ids).view(1, 1, sensors, -1)
         if self.use_graph:
@@ -288,6 +296,14 @@ def soft_nasa_loss(
 
 
 class TransformerWithFeatures(nn.Module):
+    FEATURE_SETS = {
+        "raw": (False, False, False),
+        "raw_base": (True, False, False),
+        "raw_ema": (False, True, False),
+        "raw_cycle": (False, False, True),
+        "full": (True, True, True),
+    }
+
     """Strong Transformer with the Track A feature set (fairness control).
 
     Same backbone family as baselines.VanillaTransformer, but fed the three
@@ -296,10 +312,16 @@ class TransformerWithFeatures(nn.Module):
     """
 
     def __init__(self, num_sensors: int = 14, window_size: int = 50, d_model: int = 88,
-                 num_heads: int = 4, num_layers: int = 2, dropout: float = 0.15) -> None:
+                 num_heads: int = 4, num_layers: int = 2, dropout: float = 0.15,
+                 feature_set: str = "full") -> None:
         super().__init__()
+        if feature_set not in self.FEATURE_SETS:
+            raise ValueError(f"feature_set must be one of {sorted(self.FEATURE_SETS)}")
+        self.feature_set = feature_set
+        self.use_base, self.use_ema, self.use_cycle = self.FEATURE_SETS[feature_set]
         self.num_sensors = int(num_sensors)
-        self.proj = nn.Linear(3 * num_sensors, d_model)
+        n_feat = num_sensors * (1 + int(self.use_base) + int(self.use_ema)) + int(self.use_cycle)
+        self.proj = nn.Linear(n_feat, d_model)
         self.pe = nn.Parameter(torch.zeros(1, window_size, d_model))
         nn.init.normal_(self.pe, std=0.02)
         self.layers = nn.ModuleList([
@@ -328,9 +350,18 @@ class TransformerWithFeatures(nn.Module):
     def forward(self, x, cond=None, extras=None, return_diagnostics=False):
         if extras is not None:
             baseline = extras[:, : self.num_sensors].unsqueeze(1)
+            cycle = extras[:, self.num_sensors : self.num_sensors + 1].unsqueeze(1)
         else:
             baseline = x[:, :1, :]
-        feats = torch.cat([x, x - baseline, self._ema(x, 0.5)], dim=-1)
+            cycle = x.new_zeros(x.shape[0], 1, 1)
+        parts = [x]
+        if self.use_base:
+            parts.append(x - baseline)
+        if self.use_ema:
+            parts.append(self._ema(x, 0.5))
+        if self.use_cycle:
+            parts.append(cycle.expand(-1, x.shape[1], 1))
+        feats = torch.cat(parts, dim=-1)
         h = self.proj(feats) + self.pe
         for layer in self.layers:
             h = layer(h)

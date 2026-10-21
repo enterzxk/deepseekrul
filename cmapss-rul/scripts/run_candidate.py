@@ -79,9 +79,24 @@ CONFIGS = {
     "tf": dict(baseline="transformer", use_baseline=False, use_ema_features=False,
                use_cycle=False, use_graph=False, use_dual_head=False,
                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
-    "tfA": dict(baseline="transformer_features", use_baseline=True, use_ema_features=True,
-                use_cycle=True, use_graph=False, use_dual_head=False,
+    "tfA": dict(baseline="transformer_features", feature_set="full", use_baseline=True,
+                use_ema_features=True, use_cycle=True, use_graph=False, use_dual_head=False,
                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "tfB": dict(baseline="transformer_features", feature_set="raw_base", use_baseline=True,
+                use_ema_features=False, use_cycle=False, use_graph=False, use_dual_head=False,
+                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "tfE": dict(baseline="transformer_features", feature_set="raw_ema", use_baseline=False,
+                use_ema_features=True, use_cycle=False, use_graph=False, use_dual_head=False,
+                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "tfC": dict(baseline="transformer_features", feature_set="raw_cycle", use_baseline=False,
+                use_ema_features=False, use_cycle=True, use_graph=False, use_dual_head=False,
+                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "S2": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+               use_graph=False, use_dual_head=False, use_model_ema=False,
+               use_shuffled_id=True, cls_weight=0.0, nasa_weight=0.0),
+    "S3": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+               use_graph=False, use_dual_head=False, use_model_ema=False,
+               use_independent_channels=True, cls_weight=0.0, nasa_weight=0.0),
     "Aid": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
                 use_graph=False, use_dual_head=False, use_model_ema=False,
                 use_sensor_id=True, cls_weight=0.0, nasa_weight=0.0),
@@ -133,7 +148,16 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
         early = seq[: min(5, seq.shape[0])]
         baseline = early.mean(axis=0) if early.shape[0] > 0 else global_baseline
         ref_count = float(min(early.shape[0], 5)) / 5.0
+        ref_std = float(early.std(axis=0).mean()) if early.shape[0] > 1 else 0.0
         cycles = group["cycle"].to_numpy(dtype=np.int64)
+
+        def evidence(end_idx: int) -> list[float]:
+            """Observable reliability evidence at a cutoff (no future info)."""
+            window = seq[max(0, end_idx - 49) : end_idx + 1]
+            deviation = float(np.abs(window - baseline).mean())
+            recent = seq[max(0, end_idx - 4) : end_idx + 1]
+            trend = float((recent[-1] - recent[0]).mean()) if recent.shape[0] > 1 else 0.0
+            return [ref_count, ref_std, deviation, trend]
         if cutoff is not None:
             # Official-test-style evaluation: only history up to the cut is
             # visible, one final window per engine.
@@ -142,13 +166,17 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
             rul_at_end = build_piecewise_linear_rul(group, max_rul=max_rul)[end - 1]
             xs.append(np.ascontiguousarray(visible[-window:]))
             ys.append(float(rul_at_end))
-            extras.append(np.concatenate([baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)]]))
+            extras.append(np.concatenate([
+                baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)], evidence(end - 1)
+            ]))
         elif test_mode:
             if seq.shape[0] < window:
                 pad = np.repeat(seq[:1], window - seq.shape[0], axis=0)
                 seq = np.concatenate([pad, seq], axis=0)
             xs.append(np.ascontiguousarray(seq[-window:]))
-            extras.append(np.concatenate([baseline, [min(cycles[-1] / CYCLE_SCALE, 1.0), ref_count]]))
+            extras.append(np.concatenate([
+                baseline, [min(cycles[-1] / CYCLE_SCALE, 1.0)], evidence(seq.shape[0] - 1)
+            ]))
             ys.append(0.0)
         else:
             rul = build_piecewise_linear_rul(group, max_rul=max_rul)
@@ -156,9 +184,61 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
             for end in range(window - 1, seq.shape[0], stride):
                 xs.append(np.ascontiguousarray(seq[end - window + 1 : end + 1]))
                 ys.append(float(rul[end]))
-                extras.append(np.concatenate([baseline, [min(cycles[end] / CYCLE_SCALE, 1.0), ref_count]]))
+                extras.append(np.concatenate([
+                    baseline, [min(cycles[end] / CYCLE_SCALE, 1.0)], evidence(end)
+                ]))
     return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
             np.stack(extras).astype(np.float32))
+
+
+def build_windows_abs(frame, values, window, max_rul, abs_cut):
+    """Protocol C: cut at an absolute observed cycle count (no future knowledge).
+
+    Engines shorter than the cut are skipped for that cut (recorded), which is
+    the sample-selection effect this protocol must expose rather than hide.
+    """
+    xs, ys, extras = [], [], []
+    kept_units = []
+    for _, group in frame.groupby("unit", sort=True):
+        pos = group.index.to_numpy(dtype=np.int64)
+        seq = np.asarray(values[pos], dtype=np.float32)
+        if seq.shape[0] < abs_cut:
+            continue
+        early = seq[: min(5, seq.shape[0])]
+        baseline = early.mean(axis=0)
+        ref_count = float(min(early.shape[0], 5)) / 5.0
+        ref_std = float(early.std(axis=0).mean()) if early.shape[0] > 1 else 0.0
+        cycles = group["cycle"].to_numpy(dtype=np.int64)
+        end = int(abs_cut)
+        window_vals = seq[end - window : end]
+        deviation = float(np.abs(window_vals - baseline).mean())
+        recent = seq[max(0, end - 5) : end]
+        trend = float((recent[-1] - recent[0]).mean()) if recent.shape[0] > 1 else 0.0
+        rul_at_end = build_piecewise_linear_rul(group, max_rul=max_rul)[end - 1]
+        xs.append(np.ascontiguousarray(window_vals))
+        ys.append(float(rul_at_end))
+        extras.append(np.concatenate([
+            baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)],
+            [ref_count, ref_std, deviation, trend],
+        ]))
+        kept_units.append(int(group["unit"].iloc[0]))
+    if not xs:
+        return None, None, None, []
+    return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
+            np.stack(extras).astype(np.float32), kept_units)
+
+
+def build_cond_abs(frame, values, window, abs_cut, kept_units):
+    out = []
+    wanted = set(kept_units)
+    for _, group in frame.groupby("unit", sort=True):
+        unit = int(group["unit"].iloc[0])
+        if unit not in wanted:
+            continue
+        pos = group.index.to_numpy(dtype=np.int64)
+        seq = np.asarray(values[pos], dtype=np.float32)
+        out.append(np.ascontiguousarray(seq[abs_cut - window : abs_cut]))
+    return np.stack(out).astype(np.float32)
 
 
 def build_cond_cut(frame, values, window, cutoff):
@@ -216,13 +296,20 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
     xva, yva, eva = build_windows(val_frame, va_s, window, 1, max_rul)
     ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
     cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
+    abs_sets = {}
+    for abs_cut in (80, 120, 160):
+        xa, ya, ea, units_a = build_windows_abs(val_frame, va_s, window, max_rul, abs_cut)
+        if xa is not None:
+            ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
+            abs_sets[abs_cut] = (WindowSet(xa, ya, ca, ea), units_a)
     pseudo = {}
     for frac in cutoffs:
         xpt, ypt, ept = build_windows(val_frame, va_s, window, 1, max_rul, cutoff=frac)
         cpt = build_cond_cut(val_frame, cond_v, window, frac) if cond_v is not None else None
         pseudo[frac] = WindowSet(xpt, ypt, cpt, ept)
     return (WindowSet(xtr, ytr, ctr, etr), WindowSet(xva, yva, cva, eva),
-            train_units, val_units, pseudo, sorted(int(u) for u in val_frame.unit.unique()))
+            train_units, val_units, pseudo, sorted(int(u) for u in val_frame.unit.unique()),
+            abs_sets)
 
 
 @torch.no_grad()
@@ -268,7 +355,7 @@ def main() -> int:
     model_seed = args.seed if args.model_seed is None else args.model_seed
     set_seed(model_seed)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids = prepare(
+    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets = prepare(
         args.subset, args.split_seed, args.window, 125.0,
         condition_aware=args.subset in {"FD002", "FD004"}, n_cond=6,
     )
@@ -279,6 +366,7 @@ def main() -> int:
         model = TransformerWithFeatures(
             num_sensors=14, window_size=args.window, d_model=88,
             num_layers=args.num_layers, dropout=args.dropout,
+            feature_set=cfg.get("feature_set", "full"),
         ).to(device)
     elif is_baseline:
         model = build_baseline(cfg["baseline"], num_sensors=14, d_model=88,
@@ -290,6 +378,8 @@ def main() -> int:
             use_baseline=cfg["use_baseline"], use_ema_features=cfg["use_ema_features"],
             use_cycle=cfg["use_cycle"], use_graph=cfg["use_graph"], use_dual_head=cfg["use_dual_head"],
             use_sensor_id=cfg.get("use_sensor_id", False),
+            use_shuffled_id=cfg.get("use_shuffled_id", False),
+            use_independent_channels=cfg.get("use_independent_channels", False),
             use_reliability=cfg.get("use_reliability", False),
         ).to(device)
     params = sum(p.numel() for p in model.parameters())
@@ -369,6 +459,17 @@ def main() -> int:
             "unit_id": val_unit_ids, "cutoff": frac, "y_true": true_pt,
             "y_pred": pred_pt, "signed_error": pred_pt - true_pt,
         }))
+    absolute_results = {}
+    absolute_frames = []
+    for abs_cut, (aset, aunits) in abs_sets.items():
+        loader = DataLoader(aset, batch_size=256, shuffle=False, num_workers=2)
+        rmse_a, pred_a, true_a = evaluate(model, loader, device, baseline=is_baseline)
+        absolute_results[f"cycles_{abs_cut}"] = rmse_a
+        absolute_frames.append(pd.DataFrame({
+            "unit_id": aunits, "abs_cut": abs_cut, "y_true": true_a,
+            "y_pred": pred_a, "signed_error": pred_a - true_a,
+        }))
+    absolute_frame = pd.concat(absolute_frames, ignore_index=True) if absolute_frames else pd.DataFrame()
     pseudo_frame = pd.concat(pseudo_frames, ignore_index=True)
     pt_rmse = float(np.mean(list(pseudo_results.values())))
 
@@ -383,6 +484,7 @@ def main() -> int:
         "restored_best_before_pseudo_test": bool(same),
         "pseudo_test_rmse_by_cutoff": pseudo_results,
         "pseudo_test_rmse_mean": pt_rmse,
+        "protocol_c_rmse_by_cycles": absolute_results,
         "pseudo_test_protocol": "validation engines truncated at fixed fractions of "
         "observed life, one final window per engine, targets clipped at 125",
         "val_units": val_units, "train_units_count": len(train_units),
@@ -391,6 +493,8 @@ def main() -> int:
     }, indent=2))
     (out_dir / "history.json").write_text(json.dumps(history, indent=2))
     pseudo_frame.to_csv(out_dir / "pseudo_test_predictions.csv", index=False)
+    if not absolute_frame.empty:
+        absolute_frame.to_csv(out_dir / "protocol_c_predictions.csv", index=False)
     pd.DataFrame(val_units, columns=["unit_id"]).to_csv(out_dir / "val_units.csv", index=False)
     print(f"BEST {args.variant} {args.subset} s{args.seed} val={best:.4f} params={params:,}", flush=True)
     return 0
