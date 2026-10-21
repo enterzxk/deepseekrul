@@ -1,6 +1,19 @@
 # C-MAPSS Remaining Useful Life Prediction
 
-Current milestone: **P10 complete.** Native 14x14 sensor-space graph filter
+Current milestone: **TIM track — Stage 1 complete, Stage 2 in progress.**
+
+> **Invalidation notice.** A real ordering bug was found in
+> `CRGraphTransformer._smooth_terminal` (tail window was old->new while the
+> weights and the `-k` offset are defined new->old), so **every P9/P10 number
+> that used the synergy head is void** and must be re-run. Baselines are not
+> affected. Fixed in this commit with regression tests
+> (`tests/test_audit_fixes.py`). The same commit corrects the Soft-NASA
+> surrogate, which invalidates the ABC/ABCE tournament cells.
+
+Stage-1 literature/protocol table: [`docs/LITERATURE_BENCHMARK.md`](docs/LITERATURE_BENCHMARK.md).
+Audit + Stage-2 report: [`TIM_AUDIT_AND_STAGE2_REPORT.md`](TIM_AUDIT_AND_STAGE2_REPORT.md).
+
+Previous milestone: **P10 complete.** Native 14x14 sensor-space graph filter
 (no pooling, exact identity at init) + adaptive tail slope. It fixes the FD002
 graph sign (-0.266 -> +0.257) and passes the FD002 80/20 gate, but the plain
 Transformer still wins at 5 seeds (13.289 / 12.707 vs ours 13.753 / 13.709);

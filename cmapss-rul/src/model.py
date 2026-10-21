@@ -1536,7 +1536,11 @@ class CRGraphTransformer(nn.Module):
         m = self.tail_window
         if m == 1:
             return raw[:, -1:]
-        tail = raw[:, -m:]  # (B, m)
+        # raw[:, -m:] is ordered old -> new, but k in the smoothing formula
+        # counts back from the terminal. Flip first so index k is y~_{L-k};
+        # otherwise both the weight prior and the -k offset act on the wrong
+        # end of the window (the terminal would be dominated by y~_{L-m+1}).
+        tail = torch.flip(raw[:, -m:], dims=[-1])  # (B, m), index k = y~_{L-k}
         offsets = torch.arange(m, device=raw.device, dtype=raw.dtype)
         if self.tail_mode == "adaptive":
             # The true slope is 0 on the healthy plateau and ~-1 cycle/step
