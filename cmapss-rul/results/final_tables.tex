@@ -139,3 +139,46 @@ Baseline Transformer & \textbf{12.68 $\pm$ 0.00} & \textbf{785.02 $\pm$ 0.00} & 
 \bottomrule
 \end{tabular}
 \end{table}
+
+% ===================== Phase 8 (added 2026-10-21) =====================
+
+\begin{table*}[t]
+\centering
+\caption{Phase 8 five-seed C-MAPSS results (clip125, seeds 2027--2031). Mono is the test-set monotone violation rate; the lossless envelope makes it exactly zero without touching the terminal prediction.}
+\label{tab:p8-main}
+\begin{tabular}{llccrrr}
+\toprule
+Dataset & Method & RMSE & NASA & MAE & Mono & Params \\
+\midrule
+FD001 & Baseline TCN & 18.10 $\pm$ 0.49 & 621.8 $\pm$ 127.0 & 14.07 & 0.000 & 145,237 \\
+FD001 & Baseline BiLSTM & 14.27 $\pm$ 0.57 & 331.9 $\pm$ 28.8 & 10.29 & 0.000 & 144,701 \\
+FD001 & Baseline Transformer & 13.55 $\pm$ 0.23 & 357.9 $\pm$ 30.0 & 9.78 & 0.000 & 144,146 \\
+FD001 & Ours w/o Graph & 13.81 $\pm$ 0.33 & 326.6 $\pm$ 13.5 & 9.73 & 0.000 & 141,318 \\
+FD001 & Ours w/o Physics+Mono & 13.79 $\pm$ 0.38 & 323.5 $\pm$ 13.6 & 9.82 & 0.501 & 141,766 \\
+FD001 & Ours Full (PA-GraphTransformer) & 13.59 $\pm$ 0.37 & \textbf{315.0 $\pm$ 10.8} & 9.77 & \textbf{0.000} & 141,766 \\
+\midrule
+FD002 & Baseline TCN & 18.87 $\pm$ 0.65 & 1716.4 $\pm$ 178.1 & 14.46 & 0.000 & 145,237 \\
+FD002 & Baseline BiLSTM & 13.55 $\pm$ 0.22 & 857.2 $\pm$ 76.6 & 9.99 & 0.000 & 144,701 \\
+FD002 & Baseline Transformer & \textbf{12.83 $\pm$ 0.36} & \textbf{781.8 $\pm$ 68.6} & 9.24 & 0.000 & 144,146 \\
+FD002 & Ours w/o Graph & 13.68 $\pm$ 0.53 & 942.0 $\pm$ 126.9 & 9.82 & 0.000 & 141,318 \\
+FD002 & Ours w/o Physics+Mono & 14.08 $\pm$ 0.84 & 1019.9 $\pm$ 244.0 & 10.14 & 0.496 & 141,766 \\
+FD002 & Ours Full (PA-GraphTransformer) & 14.45 $\pm$ 0.37 & 1056.0 $\pm$ 193.7 & 10.42 & \textbf{0.000} & 141,766 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[t]
+\centering
+\caption{Architectural and monotonic-mechanism evolution (FD001, seeds 2027--2029, identical backbone and loss weights). Swapping the Softplus integral head for the terminal-anchored envelope is worth 1.18 RMSE.}
+\label{tab:p8-evolution}
+\begin{tabular}{llcc}
+\toprule
+Backbone & Monotone mechanism & RMSE & Mono \\
+\midrule
+Conv-SSM & Terminal-anchored envelope & 15.89 $\pm$ 1.08 & 0.000 \\
+Conv-Transformer & Softplus integral head (P7) & 15.01 $\pm$ 0.25 & 0.000 \\
+Conv-Transformer & Terminal-anchored envelope & \textbf{13.84 $\pm$ 0.25} & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

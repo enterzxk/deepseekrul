@@ -1,7 +1,9 @@
 # C-MAPSS Remaining Useful Life Prediction
 
-Current milestone: **P0-P5 complete; FD001 5-seed confirmatory + FD002 3-seed
-external-validity runs done.**
+Current milestone: **P8 complete. FD001 and FD002 five-seed (2027-2031)
+studies done for PA-GraphTransformer with lossless terminal-anchored
+monotonic projection. Results, honest verdict, and execution log:
+[`P8_SOTA_REPORT.md`](P8_SOTA_REPORT.md), [`P8_EXECUTION_LOG.md`](P8_EXECUTION_LOG.md).**
 
 ## Layout
 

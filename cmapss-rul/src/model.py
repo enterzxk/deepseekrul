@@ -484,6 +484,153 @@ class BiLSTMAttentionTemporalBranch(nn.Module):
         return self.norm(self.proj(h)), None
 
 
+class GatedBranchFusion(nn.Module):
+    """Channel-wise two-branch gate without cross-attention (PA ablation).
+
+    Isolates how much of the PA-GraphTransformer behaviour comes from the
+    CrossAttentionGatedFusion module rather than from the backbone.
+    """
+
+    def __init__(self, d_model: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.gate = nn.Sequential(
+            nn.Linear(2 * d_model, d_model),
+            nn.Sigmoid(),
+        )
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        spatial: torch.Tensor,
+        temporal: torch.Tensor,
+    ) -> tuple[torch.Tensor, None, torch.Tensor]:
+        alpha = self.gate(torch.cat([spatial, temporal], dim=-1))
+        fused = alpha * spatial + (1.0 - alpha) * temporal
+        return self.norm(self.dropout(fused)), None, alpha
+
+
+class SinusoidalPositionalEncoding(nn.Module):
+    """Fixed sinusoidal positional encoding (P8 Conv-Transformer stem)."""
+
+    def __init__(self, d_model: int, max_len: int = 512) -> None:
+        super().__init__()
+        positions = torch.arange(max_len, dtype=torch.float32).unsqueeze(1)
+        div = torch.exp(
+            torch.arange(0, d_model, 2, dtype=torch.float32)
+            * (-math.log(10000.0) / d_model)
+        )
+        pe = torch.zeros(max_len, d_model)
+        pe[:, 0::2] = torch.sin(positions * div)
+        pe[:, 1::2] = torch.cos(positions * div)
+        self.register_buffer("pe", pe.unsqueeze(0), persistent=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self.pe[:, : x.shape[1], :].to(dtype=x.dtype)
+
+
+class ConvTransformerTemporalBranch(nn.Module):
+    """Condition-modulated local-conv + Transformer temporal encoder (P8).
+
+    A residual depthwise convolution (kernel 3) injects local degradation
+    slope information into every time-step token; sinusoidal positional
+    encoding then lets self-attention align same-condition states across
+    heterogeneous operating-condition switches (the FD002 failure mode of
+    recurrent backbones).  When a condition vector is supplied it is injected
+    through zero-initialised FiLM layers placed before every Transformer
+    block, so the branch starts as an unmodulated Transformer and learns the
+    modulation only if it reduces validation error.
+    """
+
+    def __init__(
+        self,
+        d_model: int = 64,
+        num_heads: int = 4,
+        num_layers: int = 2,
+        dropout: float = 0.1,
+        kernel_size: int = 3,
+        ff_mult: float = 2.0,
+        max_len: int = 512,
+        use_film: bool = True,
+        film_dim: int = 3,
+    ) -> None:
+        super().__init__()
+        if d_model % num_heads != 0:
+            raise ValueError("d_model must be divisible by num_heads.")
+        if kernel_size <= 1 or kernel_size % 2 == 0:
+            raise ValueError("kernel_size must be an odd integer greater than 1.")
+        self.d_model = int(d_model)
+        self.stem_conv = nn.Conv1d(
+            d_model,
+            d_model,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2,
+            groups=d_model,
+        )
+        self.stem_proj = nn.Linear(d_model, d_model)
+        self.stem_norm = nn.LayerNorm(d_model)
+        self.position = SinusoidalPositionalEncoding(d_model, max_len=max_len)
+        self.layers = nn.ModuleList(
+            [
+                nn.TransformerEncoderLayer(
+                    d_model=d_model,
+                    nhead=num_heads,
+                    dim_feedforward=int(round(ff_mult * d_model)),
+                    dropout=dropout,
+                    activation="gelu",
+                    batch_first=True,
+                    norm_first=True,
+                )
+                for _ in range(int(num_layers))
+            ]
+        )
+        if use_film:
+            self.films = nn.ModuleList(
+                [nn.Linear(film_dim, 2 * d_model) for _ in range(int(num_layers))]
+            )
+            for film in self.films:
+                nn.init.zeros_(film.weight)
+                nn.init.zeros_(film.bias)
+        else:
+            self.films = None
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        cond: Optional[torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, None]:
+        # x: (B, T, D)
+        stem = self.stem_conv(x.transpose(1, 2)).transpose(1, 2)
+        h = self.stem_norm(x + self.dropout(self.stem_proj(F.gelu(stem))))
+        h = self.position(h)
+        for index, layer in enumerate(self.layers):
+            if self.films is not None and cond is not None:
+                conditioning = cond if cond.ndim == 3 else cond.unsqueeze(1)
+                gamma, beta = self.films[index](conditioning).chunk(2, dim=-1)
+                h = h * (1.0 + gamma) + beta
+            h = layer(h)
+        return self.norm(h), None
+
+
+def monotonic_envelope(trajectory: torch.Tensor) -> torch.Tensor:
+    """Lossless terminal-anchored monotonic decreasing envelope.
+
+    For every position t the value becomes max_{k >= t} y_k, so the output is
+    non-increasing along time and its final element is exactly y_L (the free
+    terminal prediction).  Applied only at inference; training sees the raw
+    trajectory so that the soft monotonic penalty can shape it.
+    """
+    if trajectory.ndim == 1:
+        trajectory = trajectory.unsqueeze(0)
+    if trajectory.shape[1] <= 1:
+        return trajectory
+    flipped = torch.flip(trajectory, dims=[-1])
+    envelope = torch.cummax(flipped, dim=-1).values
+    return torch.flip(envelope, dims=[-1])
+
+
 class STG_MambaNet(nn.Module):
     """Spatial-temporal gated RUL regressor.
 
@@ -524,12 +671,18 @@ class STG_MambaNet(nn.Module):
         monotonic_head: bool = False,
         use_delta_features: bool = False,
         condition_film: bool = False,
+        monotonic_mode: Literal["none", "softplus", "projection", "free"] = "none",
+        conv_transformer_layers: int = 2,
+        film_in_layers: bool = True,
+        fusion_mode: Literal["cross", "gated"] = "cross",
     ) -> None:
         super().__init__()
         if spatial_mode not in {"graph", "independent"}:
             raise ValueError("spatial_mode must be 'graph' or 'independent'.")
-        if temporal_mode not in {"ssm", "lstm", "bilstm_attn"}:
-            raise ValueError("temporal_mode must be 'ssm', 'lstm', or 'bilstm_attn'.")
+        if temporal_mode not in {"ssm", "lstm", "bilstm_attn", "conv_transformer"}:
+            raise ValueError(
+                "temporal_mode must be 'ssm', 'lstm', 'bilstm_attn', or 'conv_transformer'."
+            )
         if graph_mode not in {"learnable", "identity", "random_fixed", "hollow"}:
             raise ValueError(
                 "graph_mode must be 'learnable', 'identity', 'random_fixed', or 'hollow'."
@@ -545,6 +698,17 @@ class STG_MambaNet(nn.Module):
         self.monotonic_head = bool(monotonic_head)
         self.use_delta_features = bool(use_delta_features)
         self.condition_film = bool(condition_film)
+        self.monotonic_mode = str(monotonic_mode).lower()
+        if self.monotonic_mode == "none" and self.monotonic_head:
+            self.monotonic_mode = "softplus"
+        if self.monotonic_mode not in {"none", "softplus", "projection", "free"}:
+            raise ValueError(
+                "monotonic_mode must be 'none', 'softplus', 'projection', or 'free'."
+            )
+        if self.monotonic_head and self.monotonic_mode != "softplus":
+            raise ValueError("monotonic_head=True requires monotonic_mode='softplus'.")
+        self.conv_transformer_layers = int(conv_transformer_layers)
+        self.film_in_layers = bool(film_in_layers)
         self.lstm_hidden_size = (
             int(d_model) if lstm_hidden_size is None else int(lstm_hidden_size)
         )
@@ -588,6 +752,14 @@ class STG_MambaNet(nn.Module):
                 state_dim=state_dim,
                 dropout=dropout,
             )
+        elif temporal_mode == "conv_transformer":
+            self.temporal_branch = ConvTransformerTemporalBranch(
+                d_model=d_model,
+                num_heads=num_heads,
+                num_layers=self.conv_transformer_layers,
+                dropout=dropout,
+                use_film=self.condition_film and self.film_in_layers,
+            )
         else:
             self.temporal_branch = LSTMTemporalBranch(
                 d_model=d_model,
@@ -595,17 +767,30 @@ class STG_MambaNet(nn.Module):
                 dropout=dropout,
                 hidden_size=self.lstm_hidden_size,
             )
-        self.fusion = CrossAttentionGatedFusion(
-            d_model=d_model,
-            num_heads=num_heads,
-            dropout=dropout,
-        )
+        self.fusion_mode = str(fusion_mode).lower()
+        if self.fusion_mode not in {"cross", "gated"}:
+            raise ValueError("fusion_mode must be 'cross' or 'gated'.")
+        if self.fusion_mode == "gated":
+            self.fusion = GatedBranchFusion(d_model=d_model, dropout=dropout)
+        else:
+            self.fusion = CrossAttentionGatedFusion(
+                d_model=d_model,
+                num_heads=num_heads,
+                dropout=dropout,
+            )
         self.regression_head = nn.Sequential(
             nn.Linear(2 * d_model, d_model),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(d_model, 1),
         )
+        if self.monotonic_mode in {"projection", "free"}:
+            self.trajectory_head = nn.Sequential(
+                nn.Linear(2 * d_model, d_model),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(d_model, 1),
+            )
         if self.monotonic_head:
             self.mono_rate = nn.Sequential(
                 nn.Linear(d_model, d_model),
@@ -613,6 +798,18 @@ class STG_MambaNet(nn.Module):
                 nn.Linear(d_model, 1),
             )
         self._reset_parameters()
+        # _reset_parameters walks every Linear (including FiLM layers), so the
+        # zero-initialisation of the conditioning paths must be re-applied
+        # afterwards.  Otherwise FiLM starts as a random affine map and the
+        # "identity-at-init" claim is false.
+        if self.condition_film:
+            nn.init.zeros_(self.film.weight)
+            nn.init.zeros_(self.film.bias)
+        if isinstance(self.temporal_branch, ConvTransformerTemporalBranch):
+            if self.temporal_branch.films is not None:
+                for film in self.temporal_branch.films:
+                    nn.init.zeros_(film.weight)
+                    nn.init.zeros_(film.bias)
         if self.monotonic_head:
             nn.init.constant_(self.mono_rate[-1].bias, -1.0)
 
@@ -686,7 +883,10 @@ class STG_MambaNet(nn.Module):
                 cond = cond.unsqueeze(1)
             gamma, beta = self.film(cond).chunk(2, dim=-1)
             temporal_input = temporal_input * (1.0 + gamma) + beta
-        temporal, scale_weights = self.temporal_branch(temporal_input)
+        if isinstance(self.temporal_branch, ConvTransformerTemporalBranch):
+            temporal, scale_weights = self.temporal_branch(temporal_input, cond=cond)
+        else:
+            temporal, scale_weights = self.temporal_branch(temporal_input)
         fused, branch_weights, channel_gate = self.fusion(spatial, temporal)
 
         last_state = fused[:, -1, :]
@@ -696,7 +896,21 @@ class STG_MambaNet(nn.Module):
         )  # (B, 1)
 
         trajectory: Optional[torch.Tensor] = None
-        if self.monotonic_head:
+        if self.monotonic_mode in {"projection", "free"}:
+            # P8: free per-step regression, terminal prediction reused as-is.
+            context = torch.cat(
+                [fused, mean_state.unsqueeze(1).expand(-1, fused.shape[1], -1)],
+                dim=-1,
+            )
+            raw_trajectory = self.trajectory_head(context).squeeze(-1)  # (B, T)
+            prediction = raw_trajectory[:, -1:]
+            if self.monotonic_mode == "projection" and not self.training:
+                # Inference-only lossless projection: strict monotone envelope
+                # anchored at the untouched terminal prediction.
+                trajectory = monotonic_envelope(raw_trajectory)
+            else:
+                trajectory = raw_trajectory
+        elif self.monotonic_head:
             # Terminal-anchored structural monotonic head.  The unconstrained
             # terminal RUL prediction is reused, while non-negative future
             # increments reconstruct a non-increasing trajectory ending at it.
@@ -724,9 +938,10 @@ class STG_MambaNet(nn.Module):
 
         if return_diagnostics:
             diagnostics: Dict[str, torch.Tensor] = {
-                "fusion_branch_weights": branch_weights.detach(),
                 "fusion_channel_gate": channel_gate.detach(),
             }
+            if branch_weights is not None:
+                diagnostics["fusion_branch_weights"] = branch_weights.detach()
             if adjacency is not None:
                 diagnostics["adjacency"] = adjacency.detach()
             if scale_weights is not None:
@@ -1012,6 +1227,9 @@ __all__ = [
     "LSTMTemporalBranch",
     "MultiScaleStateSpaceTemporalBlock",
     "CrossAttentionGatedFusion",
+    "SinusoidalPositionalEncoding",
+    "ConvTransformerTemporalBranch",
+    "monotonic_envelope",
     "STG_MambaNet",
     "LiteSpatialBranch",
     "LiteGatedFusion",

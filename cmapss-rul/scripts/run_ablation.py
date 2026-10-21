@@ -68,6 +68,12 @@ VARIANT_ORDER = (
     "bilstm",
     "tcn",
     "transformer",
+    "p8_wo_graph",
+    "p8_wo_phys_mono",
+    "p8_conv_ssm",
+    "p8_softplus",
+    "p8_no_fusion",
+    "p8_full",
 )
 VARIANT_LABELS = {
     "wo_agcn": "w/o A-GCN",
@@ -79,8 +85,27 @@ VARIANT_LABELS = {
     "bilstm": "Baseline BiLSTM",
     "tcn": "Baseline TCN",
     "transformer": "Baseline Transformer",
+    "p8_wo_graph": "Ours w/o Graph (Conv-Transformer)",
+    "p8_wo_phys_mono": "Ours w/o Physics+Mono (Pure MSE)",
+    "p8_conv_ssm": "Conv-SSM + Lossless Projection",
+    "p8_softplus": "Softplus-Mono-Head (P7)",
+    "p8_no_fusion": "Ours w/o Cross-Attn Fusion",
+    "p8_full": "Ours Full (PA-GraphTransformer)",
 }
-STG_VARIANTS = {"wo_agcn", "identity_graph", "wo_ssm", "wo_physics", "wo_mono", "full"}
+STG_VARIANTS = {
+    "wo_agcn",
+    "identity_graph",
+    "wo_ssm",
+    "wo_physics",
+    "wo_mono",
+    "full",
+    "p8_wo_graph",
+    "p8_wo_phys_mono",
+    "p8_conv_ssm",
+    "p8_softplus",
+    "p8_no_fusion",
+    "p8_full",
+}
 BASELINE_VARIANTS = {"bilstm", "tcn", "transformer"}
 VARIANT_CONFIG = {
     "wo_agcn": {
@@ -140,6 +165,68 @@ VARIANT_CONFIG = {
     "bilstm": {"loss_mode": "mse", "model_type": "bilstm", "d_model": 100},
     "tcn": {"loss_mode": "mse", "model_type": "tcn", "d_model": 84},
     "transformer": {"loss_mode": "mse", "model_type": "transformer", "d_model": 88},
+    # ---- P8: PA-GraphTransformer with lossless terminal-anchored envelope ----
+    "p8_full": {
+        "spatial_mode": "graph",
+        "graph_mode": "hollow",
+        "temporal_mode": "conv_transformer",
+        "loss_mode": "full",
+        "monotonic_head": False,
+        "monotonic_mode": "projection",
+        "use_delta_features": False,
+        "condition_film": True,
+    },
+    "p8_wo_graph": {
+        "spatial_mode": "independent",
+        "graph_mode": "identity",
+        "temporal_mode": "conv_transformer",
+        "loss_mode": "full",
+        "monotonic_head": False,
+        "monotonic_mode": "projection",
+        "use_delta_features": False,
+        "condition_film": True,
+    },
+    "p8_wo_phys_mono": {
+        "spatial_mode": "graph",
+        "graph_mode": "hollow",
+        "temporal_mode": "conv_transformer",
+        "loss_mode": "mse",
+        "monotonic_head": False,
+        "monotonic_mode": "free",
+        "use_delta_features": False,
+        "condition_film": True,
+    },
+    "p8_conv_ssm": {
+        "spatial_mode": "graph",
+        "graph_mode": "hollow",
+        "temporal_mode": "ssm",
+        "loss_mode": "full",
+        "monotonic_head": False,
+        "monotonic_mode": "projection",
+        "use_delta_features": False,
+        "condition_film": True,
+    },
+    "p8_no_fusion": {
+        "spatial_mode": "graph",
+        "graph_mode": "hollow",
+        "temporal_mode": "conv_transformer",
+        "loss_mode": "full",
+        "monotonic_head": False,
+        "monotonic_mode": "projection",
+        "use_delta_features": False,
+        "condition_film": True,
+        "fusion_mode": "gated",
+    },
+    "p8_softplus": {
+        "spatial_mode": "graph",
+        "graph_mode": "hollow",
+        "temporal_mode": "conv_transformer",
+        "loss_mode": "full",
+        "monotonic_head": True,
+        "monotonic_mode": "softplus",
+        "use_delta_features": False,
+        "condition_film": True,
+    },
 }
 
 
@@ -537,8 +624,11 @@ def model_config_from_args(args: argparse.Namespace, variant: str) -> dict:
         "identity_prior_alpha": args.identity_prior_alpha,
         "hollow_alpha": args.hollow_alpha,
         "monotonic_head": variant_cfg["monotonic_head"],
+        "monotonic_mode": variant_cfg.get("monotonic_mode", "none"),
         "use_delta_features": variant_cfg["use_delta_features"],
         "condition_film": variant_cfg.get("condition_film", False),
+        "conv_transformer_layers": args.conv_transformer_layers,
+        "fusion_mode": variant_cfg.get("fusion_mode", "cross"),
         "temporal_mode": variant_cfg["temporal_mode"],
         "lstm_num_layers": args.lstm_num_layers,
         "lstm_hidden_size": args.lstm_hidden_size,
@@ -559,6 +649,15 @@ def run_one(
     run_root: Path,
 ) -> dict:
     set_seed(seed)
+    # The dilated-convolution TCN falls back to a ~72x slower deterministic
+    # cuDNN kernel; keep bitwise determinism for every other variant and use
+    # the fast kernel only for this external baseline (documented in config).
+    if variant == "tcn":
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
+    else:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     run_dir = run_root / f"seed_{seed}" / variant
     run_dir.mkdir(parents=True, exist_ok=False)
 
@@ -653,6 +752,7 @@ def run_one(
         "validation_windows": len(prepared.validation),
         "test_windows": len(prepared.test),
         "num_parameters": num_parameters,
+        "cudnn_deterministic": bool(torch.backends.cudnn.deterministic),
         "selection_metric": "validation_rmse",
         "test_usage": "single final evaluation after training",
     }
@@ -884,6 +984,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-heads", type=int, default=4)
     parser.add_argument("--lstm-num-layers", type=int, default=2)
     parser.add_argument("--lstm-hidden-size", type=int, default=70)
+    parser.add_argument("--conv-transformer-layers", type=int, default=2)
     parser.add_argument("--identity-prior-alpha", type=float, default=0.1)
     parser.add_argument("--hollow-alpha", type=float, default=0.35)
     parser.add_argument("--dropout", type=float, default=0.1)
