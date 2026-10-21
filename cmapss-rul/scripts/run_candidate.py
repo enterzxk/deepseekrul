@@ -136,6 +136,85 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
+def build_windows_condref(frame, values, window, max_rul, cluster_labels, pop_ref,
+                           tau=2.0, cutoff=None, test_mode=False, abs_cut=None,
+                           matched_seed=None):
+    """Condition-matched healthy reference with Bayesian shrinkage.
+
+    x_ref = n/(n+tau) * xbar_(i,m) + tau/(n+tau) * mu_pop,m
+
+    where m is the operating-condition cluster of the current step, xbar_(i,m)
+    is engine i's own early healthy mean inside cluster m (first 30 cycles,
+    first 5 samples, only rows before the cut) and mu_pop,m is the training
+    population healthy mean for that cluster. With n = 0 the reference falls
+    back 100% to the population prior, so a condition the engine has never
+    visited cannot inject a wrong individual baseline.
+    """
+    xs, ys, extras, units = [], [], [], []
+    for _, group in frame.groupby("unit", sort=True):
+        pos = group.index.to_numpy(dtype=np.int64)
+        seq = np.asarray(values[pos], dtype=np.float32)
+        clusters = np.asarray(cluster_labels[pos], dtype=np.int64)
+        cycles = group["cycle"].to_numpy(dtype=np.int64)
+        rul = build_piecewise_linear_rul(group, max_rul=max_rul)
+        length = seq.shape[0]
+
+        ends = []
+        if abs_cut is not None:
+            if length < abs_cut:
+                continue
+            ends = [int(abs_cut)]
+        elif matched_seed is not None:
+            rng_m = np.random.default_rng(matched_seed + int(group["unit"].iloc[0]))
+            end = int(rng_m.integers(40, max(41, int(0.95 * length)) + 1))
+            ends = [min(max(end, window), length)]
+        elif cutoff is not None:
+            ends = [min(max(window, int(round(length * cutoff))), length)]
+        elif test_mode:
+            ends = [length]
+        else:
+            ends = list(range(window, length + 1))
+
+        for end in ends:
+            t = end - 1
+            m = int(clusters[t])
+            early = np.where((cycles <= 30) & (clusters == m) & (np.arange(length) <= t))[0]
+            sample_idx = early[-5:] if early.size > 5 else early
+            n = int(sample_idx.size)
+            if n > 0:
+                xbar = seq[sample_idx].mean(axis=0)
+                std_ref = float(seq[sample_idx].std(axis=0).mean()) if n > 1 else 0.0
+                age = float(cycles[sample_idx].mean())
+            else:
+                xbar = np.zeros(seq.shape[1], dtype=np.float32)
+                std_ref = 0.0
+                age = 30.0
+            ref = (n / (n + tau)) * xbar + (tau / (n + tau)) * pop_ref[m]
+            window_vals = seq[max(0, end - window) : end]
+            deviation = float(np.abs(window_vals - ref).mean())
+            ema_state = seq[0].copy()
+            for row in seq[:end]:
+                ema_state = 0.5 * ema_state + 0.5 * row
+            jitter = float(np.abs(seq[t] - ema_state).mean())
+            evidence = [min(1.0, n / 5.0), 1.0 if n >= 1 else 0.0,
+                        float(np.exp(-age / 30.0)), float(np.exp(-deviation)),
+                        1.0 / (1.0 + std_ref), jitter]
+            xs.append(np.ascontiguousarray(window_vals))
+            ys.append(float(rul[t]))
+            extras.append(np.concatenate([
+                ref, [min(cycles[t] / CYCLE_SCALE, 1.0)], evidence
+            ]))
+            units.append(int(group["unit"].iloc[0]))
+    if not xs:
+        return None, None, None, []
+    return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
+            np.stack(extras).astype(np.float32), units)
+
+
+def build_cond_labels(frame, op_values, kmeans):
+    return kmeans.predict(np.asarray(op_values, dtype=np.float64)).astype(np.int64)
+
+
 def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutoff=None):
     """Windows plus (per-sensor healthy baseline, fixed-scale cycle coordinate).
 
@@ -321,7 +400,8 @@ def build_cond(frame, values, window):
 
 
 def prepare(subset: str, split_seed: int, window: int, max_rul: float,
-            condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9)):
+            condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9),
+            ref_mode: str = "cond"):
     """Build the development split. Engine partition depends ONLY on split_seed.
 
     Returns train/val window sets plus one deployment-style pseudo-test set per
@@ -351,21 +431,51 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
         scaler = SensorMinMaxScaler(cols)
         tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
         va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
-    xtr, ytr, etr = build_windows(train_frame, tr_s, window, 1, max_rul)
-    xva, yva, eva = build_windows(val_frame, va_s, window, 1, max_rul)
+    # ---- condition-matched healthy reference (ORDER_03 Step 2) ----
+    kmeans = None
+    pop_ref = None
+    if condition_aware:
+        from sklearn.cluster import KMeans
+        op_cols = ["op_1", "op_2", "op_3"]
+        train_op = train_frame[op_cols].to_numpy(dtype=np.float64)
+        kmeans = KMeans(n_clusters=n_cond, random_state=split_seed, n_init=10).fit(train_op)
+        labels_train = kmeans.labels_.astype(np.int64)
+        labels_val = kmeans.predict(val_frame[op_cols].to_numpy(dtype=np.float64)).astype(np.int64)
+        pop_ref = np.zeros((n_cond, tr_s.shape[1]), dtype=np.float32)
+        early_mask = train_frame["cycle"].to_numpy(dtype=np.int64) <= 15
+        for m in range(n_cond):
+            sel = early_mask & (labels_train == m)
+            pop_ref[m] = tr_s[sel].mean(axis=0) if sel.any() else tr_s.mean(axis=0)
+    else:
+        labels_train = np.zeros(len(train_frame), dtype=np.int64)
+        labels_val = np.zeros(len(val_frame), dtype=np.int64)
+        pop_ref = tr_s[: min(15 * len(train_units), tr_s.shape[0])].mean(axis=0)[None, :]
+
+    def make(fr, vals, labels, **kw):
+        if condition_aware and ref_mode == "pop":
+            kw.setdefault("tau", 1.0e6)  # reference collapses to the population prior
+        if condition_aware and ref_mode in {"cond", "pop"}:
+            return build_windows_condref(fr, vals, window, max_rul, labels, pop_ref, **kw)
+        x, y, e = build_windows(fr, vals, window, 1, max_rul,
+                                test_mode=kw.get("test_mode", False),
+                                cutoff=kw.get("cutoff"))
+        return x, y, e, sorted(int(u) for u in fr["unit"].unique())
+
+    xtr, ytr, etr, _ = make(train_frame, tr_s, labels_train)
+    xva, yva, eva, _ = make(val_frame, va_s, labels_val)
     ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
     cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
     abs_sets = {}
     for abs_cut in (60, 100, 140, 180, 220):
-        xa, ya, ea, units_a = build_windows_abs(val_frame, va_s, window, max_rul, abs_cut)
+        xa, ya, ea, units_a = make(val_frame, va_s, labels_val, abs_cut=abs_cut)
         if xa is not None:
             ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
             abs_sets[abs_cut] = (WindowSet(xa, ya, ca, ea), units_a)
-    xm, ym, em, um = build_windows_matched(val_frame, va_s, window, max_rul)
+    xm, ym, em, um = make(val_frame, va_s, labels_val, matched_seed=2026)
     matched_set = WindowSet(xm, ym, None, em)
     pseudo = {}
     for frac in cutoffs:
-        xpt, ypt, ept = build_windows(val_frame, va_s, window, 1, max_rul, cutoff=frac)
+        xpt, ypt, ept, _ = make(val_frame, va_s, labels_val, cutoff=frac)
         cpt = build_cond_cut(val_frame, cond_v, window, frac) if cond_v is not None else None
         pseudo[frac] = WindowSet(xpt, ypt, cpt, ept)
     return (WindowSet(xtr, ytr, ctr, etr), WindowSet(xva, yva, cva, eva),
@@ -410,6 +520,8 @@ def main() -> int:
     parser.add_argument("--num-layers", type=int, default=2)
     parser.add_argument("--out", default="experiments/tournament")
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--ref-mode", choices=("cond", "pop", "global"), default="cond")
+    parser.add_argument("--late-weight", type=float, default=1.8)
     args = parser.parse_args()
 
     cfg = CONFIGS[args.variant]
@@ -419,6 +531,7 @@ def main() -> int:
     train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets, matched_set, matched_units = prepare(
         args.subset, args.split_seed, args.window, 125.0,
         condition_aware=args.subset in {"FD002", "FD004"}, n_cond=6,
+        ref_mode=args.ref_mode,
     )
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=512, shuffle=False, num_workers=2)
@@ -469,7 +582,7 @@ def main() -> int:
             y = y.reshape(-1, 1)
             delta = pred - y
             loss = nn.functional.mse_loss(pred, y)
-            late = torch.where(delta > 0, 2.0 * delta.square(), delta.square())
+            late = torch.where(delta > 0, args.late_weight * delta.square(), delta.square())
             loss = loss + 0.5 * late.mean()
             if cfg["cls_weight"] > 0 and "logit" in out:
                 label = (y < 124.5).float()

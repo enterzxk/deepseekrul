@@ -127,6 +127,10 @@ class CandidateModel(nn.Module):
             self.sensor_in = nn.Linear(per_sensor, d_model)
         if self.use_sensor_id or self.use_shuffled_id:
             self.sensor_embed = nn.Embedding(self.num_sensors, d_model)
+            if self.use_sensor_id:
+                # zero-initialised identity gate: no channel bias at step 0,
+                # so single-condition data cannot overfit it before it helps.
+                self.id_scale = nn.Parameter(torch.zeros(1))
         if self.use_fixed_id:
             # frozen sinusoidal channel code: 0 trainable parameters
             positions = torch.arange(self.num_sensors, dtype=torch.float32).unsqueeze(1)
@@ -261,7 +265,7 @@ class CandidateModel(nn.Module):
             h = h + self.sensor_embed(ids).view(1, 1, sensors, -1)
         elif self.use_sensor_id:
             ids = torch.arange(sensors, device=x.device)
-            h = h + self.sensor_embed(ids).view(1, 1, sensors, -1)
+            h = h + self.id_scale * self.sensor_embed(ids).view(1, 1, sensors, -1)
         if self.use_graph:
             flat = h.reshape(batch * length, sensors, self.d_model)
             flat_cond = cond_t.reshape(batch * length, 1, 3)
