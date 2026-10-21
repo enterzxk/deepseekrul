@@ -1219,6 +1219,313 @@ class Lite_STG_Mamba(nn.Module):
     def num_parameters(self) -> int:
         return sum(parameter.numel() for parameter in self.parameters())
 
+class BatchedGraphConv(nn.Module):
+    """Residual graph-convolution layer with a per-time-step adjacency.
+
+    Unlike AdaptiveGraphConv, the propagation matrix here is (B, L, N, N),
+    which is what condition-routed dynamic graphs produce.
+    """
+
+    def __init__(self, d_model: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.proj = nn.Linear(d_model, d_model, bias=False)
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor, adjacency: torch.Tensor) -> torch.Tensor:
+        # x: (B, L, N, D), adjacency: (B, L, N, N)
+        aggregated = torch.einsum("btij,btjf->btif", adjacency, x)
+        update = self.dropout(F.gelu(self.proj(aggregated)))
+        return x + self.norm(update)
+
+
+class ConditionRoutedGraphBranch(nn.Module):
+    """Condition-Routed Dynamic Graph (CR-GCN), sequential spatial encoder.
+
+    Three learnable hollow (zero-diagonal) base couplings are mixed per time
+    step by a conditioning router, and the mixture is blended with the
+    identity by a zero-initialised gate:
+
+        pi_t    = softmax(Linear(c_t))                     (B, L, K)
+        alpha_t = max_alpha * sigmoid(Linear_zero(c_t) - 1.5)
+        A_t     = (1 - alpha_t) I + alpha_t sum_k pi_tk A_k
+
+    With zero-initialised gate weights alpha_t starts at
+    max_alpha * sigmoid(-1.5) ~= 0.036, so the block begins almost as an
+    identity map and only opens cross-sensor coupling where the operating
+    condition makes it useful.  For a single-condition subset the router
+    receives an all-zero condition vector, which degenerates to one shared
+    mixing over the bases without any special-casing.
+    """
+
+    def __init__(
+        self,
+        num_sensors: int = 14,
+        d_model: int = 64,
+        graph_embed_dim: int = 16,
+        num_bases: int = 3,
+        num_layers: int = 2,
+        dropout: float = 0.1,
+        max_alpha: float = 0.20,
+        cond_dim: int = 3,
+    ) -> None:
+        super().__init__()
+        self.num_sensors = int(num_sensors)
+        self.num_bases = int(num_bases)
+        self.max_alpha = float(max_alpha)
+        self.cond_dim = int(cond_dim)
+        self.node_proj = nn.Linear(1, d_model)
+        self.E1 = nn.Parameter(torch.empty(num_bases, num_sensors, graph_embed_dim))
+        self.E2 = nn.Parameter(torch.empty(num_bases, num_sensors, graph_embed_dim))
+        nn.init.xavier_uniform_(self.E1)
+        nn.init.xavier_uniform_(self.E2)
+        self.router = nn.Linear(cond_dim, num_bases)
+        self.gate = nn.Linear(cond_dim, 1)
+        nn.init.zeros_(self.gate.weight)
+        nn.init.zeros_(self.gate.bias)
+        self.layers = nn.ModuleList(
+            [BatchedGraphConv(d_model, dropout=dropout) for _ in range(num_layers)]
+        )
+        self.se = nn.Sequential(
+            nn.Linear(2 * d_model, d_model),
+            nn.Sigmoid(),
+        )
+        self.node_score = nn.Linear(d_model, 1)
+        self.out_norm = nn.LayerNorm(d_model)
+
+    def base_matrices(self) -> torch.Tensor:
+        """Return (K, N, N) row-stochastic hollow couplings."""
+        logits = torch.relu(torch.matmul(self.E1, self.E2.transpose(1, 2)))
+        mask = torch.eye(self.num_sensors, device=logits.device, dtype=torch.bool)
+        logits = logits.masked_fill(mask.unsqueeze(0), -1.0e9)
+        return torch.softmax(logits, dim=-1)
+
+    def route(self, cond: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        pi = torch.softmax(self.router(cond), dim=-1)
+        alpha = self.max_alpha * torch.sigmoid(self.gate(cond) - 1.5)
+        return pi, alpha
+
+    def compose(
+        self,
+        pi: torch.Tensor,
+        alpha: torch.Tensor,
+    ) -> torch.Tensor:
+        bases = self.base_matrices()  # (K, N, N)
+        mixed = torch.einsum("btk,kij->btij", pi, bases)
+        identity = torch.eye(
+            self.num_sensors, device=mixed.device, dtype=mixed.dtype
+        ).unsqueeze(0).unsqueeze(0)
+        return (1.0 - alpha.unsqueeze(-1)) * identity + alpha.unsqueeze(-1) * mixed
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        cond: Optional[torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        # x: (B, L, N)
+        batch, length, sensors = x.shape
+        if cond is None:
+            cond = x.new_zeros(batch, length, self.cond_dim)
+        elif cond.ndim == 2:
+            cond = cond.unsqueeze(1).expand(-1, length, -1)
+
+        pi, alpha = self.route(cond)  # (B, L, K), (B, L, 1)
+        adjacency = self.compose(pi, alpha)  # (B, L, N, N)
+
+        h = self.node_proj(x.unsqueeze(-1))  # (B, L, N, D)
+        for layer in self.layers:
+            h = layer(h, adjacency)
+
+        # Squeeze-and-excitation over the sensor-node axis.
+        stats = torch.cat([h.mean(dim=2), h.amax(dim=2)], dim=-1)  # (B, L, 2D)
+        gate = self.se(stats).unsqueeze(2)  # (B, L, 1, D)
+        h = h * gate
+
+        weights = torch.softmax(self.node_score(h).squeeze(-1), dim=-1)
+        spatial = (weights.unsqueeze(-1) * h).sum(dim=2)  # (B, L, D)
+        return self.out_norm(spatial), adjacency.mean(dim=(0, 1))
+
+
+class CRGraphTransformer(nn.Module):
+    """Sequential CR-GCN -> ConvTransformer -> synergized monotonic head.
+
+    Data flow (no parallel branches, no cross-attention fusion):
+
+        (B, L, N) --CR-GCN--> (B, L, D) --conv stem + PE + FiLM Transformer-->
+        (B, L, D) --trajectory head--> y~ (B, L) --tail smoothing + envelope-->
+        y_hat (B, L), y_hat[:, -1] = terminal prediction
+    """
+
+    def __init__(
+        self,
+        num_sensors: int = 14,
+        window_size: int = 50,
+        d_model: int = 64,
+        graph_embed_dim: int = 16,
+        num_bases: int = 3,
+        num_gcn_layers: int = 2,
+        num_heads: int = 4,
+        num_transformer_layers: int = 2,
+        dropout: float = 0.15,
+        max_alpha: float = 0.20,
+        cond_dim: int = 3,
+        use_crgcn: bool = True,
+        use_synergy: bool = True,
+        tail_window: int = 5,
+        max_rul: float = 125.0,
+        use_delta_features: bool = False,
+        ff_mult: float = 2.0,
+    ) -> None:
+        super().__init__()
+        if tail_window < 1:
+            raise ValueError("tail_window must be positive.")
+        self.num_sensors = int(num_sensors)
+        self.window_size = int(window_size)
+        self.d_model = int(d_model)
+        self.use_crgcn = bool(use_crgcn)
+        self.use_synergy = bool(use_synergy)
+        self.tail_window = int(tail_window)
+        self.max_rul = float(max_rul)
+        self.cond_dim = int(cond_dim)
+
+        if self.use_crgcn:
+            self.spatial = ConditionRoutedGraphBranch(
+                num_sensors=num_sensors,
+                d_model=d_model,
+                graph_embed_dim=graph_embed_dim,
+                num_bases=num_bases,
+                num_layers=num_gcn_layers,
+                dropout=dropout,
+                max_alpha=max_alpha,
+                cond_dim=cond_dim,
+            )
+            cond_features = cond_dim
+        else:
+            self.spatial = IndependentSpatialBranch(
+                num_sensors=num_sensors, d_model=d_model, dropout=dropout
+            )
+            cond_features = cond_dim
+
+        # Sensor residual: the sequential design pools the 14 sensors inside
+        # the CR-GCN block. Without this direct projection the Transformer
+        # would never see raw sensor channels again, which measurably destroys
+        # FD002 accuracy. This is a residual, not a fusion module.
+        self.sensor_proj = nn.Linear(
+            num_sensors * (2 if use_delta_features else 1), d_model
+        )
+        self.use_delta_features = bool(use_delta_features)
+        self.film = nn.Linear(cond_features, 2 * d_model)
+        nn.init.zeros_(self.film.weight)
+        nn.init.zeros_(self.film.bias)
+        self.temporal_branch = ConvTransformerTemporalBranch(
+            d_model=d_model,
+            num_heads=num_heads,
+            num_layers=num_transformer_layers,
+            dropout=dropout,
+            ff_mult=ff_mult,
+            use_film=True,
+            film_dim=cond_features,
+        )
+        self.trajectory_head = nn.Sequential(
+            nn.Linear(2 * d_model, d_model),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, 1),
+        )
+        # Tail-smoothing weights, initialised to favour the newest step while
+        # still trusting the 1-cycle trend of the previous four steps.
+        prior = torch.tensor([2.0, 0.5, 0.0, -0.5, -1.0])[: self.tail_window]
+        self.tail_logits = nn.Parameter(prior.clone())
+        # Start the free trajectory in a sane RUL range so the first gradient
+        # steps are informative.
+        nn.init.constant_(self.trajectory_head[-1].bias, 2.0)
+        self.num_parameters_unused = 0
+
+    # ------------------------------------------------------------------
+    def _smooth_terminal(self, raw: torch.Tensor) -> torch.Tensor:
+        m = self.tail_window
+        if m == 1:
+            return raw[:, -1:]
+        tail = raw[:, -m:]  # (B, m)
+        offsets = torch.arange(m, device=raw.device, dtype=raw.dtype)
+        corrected = tail - offsets  # y~_{L-k} - k
+        weights = torch.softmax(self.tail_logits, dim=0)
+        terminal = (corrected * weights).sum(dim=-1, keepdim=True)
+        if self.training:
+            # No hard clamp while training: clamping at 0 would zero the
+            # gradient whenever the initial head is slightly negative.
+            return terminal
+        return terminal.clamp(min=0.0, max=self.max_rul)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        cond: Optional[torch.Tensor] = None,
+        return_diagnostics: bool = False,
+        return_trajectory: bool = False,
+    ):
+        unbatched = x.ndim == 2
+        if unbatched:
+            x = x.unsqueeze(0)
+        if x.ndim != 3:
+            raise ValueError(f"Expected a 2-D or 3-D input tensor, got {tuple(x.shape)}.")
+
+        if self.use_crgcn:
+            spatial, adjacency = self.spatial(x, cond)
+        else:
+            spatial = self.spatial(x)
+            adjacency = None
+
+        if cond is None:
+            cond_vec = x.new_zeros(x.shape[0], x.shape[1], self.cond_dim)
+        else:
+            cond_vec = cond if cond.ndim == 3 else cond.unsqueeze(1).expand(-1, x.shape[1], -1)
+        sensor_source = x
+        if self.use_delta_features:
+            delta = torch.zeros_like(x)
+            if x.shape[1] > 1:
+                delta[:, 1:, :] = x[:, 1:, :] - x[:, :-1, :]
+            sensor_source = torch.cat([x, delta], dim=-1)
+        spatial = spatial + self.sensor_proj(sensor_source)
+        gamma, beta = self.film(cond_vec).chunk(2, dim=-1)
+        temporal_input = spatial * (1.0 + gamma) + beta
+
+        temporal, _ = self.temporal_branch(temporal_input, cond=cond_vec)
+
+        pooled = temporal.mean(dim=1, keepdim=True).expand(-1, temporal.shape[1], -1)
+        raw = self.trajectory_head(torch.cat([temporal, pooled], dim=-1)).squeeze(-1)
+
+        if self.use_synergy:
+            terminal = self._smooth_terminal(raw)
+            base = torch.cat([raw[:, :-1], terminal], dim=1)
+            if self.training:
+                trajectory = base
+            else:
+                trajectory = monotonic_envelope(base).clamp(0.0, self.max_rul)
+            prediction = trajectory[:, -1:]
+        else:
+            trajectory = raw
+            prediction = raw[:, -1:]
+
+        if unbatched:
+            prediction = prediction.squeeze(0)
+            trajectory = trajectory.squeeze(0)
+
+        if return_diagnostics:
+            diagnostics = {"trajectory": trajectory.detach()}
+            if adjacency is not None:
+                diagnostics["adjacency"] = adjacency.detach()
+            diagnostics["tail_weights"] = torch.softmax(self.tail_logits, dim=0).detach()
+            return prediction, diagnostics
+        if return_trajectory:
+            return prediction, trajectory
+        return prediction
+
+    @property
+    def num_parameters(self) -> int:
+        return sum(parameter.numel() for parameter in self.parameters())
+
+
 __all__ = [
     "AdaptiveGraphConv",
     "AdaptiveSpatialBranch",
@@ -1229,6 +1536,8 @@ __all__ = [
     "CrossAttentionGatedFusion",
     "SinusoidalPositionalEncoding",
     "ConvTransformerTemporalBranch",
+    "ConditionRoutedGraphBranch",
+    "CRGraphTransformer",
     "monotonic_envelope",
     "STG_MambaNet",
     "LiteSpatialBranch",

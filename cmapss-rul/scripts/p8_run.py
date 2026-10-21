@@ -37,6 +37,8 @@ def build_command(args, subset, variant, seed, run_dir):
     ]
     if subset in {"FD002", "FD004"}:
         cmd += ["--condition-aware", "--n-conditions", "6"]
+    if args.full_train:
+        cmd += ["--full-train"]
     return cmd
 
 
@@ -55,6 +57,7 @@ def main() -> int:
     parser.add_argument("--late-weight", type=float, default=2.0)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--parallel", type=int, default=6)
+    parser.add_argument("--full-train", action="store_true", default=False)
     parser.add_argument("--out", default="experiments/p8/final")
     args = parser.parse_args()
 

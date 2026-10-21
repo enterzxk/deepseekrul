@@ -55,7 +55,7 @@ from dataset import (  # noqa: E402
 )
 from baselines import build_baseline  # noqa: E402
 from loss import PhysicsGuidedLoss  # noqa: E402
-from model import STG_MambaNet  # noqa: E402
+from model import CRGraphTransformer, STG_MambaNet  # noqa: E402
 
 
 VARIANT_ORDER = (
@@ -74,6 +74,9 @@ VARIANT_ORDER = (
     "p8_softplus",
     "p8_no_fusion",
     "p8_full",
+    "p9_wo_crgcn",
+    "p9_wo_synergy_mono",
+    "p9_full",
 )
 VARIANT_LABELS = {
     "wo_agcn": "w/o A-GCN",
@@ -91,6 +94,9 @@ VARIANT_LABELS = {
     "p8_softplus": "Softplus-Mono-Head (P7)",
     "p8_no_fusion": "Ours w/o Cross-Attn Fusion",
     "p8_full": "Ours Full (PA-GraphTransformer)",
+    "p9_wo_crgcn": "P9 w/o CR-GCN",
+    "p9_wo_synergy_mono": "P9 w/o Synergy+Mono (Pure MSE)",
+    "p9_full": "Ours Full (CR-GraphTransformer)",
 }
 STG_VARIANTS = {
     "wo_agcn",
@@ -105,6 +111,9 @@ STG_VARIANTS = {
     "p8_softplus",
     "p8_no_fusion",
     "p8_full",
+    "p9_wo_crgcn",
+    "p9_wo_synergy_mono",
+    "p9_full",
 }
 BASELINE_VARIANTS = {"bilstm", "tcn", "transformer"}
 VARIANT_CONFIG = {
@@ -166,6 +175,28 @@ VARIANT_CONFIG = {
     "tcn": {"loss_mode": "mse", "model_type": "tcn", "d_model": 84},
     "transformer": {"loss_mode": "mse", "model_type": "transformer", "d_model": 88},
     # ---- P8: PA-GraphTransformer with lossless terminal-anchored envelope ----
+    # ---- P9: sequential CR-GCN -> ConvTransformer -> synergized envelope ----
+    "p9_full": {
+        "model_class": "crgraph",
+        "d_model": 80,
+        "use_crgcn": True,
+        "use_synergy": True,
+        "loss_mode": "full",
+    },
+    "p9_wo_crgcn": {
+        "model_class": "crgraph",
+        "d_model": 80,
+        "use_crgcn": False,
+        "use_synergy": True,
+        "loss_mode": "full",
+    },
+    "p9_wo_synergy_mono": {
+        "model_class": "crgraph",
+        "d_model": 80,
+        "use_crgcn": True,
+        "use_synergy": False,
+        "loss_mode": "mse",
+    },
     "p8_full": {
         "spatial_mode": "graph",
         "graph_mode": "hollow",
@@ -389,11 +420,18 @@ def prepare_engine_split(
     clip_test_rul: bool,
     condition_aware: bool = False,
     n_conditions: int = 6,
+    full_train: bool = False,
 ) -> PreparedSplit:
     raw_train, test_frame, test_rul = load_cmapss_files(data_dir, subset)
-    train_units, validation_units = split_engines(
-        raw_train["unit"].unique(), validation_fraction, seed
-    )
+    if full_train:
+        # 100% of training engines; a single training engine is still scored
+        # every epoch for monitoring, but it is never used for selection.
+        train_units = sorted(int(x) for x in raw_train["unit"].unique())
+        validation_units = train_units[:1]
+    else:
+        train_units, validation_units = split_engines(
+            raw_train["unit"].unique(), validation_fraction, seed
+        )
     train_set = set(train_units)
     validation_set = set(validation_units)
 
@@ -603,6 +641,24 @@ def regression_metrics(
 
 def model_config_from_args(args: argparse.Namespace, variant: str) -> dict:
     variant_cfg = VARIANT_CONFIG[variant]
+    if variant_cfg.get("model_class") == "crgraph":
+        return {
+            "num_sensors": 14,
+            "window_size": args.window_size,
+            "d_model": variant_cfg.get("d_model", args.d_model),
+            "graph_embed_dim": args.graph_embed_dim,
+            "num_bases": 3,
+            "num_gcn_layers": 1,
+            "num_heads": 4,
+            "num_transformer_layers": 2,
+            "dropout": args.dropout,
+            "max_alpha": 0.20,
+            "cond_dim": 3,
+            "use_crgcn": variant_cfg["use_crgcn"],
+            "use_synergy": variant_cfg["use_synergy"],
+            "tail_window": 5,
+            "ff_mult": 1.8,
+        }
     if variant in BASELINE_VARIANTS:
         return {
             "num_sensors": 14,
@@ -662,7 +718,9 @@ def run_one(
     run_dir.mkdir(parents=True, exist_ok=False)
 
     model_config = model_config_from_args(args, variant)
-    if variant in BASELINE_VARIANTS:
+    if VARIANT_CONFIG[variant].get("model_class") == "crgraph":
+        model = CRGraphTransformer(**model_config).to(device)
+    elif variant in BASELINE_VARIANTS:
         model = build_baseline(
             VARIANT_CONFIG[variant]["model_type"],
             num_sensors=14,
@@ -753,7 +811,8 @@ def run_one(
         "test_windows": len(prepared.test),
         "num_parameters": num_parameters,
         "cudnn_deterministic": bool(torch.backends.cudnn.deterministic),
-        "selection_metric": "validation_rmse",
+        "full_train": bool(args.full_train),
+        "selection_metric": "none (last epoch)" if args.full_train else "validation_rmse",
         "test_usage": "single final evaluation after training",
     }
     write_json(run_dir / "config.json", config)
@@ -833,7 +892,11 @@ def run_one(
             flush=True,
         )
 
-        if validation_metrics["rmse"] < best_rmse - args.min_delta:
+        if args.full_train:
+            # Fixed budget: monitor only, never select, never early-stop.
+            best_rmse = validation_metrics["rmse"]
+            best_epoch = epoch
+        elif validation_metrics["rmse"] < best_rmse - args.min_delta:
             best_rmse = validation_metrics["rmse"]
             best_epoch = epoch
             best_state = {
@@ -851,6 +914,13 @@ def run_one(
                 )
                 break
 
+    if args.full_train:
+        # Last-epoch weights are the evaluation weights.
+        best_state = {
+            name: value.detach().cpu().clone()
+            for name, value in model.state_dict().items()
+        }
+        torch.save(best_state, run_dir / "final_model.pt")
     if best_state is None:
         raise RuntimeError("No finite validation checkpoint was selected.")
     model.load_state_dict(best_state)
@@ -1006,6 +1076,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--run-dir", type=Path, default=None)
+    parser.add_argument(
+        "--full-train",
+        action="store_true",
+        default=False,
+        help="Train on 100% of training engines for a fixed epoch budget; "
+        "the last-epoch weights are evaluated once on the test set.",
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
 
@@ -1054,6 +1131,7 @@ def main() -> int:
             clip_test_rul=args.clip_test_rul,
             condition_aware=args.condition_aware,
             n_conditions=args.n_conditions,
+            full_train=args.full_train,
         )
         write_json(
             run_root / f"split_seed_{seed}.json",

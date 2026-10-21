@@ -1,9 +1,12 @@
 # C-MAPSS Remaining Useful Life Prediction
 
-Current milestone: **P8 complete. FD001 and FD002 five-seed (2027-2031)
-studies done for PA-GraphTransformer with lossless terminal-anchored
-monotonic projection. Results, honest verdict, and execution log:
-[`P8_SOTA_REPORT.md`](P8_SOTA_REPORT.md), [`P8_EXECUTION_LOG.md`](P8_EXECUTION_LOG.md).**
+Current milestone: **P9 complete. Sequential CR-GCN -> ConvTransformer ->
+synergized monotonic head, trained on 100% of engines for five seeds
+(2027-2031). FD001 13.209 single / 12.868 ensemble (best to date, beats the
+Transformer); FD002 13.490 / 12.904, still behind the Transformer by 0.51.
+See [`P9_DIRECTOR_REPORT.md`](P9_DIRECTOR_REPORT.md); earlier phases in
+[`P8_SOTA_REPORT.md`](P8_SOTA_REPORT.md) and
+[`P8_EXECUTION_LOG.md`](P8_EXECUTION_LOG.md).**
 
 ## Layout
 
