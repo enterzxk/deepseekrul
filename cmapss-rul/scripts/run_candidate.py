@@ -32,7 +32,9 @@ from dataset import (  # noqa: E402
     compute_rmse,
     load_cmapss_train,
 )
-from candidates.model import CandidateModel, ModelEMA, soft_nasa_loss  # noqa: E402
+from candidates.model import (  # noqa: E402
+    CandidateModel, ModelEMA, TransformerWithFeatures, soft_nasa_loss,
+)
 from baselines import build_baseline  # noqa: E402
 
 CYCLE_SCALE = 250.0
@@ -77,6 +79,15 @@ CONFIGS = {
     "tf": dict(baseline="transformer", use_baseline=False, use_ema_features=False,
                use_cycle=False, use_graph=False, use_dual_head=False,
                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "tfA": dict(baseline="transformer_features", use_baseline=True, use_ema_features=True,
+                use_cycle=True, use_graph=False, use_dual_head=False,
+                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+    "Aid": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+                use_graph=False, use_dual_head=False, use_model_ema=False,
+                use_sensor_id=True, cls_weight=0.0, nasa_weight=0.0),
+    "Arec": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+                 use_graph=False, use_dual_head=False, use_model_ema=False,
+                 use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
 }
 
 
@@ -121,6 +132,7 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
         seq = np.asarray(values[pos], dtype=np.float32)
         early = seq[: min(5, seq.shape[0])]
         baseline = early.mean(axis=0) if early.shape[0] > 0 else global_baseline
+        ref_count = float(min(early.shape[0], 5)) / 5.0
         cycles = group["cycle"].to_numpy(dtype=np.int64)
         if cutoff is not None:
             # Official-test-style evaluation: only history up to the cut is
@@ -136,7 +148,7 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
                 pad = np.repeat(seq[:1], window - seq.shape[0], axis=0)
                 seq = np.concatenate([pad, seq], axis=0)
             xs.append(np.ascontiguousarray(seq[-window:]))
-            extras.append(np.concatenate([baseline, [min(cycles[-1] / CYCLE_SCALE, 1.0)]]))
+            extras.append(np.concatenate([baseline, [min(cycles[-1] / CYCLE_SCALE, 1.0), ref_count]]))
             ys.append(0.0)
         else:
             rul = build_piecewise_linear_rul(group, max_rul=max_rul)
@@ -144,46 +156,9 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
             for end in range(window - 1, seq.shape[0], stride):
                 xs.append(np.ascontiguousarray(seq[end - window + 1 : end + 1]))
                 ys.append(float(rul[end]))
-                extras.append(np.concatenate([baseline, [min(cycles[end] / CYCLE_SCALE, 1.0)]]))
+                extras.append(np.concatenate([baseline, [min(cycles[end] / CYCLE_SCALE, 1.0), ref_count]]))
     return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
             np.stack(extras).astype(np.float32))
-
-
-def prepare(subset: str, seed: int, window: int, max_rul: float, condition_aware: bool, n_cond: int):
-    # Development path: training file only. The official test/RUL files are
-    # never opened here (see dataset.load_cmapss_train).
-    raw_train = load_cmapss_train(ROOT / "data" / "CMAPSS", subset)
-    units = np.sort(raw_train["unit"].unique())
-    rng = np.random.default_rng(seed + 20261020)
-    shuffled = rng.permutation(units)
-    n_val = max(1, int(round(units.size * 0.2)))
-    val_units = sorted(int(x) for x in shuffled[:n_val])
-    train_units = sorted(int(x) for x in shuffled[n_val:])
-    train_frame = raw_train[raw_train.unit.isin(train_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
-    val_frame = raw_train[raw_train.unit.isin(val_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
-    cols = list(SELECTED_SENSOR_COLUMNS)
-    if condition_aware:
-        op = ["op_1", "op_2", "op_3"]
-        mean = train_frame[op].to_numpy(dtype=np.float64).mean(axis=0)
-        std = train_frame[op].to_numpy(dtype=np.float64).std(axis=0)
-        std = np.where(std > 1e-8, std, 1.0)
-        cond_t = ((train_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
-        cond_v = ((val_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
-        scaler = OperatingConditionScaler(cols, n_clusters=n_cond, random_state=seed)
-        tr_s, va_s = scaler.fit_transform(train_frame), scaler.transform(val_frame)
-    else:
-        cond_t = cond_v = None
-        scaler = SensorMinMaxScaler(cols)
-        tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
-        va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
-    xtr, ytr, etr = build_windows(train_frame, tr_s, window, 1, max_rul)
-    xva, yva, eva = build_windows(val_frame, va_s, window, 1, max_rul)
-    xpt, ypt, ept = build_windows(val_frame, va_s, window, 1, max_rul, cutoff=0.7)
-    ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
-    cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
-    cpt = build_cond_cut(val_frame, cond_v, window, 0.7) if cond_v is not None else None
-    return (WindowSet(xtr, ytr, ctr, etr), WindowSet(xva, yva, cva, eva),
-            train_units, val_units, WindowSet(xpt, ypt, cpt, ept))
 
 
 def build_cond_cut(frame, values, window, cutoff):
@@ -204,6 +179,50 @@ def build_cond(frame, values, window):
         for end in range(window - 1, seq.shape[0]):
             out.append(seq[end - window + 1 : end + 1])
     return np.stack(out).astype(np.float32)
+
+
+def prepare(subset: str, split_seed: int, window: int, max_rul: float,
+            condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9)):
+    """Build the development split. Engine partition depends ONLY on split_seed.
+
+    Returns train/val window sets plus one deployment-style pseudo-test set per
+    cutoff fraction. The official test files are never opened.
+    """
+    raw_train = load_cmapss_train(ROOT / "data" / "CMAPSS", subset)
+    units = np.sort(raw_train["unit"].unique())
+    rng = np.random.default_rng(split_seed + 20261020)
+    shuffled = rng.permutation(units)
+    n_val = max(1, int(round(units.size * 0.2)))
+    val_units = sorted(int(x) for x in shuffled[:n_val])
+    train_units = sorted(int(x) for x in shuffled[n_val:])
+    train_frame = raw_train[raw_train.unit.isin(train_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
+    val_frame = raw_train[raw_train.unit.isin(val_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
+    cols = list(SELECTED_SENSOR_COLUMNS)
+    if condition_aware:
+        op = ["op_1", "op_2", "op_3"]
+        mean = train_frame[op].to_numpy(dtype=np.float64).mean(axis=0)
+        std = train_frame[op].to_numpy(dtype=np.float64).std(axis=0)
+        std = np.where(std > 1e-8, std, 1.0)
+        cond_t = ((train_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
+        cond_v = ((val_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
+        scaler = OperatingConditionScaler(cols, n_clusters=n_cond, random_state=split_seed)
+        tr_s, va_s = scaler.fit_transform(train_frame), scaler.transform(val_frame)
+    else:
+        cond_t = cond_v = None
+        scaler = SensorMinMaxScaler(cols)
+        tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
+        va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
+    xtr, ytr, etr = build_windows(train_frame, tr_s, window, 1, max_rul)
+    xva, yva, eva = build_windows(val_frame, va_s, window, 1, max_rul)
+    ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
+    cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
+    pseudo = {}
+    for frac in cutoffs:
+        xpt, ypt, ept = build_windows(val_frame, va_s, window, 1, max_rul, cutoff=frac)
+        cpt = build_cond_cut(val_frame, cond_v, window, frac) if cond_v is not None else None
+        pseudo[frac] = WindowSet(xpt, ypt, cpt, ept)
+    return (WindowSet(xtr, ytr, ctr, etr), WindowSet(xva, yva, cva, eva),
+            train_units, val_units, pseudo, sorted(int(u) for u in val_frame.unit.unique()))
 
 
 @torch.no_grad()
@@ -228,7 +247,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--subset", required=True)
     parser.add_argument("--variant", required=True, choices=sorted(CONFIGS))
-    parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--seed", type=int, required=True, help="backward-compatible model seed")
+    parser.add_argument("--model-seed", type=int, default=None,
+                        help="model init / dataloader seed (defaults to --seed)")
+    parser.add_argument("--split-seed", type=int, default=7,
+                        help="engine partition seed, independent of the model seed")
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--window", type=int, default=50)
@@ -242,16 +265,22 @@ def main() -> int:
     args = parser.parse_args()
 
     cfg = CONFIGS[args.variant]
-    set_seed(args.seed)
+    model_seed = args.seed if args.model_seed is None else args.model_seed
+    set_seed(model_seed)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    train_set, val_set, train_units, val_units, pseudo_set = prepare(
-        args.subset, args.seed, args.window, 125.0,
+    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids = prepare(
+        args.subset, args.split_seed, args.window, 125.0,
         condition_aware=args.subset in {"FD002", "FD004"}, n_cond=6,
     )
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=512, shuffle=False, num_workers=2)
-    is_baseline = "baseline" in cfg
-    if is_baseline:
+    is_baseline = cfg.get("baseline") == "transformer"
+    if cfg.get("baseline") == "transformer_features":
+        model = TransformerWithFeatures(
+            num_sensors=14, window_size=args.window, d_model=88,
+            num_layers=args.num_layers, dropout=args.dropout,
+        ).to(device)
+    elif is_baseline:
         model = build_baseline(cfg["baseline"], num_sensors=14, d_model=88,
                                dropout=args.dropout).to(device)
     else:
@@ -260,6 +289,8 @@ def main() -> int:
             num_layers=args.num_layers, dropout=args.dropout,
             use_baseline=cfg["use_baseline"], use_ema_features=cfg["use_ema_features"],
             use_cycle=cfg["use_cycle"], use_graph=cfg["use_graph"], use_dual_head=cfg["use_dual_head"],
+            use_sensor_id=cfg.get("use_sensor_id", False),
+            use_reliability=cfg.get("use_reliability", False),
         ).to(device)
     params = sum(p.numel() for p in model.parameters())
     optimiser = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
@@ -318,8 +349,28 @@ def main() -> int:
         elif epoch - best_epoch >= args.patience:
             break
 
-    pt_loader = DataLoader(pseudo_set, batch_size=256, shuffle=False, num_workers=2)
-    pt_rmse, _, _ = evaluate(model, pt_loader, device, baseline=is_baseline)
+    # Fix 1: the deployment-style evaluation must use the SAME best checkpoint
+    # that full-window validation selected, never the last-epoch weights.
+    last_epoch_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    selected_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    same = all(torch.equal(selected_state[k], best_state[k]) for k in best_state) if best_state else False
+    print(f"[{args.variant}] best_epoch={best_epoch} last_epoch={len(history)} "
+          f"restored_from_best={same} weights={'ema' if ema is not None else 'raw'}", flush=True)
+
+    pseudo_results = {}
+    pseudo_frames = []
+    for frac, pset in pseudo_sets.items():
+        loader = DataLoader(pset, batch_size=256, shuffle=False, num_workers=2)
+        rmse_pt, pred_pt, true_pt = evaluate(model, loader, device, baseline=is_baseline)
+        pseudo_results[f"cutoff_{frac:.2f}"] = rmse_pt
+        pseudo_frames.append(pd.DataFrame({
+            "unit_id": val_unit_ids, "cutoff": frac, "y_true": true_pt,
+            "y_pred": pred_pt, "signed_error": pred_pt - true_pt,
+        }))
+    pseudo_frame = pd.concat(pseudo_frames, ignore_index=True)
+    pt_rmse = float(np.mean(list(pseudo_results.values())))
 
     out_dir = ROOT / args.out / args.subset / f"{args.variant}_s{args.seed}"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -327,14 +378,20 @@ def main() -> int:
         "subset": args.subset, "variant": args.variant, "seed": args.seed,
         "config": cfg, "params": params, "best_val_rmse": best,
         "best_epoch": best_epoch, "epochs_ran": len(history),
-        "pseudo_test_rmse": pt_rmse,
-        "pseudo_test_protocol": "validation engines cut at 70% of observed life, "
-        "single final window, targets clipped at 125",
+        "model_seed": model_seed, "split_seed": args.split_seed,
+        "weights": "ema" if ema is not None else "raw",
+        "restored_best_before_pseudo_test": bool(same),
+        "pseudo_test_rmse_by_cutoff": pseudo_results,
+        "pseudo_test_rmse_mean": pt_rmse,
+        "pseudo_test_protocol": "validation engines truncated at fixed fractions of "
+        "observed life, one final window per engine, targets clipped at 125",
         "val_units": val_units, "train_units_count": len(train_units),
         "elapsed_seconds": time.time() - start,
-        "split": "80/20 engine-level development split; test set never loaded",
+        "split": "80/20 engine-level development split; official test never loaded",
     }, indent=2))
     (out_dir / "history.json").write_text(json.dumps(history, indent=2))
+    pseudo_frame.to_csv(out_dir / "pseudo_test_predictions.csv", index=False)
+    pd.DataFrame(val_units, columns=["unit_id"]).to_csv(out_dir / "val_units.csv", index=False)
     print(f"BEST {args.variant} {args.subset} s{args.seed} val={best:.4f} params={params:,}", flush=True)
     return 0
 

@@ -93,6 +93,9 @@ class CandidateModel(nn.Module):
         use_graph: bool = True,
         use_dual_head: bool = True,
         max_rul: float = 125.0,
+        use_sensor_id: bool = False,
+        use_independent_channels: bool = False,
+        use_reliability: bool = False,
     ) -> None:
         super().__init__()
         self.num_sensors = int(num_sensors)
@@ -104,9 +107,25 @@ class CandidateModel(nn.Module):
         self.use_graph = bool(use_graph)
         self.use_dual_head = bool(use_dual_head)
         self.max_rul = float(max_rul)
+        self.use_sensor_id = bool(use_sensor_id)
+        self.use_independent_channels = bool(use_independent_channels)
+        self.use_reliability = bool(use_reliability)
 
         per_sensor = 1 + int(use_baseline) + int(use_ema_features)
-        self.sensor_in = nn.Linear(per_sensor, d_model)
+        if self.use_independent_channels:
+            # one projection per physical sensor (parameter matched below)
+            self.sensor_in = nn.ModuleList(
+                [nn.Linear(per_sensor, d_model) for _ in range(self.num_sensors)]
+            )
+        else:
+            self.sensor_in = nn.Linear(per_sensor, d_model)
+        if self.use_sensor_id:
+            self.sensor_embed = nn.Embedding(self.num_sensors, d_model)
+        if self.use_reliability:
+            # reliability of the health reference, from conditioning + evidence count
+            self.reliability = nn.Sequential(
+                nn.Linear(2, 16), nn.GELU(), nn.Linear(16, 1)
+            )
         self.time_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1, groups=d_model)
         self.time_norm = nn.LayerNorm(d_model)
         if use_cycle:
@@ -161,18 +180,44 @@ class CandidateModel(nn.Module):
         batch, length, sensors = x.shape
         if extras is not None:
             baseline = extras[:, :sensors].unsqueeze(1)  # (B, 1, N)
-            cycle = extras[:, sensors:]  # (B, 1)
+            cycle = extras[:, sensors : sensors + 1]  # (B, 1)
+            ref_count = extras[:, sensors + 1 : sensors + 2]  # (B, 1)
         else:
             baseline = x[:, :1, :]
             cycle = x.new_zeros(batch, 1)
+            ref_count = x.new_ones(batch, 1)
 
         feats = [x]
         if self.use_baseline:
             feats.append(x - baseline)
         if self.use_ema_features:
             feats.append(self._ema(x, 0.5))
-        stacked = torch.stack(feats, dim=-1)  # (B, L, N, F)
-        h = self.sensor_in(stacked)  # (B, L, N, D)
+        if cond is not None:
+            cond_t = cond if cond.ndim == 3 else cond.unsqueeze(1).expand(-1, length, -1)
+        else:
+            cond_t = x.new_zeros(batch, length, 3)
+        if self.use_reliability:
+            # Reliability-aware degradation representation: mix the reference
+            # residual with the raw measurement according to how trustworthy the
+            # reference is (evidence count + operating condition).
+            evidence = torch.cat(
+                [ref_count.unsqueeze(1).expand(-1, length, -1),
+                 cycle.unsqueeze(1).expand(-1, length, -1)], dim=-1
+            )  # (B, L, 2): reference evidence count, cycle position
+            weight = torch.sigmoid(self.reliability(evidence))  # (B, L, 1)
+            residual = x - baseline
+            feats = [x, weight * residual + (1.0 - weight) * x]
+            if self.use_ema_features:
+                feats.append(self._ema(x, 0.5))
+            stacked = torch.stack(feats, dim=-1)
+        else:
+            stacked = torch.stack(feats, dim=-1)  # (B, L, N, F)
+        if self.use_independent_channels:
+            h = torch.stack(
+                [self.sensor_in[i](stacked[:, :, i, :]) for i in range(sensors)], dim=2
+            )
+        else:
+            h = self.sensor_in(stacked)  # (B, L, N, D)
 
         # channel-independent temporal conv: (B*N, D, L)
         hh = h.permute(0, 2, 3, 1).reshape(batch * sensors, self.d_model, length)
@@ -180,10 +225,9 @@ class CandidateModel(nn.Module):
         conv_out = hh.reshape(batch, sensors, self.d_model, length).permute(0, 3, 1, 2)
         h = self.time_norm(h + self.dropout(conv_out))
 
-        if cond is not None:
-            cond_t = cond if cond.ndim == 3 else cond.unsqueeze(1).expand(-1, length, -1)
-        else:
-            cond_t = x.new_zeros(batch, length, 3)
+        if self.use_sensor_id:
+            ids = torch.arange(sensors, device=x.device)
+            h = h + self.sensor_embed(ids).view(1, 1, sensors, -1)
         if self.use_graph:
             flat = h.reshape(batch * length, sensors, self.d_model)
             flat_cond = cond_t.reshape(batch * length, 1, 3)
@@ -241,3 +285,56 @@ def soft_nasa_loss(
     late_term = torch.expm1(torch.clamp(late_mag, max=cap_late) / late_scale)
     late_term = late_term + tail_slope * torch.relu(late_mag - cap_late)
     return torch.mean(torch.where(delta < 0, early_term, late_term))
+
+
+class TransformerWithFeatures(nn.Module):
+    """Strong Transformer with the Track A feature set (fairness control).
+
+    Same backbone family as baselines.VanillaTransformer, but fed the three
+    feature channels (raw, healthy-baseline residual, causal EMA) so that
+    feature contribution and architecture contribution can be separated.
+    """
+
+    def __init__(self, num_sensors: int = 14, window_size: int = 50, d_model: int = 88,
+                 num_heads: int = 4, num_layers: int = 2, dropout: float = 0.15) -> None:
+        super().__init__()
+        self.num_sensors = int(num_sensors)
+        self.proj = nn.Linear(3 * num_sensors, d_model)
+        self.pe = nn.Parameter(torch.zeros(1, window_size, d_model))
+        nn.init.normal_(self.pe, std=0.02)
+        self.layers = nn.ModuleList([
+            nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads,
+                                       dim_feedforward=2 * d_model, dropout=dropout,
+                                       activation="gelu", batch_first=True, norm_first=True)
+            for _ in range(int(num_layers))
+        ])
+        self.score = nn.Linear(d_model, 1)
+        self.norm = nn.LayerNorm(d_model)
+        self.head = nn.Sequential(
+            nn.Linear(2 * d_model, d_model), nn.GELU(), nn.Dropout(dropout), nn.Linear(d_model, 1)
+        )
+        nn.init.constant_(self.head[-1].bias, 2.0)
+
+    @staticmethod
+    def _ema(x: torch.Tensor, beta: float = 0.5) -> torch.Tensor:
+        out = torch.empty_like(x)
+        acc = x[:, 0]
+        out[:, 0] = acc
+        for t in range(1, x.shape[1]):
+            acc = beta * acc + (1.0 - beta) * x[:, t]
+            out[:, t] = acc
+        return out
+
+    def forward(self, x, cond=None, extras=None, return_diagnostics=False):
+        if extras is not None:
+            baseline = extras[:, : self.num_sensors].unsqueeze(1)
+        else:
+            baseline = x[:, :1, :]
+        feats = torch.cat([x, x - baseline, self._ema(x, 0.5)], dim=-1)
+        h = self.proj(feats) + self.pe
+        for layer in self.layers:
+            h = layer(h)
+        weights = torch.softmax(self.score(h).squeeze(-1), dim=-1)
+        pooled = (weights.unsqueeze(-1) * h).sum(dim=1)
+        out = self.head(torch.cat([h[:, -1, :], pooled], dim=-1))
+        return {"prediction": out, "trajectory": None, "embedding": pooled}
