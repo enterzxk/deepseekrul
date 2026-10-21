@@ -162,6 +162,19 @@ def load_cmapss_files(
     return train, test, test_rul
 
 
+def load_cmapss_train(data_dir: str | Path, subset: str = "FD001") -> pd.DataFrame:
+    """Load ONLY the training split of one C-MAPSS subset.
+
+    Stage 2/3 development must never open test_FDxxx.txt or RUL_FDxxx.txt.
+    This entry point exists so that a development run physically cannot touch
+    the official test data: it reads exactly one file.
+    """
+    subset = subset.upper()
+    if subset not in VALID_SUBSETS:
+        raise ValueError(f"subset must be one of {VALID_SUBSETS}, got {subset!r}.")
+    return _read_whitespace_table(Path(data_dir) / f"train_{subset}.txt")
+
+
 class SensorMinMaxScaler:
     """Per-sensor Min-Max scaler fitted only on training data.
 

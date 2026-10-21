@@ -16,6 +16,7 @@ from the input window and its engine metadata only.
 
 from __future__ import annotations
 
+import copy
 import math
 from typing import Optional
 
@@ -68,9 +69,11 @@ class SensorGraphAttention(nn.Module):
     def forward(self, h: torch.Tensor, cond_t: torch.Tensor) -> torch.Tensor:
         # h: (B*L, N, D); cond_t: (B*L, 1, cond_dim)
         update, _ = self.attn(h, h, h, need_weights=False)
-        alpha = torch.sigmoid(self.gate(cond_t))  # starts at 0.5 ... scaled below
-        alpha = 0.5 * (alpha - 0.5) * 2.0 * 0.5  # zero-mean, starts at 0
-        return self.norm(h + alpha * update)
+        # Zero-initialised gate: alpha == 0 exactly at step 0, and the norm is
+        # applied to the UPDATE ONLY, so the block is a strict identity at
+        # initialisation (LayerNorm(h + 0) would not be).
+        alpha = 0.5 * (torch.sigmoid(self.gate(cond_t)) - 0.5)
+        return h + alpha * self.norm(update)
 
 
 class CandidateModel(nn.Module):
@@ -113,11 +116,17 @@ class CandidateModel(nn.Module):
         if use_graph:
             self.graph = SensorGraphAttention(d_model, num_heads, cond_dim=3, dropout=dropout)
 
-        layer = nn.TransformerEncoderLayer(
-            d_model=d_model, nhead=num_heads, dim_feedforward=2 * d_model,
-            dropout=dropout, activation="gelu", batch_first=True, norm_first=True,
+        # Independent layers: copying the same module into a ModuleList would
+        # silently share every weight between positions.
+        self.layers = nn.ModuleList(
+            [
+                nn.TransformerEncoderLayer(
+                    d_model=d_model, nhead=num_heads, dim_feedforward=2 * d_model,
+                    dropout=dropout, activation="gelu", batch_first=True, norm_first=True,
+                )
+                for _ in range(int(num_layers))
+            ]
         )
-        self.layers = nn.ModuleList([layer for _ in range(int(num_layers))])
         self.temporal_pe = nn.Parameter(torch.zeros(1, window_size, d_model))
         nn.init.normal_(self.temporal_pe, std=0.02)
 
