@@ -93,7 +93,13 @@ CONFIGS = {
                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
     "S2": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
                use_graph=False, use_dual_head=False, use_model_ema=False,
-               use_shuffled_id=True, cls_weight=0.0, nasa_weight=0.0),
+               capacity_pad=True, cls_weight=0.0, nasa_weight=0.0),
+    "S4": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+               use_graph=False, use_dual_head=False, use_model_ema=False,
+               use_fixed_id=True, cls_weight=0.0, nasa_weight=0.0),
+    "RACDR": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+                  use_graph=False, use_dual_head=False, use_model_ema=False,
+                  use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
     "S3": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
                use_graph=False, use_dual_head=False, use_model_ema=False,
                use_independent_channels=True, cls_weight=0.0, nasa_weight=0.0),
@@ -152,12 +158,27 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
         cycles = group["cycle"].to_numpy(dtype=np.int64)
 
         def evidence(end_idx: int) -> list[float]:
-            """Observable reliability evidence at a cutoff (no future info)."""
+            """6 observable reliability evidence values (no future information).
+
+            e1 coverage, e2 individual/fallback mask, e3 acquisition age,
+            e4 reference match (sensor-space deviation proxy for the op-space
+            distance specified by the Director - documented deviation),
+            e5 reference stability, e6 transient jitter vs causal EMA.
+            """
             window = seq[max(0, end_idx - 49) : end_idx + 1]
             deviation = float(np.abs(window - baseline).mean())
-            recent = seq[max(0, end_idx - 4) : end_idx + 1]
-            trend = float((recent[-1] - recent[0]).mean()) if recent.shape[0] > 1 else 0.0
-            return [ref_count, ref_std, deviation, trend]
+            ema_state = seq[0].copy()
+            for row in seq[: end_idx + 1]:
+                ema_state = 0.5 * ema_state + 0.5 * row
+            jitter = float(np.abs(seq[end_idx] - ema_state).mean())
+            mean_age = float(np.mean(np.arange(1, min(early.shape[0], 5) + 1)))
+            e1 = min(1.0, early.shape[0] / 5.0)
+            e2 = 1.0 if early.shape[0] >= 1 else 0.0
+            e3 = float(np.exp(-mean_age / 30.0))
+            e4 = float(np.exp(-deviation))
+            e5 = 1.0 / (1.0 + ref_std)
+            e6 = jitter
+            return [e1, e2, e3, e4, e5, e6]
         if cutoff is not None:
             # Official-test-style evaluation: only history up to the cut is
             # visible, one final window per engine.
@@ -219,13 +240,51 @@ def build_windows_abs(frame, values, window, max_rul, abs_cut):
         ys.append(float(rul_at_end))
         extras.append(np.concatenate([
             baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)],
-            [ref_count, ref_std, deviation, trend],
+            [ref_count, 1.0, float(np.exp(-2.0 / 30.0)), float(np.exp(-deviation)),
+             1.0 / (1.0 + ref_std), trend],
         ]))
         kept_units.append(int(group["unit"].iloc[0]))
     if not xs:
         return None, None, None, []
     return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
             np.stack(extras).astype(np.float32), kept_units)
+
+
+def build_windows_matched(frame, values, window, max_rul, cutoff_seed=2026):
+    """One deployment-style cutoff per engine drawn from U[40, 0.95 T_i]."""
+    rng = np.random.default_rng(cutoff_seed)
+    xs, ys, extras, units = [], [], [], []
+    for _, group in frame.groupby("unit", sort=True):
+        pos = group.index.to_numpy(dtype=np.int64)
+        seq = np.asarray(values[pos], dtype=np.float32)
+        length = seq.shape[0]
+        if length < window + 5:
+            continue
+        end = int(rng.integers(40, max(41, int(0.95 * length)) + 1))
+        end = min(max(end, window), length)
+        early = seq[: min(5, length)]
+        baseline = early.mean(axis=0)
+        ref_std = float(early.std(axis=0).mean()) if early.shape[0] > 1 else 0.0
+        ref_count = min(1.0, early.shape[0] / 5.0)
+        window_vals = seq[end - window : end]
+        deviation = float(np.abs(window_vals - baseline).mean())
+        ema_state = seq[0].copy()
+        for row in seq[:end]:
+            ema_state = 0.5 * ema_state + 0.5 * row
+        jitter = float(np.abs(seq[end - 1] - ema_state).mean())
+        mean_age = float(np.mean(np.arange(1, min(early.shape[0], 5) + 1)))
+        evidence = [ref_count, 1.0, float(np.exp(-mean_age / 30.0)),
+                    float(np.exp(-deviation)), 1.0 / (1.0 + ref_std), jitter]
+        cycles = group["cycle"].to_numpy(dtype=np.int64)
+        rul = build_piecewise_linear_rul(group, max_rul=max_rul)
+        xs.append(np.ascontiguousarray(window_vals))
+        ys.append(float(rul[end - 1]))
+        extras.append(np.concatenate([
+            baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)], evidence
+        ]))
+        units.append(int(group["unit"].iloc[0]))
+    return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
+            np.stack(extras).astype(np.float32), units)
 
 
 def build_cond_abs(frame, values, window, abs_cut, kept_units):
@@ -297,11 +356,13 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
     ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
     cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
     abs_sets = {}
-    for abs_cut in (80, 120, 160):
+    for abs_cut in (60, 100, 140, 180, 220):
         xa, ya, ea, units_a = build_windows_abs(val_frame, va_s, window, max_rul, abs_cut)
         if xa is not None:
             ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
             abs_sets[abs_cut] = (WindowSet(xa, ya, ca, ea), units_a)
+    xm, ym, em, um = build_windows_matched(val_frame, va_s, window, max_rul)
+    matched_set = WindowSet(xm, ym, None, em)
     pseudo = {}
     for frac in cutoffs:
         xpt, ypt, ept = build_windows(val_frame, va_s, window, 1, max_rul, cutoff=frac)
@@ -309,7 +370,7 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
         pseudo[frac] = WindowSet(xpt, ypt, cpt, ept)
     return (WindowSet(xtr, ytr, ctr, etr), WindowSet(xva, yva, cva, eva),
             train_units, val_units, pseudo, sorted(int(u) for u in val_frame.unit.unique()),
-            abs_sets)
+            abs_sets, matched_set, um)
 
 
 @torch.no_grad()
@@ -355,7 +416,7 @@ def main() -> int:
     model_seed = args.seed if args.model_seed is None else args.model_seed
     set_seed(model_seed)
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets = prepare(
+    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets, matched_set, matched_units = prepare(
         args.subset, args.split_seed, args.window, 125.0,
         condition_aware=args.subset in {"FD002", "FD004"}, n_cond=6,
     )
@@ -379,6 +440,8 @@ def main() -> int:
             use_cycle=cfg["use_cycle"], use_graph=cfg["use_graph"], use_dual_head=cfg["use_dual_head"],
             use_sensor_id=cfg.get("use_sensor_id", False),
             use_shuffled_id=cfg.get("use_shuffled_id", False),
+            use_fixed_id=cfg.get("use_fixed_id", False),
+            capacity_pad=cfg.get("capacity_pad", False),
             use_independent_channels=cfg.get("use_independent_channels", False),
             use_reliability=cfg.get("use_reliability", False),
         ).to(device)
@@ -470,6 +533,16 @@ def main() -> int:
             "y_pred": pred_a, "signed_error": pred_a - true_a,
         }))
     absolute_frame = pd.concat(absolute_frames, ignore_index=True) if absolute_frames else pd.DataFrame()
+    m_loader = DataLoader(matched_set, batch_size=256, shuffle=False, num_workers=2)
+    matched_rmse, matched_pred, matched_true = evaluate(model, m_loader, device, baseline=is_baseline)
+    matched_frame = pd.DataFrame({
+        "unit_id": matched_units, "y_true": matched_true, "y_pred": matched_pred,
+        "signed_error": matched_pred - matched_true,
+    })
+    matched_frame = pd.DataFrame({
+        "unit_id": matched_units, "y_true": matched_true, "y_pred": matched_pred,
+        "signed_error": matched_pred - matched_true,
+    })
     pseudo_frame = pd.concat(pseudo_frames, ignore_index=True)
     pt_rmse = float(np.mean(list(pseudo_results.values())))
 
@@ -485,6 +558,7 @@ def main() -> int:
         "pseudo_test_rmse_by_cutoff": pseudo_results,
         "pseudo_test_rmse_mean": pt_rmse,
         "protocol_c_rmse_by_cycles": absolute_results,
+        "matched_cutoff_rmse": matched_rmse,
         "pseudo_test_protocol": "validation engines truncated at fixed fractions of "
         "observed life, one final window per engine, targets clipped at 125",
         "val_units": val_units, "train_units_count": len(train_units),
@@ -495,6 +569,7 @@ def main() -> int:
     pseudo_frame.to_csv(out_dir / "pseudo_test_predictions.csv", index=False)
     if not absolute_frame.empty:
         absolute_frame.to_csv(out_dir / "protocol_c_predictions.csv", index=False)
+    matched_frame.to_csv(out_dir / "matched_cutoff_predictions.csv", index=False)
     pd.DataFrame(val_units, columns=["unit_id"]).to_csv(out_dir / "val_units.csv", index=False)
     print(f"BEST {args.variant} {args.subset} s{args.seed} val={best:.4f} params={params:,}", flush=True)
     return 0

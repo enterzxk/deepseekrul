@@ -97,6 +97,8 @@ class CandidateModel(nn.Module):
         use_shuffled_id: bool = False,
         use_independent_channels: bool = False,
         use_reliability: bool = False,
+        use_fixed_id: bool = False,
+        capacity_pad: bool = False,
     ) -> None:
         super().__init__()
         self.num_sensors = int(num_sensors)
@@ -112,6 +114,8 @@ class CandidateModel(nn.Module):
         self.use_shuffled_id = bool(use_shuffled_id)
         self.use_independent_channels = bool(use_independent_channels)
         self.use_reliability = bool(use_reliability)
+        self.use_fixed_id = bool(use_fixed_id)
+        self.capacity_pad = bool(capacity_pad)
 
         per_sensor = 1 + int(use_baseline) + int(use_ema_features)
         if self.use_independent_channels:
@@ -123,11 +127,28 @@ class CandidateModel(nn.Module):
             self.sensor_in = nn.Linear(per_sensor, d_model)
         if self.use_sensor_id or self.use_shuffled_id:
             self.sensor_embed = nn.Embedding(self.num_sensors, d_model)
+        if self.use_fixed_id:
+            # frozen sinusoidal channel code: 0 trainable parameters
+            positions = torch.arange(self.num_sensors, dtype=torch.float32).unsqueeze(1)
+            div = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32)
+                            * (-math.log(10000.0) / d_model))
+            code = torch.zeros(self.num_sensors, d_model)
+            code[:, 0::2] = torch.sin(positions * div)
+            code[:, 1::2] = torch.cos(positions * div[: code[:, 1::2].shape[1]])
+            self.register_buffer("fixed_id", code, persistent=False)
+        if self.capacity_pad:
+            # Exact +896 parameters (14*64) as a shared low-rank 64->7->64 map:
+            # keeps full channel-permutation symmetry while matching S1 capacity.
+            self.pad_down = nn.Linear(d_model, 7, bias=False)
+            self.pad_up = nn.Linear(7, d_model, bias=False)
         if self.use_reliability:
-            # reliability of the health reference, from conditioning + evidence count
+            # Reliable reference gating: 6 evidence dims -> per-sensor gate.
             self.reliability = nn.Sequential(
-                nn.Linear(4, 16), nn.GELU(), nn.Linear(16, 1)
+                nn.Linear(6, 32), nn.GELU(), nn.Linear(32, self.num_sensors)
             )
+            self.sensor_gate_bias = nn.Parameter(torch.zeros(self.num_sensors))
+            self.proj_raw = nn.Linear(2 * per_sensor, d_model)
+            self.proj_ref = nn.Linear(per_sensor, d_model)
         self.time_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1, groups=d_model)
         self.time_norm = nn.LayerNorm(d_model)
         if use_cycle:
@@ -183,11 +204,11 @@ class CandidateModel(nn.Module):
         if extras is not None:
             baseline = extras[:, :sensors].unsqueeze(1)  # (B, 1, N)
             cycle = extras[:, sensors : sensors + 1]  # (B, 1)
-            evidence_feats = extras[:, sensors + 1 : sensors + 5]  # (B, 4)
+            evidence_feats = extras[:, sensors + 1 : sensors + 7]  # (B, 6)
         else:
             baseline = x[:, :1, :]
             cycle = x.new_zeros(batch, 1)
-            evidence_feats = x.new_zeros(batch, 4)
+            evidence_feats = x.new_zeros(batch, 6)
 
         feats = [x]
         if self.use_baseline:
@@ -214,12 +235,13 @@ class CandidateModel(nn.Module):
             stacked = torch.stack(feats, dim=-1)
         else:
             stacked = torch.stack(feats, dim=-1)  # (B, L, N, F)
-        if self.use_independent_channels:
-            h = torch.stack(
-                [self.sensor_in[i](stacked[:, :, i, :]) for i in range(sensors)], dim=2
-            )
-        else:
-            h = self.sensor_in(stacked)  # (B, L, N, D)
+        if stacked is not None:
+            if self.use_independent_channels:
+                h = torch.stack(
+                    [self.sensor_in[i](stacked[:, :, i, :]) for i in range(sensors)], dim=2
+                )
+            else:
+                h = self.sensor_in(stacked)  # (B, L, N, D)
 
         # channel-independent temporal conv: (B*N, D, L)
         hh = h.permute(0, 2, 3, 1).reshape(batch * sensors, self.d_model, length)
@@ -227,6 +249,10 @@ class CandidateModel(nn.Module):
         conv_out = hh.reshape(batch, sensors, self.d_model, length).permute(0, 3, 1, 2)
         h = self.time_norm(h + self.dropout(conv_out))
 
+        if self.use_fixed_id:
+            h = h + self.fixed_id.view(1, 1, sensors, -1)
+        if self.capacity_pad:
+            h = h + self.pad_up(F.gelu(self.pad_down(h)))
         if self.use_shuffled_id:
             # Parameter-matched null control: same embedding table, but the
             # identity assignment is randomly permuted every forward pass, so

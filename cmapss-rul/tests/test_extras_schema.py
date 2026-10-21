@@ -30,7 +30,8 @@ def main() -> None:
     widths["test_mode"] = e_test.shape[1]
     print(widths)
     assert len(set(widths.values())) == 1, widths
-    assert widths["train"] == 14 + 1 + 4, widths
+    # 14 baseline + cycle + 6 reliability evidence dims (ORDER_02 spec)
+    assert widths["train"] == 14 + 1 + 6, widths
     print("extras schema test passed")
 
 
