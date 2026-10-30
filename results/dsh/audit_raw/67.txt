@@ -1,0 +1,6 @@
+tool=pwsh
+input={"command":"ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server 'cd /home/yndx/zxk/bearing-rul-pi; echo \"=== M1 logs ===\"; ls logs/order03/M1* 2>&1; echo \"=== M1 errors ===\"; grep -l \"ValueError\" logs/order03/M1* 2>&1; echo \"=== FD001 errors ===\"; grep -l \"All arrays must be of the same length\" logs/order03/*FD001* 2>&1; echo \"=== FD001 metrics ===\"; find experiments/order03 -path \"*FD001*\" -name metrics.json 2>/dev/null' 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Confirm M1 and FD001 failures","timeoutMs":45000}
+status=
+result_len=0
+
+

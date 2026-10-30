@@ -1,0 +1,363 @@
+{
+  "milestone": "R3.1",
+  "updated_at_utc": "2026-10-29T10:31:38.480Z",
+  "status": "r3_1_closed_negative_result",
+  "total_goal": "NOT complete",
+  "budget_used_this_round": {
+    "gpu_30epoch_runs": 6,
+    "gpu_minutes_approx": 29,
+    "cpu_fits": 0,
+    "note": "2026-10-29: 6 runs (est/est_rate x 3 seeds) rerun with a prefix-only validation estimator; 2 of them rerun once after a float32 assertion abort"
+  },
+  "authoritative_docs": [
+    "docs/director/REVIEW_20261022_R3.md"
+  ],
+  "superseded": {
+    "note": "REVIEW_20261022_R1.md sections 112-127 and BUDGET_LEDGER counts are superseded where they conflict with R2",
+    "specific": [
+      "18-unit ledger (actual: 83 runs after 2026-10-21T12:00Z)",
+      "R2=0.036 ridge figure (preprocessing leakage; withdrawn)",
+      "'information limit' / 'conditional mean optimal' (withdrawn)",
+      "MDE extrapolations (withdrawn)",
+      "corr<0.97 criterion (withdrawn)",
+      "v2 called an ensemble (renamed: cross-seed RMS)",
+      "REVIEW_R3 §I in full: \"est recovers 38% of the oracle gain\" is withdrawn (training 100% pool fallback + validation used the true lifespan)",
+      "REVIEW_R3 §I.2 mechanism (\"est fixes mid and long lifespan, only short remains\"): the corrected est is WORSE than the constant arm on long-lived engines (25.34 vs 20.41)",
+      "r3_four_arms block below (18.18 / 38%): superseded by r3_1_four_arms"
+    ]
+  },
+  "isolation": {
+    "fd003_fd004": "sealed",
+    "official_test": "not read, not counted, not probed"
+  },
+  "c_experiment": {
+    "prereg": "results/dsh/review_r2/PREREG_R2_C.md (sha256 recorded; Amendment 1 pre-run)",
+    "outer_fits": 30,
+    "observations": 1070,
+    "engines": 360,
+    "verdict": "SUPPORTED: V2 prefix summaries improve over V1 in both ridge (-2.512, CI [-2.908,-2.139]) and rbf (-0.224, CI [-0.306,-0.145])",
+    "caveats": [
+      "absolute error far worse than the existing candidate; different cutoff protocol, not comparable",
+      "RMSE/NASA improve but late does not (ridge 0.509 -> 0.517)",
+      "V2 overlaps the model's existing EMA features",
+      "counts as added-history information, NOT method innovation"
+    ],
+    "verdict_corrected": "SUPPORTED only for 'longer-window derived summaries help a linear model'; NOT for the milestone hypothesis, since all V2 features overlap [c-50,c]"
+  },
+  "audit_findings": {
+    "runs_total": 143,
+    "runs_recent_window": 83,
+    "claimed_units": 18,
+    "actual_unit_equivalents_recent": 64.2,
+    "actual_unit_equivalents_total": 87.9,
+    "undercount_factor": 3.6,
+    "external_baselines": "40 runs without an epochs_ran field (incomplete artifacts, not '0 epochs')",
+    "runs_over_30_epochs": 12,
+    "runs_with_code_hash": 0,
+    "concurrency": "max 7 completions per 5-min bucket; suspected over 3, unproven",
+    "unknown": [
+      "dispatch time",
+      "per-run start/duration",
+      "peak concurrency",
+      "external_baselines training volume"
+    ],
+    "detail_file": "results/dsh/review_r2/A1_runs.csv (143 rows)"
+  },
+  "next_decision_needed": "three user decisions: (1) challenge threshold - 260 engines / MDE 1.6 or 509 engines / 1.14; (2) authorise a T_hat data-layer column (gated: only after corr(T_hat,T) >= 0.5); (3) positioning - keep chasing a new method, or frame the contribution as evaluation resolution + time shortcut + lifespan scale",
+  "pending_budget": 0,
+  "milestone_hypothesis": "NOT SUPPORTED on this dev pool (strictly-prior test: -0.052, CI [-0.203,+0.072])",
+  "routes": {
+    "route1": "STOPPED - identifiable premise failed the preregistered disjoint test (-0.052, CI [-0.203, +0.072])",
+    "route2": "STOPPED - premise test went the opposite way: error RISES with operating-condition dispersion (21.81 -> 25.90), late flat",
+    "c_gain_reclassified": "longer-window derived summaries, not added history; long window/EMA/post-processing is not innovation",
+    "honest_state": "no candidate satisfies both 'falsifiable premise already passed' and 'not a long-window/EMA renaming'; no training budget requested"
+  },
+  "implementation_defect": {
+    "what": "C and E selected operating columns via startswith('setting'), but the real names are op_1/op_2/op_3, so V1's settings were all zeros and the cluster id was never implemented",
+    "c_comparison": "still valid: both V1 and V2 lack settings, so the contrast isolates the summary block",
+    "e_scope_narrowed": "E therefore tests prior-window degradation trend, NOT prior operating exposure"
+  },
+  "final_consistency": "REVIEW_20261022_R3.md §J, control.json r3_1_four_arms and experiments/r3_v3 all state the same numbers; §I is marked withdrawn in both the document banner and the superseded list",
+  "quotas": "LIFTED 2026-10-22: GPU/CPU/epoch/run/concurrency/download/round quotas removed; maxGoalRounds set to 100000 (schema max, cannot delete)",
+  "next_actions": [
+    "P3 monotone health index: operating-condition corrected FPCA1 with a monotonicity constraint; falsifiable gate: held-out monotonicity score < 0.3 -> stop the scale-normalisation route",
+    "P2 PE arm on the frozen pipeline (cycle / PE / none, 3 seeds): cheapest adoptable design change (probe gap PE-cycle < 0.1)",
+    "P4 deferred: est on the frozen pipeline only after corr(T_hat,T) >= 0.5",
+    "P5 protocol gaps (five-seed confirmation, 5% challenge threshold decision, gate_mode control) still open",
+    "decisions still needed from the user: challenge threshold (260 engines / MDE 1.6 vs 509 / 1.14), authorise T_hat as a data-layer feature, and the paper positioning (method vs measurement contribution)"
+  ],
+  "r3_results": {
+    "n_obs": 1323,
+    "engines": 360,
+    "cutoffs": [
+      60,
+      100,
+      140,
+      180
+    ],
+    "time_shortcut": {
+      "cycle_vs_nocycle_pooled": 6.89,
+      "cycle_vs_nocycle_fd002": 8.86
+    },
+    "pe_substitute": {
+      "pe_vs_nocycle_pooled": 6.96,
+      "pe_vs_nocycle_fd002": 8.94,
+      "verdict": "PE recovers nearly all of the cycle benefit without a linear dependence on total life"
+    },
+    "history_increment": {
+      "v2_vs_v1_pooled": 0.12,
+      "ci": [
+        -0.19,
+        0.42
+      ],
+      "fd002": -0.03,
+      "verdict": "NOT supported with the corrected feature registry"
+    },
+    "r2_conflict_explained": "R2's -2.5 came from an all-zero settings block (pathological reparameterisation), not from history information"
+  },
+  "r3_neural_time_arms": {
+    "setup": "FD002 208 train / 52 val engines, window 50, cap 125, replication of official builder verified True",
+    "arms": {
+      "cycle": 47.18,
+      "zero": 45.82,
+      "bounded": 47.03
+    },
+    "per_seed_zero_minus_cycle": [
+      -1.43,
+      -0.84,
+      -1.81
+    ],
+    "finding": "removing the time feature improves held-out RMSE by ~1.36 (3/3 seeds) and lowers NASA mean; late rises 0.269->0.282",
+    "caveat": "simplified preprocessing (no OperatingConditionScaler); absolute level not comparable to the frozen pipeline (40.86)",
+    "next": "replicate on the frozen pipeline with an add-only config"
+  },
+  "r3_frozen_cycle_test": {
+    "variants": {
+      "A_with_cycle": {
+        "val_mean": 12.68,
+        "pseudo_mean": 12.17,
+        "params": 41858
+      },
+      "BE_no_cycle": {
+        "val_mean": 13.94,
+        "pseudo_mean": 13.81,
+        "params": 41730
+      }
+    },
+    "be_minus_a_val": {
+      "per_seed": [
+        1.571,
+        1.525,
+        0.687
+      ],
+      "mean": 1.2613,
+      "sd": 0.4976
+    },
+    "probe_refuted": "the simplified probe said removing cycle helps (-1.36); it used only 208 training windows vs thousands in the frozen pipeline",
+    "stratified": {
+      "A": {
+        "long": 11.22,
+        "mid": 10.14,
+        "short": 16.38
+      },
+      "BE": {
+        "long": 16.53,
+        "mid": 11.44,
+        "short": 17.99
+      }
+    },
+    "mechanism": "cycle benefit concentrates on long-lived engines (5.31) and is small for short-lived (1.61); short-lived engines are over-predicted by +7 to +11 in both variants",
+    "next_hypothesis": "normalise time by an estimated own-lifespan scale c/T_hat; may keep long-life benefit while cutting short-life over-prediction"
+  },
+  "r3_scale": {
+    "train_windows": 32498,
+    "val_engines": 52,
+    "seeds": 3,
+    "arms": {
+      "cycle": 21.32,
+      "none": 21.71,
+      "oracle": 13.09
+    },
+    "oracle_minus_cycle": {
+      "per_seed": [
+        -10.58,
+        -9.07,
+        -5.04
+      ],
+      "mean": -8.23
+    },
+    "deployable_estimator": "degenerate: 0 of 154 windows yield a finite unclipped estimate; 60% NaN (slope<=0), 40% clipped at the lower bound",
+    "conclusion": "the oracle gain is NOT reachable via a better time feature; the bottleneck is that the observable health index is not monotone",
+    "next_hypothesis": "build a monotone multi-sensor health index (condition-corrected FPCA-style) and test whether prefix extrapolation becomes usable",
+    "falsifiable": "if monotonicity on held-out engines stays below ~0.3, the extrapolation will still degenerate"
+  },
+  "r3_four_arms_retracted": {
+    "arms_rmse": {
+      "cycle": 21.32,
+      "none": 21.71,
+      "est": 18.18,
+      "oracle": 13.09
+    },
+    "est_vs_cycle": {
+      "per_seed": [
+        -4.18,
+        -4.33,
+        -0.91
+      ],
+      "mean": -3.14
+    },
+    "oracle_vs_cycle": -8.23,
+    "share_of_oracle_recovered": 0.38,
+    "nasa": {
+      "cycle": 17.13,
+      "est": 7.03,
+      "oracle": 2.71
+    },
+    "by_lifespan_rmse": {
+      "cycle": {
+        "short": 23.6,
+        "mid": 14.8,
+        "long": 22.4
+      },
+      "est": {
+        "short": 22.1,
+        "mid": 13.4,
+        "long": 16.8
+      },
+      "oracle": {
+        "short": 13.2,
+        "mid": 5.6,
+        "long": 17.3
+      }
+    },
+    "mechanism": "the estimated scale fixes mid and long lifespan cases; the unrealised 5.1 RMSE sits entirely in short-lived engines, which every arm over-predicts by +10 to +16",
+    "hypothesis": "the single-constant failure level L causes T_hat to be too large for fast-degrading units; stratifying L by condition cluster or degradation rate should shrink that bias",
+    "caveats": [
+      "probe setting (no OperatingConditionScaler), absolute level not comparable",
+      "late and severe do NOT improve -> no safety claim",
+      "relative to the cycle arm, not to a strong baseline"
+    ]
+  },
+  "r3_1_four_arms": {
+    "setting": "FD002 208 train / 52 held-out engines, one matched cutoff per engine, 30 epochs, seeds 2027-2029, ~32k training windows, CandidateModel 41,858 params, probe preprocessing (no OperatingConditionScaler)",
+    "code": {
+      "v1": "scripts/dsh_r3_four_arms.py sha 4cc6f8f77481...",
+      "v2": "scripts/dsh_r3_four_arms_v2.py sha bbe6f79e0c26...",
+      "v2_early": "b0a2566e7699... (assertion tolerance 1e-6 only; est 2027/2028)",
+      "analyzer": "scripts/dsh_r3_v2_analyze.py sha 6f8e92d0cdd3..."
+    },
+    "rmse_mean_sd": {
+      "cycle": [
+        21.32,
+        1.04
+      ],
+      "none": [
+        21.71,
+        0.18
+      ],
+      "pooled": [
+        20.15,
+        1.54
+      ],
+      "est": [
+        21.24,
+        1.71
+      ],
+      "est_rate": [
+        20.07,
+        1.22
+      ],
+      "oracle": [
+        13.09,
+        2.08
+      ],
+      "est_leaky_withdrawn": [
+        18.47,
+        0.63
+      ],
+      "est_rate_leaky_withdrawn": [
+        18.05,
+        0.28
+      ]
+    },
+    "paired_engine_clustered_bootstrap": {
+      "est_vs_cycle": [
+        0.08,
+        -2.1,
+        2.27,
+        false
+      ],
+      "est_rate_vs_cycle": [
+        1.25,
+        -1.31,
+        3.63,
+        false
+      ],
+      "est_vs_pooled": [
+        -1.09,
+        -3.25,
+        1.06,
+        false
+      ],
+      "est_rate_vs_pooled": [
+        0.08,
+        -1.95,
+        1.98,
+        false
+      ],
+      "est_rate_vs_est": [
+        1.17,
+        -0.66,
+        3.06,
+        false
+      ],
+      "pooled_vs_cycle": [
+        1.17,
+        -1.19,
+        3.31,
+        false
+      ],
+      "oracle_vs_cycle": [
+        8.23,
+        5.3,
+        11.02,
+        true
+      ],
+      "est_vs_est_leaky": [
+        -2.78,
+        -4.72,
+        -0.87,
+        true
+      ],
+      "_format": "[delta_rmse, ci_lo, ci_hi, excludes_zero]; positive = first arm better"
+    },
+    "estimator_quality": {
+      "corr_that_vs_T": 0.196,
+      "corr_per_seed": [
+        0.299,
+        0.179,
+        0.111
+      ],
+      "median_that_over_T": 1.9,
+      "iqr": [
+        1.52,
+        2.19
+      ],
+      "leaky_corr": 0.936,
+      "leaky_median_ratio": 1.2,
+      "leaky_frac_clipped_at_1.2T": 0.673,
+      "fallback_to_pool_frac": 0.017
+    },
+    "verdict": [
+      "deployable per-engine scale normalisation has NO detectable gain over cycle (+0.08, CI crosses 0) and is not better than the constant-median arm (pooled 20.15)",
+      "the only significant effects are oracle (+8.23) and the leak itself (-2.78); the previously reported 38% was produced by leakage",
+      "the headroom direction (lifespan scale) survives; the current health-index/prefix estimator does not"
+    ],
+    "gate_for_reuse": "do not feed T_hat into any candidate or the frozen pipeline until corr(T_hat, T_true) >= 0.5 on held-out engines",
+    "artifacts": [
+      "experiments/r3_v3/*/{metrics.json,pred.npz}",
+      "results/dsh/review_r3/R3_1_final.json",
+      "results/dsh/review_r3/L_strat.csv"
+    ]
+  }
+}

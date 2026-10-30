@@ -1,0 +1,19 @@
+tool=pwsh
+input={"command":"ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server \"hostname; date -u; pwd\" 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Test SSH lab-server connectivity","timeoutMs":30000}
+status=completed
+result_len=578
+
+YNDXTEA0034
+2026年 10月 21日 星期三 16:47:23 UTC
+/home/yndx
+EXIT=0
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:1 字符: 129
++ ... ew($false); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server "hos ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+

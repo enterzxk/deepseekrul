@@ -1,0 +1,113 @@
+tool=pwsh
+input={"command":"$py = @'\nimport json, glob\nfor p in sorted(glob.glob(\"experiments/order03/*/*/*/metrics.json\"))[:1]:\n    d=json.load(open(p))\n    print(p)\n    print(json.dumps(d, indent=1, ensure_ascii=False)[:6000])\n'@; $b=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server \"cd /home/yndx/zxk/bearing-rul-pi && echo $b | base64 -d | python3\" 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Print full metrics JSON structure","timeoutMs":45000}
+status=completed
+result_len=2169
+
+experiments/order03/M0_raw_tf/FD002/tf_s2027/metrics.json
+{
+ "subset": "FD002",
+ "variant": "tf",
+ "seed": 2027,
+ "config": {
+  "baseline": "transformer",
+  "use_baseline": false,
+  "use_ema_features": false,
+  "use_cycle": false,
+  "use_graph": false,
+  "use_dual_head": false,
+  "use_model_ema": false,
+  "cls_weight": 0.0,
+  "nasa_weight": 0.0
+ },
+ "params": 144146,
+ "best_val_rmse": 14.333072164374798,
+ "best_epoch": 3,
+ "epochs_ran": 13,
+ "model_seed": 2027,
+ "split_seed": 7,
+ "weights": "raw",
+ "restored_best_before_pseudo_test": true,
+ "pseudo_test_rmse_by_cutoff": {
+  "cutoff_0.50": 22.58282509223984,
+  "cutoff_0.70": 15.975992211857532,
+  "cutoff_0.90": 5.402580580721469
+ },
+ "pseudo_test_rmse_mean": 14.653799294939615,
+ "protocol_c_rmse_by_cycles": {
+  "cycles_60": 13.484070726822713,
+  "cycles_100": 16.826226424929082,
+  "cycles_140": 13.647334652490896,
+  "cycles_180": 5.323047987573454,
+  "cycles_220": 6.361621846572551
+ },
+ "matched_cutoff_rmse": 19.002283147299256,
+ "pseudo_test_protocol": "validation engines truncated at fixed fractions of observed life, one final window per engine, targets clipped at 125",
+ "val_units": [
+  8,
+  9,
+  15,
+  18,
+  21,
+  25,
+  26,
+  50,
+  51,
+  53,
+  54,
+  55,
+  57,
+  63,
+  64,
+  71,
+  75,
+  80,
+  93,
+  101,
+  111,
+  115,
+  116,
+  130,
+  141,
+  144,
+  150,
+  152,
+  154,
+  158,
+  161,
+  169,
+  176,
+  177,
+  184,
+  186,
+  187,
+  188,
+  189,
+  190,
+  191,
+  198,
+  201,
+  203,
+  210,
+  211,
+  235,
+  242,
+  246,
+  247,
+  248,
+  253
+ ],
+ "train_units_count": 208,
+ "elapsed_seconds": 98.34318590164185,
+ "split": "80/20 engine-level development split; official test never loaded"
+}
+EXIT=0
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:7 字符: 72
++ ... ytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server "cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+

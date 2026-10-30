@@ -1,0 +1,9 @@
+2026-10-21 overnight run
+- BLIND_FREEZE: active (test/RUL chmod 000)
+- Stage 1: partial PASS; 5-fold infrastructure and Lite model completed
+- Stage 2: 5-fold FD001 w50/d64 RMSE 14.364 +/- 0.984; FAIL gate <=12.8
+- Stage 2 5x5 grid: started but terminated due shared GPU (~75s/epoch)
+- Stage 3-5: NOT RUN; test set remains sealed
+- Stage 6: fig7 and fold RMSE supplement generated
+- Stage 7: paper/main.tex and MORNING_BRIEFING.md generated
+- No test-set metrics fabricated

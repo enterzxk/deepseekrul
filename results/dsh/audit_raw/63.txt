@@ -1,0 +1,40 @@
+tool=pwsh
+input={"command":"$py = @'\nimport glob, os\nimport numpy as np, pandas as pd\ndef load(tag):\n    fs=sorted(glob.glob(f\"experiments/order03/{tag}/FD002/*/matched_cutoff_predictions.csv\"))\n    out=[]\n    for f in fs:\n        d=pd.read_csv(f); d[\"seed\"]=os.path.basename(os.path.dirname(f)).split(\"_s\")[-1]; out.append(d)\n    return pd.concat(out,ignore_index=True) if out else pd.DataFrame()\nfor tag in [\"M2_pop\",\"M3_cond\",\"M4_racdr\"]:\n    a=load(tag); print(tag, \"rows\",len(a), \"units\",a.unit_id.nunique() if len(a) else 0, \"seeds\",sorted(a.seed.unique()) if len(a) else [])\n    if len(a):\n        q=a.groupby([\"unit_id\",\"seed\"]).agg(sse=(\"signed_error\",lambda s: float((s**2).mean()))).reset_index()\n        print(q.head(3).to_string(index=False), \"qrows\",len(q))\nA=load(\"M4_racdr\"); B=load(\"M3_cond\")\nqa=A.groupby([\"unit_id\",\"seed\"]).agg(m4=(\"signed_error\",lambda s: float((s**2).mean()))).reset_index()\nqb=B.groupby([\"unit_id\",\"seed\"]).agg(m3=(\"signed_error\",lambda s: float((s**2).mean()))).reset_index()\nj=qa.merge(qb,on=[\"unit_id\",\"seed\"],how=\"inner\"); print(\"merged\",len(j)); print(j.head())\nprint(\"rmse m4\",np.sqrt(j.m4.mean()),\"m3\",np.sqrt(j.m3.mean()))\nunits=sorted(j.unit_id.unique()); by={u:j[j.unit_id==u] for u in units}; rng=np.random.default_rng(20261022); ds=[]\nfor _ in range(20000):\n    pick=rng.choice(units,len(units),replace=True)\n    x=np.concatenate([by[u].m4.to_numpy() for u in pick]); y=np.concatenate([by[u].m3.to_numpy() for u in pick])\n    ds.append(float(np.sqrt(x.mean())-np.sqrt(y.mean())))\nprint(\"diff mean\",np.mean(ds),\"CI\",np.percentile(ds,[2.5,97.5]),\"p\",np.mean(np.array(ds)<0))\n'@; $b=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server \"cd /home/yndx/zxk/bearing-rul-pi && echo $b | base64 -d | /home/yndx/miniconda3/envs/a40_env/bin/python\" 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Debug and run paired bootstrap","timeoutMs":90000}
+status=completed
+result_len=1423
+
+M2_pop rows 156 units 52 seeds ['2027', '2028', '2029']
+ unit_id seed         sse
+       8 2027  662.624101
+       8 2028  548.162575
+       8 2029 1396.405913 qrows 156
+M3_cond rows 156 units 52 seeds ['2027', '2028', '2029']
+ unit_id seed         sse
+       8 2027  958.321733
+       8 2028 1804.067859
+       8 2029  685.346848 qrows 156
+M4_racdr rows 156 units 52 seeds ['2027', '2028', '2029']
+ unit_id seed         sse
+       8 2027  765.332417
+       8 2028  895.442784
+       8 2029 1653.829696 qrows 156
+merged 156
+   unit_id  seed           m4           m3
+0        8  2027   765.332417   958.321733
+1        8  2028   895.442784  1804.067859
+2        8  2029  1653.829696   685.346848
+3        9  2027    11.581239     2.684546
+4        9  2028    39.229954    24.297305
+rmse m4 15.078281618303466 m3 16.060033883334288
+diff mean -0.9856195819669036 CI [-2.09551486  0.13099625] p 0.9575
+EXIT=0
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:26 字符: 72
++ ... ytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server "cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+

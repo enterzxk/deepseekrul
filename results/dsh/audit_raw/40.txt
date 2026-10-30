@@ -1,0 +1,17 @@
+tool=pwsh
+input={"command":"Get-FileHash scripts\\run_candidate.py,src\\candidates\\model.py,scripts\\error_analysis.py,scripts\\audit_stats.py,docs\\director\\ORDER_03_INTERIM_RESULTS.md -Algorithm SHA256 | Select-Object Hash,Path | Format-Table -AutoSize | Out-String -Width 200","description":"Compute local key file hashes"}
+status=completed
+result_len=1016
+
+
+Hash                                                             Path                                                                         
+----                                                             ----                                                                         
+6715B40AB086800FCCA8169A1A9D2C03E24A2D85582B5B00E088BCBF0DC5AF75 C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py                 
+95A1C24C8AF044E3860647CCA81057B6BD1D81BE84D5A68AC6AB351B9E56FFF9 C:\Users\20562\Desktop\deepseek-rul\src\candidates\model.py                  
+00854FB034325793D771C268660E0874BA76480EFB08DED2107135FCC57C556E C:\Users\20562\Desktop\deepseek-rul\scripts\error_analysis.py                
+99D8285B6D050ECB6EE6107BCD45A8983851E90613033C77C5D5726444DB4F36 C:\Users\20562\Desktop\deepseek-rul\scripts\audit_stats.py                   
+908689DE0EB9099358C4E12CC25CF5123C838F0F0ADF803591393F10EAA7DD8D C:\Users\20562\Desktop\deepseek-rul\docs\director\ORDER_03_INTERIM_RESULTS.md
+
+
+
+

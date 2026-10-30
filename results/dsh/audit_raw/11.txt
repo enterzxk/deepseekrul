@@ -1,0 +1,248 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\HANDOFF.md"}
+status=completed
+result_len=6433
+
+<path>C:\Users\20562\Desktop\deepseek-rul\HANDOFF.md</path>
+<type>file</type>
+<content>
+1: # C-MAPSS RUL 项目交接文档
+2: 
+3: 更新时间：2026-10-21  
+4: 项目根目录：/home/yndx/zxk/bearing-rul-pi  
+5: 本地镜像：C:\Users\20562\Desktop\deepseek-rul
+6: 
+7: ## 0. 一句话状态
+8: 
+9: 项目已经完成 P0–P5 的真实实验，包括 FD001 五 seed 确认性消融和 FD002 三 seed 外部验证；但**尚未完成**最初 7-Stage 任务书中的完整 5 基线矩阵、5-Fold Ensemble、不确定性、噪声鲁棒性、少样本迁移，以及基于最新数据的论文重写。
+10: 
+11: 当前最重要的结论不是“Full Model 全场最佳”，而是：
+12: 
+13: - FD001 上 Full 的 RMSE/MAE 最好。
+14: - FD002 上 Full 明显弱于 matched LSTM。
+15: - A-GCN 是目前最稳定的正向模块。
+16: - Mono loss 改善 RMSE，但恶化 NASA Score 和晚报率。
+17: - 官方测试集已经在 P3/P4 中被观察，后续不得再用于模型选择。
+18: 
+19: ---
+20: 
+21: ## 1. 环境与路径
+22: 
+23: 服务器：
+24: 
+25: ~~~text
+26: /home/yndx/zxk/bearing-rul-pi
+27: ~~~
+28: 
+29: 执行环境：
+30: 
+31: - Python：/home/yndx/miniconda3/envs/a40_env/bin/python
+32: - PyTorch：2.5.1+cu121
+33: - GPU：NVIDIA A40
+34: - sklearn 需要 LD_LIBRARY_PATH：
+35:   /home/yndx/miniconda3/envs/a40_env/lib
+36: 
+37: 数据：
+38: 
+39: ~~~text
+40: /home/yndx/zxk/bearing-rul-pi/data/CMAPSS
+41: ~~~
+42: 
+43: Git：
+44: 
+45: - 当前项目没有 .git。
+46: - 远程 PAT 不包含原生 git 可执行文件。
+47: - 交接依赖文件、冻结哈希和结果目录，不依赖 Git 历史。
+48: 
+49: 测试文件当前权限：
+50: 
+51: ~~~text
+52: test_FD001~FD004.txt    000
+53: RUL_FD001~FD004.txt     000
+54: ~~~
+55: 
+56: 注意：权限冻结只防止继续误读，不能撤销 P3/P4 已经完成的测试集观察。
+57: 
+58: ---
+59: 
+60: ## 2. 阅读顺序与权威性
+61: 
+62: ### 第一优先级：最新真实结果
+63: 
+64: 1. MORNING_REPORT.md
+65: 2. results/final_FD001_5seeds/
+66: 3. results/final_FD002_3seeds/
+67: 4. results/final_tables.tex
+68: 5. results/checkpoint_status.json
+69: 6. docs/FINAL_PROTOCOL.md
+70: 
+71: ### 第二优先级：历史与实现细节
+72: 
+73: 1. docs/STAGE3_REPORT.md
+74: 2. results/final_FD001_prelim/
+75: 3. results/validation_p1_p2_20261020/
+76: 4. src/model.py
+77: 5. src/loss.py
+78: 6. src/dataset.py
+79: 7. scripts/run_ablation.py
+80: 8. scripts/summarize_ablations.py
+81: 
+82: ### 已过期、不要直接引用
+83: 
+84: 以下文件生成时间早于最新 P3/P4：
+85: 
+86: - MORNING_BRIEFING.md
+87: - results/FINAL_PAPER_REPORT.md
+88: - paper/main.tex
+89: - docs/GEMINI_REVIEW_BRIEF_ZH.md
+90: - results/overnight_progress.log
+91: 
+92: 它们仍然保留作为历史记录，但其中的 14.364 门禁失败结论、缺失实验列表和论文表格已经不是最新状态。
+93: 
+94: docs/STAGE3_REPORT.md 自身也注明：文件中的 P3 表是早期 d0.2 pilot，最新数字以 MORNING_REPORT.md 为准。
+95: 
+96: ---
+97: 
+98: ## 3. 真实实验状态
+99: 
+100: checkpoint_status.json 记录：
+101: 
+102: - P0：complete
+103: - P1：complete
+104: - P2：complete
+105: - P3：complete
+106: - P4：complete
+107: - P5：complete
+108: - 模式：unattended_overnight
+109: - 开始：2026-10-21 01:00
+110: - 结束：2026-10-21 04:50
+111: 
+112: 这里的 P5 只表示图表和最终表格生成完成，不等价于最初 7 个 Stage 全部完成。
+113: 
+114: ---
+115: 
+116: ## 4. 冻结配置
+117: 
+118: 来源：results/locked_hparams.json
+119: 
+120: ~~~json
+121: {
+122:   "window_size": 50,
+123:   "dropout": 0.15,
+124:   "weight_decay": 0.0001,
+125:   "d_model": 64,
+126:   "batch_size": 256,
+127:   "lr": 0.001,
+128:   "epochs": 80,
+129:   "patience": 20,
+130:   "seeds": [42, 67, 123],
+131:   "loss": {
+132:     "asym_weight": 1.0,
+133:     "lambda_mono": 0.05,
+134:     "late_weight": 2.0
+135:   }
+136: }
+137: ~~~
+138: 
+139: P1 验证结果：
+140: 
+141: - val RMSE：11.917 ± 0.534
+142: - val NASA：7659.008
+143: 
+144: P2 loss 选择：
+145: 
+146: - 主模型：MSE + Asym(weight=1.0) + Mono(lambda=0.05)
+147: - w/o Mono：MSE + Asym(weight=1.0)
+148: - w/o Physics：MSE
+149: 
+150: ---
+151: 
+152: ## 5. FD001 五 seed 确认性消融（clip125）
+153: 
+154: 来源：results/final_FD001_5seeds/summary.csv
+155: 
+156: | Variant | RMSE | NASA | MAE | Late | Severe>10 | MonoViol | Params |
+157: |---|---:|---:|---:|---:|---:|---:|---:|
+158: | w/o A-GCN | 14.104 ± 1.200 | 369.635 ± 102.242 | 10.352 | 0.530 | 24.6 | 0.465 | 143,816 |
+159: | Identity-Graph (A=I) | 14.689 ± 0.683 | 392.977 ± 86.252 | 10.583 | 0.504 | 21.8 | 0.463 | 143,816 |
+160: | w/o SSM-Block (matched LSTM) | 14.405 ± 0.329 | 359.656 ± 22.626 | 10.379 | 0.468 | 18.6 | 0.313 | 142,806 |
+161: | w/o Physics Loss | 14.123 ± 0.868 | 357.238 ± 56.818 | 10.194 | 0.510 | 21.6 | 0.451 | 144,265 |
+162: | w/o Mono Loss | 14.133 ± 0.538 | 324.621 ± 40.663 | 10.246 | 0.450 | 17.8 | 0.446 | 144,265 |
+163: | Full Model | 13.423 ± 0.487 | 327.119 ± 59.184 | 9.719 | 0.522 | 18.6 | 0.453 | 144,265 |
+164: 
+165: 解释：
+166: 
+167: - Full 在 RMSE 和 MAE 上最好。
+168: - Full 不是 NASA 最优；w/o Mono 略好。
+169: - 去掉 A-GCN：RMSE +0.682，NASA +42.516。
+170: - 固定 Identity graph：RMSE +1.267，NASA +65.859。
+171: - A-GCN 是目前最强、最一致的正向证据。
+172: - 去掉 SSM 换 matched LSTM：RMSE +0.982，NASA +32.538，但 LSTM 方差更低。
+173: - 去掉 physics：RMSE +0.700，NASA +30.119。
+174: - Mono loss 改善 RMSE，但让 late fraction 从 0.450 升到 0.522，NASA 略差。
+175: 
+176: ### Raw-label appendix
+177: 
+178: | Variant | RMSE | NASA |
+179: |---|---:|---:|
+180: | w/o A-GCN | 15.122 ± 1.053 | 395.962 ± 99.756 |
+181: | Identity-Graph | 15.667 ± 0.534 | 423.210 ± 83.312 |
+182: | w/o SSM | 15.428 ± 0.355 | 389.163 ± 21.521 |
+183: | w/o Physics | 15.086 ± 0.938 | 384.123 ± 53.159 |
+184: | w/o Mono | 15.321 ± 0.633 | 360.064 ± 37.463 |
+185: | Full | 14.456 ± 0.468 | 354.360 ± 55.360 |
+186: 
+187: 主协议是 clip125；raw-label 只能作为附录。
+188: 
+189: ---
+190: 
+191: ## 6. FD002 三 seed 外部验证（clip125）
+192: 
+193: 来源：results/final_FD002_3seeds/summary.csv
+194: 
+195: | Variant | RMSE | NASA | MAE | Late | Severe>10 | Params |
+196: |---|---:|---:|---:|---:|---:|---:|
+197: | w/o A-GCN | 16.126 ± 1.037 | 1385.647 ± 88.676 | 11.631 | 0.463 | 52.3 | 143,816 |
+198: | w/o SSM (matched LSTM) | 14.363 ± 1.059 | 1001.130 ± 248.916 | 10.538 | 0.422 | 43.3 | 142,806 |
+199: | w/o Physics | 15.512 ± 0.784 | 1513.909 ± 215.770 | 10.958 | 0.528 | 59.0 | 144,265 |
+200: | Full | 14.955 ± 0.715 | 1456.569 ± 248.479 | 10.580 | 0.474 | 53.3 | 144,265 |
+201: 
+202: FD002 关键发现：
+203: 
+204: - A-GCN 仍有正向作用。
+205: - SSM 结论反转：matched LSTM 明显优于 Full。
+206: - Full 的 RMSE 和 NASA 都不是最优。
+207: - raw-label 误差很高：Full 约 26.568 RMSE，不适合直接主表。
+208: 
+209: ---
+210: 
+211: ## 7. 当前科学结论（谨慎版）
+212: 
+213: 可以支持：
+214: 
+215: - 自适应图结构对跨发动机泛化有帮助，至少在 FD001 和 FD002 上方向一致。
+216: - SSM 在 FD001 上优于 matched LSTM，但在 FD002 上不成立，不能写成普遍优势。
+217: - 非对称物理损失在 FD001 上有中等正向作用。
+218: - Full 是 FD001 的 RMSE/MAE 最优模型，但不是所有指标的全面最优。
+219: 
+220: 不能支持：
+221: 
+222: - Full 在所有数据集、所有指标上全面最佳。
+223: - SSM 普遍优于 LSTM。
+224: - Mono loss 提升安全性；数据显示它主要提升精度，恶化 NASA 和晚报率。
+225: - FD002 raw-label 已达到可投稿水平。
+226: - 5-Fold Ensemble 已完成；当前最新结果更像五个独立 seed，而不是明确记录的 5-Fold Ensemble。
+227: - 外部 5 基线矩阵已经完整完成；目前未见完整 baseline 结果表。
+228: 
+229: ---
+230: 
+231: ## 8. 已生成资产
+232: 
+233: 最新预测/指标：
+234: 
+235: ~~~text
+236: results/final_FD001_5seeds/
+237: results/final_FD002_3seeds/
+238: results/final_tables.tex
+239: results/locked_hparams.json
+240: results/checkpoint_

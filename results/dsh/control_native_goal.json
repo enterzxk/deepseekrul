@@ -1,0 +1,51 @@
+{
+  "session": "codex-rul-native-goal-20261022",
+  "goal": {"id": "goal-8f36b594-6e02-4320-bb90-12be7b93755b", "revision": 2, "phase": "active", "activation": "armed"},
+  "round": 4,
+  "updated_utc": "2026-10-22T18:55:00Z",
+  "stage": "evidence_loop_closed_levelB_done",
+  "summary": "Level B pre-registered replication completed 12/12 under frozen code 8fce61ff; M4 beats tf on FD002 matched (CI excludes 0), FD001 direction positive but CI crosses zero; late/severe improved on both; gates pass; baseline early-stop caveat disclosed.",
+  "levelb": {
+    "runner": "scripts/frozen/levelb_runner_8fce61ff.py (bytes identical to run_candidate_v3_8fce61ff.py)",
+    "code_sha256": "8fce61ff09cb80728fe64e1cc481bf41d9013f3733b66e7ba4550fda002ac2b3",
+    "split_seed": 2027,
+    "seeds": [2029, 2030, 2031],
+    "cells": 12,
+    "group_matched": {
+      "FD001": {"M0": [9.8764, 1.1199], "M4": [8.7350, 0.8407]},
+      "FD002": {"M0": [12.8589, 0.4758], "M4": [9.7617, 0.5742]}
+    },
+    "paired_M4_minus_tf": {
+      "FD001_matched": [-1.1566, -3.4199, 1.3908, false],
+      "FD001_protocol_c": [-1.0064, -3.1798, 1.5927, false],
+      "FD001_protocol_b": [-2.5492, -4.0773, -0.9067, true],
+      "FD002_matched": [-3.0919, -5.4653, -1.0004, true],
+      "FD002_protocol_c": [-1.8894, -3.3113, -0.4556, true],
+      "FD002_protocol_b": [-2.9250, -5.0126, -0.8087, true]
+    },
+    "safety": {
+      "FD001": {"late_M0": 0.550, "late_M4": 0.367, "severe_M0": 0.233, "severe_M4": 0.117},
+      "FD002": {"late_M0": 0.564, "late_M4": 0.455, "severe_M0": 0.231, "severe_M4": 0.096}
+    },
+    "gates_passed": ["matched RMSE < tf on both subsets", "FD001 [0,25) severe-late <= 1.1x tf (3 protocols)", "late_fraction <= 0.52"]
+  },
+  "deliverables": [
+    "docs/director/DSH_STAGE_CONCLUSION.md",
+    "results/dsh/order03/REPORT.md (FD001 dev + Level B)",
+    "docs/director/DSH_PROJECT_AUDIT.md + DSH_AUDIT_ADDENDUM.md",
+    "results/dsh/freeze.json",
+    "results/dsh/order03/levelb_aggregate.json / levelb_cells.csv / levelb_group.csv",
+    "results/dsh/analysis/{aggregate_order03.py,aggregate_fd001.py,aggregate_levelb.py}"
+  ],
+  "residual_gaps": [
+    "FD001 dev M4 s2029 missing; M1_global only s2027 completed (auxiliary, not used in conclusion)",
+    "ORDER_03 old cells not exactly reproducible (v1 source overwritten, no git)",
+    "tf baseline early stops (best_epoch 2-6 on FD002) - fairness recheck is next-stage item",
+    "real fixed-gate control not implemented (gate_mode dead in model.py)"
+  ],
+  "next_stage": [
+    "baseline fairness rerun with fixed epochs / longer patience on split 7 and 2027",
+    "wire gate_mode in forward for a real fixed-gate ablation; remove proj_raw/proj_ref dead params",
+    "single controller + mandatory provenance; delete fake ablations"
+  ]
+}

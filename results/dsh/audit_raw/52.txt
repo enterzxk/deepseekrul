@@ -1,0 +1,19 @@
+tool=pwsh
+input={"command":"$py = @'\nimport glob, os, json\nimport numpy as np, pandas as pd\nfrom collections import defaultdict\nrows=[]\nfor p in sorted(glob.glob(\"experiments/order03/*/FD002/*/matched_cutoff_predictions.csv\")):\n    tag=p.split(os.sep)[2]; cell=os.path.basename(os.path.dirname(p))\n    df=pd.read_csv(p); e=df.signed_error.to_numpy()\n    rows.append((tag,cell,len(df),float(np.sqrt(np.mean(e**2))),float((e>0).mean()),float(e.mean()),int((e>10).sum())))\nfor r in rows: print(f\"{r[0]:10s} {r[1]:14s} n={r[2]:3d} rmse={r[3]:.4f} late={r[4]:.3f} bias={r[5]:+.2f} sev10={r[6]}\")\nprint(\"\\n--- group ---\")\ng=defaultdict(list)\nfor r in rows: g[r[0]].append(r[3])\nfor k,v in sorted(g.items()): print(k, \"mean\", round(float(np.mean(v)),4), \"sd\", round(float(np.std(v,ddof=1)),4) if len(v)>1 else None, \"vals\", [round(x,3) for x in v])\n# paired engine deltas M4 vs M3, using matched predictions averaged over seeds\ndef load(tag):\n    fs=sorted(glob.glob(f\"experiments/order03/{tag}/FD002/*/matched_cutoff_predictions.csv\"))\n    return pd.concat([pd.read_csv(f).assign(seed=os.path.basename(os.path.dirname(f))) for f in fs], ignore_index=True)\na=load(\"M4_racdr\"); b=load(\"M3_cond\")\nprint(\"\\nmatched rows\", len(a), len(b), \"units\", a.unit_id.nunique(), b.unit_id.nunique())\n# per engine, per seed deltas\nm=a.groupby([\"unit_id\",\"seed\"]).signed_error.apply(lambda s: float(np.mean(s**2))).rename(\"m4\")\nn=b.groupby([\"unit_id\",\"seed\"]).signed_error.apply(lambda s: float(np.mean(s**2))).rename(\"m3\")\nj=pd.concat([m,n],axis=1).dropna();\nprint(\"paired obs\",len(j),\"rmse_m4\",round(float(np.sqrt(j.m4.mean())),4),\"rmse_m3\",round(float(np.sqrt(j.m3.mean())),4))\n# bootstrap engines, keep all seeds\nunits=sorted(j.index.get_level_values(0).unique()); rng=np.random.default_rng(20261022); diffs=[]\narr={u:j.loc[u] for u in units}\nfor _ in range(20000):\n    pick=rng.choice(units,size=len(units),replace=True)\n    mm=np.concatenate([arr[u].m4.to_numpy() for u in pick]); nn=np.concatenate([arr[u].m3.to_numpy() for u in pick])\n    diffs.append(float(np.sqrt(mm.mean())-np.sqrt(nn.mean())))\nprint(\"bootstrap rmse diff M4-M3 mean\",round(float(np.mean(diffs)),4),\"95CI\",[round(float(x),4) for x in np.percentile(diffs,[2.5,97.5])],\"p(M4 better)\",round(float(np.mean(np.array(diffs)<0)),4))\n'@; $b=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server \"cd /home/yndx/zxk/bearing-rul-pi && echo $b | base64 -d | python3\" 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Analyze matched cutoff and paired M4 vs M3","timeoutMs":90000}
+status=completed
+result_len=645
+
+EXIT=1
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:34 字符: 72
++ ... ytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server "cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+ModuleNotFoundError: No module named 'numpy'
+

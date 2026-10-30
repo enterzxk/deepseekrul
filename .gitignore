@@ -1,0 +1,53 @@
+# ---- large binaries that do not belong in a repository -------------------
+*.exe
+*.zip
+*.7z
+*.tar.gz
+
+# ---- C-MAPSS data: public, fetched separately (see README) ---------------
+# The official test files are sealed by the study protocol anyway, so nobody
+# cloning this repository should obtain them through it.
+data/
+!data/README.md
+
+# ---- local scratch: session transcripts and machine mirrors --------------
+.workbuddy/scratch/
+.srvcheck/
+*.bak
+*.bak_*
+
+# ---- third-party PDFs (copyright; cite instead) -------------------------
+results/**/sources/*.pdf
+*.pdf
+
+# ---- trained weights ----------------------------------------------------
+# Excluded on purpose: paper/E4_RESULT.md shows a from-scratch rerun with the
+# same code and seed reproduces the archived metrics to 0.0000 RMSE, so the
+# weights are regenerable and the metrics/predictions below are the evidence.
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+logs/
+
+# ---- python -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+
+# ---- editors / os -------------------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+desktop.ini
+%SystemDrive%/
+
+# ---- deliberately kept (this overrides the old blanket rules) -----------
+# experiments/**/metrics.json                 every number in the paper
+# experiments/**/matched_cutoff_predictions.csv  per-engine predictions
+# experiments/**/history.json, val_units.csv     training curves and splits
+# results/**/*.json, results/**/*.csv            analysis artefacts
+!experiments/
+!results/

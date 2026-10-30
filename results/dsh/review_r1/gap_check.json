@@ -1,0 +1,26 @@
+{
+  "M3vsM1_FD002": {
+    "engines": 52,
+    "rmse_a": 16.060033883334285,
+    "rmse_b": 12.930106864172377,
+    "median_diff": 3.07224069469192,
+    "ci_low": -1.5251528810402977,
+    "ci_high": 8.021320819534099,
+    "prob_a_better": 0.1048,
+    "excludes_zero": false,
+    "subset": "FD002",
+    "pair": "M3_cond vs M1_global"
+  },
+  "M3vsM1_FD001": {
+    "engines": 20,
+    "rmse_a": 12.39960715677885,
+    "rmse_b": 12.39960715677885,
+    "median_diff": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0,
+    "prob_a_better": 0.0,
+    "excludes_zero": false,
+    "subset": "FD001",
+    "pair": "M3_cond vs M1_global"
+  }
+}

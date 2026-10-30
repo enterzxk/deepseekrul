@@ -1,0 +1,154 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\scripts\\run_candidate.py","offset":330,"limit":300}
+status=completed
+result_len=8192
+
+<path>C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py</path>
+<type>file</type>
+<content>
+330: 
+331: 
+332: def build_windows_matched(frame, values, window, max_rul, cutoff_seed=2026):
+333:     """One deployment-style cutoff per engine drawn from U[40, 0.95 T_i]."""
+334:     rng = np.random.default_rng(cutoff_seed)
+335:     xs, ys, extras, units = [], [], [], []
+336:     for _, group in frame.groupby("unit", sort=True):
+337:         pos = group.index.to_numpy(dtype=np.int64)
+338:         seq = np.asarray(values[pos], dtype=np.float32)
+339:         length = seq.shape[0]
+340:         if length < window + 5:
+341:             continue
+342:         end = int(rng.integers(40, max(41, int(0.95 * length)) + 1))
+343:         end = min(max(end, window), length)
+344:         early = seq[: min(5, length)]
+345:         baseline = early.mean(axis=0)
+346:         ref_std = float(early.std(axis=0).mean()) if early.shape[0] > 1 else 0.0
+347:         ref_count = min(1.0, early.shape[0] / 5.0)
+348:         window_vals = seq[end - window : end]
+349:         deviation = float(np.abs(window_vals - baseline).mean())
+350:         ema_state = seq[0].copy()
+351:         for row in seq[:end]:
+352:             ema_state = 0.5 * ema_state + 0.5 * row
+353:         jitter = float(np.abs(seq[end - 1] - ema_state).mean())
+354:         mean_age = float(np.mean(np.arange(1, min(early.shape[0], 5) + 1)))
+355:         evidence = [ref_count, 1.0, float(np.exp(-mean_age / 30.0)),
+356:                     float(np.exp(-deviation)), 1.0 / (1.0 + ref_std), jitter]
+357:         cycles = group["cycle"].to_numpy(dtype=np.int64)
+358:         rul = build_piecewise_linear_rul(group, max_rul=max_rul)
+359:         xs.append(np.ascontiguousarray(window_vals))
+360:         ys.append(float(rul[end - 1]))
+361:         extras.append(np.concatenate([
+362:             baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)], evidence
+363:         ]))
+364:         units.append(int(group["unit"].iloc[0]))
+365:     return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
+366:             np.stack(extras).astype(np.float32), units)
+367: 
+368: 
+369: def build_cond_abs(frame, values, window, abs_cut, kept_units):
+370:     out = []
+371:     wanted = set(kept_units)
+372:     for _, group in frame.groupby("unit", sort=True):
+373:         unit = int(group["unit"].iloc[0])
+374:         if unit not in wanted:
+375:             continue
+376:         pos = group.index.to_numpy(dtype=np.int64)
+377:         seq = np.asarray(values[pos], dtype=np.float32)
+378:         out.append(np.ascontiguousarray(seq[abs_cut - window : abs_cut]))
+379:     return np.stack(out).astype(np.float32)
+380: 
+381: 
+382: def build_cond_cut(frame, values, window, cutoff):
+383:     out = []
+384:     for _, group in frame.groupby("unit", sort=True):
+385:         pos = group.index.to_numpy(dtype=np.int64)
+386:         seq = np.asarray(values[pos], dtype=np.float32)
+387:         end = max(window, int(round(seq.shape[0] * cutoff)))
+388:         out.append(np.ascontiguousarray(seq[end - window : end]))
+389:     return np.stack(out).astype(np.float32)
+390: 
+391: 
+392: def build_cond(frame, values, window):
+393:     out = []
+394:     for _, group in frame.groupby("unit", sort=True):
+395:         pos = group.index.to_numpy(dtype=np.int64)
+396:         seq = np.asarray(values[pos], dtype=np.float32)
+397:         for end in range(window - 1, seq.shape[0]):
+398:             out.append(seq[end - window + 1 : end + 1])
+399:     return np.stack(out).astype(np.float32)
+400: 
+401: 
+402: def prepare(subset: str, split_seed: int, window: int, max_rul: float,
+403:             condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9),
+404:             ref_mode: str = "cond"):
+405:     """Build the development split. Engine partition depends ONLY on split_seed.
+406: 
+407:     Returns train/val window sets plus one deployment-style pseudo-test set per
+408:     cutoff fraction. The official test files are never opened.
+409:     """
+410:     raw_train = load_cmapss_train(ROOT / "data" / "CMAPSS", subset)
+411:     units = np.sort(raw_train["unit"].unique())
+412:     rng = np.random.default_rng(split_seed + 20261020)
+413:     shuffled = rng.permutation(units)
+414:     n_val = max(1, int(round(units.size * 0.2)))
+415:     val_units = sorted(int(x) for x in shuffled[:n_val])
+416:     train_units = sorted(int(x) for x in shuffled[n_val:])
+417:     train_frame = raw_train[raw_train.unit.isin(train_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
+418:     val_frame = raw_train[raw_train.unit.isin(val_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
+419:     cols = list(SELECTED_SENSOR_COLUMNS)
+420:     if condition_aware:
+421:         op = ["op_1", "op_2", "op_3"]
+422:         mean = train_frame[op].to_numpy(dtype=np.float64).mean(axis=0)
+423:         std = train_frame[op].to_numpy(dtype=np.float64).std(axis=0)
+424:         std = np.where(std > 1e-8, std, 1.0)
+425:         cond_t = ((train_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
+426:         cond_v = ((val_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
+427:         scaler = OperatingConditionScaler(cols, n_clusters=n_cond, random_state=split_seed)
+428:         tr_s, va_s = scaler.fit_transform(train_frame), scaler.transform(val_frame)
+429:     else:
+430:         cond_t = cond_v = None
+431:         scaler = SensorMinMaxScaler(cols)
+432:         tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
+433:         va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
+434:     # ---- condition-matched healthy reference (ORDER_03 Step 2) ----
+435:     kmeans = None
+436:     pop_ref = None
+437:     if condition_aware:
+438:         from sklearn.cluster import KMeans
+439:         op_cols = ["op_1", "op_2", "op_3"]
+440:         train_op = train_frame[op_cols].to_numpy(dtype=np.float64)
+441:         kmeans = KMeans(n_clusters=n_cond, random_state=split_seed, n_init=10).fit(train_op)
+442:         labels_train = kmeans.labels_.astype(np.int64)
+443:         labels_val = kmeans.predict(val_frame[op_cols].to_numpy(dtype=np.float64)).astype(np.int64)
+444:         pop_ref = np.zeros((n_cond, tr_s.shape[1]), dtype=np.float32)
+445:         early_mask = train_frame["cycle"].to_numpy(dtype=np.int64) <= 15
+446:         for m in range(n_cond):
+447:             sel = early_mask & (labels_train == m)
+448:             pop_ref[m] = tr_s[sel].mean(axis=0) if sel.any() else tr_s.mean(axis=0)
+449:     else:
+450:         labels_train = np.zeros(len(train_frame), dtype=np.int64)
+451:         labels_val = np.zeros(len(val_frame), dtype=np.int64)
+452:         pop_ref = tr_s[: min(15 * len(train_units), tr_s.shape[0])].mean(axis=0)[None, :]
+453: 
+454:     def make(fr, vals, labels, **kw):
+455:         if condition_aware and ref_mode == "pop":
+456:             kw.setdefault("tau", 1.0e6)  # reference collapses to the population prior
+457:         if condition_aware and ref_mode in {"cond", "pop"}:
+458:             return build_windows_condref(fr, vals, window, max_rul, labels, pop_ref, **kw)
+459:         x, y, e = build_windows(fr, vals, window, 1, max_rul,
+460:                                 test_mode=kw.get("test_mode", False),
+461:                                 cutoff=kw.get("cutoff"))
+462:         return x, y, e, sorted(int(u) for u in fr["unit"].unique())
+463: 
+464:     xtr, ytr, etr, _ = make(train_frame, tr_s, labels_train)
+465:     xva, yva, eva, _ = make(val_frame, va_s, labels_val)
+466:     ctr = build_cond(train_frame, cond_t, window) if cond_t is not None else None
+467:     cva = build_cond(val_frame, cond_v, window) if cond_v is not None else None
+468:     abs_sets = {}
+469:     for abs_cut in (60, 100, 140, 180, 220):
+470:         xa, ya, ea, units_a = make(val_frame, va_s, labels_val, abs_cut=abs_cut)
+471:         if xa is not None:
+472:             ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
+473:             abs_sets[abs_cut] = (WindowSet(xa, ya, ca, ea), units_a)
+474:     xm, ym, em, um = make(val_frame, va_s, labels_val, matched_seed=2026)
+475:     matched_set = Win

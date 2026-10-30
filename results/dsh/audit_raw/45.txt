@@ -1,0 +1,165 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\src\\candidates\\model.py","limit":220,"offset":100}
+status=completed
+result_len=8192
+
+<path>C:\Users\20562\Desktop\deepseek-rul\src\candidates\model.py</path>
+<type>file</type>
+<content>
+100:         use_fixed_id: bool = False,
+101:         capacity_pad: bool = False,
+102:     ) -> None:
+103:         super().__init__()
+104:         self.num_sensors = int(num_sensors)
+105:         self.window_size = int(window_size)
+106:         self.d_model = int(d_model)
+107:         self.use_baseline = bool(use_baseline)
+108:         self.use_ema_features = bool(use_ema_features)
+109:         self.use_cycle = bool(use_cycle)
+110:         self.use_graph = bool(use_graph)
+111:         self.use_dual_head = bool(use_dual_head)
+112:         self.max_rul = float(max_rul)
+113:         self.use_sensor_id = bool(use_sensor_id)
+114:         self.use_shuffled_id = bool(use_shuffled_id)
+115:         self.use_independent_channels = bool(use_independent_channels)
+116:         self.use_reliability = bool(use_reliability)
+117:         self.use_fixed_id = bool(use_fixed_id)
+118:         self.capacity_pad = bool(capacity_pad)
+119: 
+120:         per_sensor = 1 + int(use_baseline) + int(use_ema_features)
+121:         if self.use_independent_channels:
+122:             # one projection per physical sensor (parameter matched below)
+123:             self.sensor_in = nn.ModuleList(
+124:                 [nn.Linear(per_sensor, d_model) for _ in range(self.num_sensors)]
+125:             )
+126:         else:
+127:             self.sensor_in = nn.Linear(per_sensor, d_model)
+128:         if self.use_sensor_id or self.use_shuffled_id:
+129:             self.sensor_embed = nn.Embedding(self.num_sensors, d_model)
+130:             if self.use_sensor_id:
+131:                 # zero-initialised identity gate: no channel bias at step 0,
+132:                 # so single-condition data cannot overfit it before it helps.
+133:                 self.id_scale = nn.Parameter(torch.zeros(1))
+134:         if self.use_fixed_id:
+135:             # frozen sinusoidal channel code: 0 trainable parameters
+136:             positions = torch.arange(self.num_sensors, dtype=torch.float32).unsqueeze(1)
+137:             div = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32)
+138:                             * (-math.log(10000.0) / d_model))
+139:             code = torch.zeros(self.num_sensors, d_model)
+140:             code[:, 0::2] = torch.sin(positions * div)
+141:             code[:, 1::2] = torch.cos(positions * div[: code[:, 1::2].shape[1]])
+142:             self.register_buffer("fixed_id", code, persistent=False)
+143:         if self.capacity_pad:
+144:             # Exact +896 parameters (14*64) as a shared low-rank 64->7->64 map:
+145:             # keeps full channel-permutation symmetry while matching S1 capacity.
+146:             self.pad_down = nn.Linear(d_model, 7, bias=False)
+147:             self.pad_up = nn.Linear(7, d_model, bias=False)
+148:         if self.use_reliability:
+149:             # Reliable reference gating: 6 evidence dims -> per-sensor gate.
+150:             self.reliability = nn.Sequential(
+151:                 nn.Linear(6, 32), nn.GELU(), nn.Linear(32, self.num_sensors)
+152:             )
+153:             self.sensor_gate_bias = nn.Parameter(torch.zeros(self.num_sensors))
+154:             self.proj_raw = nn.Linear(2 * per_sensor, d_model)
+155:             self.proj_ref = nn.Linear(per_sensor, d_model)
+156:         self.time_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1, groups=d_model)
+157:         self.time_norm = nn.LayerNorm(d_model)
+158:         if use_cycle:
+159:             self.cycle_proj = nn.Linear(1, d_model)
+160:         self.dropout = nn.Dropout(dropout)
+161: 
+162:         if use_graph:
+163:             self.graph = SensorGraphAttention(d_model, num_heads, cond_dim=3, dropout=dropout)
+164: 
+165:         # Independent layers: copying the same module into a ModuleList would
+166:         # silently share every weight between positions.
+167:         self.layers = nn.ModuleList(
+168:             [
+169:                 nn.TransformerEncoderLayer(
+170:                     d_model=d_model, nhead=num_heads, dim_feedforward=2 * d_model,
+171:                     dropout=dropout, activation="gelu", batch_first=True, norm_first=True,
+172:                 )
+173:                 for _ in range(int(num_layers))
+174:             ]
+175:         )
+176:         self.temporal_pe = nn.Parameter(torch.zeros(1, window_size, d_model))
+177:         nn.init.normal_(self.temporal_pe, std=0.02)
+178: 
+179:         self.sensor_score = nn.Linear(d_model, 1)
+180:         self.norm = nn.LayerNorm(d_model)
+181:         self.reg_head = nn.Sequential(
+182:             nn.Linear(d_model, d_model), nn.GELU(), nn.Dropout(dropout), nn.Linear(d_model, 1)
+183:         )
+184:         if use_dual_head:
+185:             self.cls_head = nn.Linear(d_model, 1)
+186:         nn.init.constant_(self.reg_head[-1].bias, 2.0)
+187: 
+188:     @staticmethod
+189:     def _ema(x: torch.Tensor, beta: float = 0.5) -> torch.Tensor:
+190:         # causal exponential moving average along time
+191:         out = torch.empty_like(x)
+192:         acc = x[:, 0]
+193:         out[:, 0] = acc
+194:         for t in range(1, x.shape[1]):
+195:             acc = beta * acc + (1.0 - beta) * x[:, t]
+196:             out[:, t] = acc
+197:         return out
+198: 
+199:     def forward(
+200:         self,
+201:         x: torch.Tensor,
+202:         cond: Optional[torch.Tensor] = None,
+203:         extras: Optional[torch.Tensor] = None,
+204:         return_diagnostics: bool = False,
+205:     ):
+206:         # x: (B, L, N); extras: (B, N + 1) = baseline per sensor + cycle coord
+207:         batch, length, sensors = x.shape
+208:         if extras is not None:
+209:             baseline = extras[:, :sensors].unsqueeze(1)  # (B, 1, N)
+210:             cycle = extras[:, sensors : sensors + 1]  # (B, 1)
+211:             evidence_feats = extras[:, sensors + 1 : sensors + 7]  # (B, 6)
+212:         else:
+213:             baseline = x[:, :1, :]
+214:             cycle = x.new_zeros(batch, 1)
+215:             evidence_feats = x.new_zeros(batch, 6)
+216: 
+217:         feats = [x]
+218:         if self.use_baseline:
+219:             feats.append(x - baseline)
+220:         if self.use_ema_features:
+221:             feats.append(self._ema(x, 0.5))
+222:         if cond is not None:
+223:             cond_t = cond if cond.ndim == 3 else cond.unsqueeze(1).expand(-1, length, -1)
+224:         else:
+225:             cond_t = x.new_zeros(batch, length, 3)
+226:         if self.use_reliability:
+227:             # Reliability-aware degradation representation: mix the reference
+228:             # residual with the raw measurement according to how trustworthy the
+229:             # reference is (evidence count + operating condition).
+230:             # Evidence: reference count, early-reference stability, current
+231:             # deviation from the reference, recent trend. All observable at
+232:             # prediction time (no future information).
+233:             evidence = evidence_feats.unsqueeze(1).expand(-1, length, -1)
+234:             weight = torch.sigmoid(self.reliability(evidence))  # (B, L, 1)
+235:             residual = x - baseline
+236:             feats = [x, weight * residual + (1.0 - weight) * x]
+237:             if self.use_ema_features:
+238:                 feats.append(self._ema(x, 0.5))
+239:             stacked = torch.stack(feats, dim=-1)
+240:         else:
+241:             stacked = torch.stack(feats, dim=-1)  # (B, L, N, F)
+242:         if stacked is not None:
+243:             if self.use_independent_channels:
+244:                 h = torch.stack(
+245:                     [self.sensor_in[i](stacked[:, :, i, :]) for i in range(sensors)], dim=2
+246:                 )
+247:             else:
+248:                 h = self.sensor_in(stacked)  # (B, L, N, D)
+249: 
+250:         # channel-independent temporal conv: (B*N, D, L)
+251:         hh = h.permute(0, 2, 3, 1).reshape(batch * sensors, self.d_model, length)
+252:         hh = F.gelu(self.time_conv(hh))
+253:         conv_out = hh.reshape(batch, sensors, self.d_model, length).permute(0, 3, 1, 2)
+254:         h = self.time_norm(h + self.dropout(conv_out))
+255: 
+256:         if se

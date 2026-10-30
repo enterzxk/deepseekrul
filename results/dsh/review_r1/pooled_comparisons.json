@@ -1,0 +1,38 @@
+[
+  {
+    "a": "M6_tfA",
+    "b": "M0_raw_tf",
+    "engines": 124,
+    "a_rmse": 15.5345718127254,
+    "b_rmse": 15.772576331521499,
+    "median_diff": -0.21618835716706375,
+    "ci_low": -2.5874403453174124,
+    "ci_high": 2.0174337370240663,
+    "prob_a_better": 0.5758,
+    "excludes_zero": false
+  },
+  {
+    "a": "M1_global",
+    "b": "M0_raw_tf",
+    "engines": 124,
+    "a_rmse": 14.925244390006752,
+    "b_rmse": 15.772576331521499,
+    "median_diff": -0.8132392902254884,
+    "ci_low": -3.3913078553361267,
+    "ci_high": 1.5974841517311253,
+    "prob_a_better": 0.7342,
+    "excludes_zero": false
+  },
+  {
+    "a": "M1_global",
+    "b": "M6_tfA",
+    "engines": 124,
+    "a_rmse": 14.925244390006752,
+    "b_rmse": 15.5345718127254,
+    "median_diff": -0.6187288501187895,
+    "ci_low": -2.371732261202832,
+    "ci_high": 1.0603108238507408,
+    "prob_a_better": 0.7616,
+    "excludes_zero": false
+  }
+]

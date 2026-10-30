@@ -1,0 +1,15 @@
+# DRIVER_LOG
+
+One line per hop: local time | hop | task | verdict | wall-clock minutes.
+Guards that fire are logged too — a hop that does nothing is still evidence.
+
+| local | hop | task | verdict | min |
+|---|---|---|---|---|
+| 2026-10-30T00:18 | arm | — | 5 one-shot hops armed 00:40 / 01:00 / 01:20 / 01:40 / 02:00 (exactly 1200 s apart); hourly backstop paused. 20-min cadence built from one-shot hops because the server ignores `BYMINUTE` | — |
+| 2026-10-30T00:40 | hop-0040 | T6 | **PASS** — 12 verified refs (6 added, 6 withheld for unretrievable abstracts); STATUS.json sha `ab6d2b51` changed, so no circuit-breaker trip | 6 |
+| 2026-10-30T01:00 | hop-0100 | — | **GOAL MET: queue drained** — T0..T7 all DONE and no `open` claim (15 supported / 1 withdrawn / 2 partial); wrote `paper/GOAL_MET.md` (STATUS.json `5c90794f`, CLAIMS.md `f1b9e7a1`), lock taken and released | 1 |
+| 2026-10-30T01:20 | hop-0120 | — | **goal already met** — guard 0b: `paper/GOAL_MET.md` present (written 01:00 by hop-0100); no task taken, no lock acquired, no artefacts touched | <1 |
+| 2026-10-30T01:40 | hop-0140 | — | **goal already met** — guard 0b: `paper/GOAL_MET.md` present (written 01:00 by hop-0100, unchanged); `paper/STOP` absent, `HOP_LOCK.json` absent; no task taken, no lock acquired, no artefacts touched | <1 |
+| 2026-10-30T01:52 | hop-0151 | — | **no head task exists** — STEP 0 guard FREE, `paper/STOP` absent; `QUEUE.md` has 8/8 `DONE` and zero `NEXT`/`pending`; `CLAIMS.md` 15 supported / 1 withdrawn (C3) / 2 partial (C10, C14) / 0 open; sha256 of STATUS.json `5c90794f`, CLAIMS.md `f1b9e7a1`, QUEUE.md `6e61f0f2` all identical to `GOAL_MET.md`, so the 01:00 goal predicate still holds. No task invented, no prereg written, no compute, no SSH; STATUS/QUEUE/RUNLOG untouched (nothing to record). STOP deliberately not written: the drained-queue exit is the designed cheap hop, and STOP is reserved for a stalled queue | <1 |
+| 2026-10-30T02:00 | hop-0200 | — | **goal already met** — guard 0b: `paper/GOAL_MET.md` present (written 01:00 by hop-0100). Hashes re-checked and identical to the goal declaration (STATUS.json `5c90794f`, CLAIMS.md `f1b9e7a1`, QUEUE.md `6e61f0f2`), so guard 0b is not stale; `paper/STOP` absent, `HOP_LOCK.json` absent; no task taken, no lock acquired, no artefacts touched | <1 |
+| 2026-10-30T02:56 | hop-0256 | — | **CIRCUIT BREAKER — `paper/STOP` written** — STEP 0 guard FREE, `paper/STOP` absent, `HOP_LOCK.json` absent; `QUEUE.md` 8/8 `DONE`, zero `NEXT`/`pending`, so no head task exists and none was invented; full-file scan of `CLAIMS.md` returns zero `open`; `STATUS.json` sha256 `5c90794f` unchanged since 00:51:43 across hops 01:00/01:20/01:40/01:52/02:00/02:56, exceeding the two-hop threshold in `DRIVER_PROMPT.md` §Stop and safety. Wrote `paper/STOP` with reason + resume path. No prereg, no compute, no SSH, no artefact touched; STATUS/QUEUE/RUNLOG byte-identical to 01:00. Overrides hop-0151's discretionary decision not to trip, because `DRIVER_PROMPT.md` declares itself the source of truth and states the breaker as a machine rule | <1 |

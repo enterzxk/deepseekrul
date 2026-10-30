@@ -1,0 +1,5 @@
+
+cd /home/yndx/zxk/bearing-rul-pi
+echo "trainers=$(pgrep -c -f 'run_candidate.py')"
+ls experiments/split8/*/FD002/*/metrics.json 2>/dev/null | sed 's|experiments/split8/||'
+ls -t logs/order03/split8_*.log 2>/dev/null | head -1 | xargs -r tail -n1

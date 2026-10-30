@@ -1,0 +1,74 @@
+tool=pwsh
+input={"command":"Select-String -Path scripts\\run_candidate.py -Pattern 'CONFIGS|RACDR|use_sensor_id|use_reliability|late|model =|def prepare|build_cond_abs|ref_mode|condition_aware' -Context 2,4 | ForEach-Object { $_.ToString() }","description":"Inspect runner config keys"}
+status=completed
+result_len=8192
+
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:40:CYCLE_SCALE = 250.0
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:41:
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:42:CONFIGS = {
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:43:    "base": dict(use_baseline=False, use_ema_features=False, use_cycle=False,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:44:                 use_graph=False, use_dual_head=False, use_model_ema=False,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:45:                 cls_weight=0.0, nasa_weight=0.0),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:46:    "B": dict(use_baseline=True, use_ema_features=False, use_cycle=False,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:98:               use_graph=False, use_dual_head=False, use_model_ema=False,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:99:               use_fixed_id=True, cls_weight=0.0, nasa_weight=0.0),
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:100:    "RACDR": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:101:                  use_graph=False, use_dual_head=False, use_model_ema=False,
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:102:                  use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:103:    "S3": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:104:               use_graph=False, use_dual_head=False, use_model_ema=False,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:105:               use_independent_channels=True, cls_weight=0.0, nasa_weight=0.0),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:106:    "Aid": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:107:                use_graph=False, use_dual_head=False, use_model_ema=False,
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:108:                use_sensor_id=True, cls_weight=0.0, nasa_weight=0.0),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:109:    "Arec": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:110:                 use_graph=False, use_dual_head=False, use_model_ema=False,
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:111:                 use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:112:}
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:113:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:114:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:115:class WindowSet(Dataset):
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:367:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:368:
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:369:def build_cond_abs(frame, values, window, abs_cut, kept_units):
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:370:    out = []
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:371:    wanted = set(kept_units)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:372:    for _, group in frame.groupby("unit", sort=True):
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:373:        unit = int(group["unit"].iloc[0])
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:400:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:401:
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:402:def prepare(subset: str, split_seed: int, window: int, max_rul: float,
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:403:            condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9),
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:404:            ref_mode: str = "cond"):
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:405:    """Build the development split. Engine partition depends ONLY on split_seed.
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:406:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:407:    Returns train/val window sets plus one deployment-style pseudo-test set per
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:408:    cutoff fraction. The official test files are never opened.
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:418:    val_frame = raw_train[raw_train.unit.isin(val_units)].sort_values(["unit", "cycle"]).reset_index(drop=True)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:419:    cols = list(SELECTED_SENSOR_COLUMNS)
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:420:    if condition_aware:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:421:        op = ["op_1", "op_2", "op_3"]
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:422:        mean = train_frame[op].to_numpy(dtype=np.float64).mean(axis=0)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:423:        std = train_frame[op].to_numpy(dtype=np.float64).std(axis=0)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:424:        std = np.where(std > 1e-8, std, 1.0)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:435:    kmeans = None
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:436:    pop_ref = None
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:437:    if condition_aware:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:438:        from sklearn.cluster import KMeans
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:439:        op_cols = ["op_1", "op_2", "op_3"]
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:440:        train_op = train_frame[op_cols].to_numpy(dtype=np.float64)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:441:        kmeans = KMeans(n_clusters=n_cond, random_state=split_seed, n_init=10).fit(train_op)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:453:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:454:    def make(fr, vals, labels, **kw):
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:455:        if condition_aware and ref_mode == "pop":
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:456:            kw.setdefault("tau", 1.0e6)  # reference collapses to the population prior
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:457:        if condition_aware and ref_mode in {"cond", "pop"}:
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:458:            return build_windows_condref(fr, vals, window, max_rul, labels, pop_ref, **kw)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:459:        x, y, e = build_windows(fr, vals, window, 1, max_rul,
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:460:                                test_mode=kw.get("test_mode", False),
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:461:                                cutoff=kw.get("cutoff"))
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:470:        xa, ya, ea, units_a = make(val_frame, va_s, labels_val, abs_cut=abs_cut)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:471:        if xa is not None:
+> C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:472:            ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:473:            abs_sets[abs_cut] = (WindowSet(xa, ya, ca, ea), units_a)
+  C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py:474:    xm, 

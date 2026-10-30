@@ -1,0 +1,59 @@
+# CLAIMS LEDGER — C-MAPSS evaluation resolution (Track E)
+
+Every row is a sentence the paper is allowed to contain. A claim may enter the
+manuscript only if `status = supported` (or `partial`, in which case it must be
+qualified in Limitations). `evidence` must point at a file that exists in the
+repository; `pin` records whether the number in the paper has been re-derived
+from that file by a `scripts/paper_*.py` script (E6 audit).
+
+Last updated: 2026-10-29.
+
+| id | claim (paper wording, draft) | evidence | statistic / CI | status | pin | section |
+|---|---|---|---|---|---|---|
+| C1 | Under this protocol, method identity explains a small share of RMSE variance, while the choice of validation engines explains far more. | `results/dsh/e10/variance_two_designs.json` (design B); `results/dsh/review_r1/variance_decomposition.json` (design A); `scripts/paper_variance_decomp.py` | method **2.57%** (B) / 1.86% (A); validation set **31.52%** (B) / 22.81% (A); interaction+residual 65.91% (B) / 47.78%+27.55% (A) | supported (two independent designs; point estimates, no interval) | yes — rebuilt from an archived table | 4.1 |
+| C2 | At the observed per-engine variance, the smallest detectable RMSE difference at 260 held-out engines is about 1.5 (≈11%), so a 5% target is not verifiable at this scale. | `results/dsh/e6/MDE.json`; `scripts/mde.py` | MDE = 2.80·sd(ΔRMSE)/√n; sd 8.42 (FD002 A/BE) → **1.46 @260**, 1.05 @509, 0.83 @709; FD001 sd 6.58 → 1.14 @260 | supported (replaces the unsourced 1.60) | yes | 4.2 |
+| C22 | For a single paired contrast between two trained models on the same engines, engine sampling accounts for 97.6% of the variance of the difference; seed replication accounts for 2.4%, so adding seeds cannot rescue a comparison. | `results/dsh/e9/variance_decomp.json`; `scripts/dsh_e9_variance_decomp.py` | engine SE 0.733 (97.6%) vs seed SE 0.116 (2.4%) on FD002; 10 seeds would give seed SE 0.063 while the engine term is unchanged | supported | yes | 4.1 |
+| C3 | ~~Across 21 engine-clustered paired comparisons, none survives Bonferroni correction.~~ **Withdrawn (E6):** no per-engine predictions exist for the seven methods, so the 21-pair table cannot be rebuilt. The nearest artefact is a different design: 18 comparisons against one reference on 20/52-engine subsets, of which **4 already exclude zero unadjusted**. | `paper/E6_STATS_AUDIT.md` §3; `results/dsh/review_r1/clustered_bootstrap_vs_ref.csv` | 18 rows; 4/18 nominal, none survives Holm | **withdrawn — not reproducible** | n/a | 4.2 |
+| C4 | In a linear probe, removing the cycle index degrades pooled RMSE by ~6.9 and FD002 by ~8.9; a sinusoidal encoding recovers almost all of it. | `results/dsh/e6/E6_stats.json`; `results/dsh/review_r3/R3_contrasts.json` | cycle − nocycle: −6.894 [−8.173, −5.624] pooled, −8.859 [−10.367, −7.359] FD002; PE − nocycle −6.957 [−8.223, −5.697] | supported | yes | 4.3 |
+| C5 | On the frozen pipeline, removing the cycle channel costs +1.26 ± 0.50 RMSE (3/3 seeds), so time is a real signal at this sample size, not only a shortcut. | `results/dsh/review_r3/cycle_vs_nocycle_frozen.csv`; `REVIEW_20261022_R3.md` §G | A 12.68 vs BE 13.94; +1.26 ± 0.50 | supported | no — E6 | 4.3 |
+| C6 | With the true lifespan as the time scale (oracle), RMSE drops from 21.32 to 13.09; the gain is real headroom. | `results/dsh/review_r3/R3_1_final.json` (`oracle_vs_cycle`) | +8.23 [+5.30,+11.02], 3/3 seeds | supported | yes (from pred.npz) | 4.4 |
+| C7 | A deployable prefix estimator of the lifespan does **not** recover that headroom: it is indistinguishable from the plain cycle arm and no better than a constant median scale. | `results/dsh/e6/E6_stats.json`; `paper/E6_STATS_AUDIT.md` | est − cycle = −0.046 [−2.251, +2.129]; est − pooled = +1.057 [−1.156, +3.244] | supported | yes | 4.4 |
+| C8 | The prefix estimator is unusable in its current form: its estimate is ~1.9× too large and nearly uncorrelated with the true lifespan. | `results/dsh/review_r3/R3_1_final.json` (`estimator`); `L_strat.csv` | corr 0.196 (0.299/0.179/0.111); median T̂/T 1.90, IQR [1.52,2.19] | supported | yes | 4.4 |
+| C9 | The legacy "severe late" proxy understates the frozen e>10 definition by roughly 5×. | `results/dsh/review_r3/A5_metrics_frozen_severe.csv`; `REVIEW_20261022_R3.md` §A5 | 0.071 vs 0.345 (v1/ridge) | supported | no — E6 | 4.5 |
+| C10 | The RUL cap convention changes reported RMSE by a factor of ~2 on identical predictions. | `docs/director/FINAL_DELIVERABLE.md` §1; `results/dsh/review_r1/cutoff_sensitivity.csv` | 24.8 → 26.9 (cap 80 → none); 12.06 at cap 125 | partial — the cap sweep artifact must be pinned | no — E6 | 4.5 |
+| C11 | Evaluation artefacts reproduce: reloading stored weights reproduces predictions exactly and metrics to ≤0.06. | `results/dsh/review_r1/prediction_corr.csv`; `results/dsh/review_r1/INDEX.md` | corr 1.000000; |Δmetric| ≤ 0.06 | supported | no — E4 to re-run | 7 |
+| C13 | Forcing the health index to be monotone does not make the lifespan estimator usable: the 1.9x bias is structural, not a monotonicity problem. | `results/dsh/e2/E2_health.json`; `paper/E2_RESULT.md` | monotonicity 0.505→1.000, Spearman 0.377→0.976, but corr(T̂,T) only 0.319→0.347; median T̂/T 1.92 in all variants | supported | yes | 4.4 |
+| C12 | More than 20 candidate mechanisms were tested and rejected; the negative record is part of the contribution. | `docs/director/FINAL_DELIVERABLE.md` §7 | list of 20+ items | supported | n/a | 4.4, 6 |
+
+| C14 | ~~A bounded sinusoidal encoding is non-inferior to the linear cycle term and tends to be better.~~ **WITHDRAWN (E10).** The single-split −0.908 is one fold of five; pooled over all 260 FD002 engines the effect is −0.126 (−0.9%), CI [−1.073, +0.795], and PE wins on 51% of engines. | `paper/E10_RESULT.md`; `results/dsh/e10/E10_cv.json`; `paper/E3_AMENDMENT_1.md` | single split −0.908 (fold 0 only); five folds −0.126 [−1.073, +0.795] | **withdrawn — direction does not replicate** | yes | 4.3 |
+| C23 | On FD002, holding out every engine exactly once turns a −7.7% single-split advantage into a −0.9% non-result, and the per-fold estimates span 2.62 RMSE (−1.02 to +1.70) across five equally valid 80/20 splits. | `results/dsh/e10/E10_cv.json`; `scripts/dsh_e10_cv_analyze.py`; `paper/E10_RESULT.md` | pooled −0.126 [−1.073, +0.795]; per-fold −0.904 / +1.699 / −1.023 / −0.477 / −0.031; 51% of engines favour PE | supported | yes | 4.2, 4.3 |
+| C24 | Within a single fold, three seeds agree with that fold's answer while disagreeing with another fold's answer: seed replication reproduces the split, not the effect. | `paper/E10_RESULT.md` table 1 | fold 0 seeds −0.73/−0.87/−1.13; fold 1 seeds +1.65/+2.02/+1.42 | supported | yes | 4.1, 4.3 |
+| C25 | Removing the cycle channel from the frozen pipeline degrades RMSE by 8.1% [+1.8%, +14.5%] over 260 held-out FD002 engines (5-fold CV, all engines held out once). The effect is 2.4x smaller than the single split reported, but it reproduces. | `results/dsh/e10/E10b_be_cv.json`; `paper/E10B_RESULT.md`; `scripts/dsh_e10b_analyze.py` | single split +2.693 [+1.352, +4.096]; five folds +1.133 [+0.245, +2.023] (+8.1%); per-fold +2.677/-0.306/+1.088/+1.571/+0.566 | supported | yes | 4.2, 4.3 |
+
+| C15 | The reported run reproduces end-to-end from a clean directory on the same host class: replay from stored weights and a from-scratch rerun both match the archived metrics exactly. | `paper/E4_RESULT.md`; `experiments/e4/A_s2027/*/metrics.json`; `results/dsh/e4/replay.json` | replay max\|Δpred\| 7.2e-6; from-scratch Δval 0.0000, Δmatched 0.0000, same best epoch 26 | supported | yes | 7 |
+| C16 | Removing the time channel costs +2.65 RMSE even when BE is given the full 80-epoch budget, so the effect is not an early-stopping artefact. | `paper/T1_BE_SENSITIVITY.md`; `experiments/e3fix/*` | BEfix val 13.809/13.712/14.081 = BE to 4 d.p.; matched identical | supported | yes | 4.3 |
+
+| C17 | The time effect is of comparable size on FD001 and FD002, but only the FD002 experiment can resolve it — and the split matches each subset's minimum detectable difference. | `paper/E3B_FD001_RESULT.md`; `results/dsh/e6/E6_stats.json`; `MDE.json` | FD002 +2.69 (MDE 1.89, CI excludes 0); FD001 +1.67 (MDE 2.38, CI includes 0) | supported | yes | 4.3.3 |
+| C18 | The bounded encoding fails the same +0.30 margin on both subsets, by the same amount, which points at the margin rather than the encoding. | `E6_stats.json`; `E3B_FD001_RESULT.md` | upper bounds +0.317 (FD002) and +0.319 (FD001); point estimates −0.90 / −0.93 | supported | yes | 4.3.2 |
+
+| C19 | The bounded encoder's advantage comes from alignment with the sample's own age, not from its extra parameters: scrambling the age assignment (same encoder, same +448) costs 3.5 RMSE and lands on the no-time arm. | `paper/E3C_RESULT.md`; `results/dsh/e6/E6_stats.json` (`E3c …`) | PS−PE +3.512 [+2.214,+4.857] (FD002), +2.144 [+0.366,+4.093] (FD001); PS−BE −0.078 [−1.193,+0.995] | supported | yes | 4.3.2 |
+| C20 | A multi-cutoff evaluation buys resolution at zero training cost: two cutoffs instead of one narrow the engine-clustered interval to 66–75% of its width on the same engines. | `results/dsh/e7/RESOLUTION.json`; `scripts/eval_resolution.py` | FD002 A/BE 3.362→2.528 (0.75); FD002 A/PE 3.508→2.303 (0.66); FD001 4.635→3.282 (0.71) | supported (exploratory, not pre-registered) | yes | 4.2 |
+| C21 | The measured value of the time channel depends on where the cutoffs are placed: +2.69 under deployment-style random cutoffs, ≈0 under fixed mid-life cutoffs. | `results/dsh/e7/RESOLUTION.json`; `results/dsh/e6/E6_stats.json` | matched +2.693 [+1.352,+4.096]; absolute-100 +0.002 [−1.672,+1.690]; 100+140 −0.625 [−1.891,+0.638] | supported (exploratory, not pre-registered) | yes | 4.5 |
+
+## Withdrawn — must never appear as a result
+
+| number | what it claimed | why withdrawn | where it is now labelled |
+|---|---|---|---|
+| 18.18 / "38% of oracle" | deployable `c/T̂` recovers 38% of the oracle gain | training arm fell back to a constant for 100% of windows **and** validation fed the true lifespan into the estimator | `REVIEW_20261022_R3.md` banner + §J.1 |
+| 18.47 / 18.05 | same claim after the slope fix | same validation leak (67% of windows had T̂ = 1.2·T_true) | §J.3 (struck through) |
+| 13.209 / 12.868 | P9 FD001 single / ensemble record | `_smooth_terminal` ordering bug voids every synergy-head number | `README.md` invalidation notice |
+| 14.155 | P7 FD001 Full | listed as void by the 2026-10-29 task book; **scope to confirm in E5** (the documented bug is in the synergy head, and P7 uses BiLSTM-Attn) | pending E5 decision |
+| 13.753 / 13.709 | P10 FD001/FD002 | same synergy-head bug | `README.md` |
+
+## Gaps that are not claims yet
+
+| gap | what the paper would need | owner |
+|---|---|---|
+| E2 | a monotone health index that makes the prefix estimator usable (or a clean falsification) | §4.4 |
+| E3 | PE vs cycle vs none on the frozen pipeline — **pre-registered 2026-10-29** (`paper/E3_PREREGISTRATION.md`, sha `c8f6d653`); outcome will become claim C14 either way | §4.3 |
+| E6 | every CI re-derived with engine clustering; MDE formula re-checked | §3, §4.2 |

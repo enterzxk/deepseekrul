@@ -1,0 +1,56 @@
+tool=pwsh
+input={"command":"ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server 'cd /home/yndx/zxk/bearing-rul-pi; echo \"=== M0 FD001 2027 traceback ===\"; tail -25 logs/order03/M0_raw_tf_FD001_2027.log; echo \"=== M4 FD001 2027 tail ===\"; tail -10 logs/order03/M4_racdr_FD001_2027.log; echo \"=== PROCESSES NOW ===\"; ps -eo pid,etime,args | grep -E \"run_candidate.py --subset\" | grep -v grep' 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Show FD001 failure traceback and processes","timeoutMs":45000}
+status=completed
+result_len=2821
+
+=== M0 FD001 2027 traceback ===
+[FD001 tf s2027] ep013 loss=257.937 val=13.3254
+[FD001 tf s2027] ep014 loss=262.291 val=12.8758
+[FD001 tf s2027] ep015 loss=266.771 val=13.9569
+[FD001 tf s2027] ep016 loss=255.384 val=13.5438
+[FD001 tf s2027] ep017 loss=255.617 val=14.0164
+[FD001 tf s2027] ep018 loss=253.206 val=12.8355
+[FD001 tf s2027] ep019 loss=237.571 val=13.5690
+[FD001 tf s2027] ep020 loss=251.264 val=13.2600
+[FD001 tf s2027] ep021 loss=239.174 val=13.1376
+[FD001 tf s2027] ep022 loss=237.210 val=13.0152
+[tf] best_epoch=12 last_epoch=22 restored_from_best=True weights=raw
+Traceback (most recent call last):
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 698, in <module>
+    raise SystemExit(main())
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 650, in main
+    absolute_frames.append(pd.DataFrame({
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/pandas/core/frame.py", line 709, in __init__
+    mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 481, in dict_to_mgr
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 115, in arrays_to_mgr
+    index = _extract_index(arrays)
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/pandas/core/internals/construction.py", line 655, in _extract_index
+    raise ValueError("All arrays must be of the same length")
+ValueError: All arrays must be of the same length
+=== M4 FD001 2027 tail ===
+[FD001 RACDR s2027] ep001 loss=9730.122 val=70.4573
+[FD001 RACDR s2027] ep002 loss=6797.886 val=53.6532
+[FD001 RACDR s2027] ep003 loss=3713.465 val=39.8881
+[FD001 RACDR s2027] ep004 loss=1795.633 val=37.5690
+[FD001 RACDR s2027] ep005 loss=945.756 val=24.7663
+[FD001 RACDR s2027] ep006 loss=873.801 val=19.2720
+[FD001 RACDR s2027] ep007 loss=613.704 val=17.3873
+[FD001 RACDR s2027] ep008 loss=527.458 val=16.3899
+[FD001 RACDR s2027] ep009 loss=573.909 val=15.2353
+=== PROCESSES NOW ===
+EXIT=1
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:1 字符: 129
++ ... ew($false); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server 'cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+grep：未识别的选项 ‘--subset’
+用法: grep [选项]... 模式 [文件]...
+尝试使用 'grep --help' 来获得更多信息。
+

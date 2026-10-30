@@ -1,0 +1,18 @@
+tool=pwsh
+input={"command":"Write-Output \"HTTP_PROXY=$env:HTTP_PROXY HTTPS_PROXY=$env:HTTPS_PROXY NO_PROXY=$env:NO_PROXY\"; curl.exe --version | Select-Object -First 2; Write-Output '--- try api ---'; curl.exe -sS -m 30 -H \"User-Agent: dsh-audit\" \"https://api.github.com/repos/enterzxk/deepseekrul/commits/main\" 2>&1 | Select-Object -First 40","description":"Check proxy and curl GitHub API","timeoutMs":45000}
+status=completed
+result_len=616
+
+HTTP_PROXY= HTTPS_PROXY= NO_PROXY=
+curl 8.13.0 (Windows) libcurl/8.13.0 Schannel zlib/1.3.1 WinIDN
+Release-Date: 2025-04-02
+--- try api ---
+[stderr]
+curl.exe : curl: (28) Failed to connect to api.github.com port 443 after 21045 ms: Could not connect to server
+所在位置 行:1 字符: 301
++ ... y api ---'; curl.exe -sS -m 30 -H "User-Agent: dsh-audit" "https://ap ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (curl: (28) Fail...nnect to server:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[exit code: 1]

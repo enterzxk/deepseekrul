@@ -1,0 +1,38 @@
+tool=pwsh
+input={"command":"Get-ChildItem results -Force | Select-Object LastWriteTime,Name | Sort-Object LastWriteTime -Descending | Format-Table -AutoSize | Out-String -Width 200; Write-Output '--- experiments ---'; Get-ChildItem experiments -Force | Select-Object LastWriteTime,Name | Sort-Object LastWriteTime -Descending | Format-Table -AutoSize | Out-String -Width 200","description":"List results and experiments dirs"}
+status=completed
+result_len=1145
+
+
+LastWriteTime       Name                          
+-------------       ----                          
+2026/10/21 22:42:47 order02                       
+2026/10/21 20:34:01 order01                       
+2026/10/21 17:40:36 p10                           
+2026/10/21 16:27:58 p9                            
+2026/10/21 14:27:45 final_tables.tex              
+2026/10/21 14:10:20 p8                            
+2026/10/21 11:35:45 final_FD002_P7_1seed          
+2026/10/21 11:32:38 final_FD001_P7_5seeds         
+2026/10/21 11:27:55 p7_locked.json                
+2026/10/21 11:27:36 checkpoint_status.json        
+2026/10/21 10:37:34 final_FD001_P6_5seeds         
+2026/10/21 4:34:55  final_FD002_3seeds            
+2026/10/21 4:30:55  final_FD001_5seeds            
+2026/10/21 3:06:07  locked_hparams.json           
+2026/10/21 1:47:49  FINAL_PAPER_REPORT.md         
+2026/10/21 1:42:48  overnight_progress.log        
+2026/10/20 20:56:19 ablations_FD001_seeds42_67_123
+
+
+
+--- experiments ---
+
+LastWriteTime       Name    
+-------------       ----    
+2026/10/21 11:24:45 p7_fd002
+2026/10/21 1:21:33  PHASE2  
+
+
+
+

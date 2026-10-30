@@ -1,0 +1,50 @@
+tool=pwsh
+input={"command":"ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server 'cd /home/yndx/zxk/bearing-rul-pi; echo \"=== HASHES ===\"; sha256sum scripts/run_candidate.py src/candidates/model.py scripts/error_analysis.py scripts/audit_stats.py docs/director/ORDER_03_INTERIM_RESULTS.md 2>&1; echo \"=== DOCS ===\"; ls -lt docs/director 2>&1; echo \"=== M1 LOG ===\"; cat logs/order03/M1_global_FD002_2027.log 2>&1; echo \"=== M1 LOG 2 ===\"; cat logs/order03/M1_global_FD002_2028.log 2>&1' 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Get remote hashes, docs and M1 error logs","timeoutMs":45000}
+status=completed
+result_len=2882
+
+=== HASHES ===
+6715b40ab086800fcca8169a1a9d2c03e24a2d85582b5b00e088bcbf0dc5af75  scripts/run_candidate.py
+95a1c24c8af044e3860647cca81057b6bd1d81be84d5a68ac6ab351b9e56fff9  src/candidates/model.py
+00854fb034325793d771c268660e0874ba76480efb08ded2107135fcc57c556e  scripts/error_analysis.py
+99d8285b6d050ecb6ee6107bcd45a8983851e90613033c77c5d5726444db4f36  scripts/audit_stats.py
+sha256sum: docs/director/ORDER_03_INTERIM_RESULTS.md: 没有那个文件或目录
+=== DOCS ===
+ls: 无法访问 'docs/director': 没有那个文件或目录
+=== M1 LOG ===
+Traceback (most recent call last):
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 692, in <module>
+    raise SystemExit(main())
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 531, in main
+    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets, matched_set, matched_units = prepare(
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 472, in prepare
+    ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 379, in build_cond_abs
+    return np.stack(out).astype(np.float32)
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/numpy/core/shape_base.py", line 449, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape
+=== M1 LOG 2 ===
+Traceback (most recent call last):
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 692, in <module>
+    raise SystemExit(main())
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 531, in main
+    train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets, matched_set, matched_units = prepare(
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 472, in prepare
+    ca = build_cond_abs(val_frame, cond_v, window, abs_cut, units_a) if cond_v is not None else None
+  File "/home/yndx/zxk/bearing-rul-pi/scripts/run_candidate.py", line 379, in build_cond_abs
+    return np.stack(out).astype(np.float32)
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/numpy/core/shape_base.py", line 449, in stack
+    raise ValueError('all input arrays must have the same shape')
+ValueError: all input arrays must have the same shape
+EXIT=0
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:1 字符: 129
++ ... ew($false); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server 'cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+

@@ -1,0 +1,11 @@
+{
+  "rmse_s1": 31.832782192730377,
+  "rmse_s2": 31.780676096329284,
+  "point": -0.05210609640109354,
+  "lo": -0.2031603518139046,
+  "hi": 0.07198880474573331,
+  "n_obs": 710,
+  "excludes0": false,
+  "deviation_from_prereg": "prereg specified an engine-clustered bootstrap; the implementation resampled (dataset, engine, cutoff) tuples, i.e. observation-level, so the interval is too narrow",
+  "bias_direction": "too narrow -> the true interval is wider, so the 'not supported' verdict is unchanged"
+}

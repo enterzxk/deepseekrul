@@ -1,0 +1,104 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\scripts\\audit_stats.py"}
+status=completed
+result_len=3931
+
+<path>C:\Users\20562\Desktop\deepseek-rul\scripts\audit_stats.py</path>
+<type>file</type>
+<content>
+1: """Engine-clustered paired bootstrap (ORDER_02 Issue 5).
+2: 
+3: Multiple cutoffs and multiple seeds per engine are NOT independent samples.
+4: The bootstrap resamples ENGINES and keeps every cutoff/seed of a sampled engine
+5: together, recomputing RMSE for both models inside each resample.
+6: 
+7: Usage:
+8:   python scripts/audit_stats.py --a "experiments/order01/FD002/Aid_s*/pseudo_test_predictions.csv" \
+9:                                 --b "experiments/order01/FD002/tf_s*/pseudo_test_predictions.csv"
+10: """
+11: 
+12: from __future__ import annotations
+13: 
+14: import argparse
+15: import glob
+16: import json
+17: from pathlib import Path
+18: 
+19: import numpy as np
+20: import pandas as pd
+21: 
+22: ROOT = Path(__file__).resolve().parents[1]
+23: 
+24: 
+25: def load(pattern: str) -> pd.DataFrame:
+26:     frames = [pd.read_csv(p) for p in sorted(glob.glob(str(ROOT / pattern)))]
+27:     if not frames:
+28:         raise SystemExit(f"no files matched {pattern}")
+29:     return pd.concat(frames, ignore_index=True)
+30: 
+31: 
+32: def per_engine_sse(frame: pd.DataFrame) -> pd.Series:
+33:     return frame.groupby("unit_id").apply(
+34:         lambda g: float((g.signed_error ** 2).sum()), include_groups=False
+35:     )
+36: 
+37: 
+38: def per_engine_count(frame: pd.DataFrame) -> pd.Series:
+39:     return frame.groupby("unit_id").size()
+40: 
+41: 
+42: def main() -> int:
+43:     parser = argparse.ArgumentParser()
+44:     parser.add_argument("--a", required=True)
+45:     parser.add_argument("--b", required=True)
+46:     parser.add_argument("--out", default="results/order02")
+47:     parser.add_argument("--reps", type=int, default=20000)
+48:     args = parser.parse_args()
+49: 
+50:     fa, fb = load(args.a), load(args.b)
+51:     sse_a, cnt_a = per_engine_sse(fa), per_engine_count(fa)
+52:     sse_b, cnt_b = per_engine_sse(fb), per_engine_count(fb)
+53:     units = sorted(set(sse_a.index) & set(sse_b.index))
+54:     sa, sb = sse_a.loc[units].to_numpy(), sse_b.loc[units].to_numpy()
+55:     ca, cb = cnt_a.loc[units].to_numpy(), cnt_b.loc[units].to_numpy()
+56: 
+57:     def rmse(sse, cnt, idx):
+58:         return np.sqrt(sse[idx].sum() / cnt[idx].sum())
+59: 
+60:     rng = np.random.default_rng(20261021)
+61:     idx = rng.integers(0, len(units), size=(args.reps, len(units)))
+62:     diffs = np.array([rmse(sa, ca, i) - rmse(sb, cb, i) for i in idx])
+63:     lo, hi = np.percentile(diffs, [2.5, 97.5])
+64: 
+65:     result = {
+66:         "a": args.a, "b": args.b,
+67:         "n_engines": len(units),
+68:         "n_predictions_a": int(ca.sum()), "n_predictions_b": int(cb.sum()),
+69:         "rmse_a": float(rmse(sa, ca, np.arange(len(units)))),
+70:         "rmse_b": float(rmse(sb, cb, np.arange(len(units)))),
+71:         "rmse_diff": float(rmse(sa, ca, np.arange(len(units))) - rmse(sb, cb, np.arange(len(units)))),
+72:         "ci_low": float(lo), "ci_high": float(hi),
+73:         "excludes_zero": bool(lo > 0 or hi < 0),
+74:         "prob_a_better": float((diffs < 0).mean()),
+75:         "clustering": "engines resampled; all cutoffs/seeds of an engine stay together",
+76:     }
+77:     # seed-level spread, reported separately
+78:     if "seed" in fa.columns:
+79:         result["per_seed_rmse_a"] = {
+80:             str(s): float(np.sqrt((g.signed_error ** 2).mean())) for s, g in fa.groupby("seed")
+81:         }
+82:         result["per_seed_rmse_b"] = {
+83:             str(s): float(np.sqrt((g.signed_error ** 2).mean())) for s, g in fb.groupby("seed")
+84:         }
+85:     out = ROOT / args.out
+86:     out.mkdir(parents=True, exist_ok=True)
+87:     (out / "paired_bootstrap.json").write_text(json.dumps(result, indent=2))
+88:     print(json.dumps(result, indent=2))
+89:     return 0
+90: 
+91: 
+92: if __name__ == "__main__":
+93:     raise SystemExit(main())
+
+(End of file - total 93 lines)
+</content>

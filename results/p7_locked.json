@@ -1,0 +1,23 @@
+{
+  "phase": "P7",
+  "window_size": 50,
+  "dropout": 0.15,
+  "weight_decay": 0.0001,
+  "d_model": 64,
+  "lstm_hidden_size": 40,
+  "temporal_mode": "bilstm_attn",
+  "graph_mode": "hollow",
+  "hollow_alpha": 0.15,
+  "monotonic_head": true,
+  "use_delta_features": false,
+  "condition_film": true,
+  "loss_mode": "full",
+  "asymmetric_weight": 1.0,
+  "lambda_mono": 0.05,
+  "late_weight": 2.0,
+  "fd001_val_rmse_alpha015": 11.333,
+  "fd001_full_rmse_5seed": 14.155,
+  "fd001_wo_mono_rmse_5seed": 13.587,
+  "fd002_full_rmse_1seed": 14.120,
+  "note": "FD001 <=12.5 gate not met; do not lock as SOTA"
+}

@@ -1,0 +1,7 @@
+tool=pwsh
+input={"command":"$ProgressPreference='SilentlyContinue'; try { $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/enterzxk/deepseekrul/commits/main' -Headers @{'User-Agent'='dsh-audit'} -TimeoutSec 30; $r | ConvertTo-Json -Depth 6 } catch { Write-Output (\"API ERROR: \" + $_.Exception.Message); if($_.Exception.Response){ Write-Output (\"STATUS: \" + [int]$_.Exception.Response.StatusCode) } }","description":"Fetch GitHub main commit via API"}
+status=completed
+result_len=31
+
+API ERROR: 基础连接已经关闭: 接收时发生错误。
+

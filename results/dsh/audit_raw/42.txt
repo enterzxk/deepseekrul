@@ -1,0 +1,158 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\scripts\\run_candidate.py","offset":1,"limit":180}
+status=completed
+result_len=8192
+
+<path>C:\Users\20562\Desktop\deepseek-rul\scripts\run_candidate.py</path>
+<type>file</type>
+<content>
+1: """Stage-2/3 candidate tournament runner (validation-only, no test access).
+2: 
+3: Trains one candidate configuration on the 80/20 development split of FD001 or
+4: FD002 and writes validation metrics. The official test split is never built,
+5: loaded or evaluated here - Stage 2/3 is strictly validation-only by design.
+6: """
+7: 
+8: from __future__ import annotations
+9: 
+10: import argparse
+11: import json
+12: import random
+13: import sys
+14: import time
+15: from pathlib import Path
+16: 
+17: import numpy as np
+18: import pandas as pd
+19: import torch
+20: from torch import nn
+21: from torch.utils.data import DataLoader, Dataset
+22: 
+23: ROOT = Path(__file__).resolve().parents[1]
+24: sys.path.insert(0, str(ROOT / "src"))
+25: sys.path.insert(0, str(ROOT / "scripts"))
+26: 
+27: from dataset import (  # noqa: E402
+28:     SELECTED_SENSOR_COLUMNS,
+29:     OperatingConditionScaler,
+30:     SensorMinMaxScaler,
+31:     build_piecewise_linear_rul,
+32:     compute_rmse,
+33:     load_cmapss_train,
+34: )
+35: from candidates.model import (  # noqa: E402
+36:     CandidateModel, ModelEMA, TransformerWithFeatures, soft_nasa_loss,
+37: )
+38: from baselines import build_baseline  # noqa: E402
+39: 
+40: CYCLE_SCALE = 250.0
+41: 
+42: CONFIGS = {
+43:     "base": dict(use_baseline=False, use_ema_features=False, use_cycle=False,
+44:                  use_graph=False, use_dual_head=False, use_model_ema=False,
+45:                  cls_weight=0.0, nasa_weight=0.0),
+46:     "B": dict(use_baseline=True, use_ema_features=False, use_cycle=False,
+47:               use_graph=False, use_dual_head=False, use_model_ema=False,
+48:               cls_weight=0.0, nasa_weight=0.0),
+49:     "E": dict(use_baseline=False, use_ema_features=True, use_cycle=False,
+50:               use_graph=False, use_dual_head=False, use_model_ema=False,
+51:               cls_weight=0.0, nasa_weight=0.0),
+52:     "C": dict(use_baseline=False, use_ema_features=False, use_cycle=True,
+53:               use_graph=False, use_dual_head=False, use_model_ema=False,
+54:               cls_weight=0.0, nasa_weight=0.0),
+55:     "BE": dict(use_baseline=True, use_ema_features=True, use_cycle=False,
+56:                use_graph=False, use_dual_head=False, use_model_ema=False,
+57:                cls_weight=0.0, nasa_weight=0.0),
+58:     "BC": dict(use_baseline=True, use_ema_features=False, use_cycle=True,
+59:                use_graph=False, use_dual_head=False, use_model_ema=False,
+60:                cls_weight=0.0, nasa_weight=0.0),
+61:     "EC": dict(use_baseline=False, use_ema_features=True, use_cycle=True,
+62:                use_graph=False, use_dual_head=False, use_model_ema=False,
+63:                cls_weight=0.0, nasa_weight=0.0),
+64:     "A": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+65:               use_graph=False, use_dual_head=False, use_model_ema=False,
+66:               cls_weight=0.0, nasa_weight=0.0),
+67:     "AB": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+68:                use_graph=True, use_dual_head=False, use_model_ema=False,
+69:                cls_weight=0.0, nasa_weight=0.0),
+70:     "ABC": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+71:                 use_graph=True, use_dual_head=True, use_model_ema=False,
+72:                 cls_weight=0.2, nasa_weight=0.05),
+73:     "ABE": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+74:                 use_graph=True, use_dual_head=False, use_model_ema=True,
+75:                 cls_weight=0.0, nasa_weight=0.0),
+76:     "ABCE": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+77:                  use_graph=True, use_dual_head=True, use_model_ema=True,
+78:                  cls_weight=0.2, nasa_weight=0.05),
+79:     "tf": dict(baseline="transformer", use_baseline=False, use_ema_features=False,
+80:                use_cycle=False, use_graph=False, use_dual_head=False,
+81:                use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+82:     "tfA": dict(baseline="transformer_features", feature_set="full", use_baseline=True,
+83:                 use_ema_features=True, use_cycle=True, use_graph=False, use_dual_head=False,
+84:                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+85:     "tfB": dict(baseline="transformer_features", feature_set="raw_base", use_baseline=True,
+86:                 use_ema_features=False, use_cycle=False, use_graph=False, use_dual_head=False,
+87:                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+88:     "tfE": dict(baseline="transformer_features", feature_set="raw_ema", use_baseline=False,
+89:                 use_ema_features=True, use_cycle=False, use_graph=False, use_dual_head=False,
+90:                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+91:     "tfC": dict(baseline="transformer_features", feature_set="raw_cycle", use_baseline=False,
+92:                 use_ema_features=False, use_cycle=True, use_graph=False, use_dual_head=False,
+93:                 use_model_ema=False, cls_weight=0.0, nasa_weight=0.0),
+94:     "S2": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+95:                use_graph=False, use_dual_head=False, use_model_ema=False,
+96:                capacity_pad=True, cls_weight=0.0, nasa_weight=0.0),
+97:     "S4": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+98:                use_graph=False, use_dual_head=False, use_model_ema=False,
+99:                use_fixed_id=True, cls_weight=0.0, nasa_weight=0.0),
+100:     "RACDR": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+101:                   use_graph=False, use_dual_head=False, use_model_ema=False,
+102:                   use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
+103:     "S3": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+104:                use_graph=False, use_dual_head=False, use_model_ema=False,
+105:                use_independent_channels=True, cls_weight=0.0, nasa_weight=0.0),
+106:     "Aid": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+107:                 use_graph=False, use_dual_head=False, use_model_ema=False,
+108:                 use_sensor_id=True, cls_weight=0.0, nasa_weight=0.0),
+109:     "Arec": dict(use_baseline=True, use_ema_features=True, use_cycle=True,
+110:                  use_graph=False, use_dual_head=False, use_model_ema=False,
+111:                  use_reliability=True, cls_weight=0.0, nasa_weight=0.0),
+112: }
+113: 
+114: 
+115: class WindowSet(Dataset):
+116:     def __init__(self, x, y, cond, extras):
+117:         self.x = torch.from_numpy(x)
+118:         self.y = torch.from_numpy(y)
+119:         self.cond = torch.from_numpy(cond) if cond is not None else None
+120:         self.extras = torch.from_numpy(extras)
+121: 
+122:     def __len__(self) -> int:
+123:         return self.x.shape[0]
+124: 
+125:     def __getitem__(self, index: int):
+126:         cond = self.cond[index] if self.cond is not None else torch.zeros(50, 3)
+127:         return self.x[index], self.y[index], cond, self.extras[index]
+128: 
+129: 
+130: def set_seed(seed: int) -> None:
+131:     random.seed(seed)
+132:     np.random.seed(seed)
+133:     torch.manual_seed(seed)
+134:     torch.cuda.manual_seed_all(seed)
+135:     torch.backends.cudnn.deterministic = True
+136:     torch.backends.cudnn.benchmark = False
+137: 
+138: 
+139: def build_windows_condref(frame, values, window, max_rul, cluster_labels, pop_ref,
+140:                            tau=2.0, cutoff=None, test_mode=False, abs_cut=None,
+141:                            matched_seed=None):
+142:     """Condition-matched healthy reference with Bayesian shrinkage.
+143: 
+144:     x_ref = n/(n+tau) * xbar_(i,m) + tau/(n+tau) * mu_pop,m
+145: 
+146:     where m is the operating-condition cluster of the current step, xbar_(i,m)
+147:     is engine i's own early healthy mean inside cluster m (first 30 cycles,
+148:     first 5 samples, only rows before the cut) and mu_pop,m is the training
+149:     population healthy mean for that cluster. With n = 0 the reference falls
+150:     back 100% to 

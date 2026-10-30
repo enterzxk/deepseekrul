@@ -1,0 +1,60 @@
+{
+  "prereg": "paper/E10_CV_PREREGISTRATION.md",
+  "subset": "FD002",
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "seeds": [
+    2027,
+    2028,
+    2029
+  ],
+  "n_engines": 260,
+  "n_observations": 780,
+  "rmse": {
+    "A": 13.983259385069989,
+    "PE": 13.85711173820805
+  },
+  "delta": -0.1261476468619378,
+  "relative": -0.009021333538060977,
+  "ci95": [
+    -1.07304174721733,
+    0.7949398495400337
+  ],
+  "ci_rng_seeds": [
+    9000,
+    9001,
+    9002,
+    9003,
+    9004
+  ],
+  "reps": 100000,
+  "mc_error": {
+    "lo": 0.0022573505569658506,
+    "hi": 0.0033718630686529315
+  },
+  "excludes_zero": false,
+  "per_fold": {
+    "0": -0.9039606552954602,
+    "1": 1.6986777508454,
+    "2": -1.0230537101205144,
+    "3": -0.47676230949096876,
+    "4": -0.031174687163671777
+  },
+  "per_seed": {
+    "2027": -0.07502696071325587,
+    "2028": -0.4233914816543507,
+    "2029": 0.11823429908883476
+  },
+  "rule": {
+    "margin_rel": 0.05,
+    "established": false,
+    "directional": false,
+    "verdict": "NOT_REPRODUCED"
+  },
+  "estimator": "pooled MSE over all engines x seeds then sqrt; fold-stratified engine bootstrap, seeds of an engine resampled together"
+}

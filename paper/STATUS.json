@@ -1,0 +1,70 @@
+{
+  "updated": "2026-10-30T15:55:00Z",
+  "track": "E",
+  "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
+  "current_section": "none (pre-writing): evidence closure phase",
+  "current_gap": "E3",
+  "next_action": "Assemble the manuscript (E7): sections 1-6 drafted except 4.5 refresh; then claims pass, figure scripts, and the E8 package. Human decisions still open: author block, test-disclosure sign-off, 260-vs-509.",
+  "blockers": [
+    "G1 human input required: journal, title choice (A/B/C), author order, affiliations, funding, COI",
+    "test-data disclosure wording not yet decided by human (supplement data-use section)"
+  ],
+  "gates": {
+    "G1": "partially_resolved (journal + title fixed; authors/affiliations/funding/COI pending human)",
+    "G2": "in_progress (E1 partial, E2 closed FAIL, E3 closed non-inferior, E5 done pre-E7, E4/E6 open)",
+    "G3": "not_started",
+    "G4": "not_started",
+    "G5": "not_started"
+  },
+  "gaps": {
+    "E1": "CLOSED PASS: 12 refs verified in paper/refs_verified.csv, each with a DOI and a verbatim abstract sentence asserted by scripts/e1_verify_refs.py. Coverage: 2 method baselines (zheng2017, ress2019), peer-reviewed OC source (li2014oc), power/MDE source (cohen1992), plus dodge2019/raff2019. Four candidates (li2018, lei2018, freitas2026, engrXiv 10.31224/8145) withheld: abstract not openly retrievable, recorded in E1_LITERATURE.md section 4",
+    "E2": "CLOSED as FAIL: monotone projection lifts the index score but not corr(T_hat,T) (0.347 < 0.5 gate). See paper/E2_RESULT.md",
+    "E3": "CLOSED as FAIL: non-inferiority NOT established. 4000-rep bound +0.291 was a low MC draw; converged (100k x5 RNG) +0.309..+0.324. Point estimate -0.897 unchanged, 3/3 seeds favour PE. See paper/E3_AMENDMENT_1.md",
+    "E4": "CLOSED PASS: replay max|dpred| 7.2e-6; from-scratch bit-identical (val 12.5434, matched 13.0857, best epoch 26). See paper/E4_RESULT.md",
+    "E5": "inventory + banners + SUPERSEDED companions done; re-scan after E7 pending",
+    "E6": "CLOSED: one CI recipe (engine-clustered, 100k reps, 3 RNGs, MC error) applied to 10 contrasts; C3 (21 pairs) withdrawn as not reproducible; C2/C10 downgraded to point estimates. See paper/E6_STATS_AUDIT.md",
+    "E7": "DONE (exploratory): multi-cutoff evaluation narrows the CI to 0.66-0.75 at fixed engines; cutoff placement flips the time contrast (+2.69 matched vs ~0 absolute). paper/E7_RESOLUTION_NOTE.md, SECTION_4_5.md",
+    "E8": "not_started",
+    "T1": "CLOSED: BEfix(patience 80) reproduces BE to 4 d.p.; early stopping did not inflate +2.65. See paper/T1_BE_SENSITIVITY.md",
+    "T4": "DONE: paper/SECTION_4_3.md drafted, all numbers in the E6 convention",
+    "T5": "DONE: paper/MORNING_20261030.md",
+    "E3b": "CLOSED: FD001 replicated. PE-A -0.928 [-2.234,+0.319] -> margin fails again (+0.319); BE-A +1.674 [-0.250,+3.699] not resolvable (MDE 2.38 > effect). See paper/E3B_FD001_RESULT.md",
+    "MDE": "CLOSED: scripts/mde.py gives 1.46 @260 (FD002 A/BE) and 1.14 (FD001); replaces the unsourced 1.60",
+    "T6": "DONE: 14 refs, 9 verbatim + 5 metadata-only (the latter must not be quoted)",
+    "T7": "DONE: paper/SECTION_2.md, cites only the 9 verbatim refs",
+    "E3c": "CLOSED: scrambled-age control. PS-PE +3.51 [+2.21,+4.86] (FD002), +2.14 [+0.37,+4.09] (FD001); PS-BE -0.08 (CI crosses 0) -> gain is alignment, not capacity. paper/E3C_RESULT.md",
+    "E9_variance": "CLOSED: engine sampling is 97.6% of the variance of a paired contrast, seed 2.4%. More seeds cannot rescue a comparison; only more held-out engines can.",
+    "C1_rebuild": "CLOSED: the 2.6/31.5/65.9 table was reproduced exactly (2.57/31.52/65.91) and now has a script + JSON artefact",
+    "E10": "CLOSED as NOT_REPRODUCED: PE-A -0.126 (-0.9%) CI [-1.073,+0.795] over 260 engines; per-fold -0.90/+1.70/-1.02/-0.48/-0.03; PE wins 51%; no lifespan effect (corr 0.015)",
+    "E10b": "CLOSED as REPRODUCED: BE-A +1.133 (+8.1%) CI [+0.245,+2.023]; single split +2.693 was 2.4x high. The design resolves 8% but not 1%."
+  },
+  "rules_in_force": [
+    "no hand-written numbers in tables/figures: scripts/paper_*.py only",
+    "every claim needs artifact + CI + status in paper/CLAIMS.md",
+    "no unverified citation, no 'first' claims",
+    "withdrawn numbers must be labelled, never silently edited"
+  ],
+  "goal_mode": {
+    "requested": "persistent goal object (create_goal / get_goal) per the 2026-10-29 startup template",
+    "status": "EMULATED 2026-10-30T00:20: no goal object exists, so the goal is an explicit predicate evaluated at the head of every hop - all of T0..T7 DONE and no claim in CLAIMS.md still open",
+    "enforced_by": "paper/DRIVER_PROMPT.md (single-hop procedure) + five one-shot hops 00:40-02:00 at 20-min spacing + paper/HOP_LOCK.json (18-min TTL); success writes paper/GOAL_MET.md, which every later hop checks first",
+    "not_solved": "the CLI /goal path stays unreachable: the bundled 2.165.0 lite-wb build has no login subcommand and needs a TTY /login with the desktop credential. One human login is the whole unblock",
+    "checked": "2026-10-30, nextRunAt read back from the scheduler: multi-value BYMINUTE ignored, one-shot honoured to the minute"
+  },
+  "decisions": {
+    "journal": "IEEE TIM, Regular Paper (decided 2026-10-29)",
+    "title": "C — \"What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks\"",
+    "authors": "PENDING HUMAN: author order, affiliations, corresponding author, funding, COI",
+    "challenge_threshold": "260 held-out engines is the main table; 509/709 are arithmetic projections and must be labelled as unverified projections in §4.2",
+    "test_disclosure": "approved wording in paper/SUPPLEMENT_DATA_USE.md (Supplement Data use + one Limitations sentence)"
+  },
+  "round": {
+    "mode": "manual",
+    "last_completed": 10,
+    "next": 11,
+    "log": "paper/RUNLOG.md",
+    "queue": "paper/QUEUE.md"
+  },
+  "ops_note": "2026-10-30 21:10 local: the GPU was 98% occupied by the user's own ComfyUI service (pid 3274728, 41.6 GB, queue empty, 0% utilisation). Called its standard POST /free endpoint (unload_models + free_memory, HTTP 200); memory dropped 43 GB -> 0.9 GB and the service stayed up. It reloads lazily on the next request. No process was killed and no model was deleted.",
+  "headline": "Two contrasts on the same 5-fold design calibrate the benchmark: an 8.1% effect (remove the time channel) reproduces at 260 engines, a 0.9% effect (bounded time encoding) does not, and the single 80/20 split overstated both (2.4x and 7x) with three agreeing seeds each time."
+}

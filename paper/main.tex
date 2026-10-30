@@ -1,0 +1,104 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,booktabs,graphicx}
+\usepackage{hyperref}
+\title{Towards Reliable Remaining Useful Life Prediction under Degradation Uncertainty: A Preliminary Validation Study}
+\author{Project Draft}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This draft documents the implementation and preliminary validation of a lightweight spatial--temporal remaining useful life (RUL) predictor for the C-MAPSS benchmark. The method combines an adaptive sensor graph, a bidirectional multi-scale selective state-space block, first-order degradation features, and a state-aware asymmetric risk loss. The official test sets remain sealed because the predefined Stage-2 validation gate was not met. Therefore, this manuscript intentionally reports validation results only and does not claim state-of-the-art test performance.
+\end{abstract}
+
+\section{Introduction}
+RUL prediction is safety-critical: overestimating remaining life can delay maintenance, while excessive conservatism reduces asset utilization. A reliable model must therefore be accurate, stable across engines, and sensitive to late-prediction risk. This draft reports the current implementation and the actual five-fold validation evidence.
+
+\section{Methodology}
+\subsection{Input representation}
+Let $X_t\in\mathbb{R}^{14}$ denote the standardized sensor vector at cycle $t$. The network receives
+\begin{equation}
+\tilde X_t = [X_t,\; X_t-X_{t-1}],
+\end{equation}
+which has 28 channels. Targets are normalized as $y/125$ and converted back to cycles at inference.
+
+\subsection{Adaptive spatial branch}
+Learnable sensor embeddings $E_1,E_2\in\mathbb{R}^{14\times16}$ define
+\begin{equation}
+A=\operatorname{softmax}\!\left(\operatorname{ReLU}(E_1E_2^\top)\right).
+\end{equation}
+Residual graph layers aggregate neighboring sensor states while preserving node-specific information.
+
+\subsection{Selective state-space temporal branch}
+For each temporal scale, a depthwise convolution and input-dependent projections produce selective decay, write, and read signals:
+\begin{align}
+h_t &= \operatorname{SiLU}(\operatorname{DWConv}(x_t)),\\
+\Delta_t &= \operatorname{softplus}(W_\Delta h_t),\\
+s_t &= \exp(\Delta_t\odot A)s_{t-1}+B_t h_t,\\
+o_t &= C_t^\top s_t.
+\end{align}
+A shared-weight reverse scan is fused with the forward scan.
+
+\subsection{Gated fusion and regression}
+The spatial and temporal states are merged by a channel gate
+\begin{equation}
+H=\alpha\odot H_s+(1-\alpha)\odot H_t,\qquad
+\alpha=\sigma(W[\,H_s,H_t\,]).
+\end{equation}
+The regression head concatenates the last and attention-pooled temporal states.
+
+\subsection{State-aware asymmetric loss}
+With $d_i=\hat y_i-y_i$ in cycles,
+\begin{equation}
+w_i=1+\eta\exp(-y_i/\tau),
+\end{equation}
+\begin{equation}
+\mathcal L_{\mathrm{SA}}=\frac1B\sum_i
+\begin{cases}
+\gamma w_i\,\mathrm{Huber}(d_i), & d_i>0,\\
+\mathrm{Huber}(d_i), & d_i\le0.
+\end{cases}
+\end{equation}
+Checkpoint selection uses
+\begin{equation}
+J_{\mathrm{val}}=\mathrm{RMSE}_{\mathrm{val}}+0.5\log(1+\mathrm{NASA}_{\mathrm{val}}).
+\end{equation}
+
+\section{Experimental protocol}
+The official training engines are split into five disjoint engine-level folds. Normalization statistics are fitted only on training engines. The official test files were kept unreadable throughout development. Early stopping and model selection use validation data only. The locked FD001 configuration uses window size 50, $d_{\mathrm{model}}=64$, MinMax normalization, seed 42, and bidirectional selective SSM.
+
+\begin{table}[t]
+\centering
+\caption{Actual FD001 five-fold validation of the locked configuration.}
+\label{tab:fold}
+\begin{tabular}{lccc}
+\toprule
+Fold & RMSE & NASA score & MAE\\
+\midrule
+0 & 12.788 & 8304.347 & 9.115\\
+1 & 14.080 & 7984.492 & 9.529\\
+2 & 15.444 & 16658.906 & 10.702\\
+3 & 15.390 & 11820.870 & 11.396\\
+4 & 14.119 & 8183.320 & 9.891\\
+\midrule
+Mean$\pm$std & $14.364\pm0.984$ & $10590.387\pm3351.168$ & $10.127\pm0.822$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results and discussion}
+Table~\ref{tab:fold} shows substantial fold-to-fold variance. Fold 0 achieved 12.788 RMSE, while Folds 2 and 3 exceeded 15.3. The mean validation RMSE of 14.364 did not satisfy the preset 12.8 gate. This indicates that the current model is not yet competitive enough for the intended journal target, and that engine-level distribution shift remains a major failure mode.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../figures/fig7_learned_sensor_graph_heatmap.pdf}
+\caption{Learned sensor adjacency from the selected Fold-0 checkpoint.}
+\label{fig:graph}
+\end{figure}
+
+\section{What is not reported}
+Because the Stage-2 gate failed, the official FD001--FD004 test sets were not used for final evaluation. Full baseline matrices, ablation tables, uncertainty quantification, noise robustness, few-shot transfer, Pareto analysis, and statistical significance tests are therefore intentionally absent. No test-set number, baseline result, or robustness claim is fabricated.
+
+\section{Conclusion}
+A blind, reproducible five-fold development pipeline and a lightweight spatial--temporal model were implemented. Preliminary validation is insufficient to support a journal-level performance claim. The next iteration should improve engine-level generalization, complete the validation-only hyperparameter grid, and only then perform a single frozen blind test evaluation.
+
+\end{document}

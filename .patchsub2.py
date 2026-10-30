@@ -1,0 +1,11 @@
+from pathlib import Path
+p = Path('scripts/run_candidate.py')
+s = p.read_text(encoding='utf-8')
+n = s.count('args.subset')
+s = s.replace('", ".join([args.subset, args.variant', '", ".join([(args.subsets or args.subset), args.variant')
+s = s.replace('"subset": args.subset,', '"subset": (args.subsets or args.subset),')
+s = s.replace('BEST {args.variant} {args.subset} s{args.seed}', 'BEST {args.variant} {(args.subsets or args.subset)} s{args.seed}')
+s = s.replace('[{args.subset} {args.variant} s{args.seed}]', '[{(args.subsets or args.subset)} {args.variant} s{args.seed}]')
+p.write_text(s, encoding='utf-8')
+import ast; ast.parse(s)
+print('remaining args.subset refs:', s.count('args.subset'), '(was', n, ')')

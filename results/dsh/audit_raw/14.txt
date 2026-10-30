@@ -1,0 +1,140 @@
+tool=pwsh
+input={"command":"$p='docs\\director\\codex_advice_output.txt'; $b=[IO.File]::ReadAllBytes($p); Write-Output (\"first bytes: \" + (($b[0..7] | ForEach-Object { $_.ToString('x2') }) -join ' ')); if($b[0] -eq 0xFF -and $b[1] -eq 0xFE){[Text.Encoding]::Unicode.GetString($b)} elseif($b[0] -eq 0xFE -and $b[1] -eq 0xFF){[Text.Encoding]::BigEndianUnicode.GetString($b)} else {[Text.Encoding]::UTF8.GetString($b)}","description":"Decode advice output text"}
+status=completed
+result_len=6347
+
+| Status |
+|---|---|---|---|---|
+| Patch / channel-independent Transformer | PatchTST-style RUL variants | channel independence beats channel mixing | s
+ome report per-dataset tuned L | U (PDF required) |
+| Inverted attention | iTransformer-style RUL variants | attention across variates, not time | often full-sequence eval
+ | U |
+| State-space | Mamba / selective SSM RUL variants | linear-time long context | rarely reports FD003/FD004 | U |
+| Dynamic graph | HDA-GNN, ST-KDFormer family | condition-adaptive sensor coupling | graph usually pooled | U |
+| Dual-task HI | knee-point / HI dual-branch works | health-stage classification helps RUL | class boundary often tuned
+ on test | U |
+| CNN-Transformer hybrids | LVDACNN family | local conv + global attention | sliding-mean evaluation common | U |
+
+**Rule for the paper:** only rows with a complete protocol column may be cited
+in the comparison table; rows with `?` go into a supplementary "reported
+under heterogeneous protocols" note.
+
+---
+
+## 3. Same-protocol reproduction in this repository
+
+Protocol S1 (ours): window 50, stride 1, RUL cap 125, Min-Max on training
+engines only (FD002/FD004 additionally use 6-cluster operating-condition
+normalisation), last-window evaluation, 5 seeds 2027-2031, 100% training
+engines, engine-level split only for schedule selection.
+
+| Model | FD001 RMSE | FD002 RMSE | FD003 | FD004 | Params | Source |
+|---|---:|---:|---|---|---:|---|
+| TCN | 16.646 +/- 0.413 | 19.958 +/- 1.542 | sealed | sealed | 145,237 | P10 |
+| BiLSTM | 14.158 +/- 0.290 | 14.027 +/- 0.112 | sealed | sealed | 144,701 | P10 |
+| Vanilla Transformer | **13.289 +/- 0.132** | **12.707 +/- 0.178** | sealed | sealed | 144,146 | P10 |
+| P9 CR-GraphTransformer | 13.209 +/- 0.318 | 13.490 +/- 0.414 | sealed | sealed | 143,415 | P9 |
+| P10 native sensor-graph | 13.753 +/- 0.191 | 13.709 +/- 0.437 | sealed | sealed | 141,707 | P10 |
+
+FD003/FD004 are **sealed blind sets** and will stay sealed until Stage 4.
+
+---
+
+## 4. Data audit (Stage 1, 2026-10-21)
+
+| File | Lines | Columns | Mode before audit | Mode after audit |
+|---|---:|---:|---|---|
+| train_FD001.txt | 20,631 | 26 | rw-r--r-- | rw-r--r-- |
+| test_FD001.txt | 13,096 | 26 | rw-r--r-- | rw-r--r-- |
+| RUL_FD001.txt | 100 | 1 | rw-r--r-- | rw-r--r-- |
+| train_FD002.txt | 53,759 | 26 | rw-r--r-- | rw-r--r-- |
+| test_FD002.txt | 33,991 | 26 | rw-r--r-- | rw-r--r-- |
+| RUL_FD002.txt | 259 | 1 | rw-r--r-- | rw-r--r-- |
+| train_FD003.txt | 24,720 | 26 | rw-r--r-- | rw-r--r-- |
+| test_FD003.txt | 16,596 | 26 | ---------- | **sealed** |
+| RUL_FD003.txt | 100 | 1 | ---------- | **sealed** |
+| train_FD004.txt | 61,249 | 26 | rw-r--r-- | rw-r--r-- |
+| test_FD004.txt | 41,214 | 26 | ---------- | **sealed** |
+| RUL_FD004.txt | 248 | 1 | ---------- | **sealed** |
+
+Line counts match the canonical NASA distribution (FD001 100 test units,
+FD002 259, FD003 100, FD004 248). FD003/FD004 test+RUL are `chmod 000` and
+Stage 2/3 code paths never open them.
+
+---
+
+## 5. What I will report in the paper table
+
+1. Same-protocol block (Section 3) for all four subsets after Stage 4.
+2. Cross-paper block (Section 2) restricted to rows with complete protocol
+   columns, with a footnote naming the protocol differences.
+3. An explicit statement that no cross-paper number was produced by this repo.
+# ORDER_02 ִ�б���
+
+- ���ߣ�`f333f59` / ����ʵ�� `e46afd1`
+- �����ύ������ĩ
+- ��������`/home/yndx/zxk/bearing-rul-pi`��A40��������
+- ѵ��/����Э�飺`split_seed=7` �̶� 80/20 ���֣�ģ������ 2027-2028��24 epochs��
+  checkpoint ��ȫ������֤ѡ�����в���ʽ����ʹ��**ͬһ** checkpoint��
+
+> ������������ `experiments/order02/**/metrics.json`��
+> `pseudo_test_predictions.csv`��`protocol_c_predictions.csv`��
+> ���ܱ��� `results/order02/`��δ��ɵĵ�Ԫ������ȷ��ע��δ�����κν��ۡ�
+
+---
+
+## 1. ȷ���Դ����޸������
+
+| Issue | �޸� | ֤�� |
+|---|---|---|
+| 1 tfA ȱ�������� | `TransformerWithFeatures` ���� `feature_set`��raw / raw_base / raw_ema / raw_cycle / full����������
+Ϊ�� 3N+1 ͨ������ | ������� 3 �� tfA �Ѻ����ڣ��� tf ������Ϊ raw |
+| 2 extras schema ��һ�� | �ĸ�·����train / cutoff / test_mode / abs��ͳһΪ `baseline(N) + cycle + [ref_count, ref_std, dev
+iation, trend]` = **19 ά** | `tests/test_extras_schema.py`��train/cutoff0.5/0.7/0.9/test_mode ȫ�� 19��ͨ�� |
+| 3 �ɿ���֤�ݲ��� | ֤�ݸ�Ϊ 4 ��**�����߹۲�**�����ο����������ο������ȶ���(std)����ǰ������Բο���ƽ��ƫ�롢��� 5 ������ | ��Ԫ����ͨ��
+��`Arec` ���� FD002 �˵�����ͨ��smoke��2 epochs�� |
+| 4 FD002 A/Aid Ԥ��ȱʧ | ԭ���Ǿɻ����� A/Aid ����**���ǰ**���ɣ���������������Ԥ�� | �� 2��`results/order02/*.csv` |
+| 5 ͳ�ƶ����� | Bootstrap ��**������**Ϊ�ز�����λ��ͬһ�������� 3 �� cutoff ����������һ�𱻳��� | `scripts/audit_stats.py`��en
+gine-clustered�� |
+
+**�ۺϿھ����壨ORDER_02 Ҫ��**��ORDER_01 �����е� `10.743` ��
+������ cutoff ���� RMSE ������ƽ�������� `results/��pseudo_summary.csv��` �е�
+`12.205` �ǡ��� 3 �� cutoff �� ����ȫ��Ԥ��ϲ���� pooled RMSE����
+���ߺ��岻ͬ��������ͳһʹ�� **pooled**�����ڱ�����ע����
+
+---
+
+## 2. �������pooled pseudo-test��2 seeds��24 epochs��
+
+### FD001
+
+| ���� | ������ | ȫ���� val | Protocol B (0.5/0.7/0.9 pooled) | Protocol C (80/120/160 cycles) |
+|---|---:|---:|---:|---:|
+| tf���� Transformer�� | 144,146 | 12.462 | 11.822 | 12.861 |
+| **tfA��Transformer + ���� A ������** | 87,122 | **10.939** | **10.212** | **10.529** |
+| A����ѡ���� + A ������ | 41,858 | 10.862 | 11.963 | 11.523 |
+| Aid��A + Sensor-ID�� | 42,754 | 12.115 | 12.983 | 12.423 |
+| S2��A + �������ݣ�������ƥ�䣩 | 42,754 | 11.849 | 11.631 | 13.328 |
+
+### FD002
+
+| ���� | ȫ���� val | Protocol B | Protocol C | n(pred) |
+|---|---:|---:|---:|---:|
+| tf | 13.920 | 15.268 | 14.848 | 312 |
+| tfA | 13.807 | 14.177 | 14.911 | 312 |
+| A | 12.522 | 13.420 | 13.265 | 312 |
+| **Aid** | **11.722** | **12.205** | **13.228** | 156���� 1 �����ӣ� |
+| S2 | δ��� | δ��� | δ��� | - |
+
+---
+
+## 3. �����ɸ��˵Ľ���
+
+1. **FD001 ��������Ӯ���� tfA�����Ǻ�ѡ���ɡ�**
+   tfA �����ֲ���Э���϶���ã�10.212 / 10.529�����ȴ� tf �� 1.6 / 2.3��
+   ���� ORDER_01 �෴��ԭ������ Issue 1 ���޸�����**��������**���� Transformer ��
+   ���������òű��������֡�**���ۣ�FD001 ��������Ҫ��������������������ɽṹ��**
+
+2. **Sensor-ID �� FD001 �Ǹ�Ǩ�ƣ��� FD002 ���м�ֵ��**
+   FD001��Aid 12.983 vs ����ƥ��� S2���������ݣ�11.631 vs A 11.963 ����
+   ������Ϣ����û��æ������"ͬ������������ݴ���"���˵�

@@ -1,0 +1,41 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\.o3.sh"}
+status=completed
+result_len=1374
+
+<path>C:\Users\20562\Desktop\deepseek-rul\.o3.sh</path>
+<type>file</type>
+<content>
+1: #!/bin/bash
+2: cd /home/yndx/zxk/bearing-rul-pi || exit 1
+3: export LD_LIBRARY_PATH=/home/yndx/miniconda3/envs/a40_env/lib:$LD_LIBRARY_PATH
+4: export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+5: PY=/home/yndx/miniconda3/envs/a40_env/bin/python
+6: mkdir -p logs/order03
+7: run_cell() {
+8:   tag=$1; ds=$2; v=$3; ref=$4; s=$5
+9:   out=experiments/order03/$tag
+10:   f="$out/$ds/${v}_s${s}/metrics.json"
+11:   [ -f "$f" ] && { echo "skip $tag $ds $v $s"; return 0; }
+12:   $PY -u scripts/run_candidate.py --subset $ds --variant $v --seed $s --split-seed 7 \
+13:       --ref-mode $ref --late-weight 1.8 --epochs 30 --patience 10 --d-model 64 --num-layers 1 \
+14:       --out $out > logs/order03/${tag}_${ds}_${s}.log 2>&1
+15: }
+16: export -f run_cell
+17: export PY PYTORCH_CUDA_ALLOC_CONF
+18: {
+19:   for s in 2027 2028 2029; do
+20:     echo "M0_raw_tf FD002 tf cond $s"
+21:     echo "M1_global FD002 A global $s"
+22:     echo "M2_pop FD002 A pop $s"
+23:     echo "M3_cond FD002 A cond $s"
+24:     echo "M4_racdr FD002 RACDR cond $s"
+25:     echo "M0_raw_tf FD001 tf cond $s"
+26:     echo "M3_cond FD001 A cond $s"
+27:     echo "M4_racdr FD001 RACDR cond $s"
+28:   done
+29: } | xargs -P 3 -n 5 bash -c 'run_cell "$@"' _
+30: echo ORDER03_DONE
+
+(End of file - total 30 lines)
+</content>

@@ -1,0 +1,123 @@
+tool=read
+input={"file_path":"C:\\Users\\20562\\Desktop\\deepseek-rul\\README.md"}
+status=completed
+result_len=6083
+
+<path>C:\Users\20562\Desktop\deepseek-rul\README.md</path>
+<type>file</type>
+<content>
+1: # C-MAPSS Remaining Useful Life Prediction
+2: 
+3: Current milestone: **TIM track — Stage 1 complete, Stage 2 in progress.**
+4: 
+5: > **Invalidation notice.** A real ordering bug was found in
+6: > `CRGraphTransformer._smooth_terminal` (tail window was old->new while the
+7: > weights and the `-k` offset are defined new->old), so **every P9/P10 number
+8: > that used the synergy head is void** and must be re-run. Baselines are not
+9: > affected. Fixed in this commit with regression tests
+10: > (`tests/test_audit_fixes.py`). The same commit corrects the Soft-NASA
+11: > surrogate, which invalidates the ABC/ABCE tournament cells.
+12: 
+13: Stage-1 literature/protocol table: [`docs/LITERATURE_BENCHMARK.md`](docs/LITERATURE_BENCHMARK.md).
+14: Audit + Stage-2 report: [`TIM_AUDIT_AND_STAGE2_REPORT.md`](TIM_AUDIT_AND_STAGE2_REPORT.md).
+15: 
+16: Previous milestone: **P10 complete.** Native 14x14 sensor-space graph filter
+17: (no pooling, exact identity at init) + adaptive tail slope. It fixes the FD002
+18: graph sign (-0.266 -> +0.257) and passes the FD002 80/20 gate, but the plain
+19: Transformer still wins at 5 seeds (13.289 / 12.707 vs ours 13.753 / 13.709);
+20: P9 remains the FD001 record (13.209 / 12.868 ensemble). See
+21: [`P10_FINAL_VICTORY_REPORT.md`](P10_FINAL_VICTORY_REPORT.md).
+22: 
+23: Previous milestone: **P9 complete. Sequential CR-GCN -> ConvTransformer ->
+24: synergized monotonic head, trained on 100% of engines for five seeds
+25: (2027-2031). FD001 13.209 single / 12.868 ensemble (best to date, beats the
+26: Transformer); FD002 13.490 / 12.904, still behind the Transformer by 0.51.
+27: See [`P9_DIRECTOR_REPORT.md`](P9_DIRECTOR_REPORT.md); earlier phases in
+28: [`P8_SOTA_REPORT.md`](P8_SOTA_REPORT.md) and
+29: [`P8_EXECUTION_LOG.md`](P8_EXECUTION_LOG.md).**
+30: 
+31: ## Layout
+32: 
+33: ~~~text
+34: src/dataset.py                 C-MAPSS, clip125, windows, metrics, FD002 scaler
+35: src/model.py                   STG-MambaNet (identity-prior graph, SSM/LSTM)
+36: src/loss.py                    PhysicsGuidedLoss (MSE + asymmetric + monotonic)
+37: scripts/run_ablation.py        validation-selected, test-once runner
+38: scripts/tune_validation.py     validation-only P1/P2 tuner (never reads test)
+39: scripts/run_val_tuning.py      P1 grid launcher
+40: scripts/run_p2_tuning.py       P2 loss grid launcher
+41: scripts/lock_hparams.py        writes results/locked_hparams.json
+42: scripts/run_p3_locked.py       five-seed locked FD001 confirmatory runner
+43: scripts/run_fd002.py           FD002 condition-aware external validity
+44: scripts/summarize_ablations.py clip125 main + raw appendix aggregation
+45: scripts/generate_final_figures.py  Phase-5 figures
+46: scripts/generate_final_tables.py   results/final_tables.tex
+47: scripts/generate_morning_report.py MORNING_REPORT.md
+48: archive_root_v0/               archived root-level legacy implementation
+49: docs/FINAL_PROTOCOL.md         frozen protocol
+50: docs/STAGE3_REPORT.md          pilot/historical report (superseded)
+51: MORNING_REPORT.md              final overnight report
+52: results/final_FD001_5seeds/    final five-seed metrics
+53: results/final_FD002_3seeds/    final three-seed FD002 metrics
+54: figures/final/                 final PDF/PNG figures
+55: ~~~
+56: 
+57: ## Frozen protocol
+58: 
+59: - Main label protocol: **clip125** for train/validation/test; raw test metrics
+60:   are stored in the appendix only.
+61: - Standard 14 sensors; training-only normalization.
+62: - FD001: window 50, stride 1, d_model 64, dropout 0.15, weight_decay 1e-4,
+63:   batch 256, lr 1e-3, 80 epochs, patience 20.
+64: - Graph: A = (1-alpha) I + alpha Softmax(ReLU(E1 E2^T)), alpha init 0.1.
+65: - Loss: MSE + Asym(1.0) + Mono(0.05), late weight 2.0.
+66: - Parameter-matched LSTM: 142,806 vs Full 144,265 (1.01%).
+67: - P3 seeds: 101, 202, 303, 404, 505.
+68: - Test suite: 34 collected, OK with 6 skipped while official test files are
+69:   sealed. Unseal explicitly only for authorized evaluation.
+70: 
+71: ## Final FD001 result (clip125, mean +/- std, 5 seeds)
+72: 
+73: | Variant | RMSE | NASA Score |
+74: |---|---:|---:|
+75: | w/o A-GCN | 14.104 +/- 1.200 | 369.635 +/- 102.242 |
+76: | Identity-Graph (A=I) | 14.689 +/- 0.683 | 392.977 +/- 86.252 |
+77: | w/o SSM (matched LSTM) | 14.405 +/- 0.329 | 359.656 +/- 22.626 |
+78: | w/o Physics Loss | 14.123 +/- 0.868 | 357.238 +/- 56.818 |
+79: | w/o Mono Loss | 14.133 +/- 0.538 | 324.621 +/- 40.663 |
+80: | Full Model | 13.423 +/- 0.487 | 327.119 +/- 59.184 |
+81: 
+82: Full has the best RMSE and MAE, but not the best NASA score (w/o Mono is
+83: slightly better). A-GCN, SSM, and the physics objective all have positive
+84: paired deltas on FD001; L_Mono improves RMSE but hurts the late-prediction
+85: fraction. FD002 reverses the temporal result: the matched LSTM is better than
+86: Full (14.363/1001.130 vs 14.955/1456.569). Do not claim a universal module win.
+87: 
+88: ## P7 surgical update
+89: 
+90: P7 removes the delta features, switches the main temporal backbone to
+91: BiLSTM-Attn with zero-init condition FiLM, and scans hollow-graph alpha.
+92: FD001 (5 seeds, alpha=0.15): Full 14.155 / 357.740; w/o Mono Head
+93: 13.587 / 313.152; Baseline BiLSTM 14.959 / 362.637. FD002 (1 seed):
+94: Full 14.120 / 799.204; Transformer 12.679 / 785.018. The FD001 <=12.5 gate
+95: is still not met and the FD002 Transformer is stronger. See
+96: P7_FINAL_VERDICT.md.
+97: 
+98: ## Quick start
+99: 
+100: ~~~bash
+101: cd /home/yndx/zxk/bearing-rul-pi
+102: python -m unittest discover -s tests -v
+103: python scripts/generate_final_figures.py --out figures/final
+104: python scripts/generate_final_tables.py
+105: python scripts/generate_morning_report.py
+106: ~~~
+107: 
+108: ## Integrity rule
+109: 
+110: No ablation number is hand-written or selected to fit an expected story.
+111: All final numbers come from metrics.json / test_predictions.csv generated by
+112: the frozen runner. Negative results are reported as negative.
+
+(End of file - total 112 lines)
+</content>

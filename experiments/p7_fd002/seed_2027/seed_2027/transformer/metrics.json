@@ -1,0 +1,49 @@
+{
+  "subset": "FD002",
+  "variant": "transformer",
+  "variant_label": "Baseline Transformer",
+  "seed": 2027,
+  "best_epoch": 3,
+  "epochs_ran": 23,
+  "best_validation_rmse": 13.652396270167616,
+  "num_parameters": 144146,
+  "clip_test_rul": true,
+  "loss_mode": "mse",
+  "test_metrics": {
+    "rmse": 12.679037839852068,
+    "nasa_score": 785.0183963071769,
+    "mae": 9.021273612976074,
+    "mean_bias": -0.05379873514175415,
+    "late_fraction": 0.40540540540540543,
+    "severe_late_count_gt10": 41,
+    "severe_late_fraction_gt10": 0.1583011583011583,
+    "severe_late_fraction_gt20": 0.07335907335907337,
+    "n_test": 259,
+    "mono_violation_rate": 0.0
+  },
+  "test_metrics_clip125": {
+    "rmse": 12.679037839852068,
+    "nasa_score": 785.0183963071769,
+    "mae": 9.021273612976074,
+    "mean_bias": -0.05379873514175415,
+    "late_fraction": 0.40540540540540543,
+    "severe_late_count_gt10": 41,
+    "severe_late_fraction_gt10": 0.1583011583011583,
+    "severe_late_fraction_gt20": 0.07335907335907337,
+    "n_test": 259,
+    "mono_violation_rate": 0.0
+  },
+  "appendix_raw": {
+    "rmse": 24.579528756171058,
+    "nasa_score": 5271.146857162291,
+    "mae": 16.51548194885254,
+    "mean_bias": -7.548007011413574,
+    "late_fraction": 0.40540540540540543,
+    "severe_late_count_gt10": 41,
+    "severe_late_fraction_gt10": 0.1583011583011583,
+    "severe_late_fraction_gt20": 0.07335907335907337,
+    "n_test": 259,
+    "mono_violation_rate": 0.0
+  },
+  "elapsed_seconds": 126.7413649559021
+}

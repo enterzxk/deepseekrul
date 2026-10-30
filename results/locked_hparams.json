@@ -1,0 +1,37 @@
+{
+  "phase": "P2",
+  "selected_tag": "p1_w50_d015_wd1e-4",
+  "window_size": 50,
+  "dropout": 0.15,
+  "weight_decay": 0.0001,
+  "d_model": 64,
+  "batch_size": 256,
+  "lr": 0.001,
+  "epochs": 80,
+  "patience": 20,
+  "seeds": [42, 67, 123],
+  "val_rmse_mean": 11.917152847594515,
+  "val_rmse_std": 0.5343541951707039,
+  "val_nasa_mean": 7659.008124478806,
+  "full_loss_tag": "p2_full_l20_w10_m005",
+  "full_loss": {
+    "mode": "full",
+    "asym_weight": 1.0,
+    "lambda_mono": 0.05,
+    "late_weight": 2.0,
+    "val_rmse_mean": 12.390976841797167,
+    "val_rmse_std": 0.7215494248617551,
+    "val_nasa_mean": 8538.207735579464
+  },
+  "wo_mono_loss_tag": "p2_asym_l20_w10",
+  "wo_mono_loss": {
+    "mode": "asym",
+    "asym_weight": 1.0,
+    "late_weight": 2.0,
+    "val_rmse_mean": 11.917152847594515,
+    "val_rmse_std": 0.5343541951707039,
+    "val_nasa_mean": 7659.008124478806
+  },
+  "wo_physics_loss": {"mode": "mse"},
+  "selection_rule": "P1: min(val_rmse_mean + 0.25*std); P2: best full/asym by validation RMSE"
+}

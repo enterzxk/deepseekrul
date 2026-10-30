@@ -1,0 +1,113 @@
+{
+  "zheng2017": {
+    "doi": "10.1109/icphm.2017.7998311",
+    "title": "Long Short-Term Memory Network for Remaining Useful Life estimation",
+    "year": 2017,
+    "venue": "IEEE Conference on Prognostics and Health Management",
+    "authors": [
+      "Shuai Zheng",
+      "Kosta Ristovski",
+      "Ahmed Farahat",
+      "Chetan Gupta"
+    ],
+    "abstract": "Remaining Useful Life (RUL) of a component or a system is defined as the length from the current time to the end of the useful life. Accurate RUL estimation plays a critical role in Prognostics and Health Management(PHM). Data driven approaches for RUL estimation use sensor data and operational data to estimate RUL. Traditional regression based approaches and recent Convolutional Neural Network (CNN) approach use features created from sliding windows to build models. However, sequence information is not fully considered in these approaches. Sequence learning models such as Hidden Markov Models (HMMs) and Recurrent Neural Networks (RNNs) have flaws when modeling sequence information. HMMs are limited to discrete hidden states and are known to have issues when modeling long-term dependencies in the data. RNNs also have issues with long-term dependencies. In this work, we propose a Long Short-Term Memory (LSTM) approach for RUL estimation, which can make full use of the sensor sequence information and expose hidden patterns within sensor data with multiple operating conditions, fault and degradation models. Extensive experiments using three widely adopted Prognostics and Health Management data sets show that LSTM for RUL estimation significantly outperforms traditional approaches for RUL estimation as well as Convolutional Neural Network (CNN)."
+  },
+  "li2018": {
+    "doi": "10.1016/j.ress.2017.11.021",
+    "title": "Remaining useful life estimation in prognostics using deep convolution neural networks",
+    "year": 2017,
+    "venue": "Reliability Engineering & System Safety",
+    "authors": [
+      "Xiang Li",
+      "Qian Ding",
+      "Jian\u2010Qiao Sun"
+    ],
+    "abstract": ""
+  },
+  "cohen1992": {
+    "doi": "10.1037/0033-2909.112.1.155",
+    "title": "A power primer.",
+    "year": 1992,
+    "venue": "Psychological Bulletin",
+    "authors": [
+      "Jacob Cohen"
+    ],
+    "abstract": "One possible reason for the continued neglect of statistical power analysis in research in the behavioral sciences is the inaccessibility of or difficulty with the standard material. A convenient, although not comprehensive, presentation of required sample sizes is provided here. Effect-size indexes and conventional values for these are given for operationally defined small, medium, and large effects. The sample sizes necessary for .80 power to detect effects at these levels are tabled for eight standard statistical tests: (a) the difference between independent means, (b) the significance of a product-moment correlation, (c) the difference between independent rs, (d) the sign test, (e) the difference between independent proportions, (f) chi-square tests for goodness of fit and contingency tables, (g) one-way analysis of variance, and (h) the significance of a multiple or multiple partial correlation."
+  },
+  "lei2018": {
+    "doi": "10.1016/j.ymssp.2017.11.016",
+    "title": "Machinery health prognostics: A systematic review from data acquisition to RUL prediction",
+    "year": 2017,
+    "venue": "Mechanical Systems and Signal Processing",
+    "authors": [
+      "Yaguo Lei",
+      "Naipeng Li",
+      "Liang Guo",
+      "Ningbo Li",
+      "Tao Yan",
+      "Jing Lin"
+    ],
+    "abstract": ""
+  },
+  "li2014oc": {
+    "doi": "10.1109/icphm.2014.7036396",
+    "title": "An operating condition classified prognostics approach for Remaining Useful Life estimation",
+    "year": 2014,
+    "venue": "International Conference on Prognostics and Health Management (PHM)",
+    "authors": [
+      "Qi Li",
+      "Zhan Bao Gao",
+      "Li Qun Shao"
+    ],
+    "abstract": "This paper presents a prognostics approach based on operating condition for estimating the Remaining Useful Life (RUL). Operating condition is used to describe the state or environment of a system. This approach is suit for the dataset that contains sensor measurements and operational settings. Predicting RUL contains two stages: modeling stage using the training dataset and predicting stage using the result of modeling and testing dataset. This approach can increase available information in modeling stage and simulate the actual work situation of the test unit in the predicting stage. The performance of this approach was tested by the dataset from 2008 PHM Data Challenge Competition where sensor measurements and operational settings were provided. The task of the competition was to estimate the RUL of an unspecified system. The results showed that this prognostic method could get accurate predictions in most situations and had a good rank in all competition results."
+  },
+  "freitas2026": {
+    "doi": "10.5220/0015076000004091",
+    "title": "A Statistical Analysis of the State-of-the-Art Transformer-Based Remaining Useful Life Models on C-MAPSS FD001",
+    "year": 2026,
+    "venue": "International Conference on Data Science, Technology and Applications (DATA)",
+    "authors": [
+      "Gabriel Freitas",
+      "Yuri Lopes"
+    ],
+    "abstract": ""
+  },
+  "dodge2019": {
+    "doi": "10.48550/arXiv.1909.03004",
+    "title": "Show Your Work: Improved Reporting of Experimental Results",
+    "year": 2019,
+    "venue": "arXiv (Cornell University)",
+    "authors": [
+      "Jesse Dodge",
+      "Suchin Gururangan",
+      "Dallas Card",
+      "Roy Schwartz",
+      "Noah A. Smith"
+    ],
+    "abstract": "Research in natural language processing proceeds, in part, by demonstrating that new models achieve superior performance (e.g., accuracy) on held-out test data, compared to previous results. In this paper, we demonstrate that test-set performance scores alone are insufficient for drawing accurate conclusions about which model performs best. We argue for reporting additional details, especially performance on validation data obtained during model development. We present a novel technique for doing so: expected validation performance of the best-found model as a function of computation budget (i.e., the number of hyperparameter search trials or the overall training time). Using our approach, we find multiple recent model comparisons where authors would have reached a different conclusion if they had used more (or less) computation. Our approach also allows us to estimate the amount of computation required to obtain a given accuracy; applying it to several recently published results yields massive variation across papers, from hours to weeks. We conclude with a set of best practices for reporting experimental results which allow for robust future comparisons, and provide code to allow researchers to use our technique."
+  },
+  "raff2019": {
+    "doi": "10.48550/arXiv.1909.06674",
+    "title": "A Step Toward Quantifying Independently Reproducible Machine Learning Research",
+    "year": 2019,
+    "venue": "arXiv (Cornell University)",
+    "authors": [
+      "Edward Raff"
+    ],
+    "abstract": "What makes a paper independently reproducible? Debates on reproducibility center around intuition or assumptions but lack empirical results. Our field focuses on releasing code, which is important, but is not sufficient for determining reproducibility. We take the first step toward a quantifiable answer by manually attempting to implement 255 papers published from 1984 until 2017, recording features of each paper, and performing statistical analysis of the results. For each paper, we did not look at the authors code, if released, in order to prevent bias toward discrepancies between code and paper."
+  },
+  "ress2019": {
+    "doi": "10.1016/j.ress.2018.11.027",
+    "title": "Remaining useful life predictions for turbofan engine degradation using semi-supervised deep architecture",
+    "year": 2018,
+    "venue": "Reliability Engineering & System Safety",
+    "authors": [
+      "Andre Listou Ellefsen",
+      "Emil Bj\u00f8rlykhaug",
+      "Vilmar \u00c6s\u00f8y",
+      "Sergey Ushakov",
+      "Houxiang Zhang"
+    ],
+    "abstract": "In recent years, research has proposed several deep learning (DL) approaches to providing reliable remaining useful life (RUL) predictions in Prognostics and Health Management (PHM) applications. Although supervised DL techniques, such as Convolutional Neural Network and Long-Short Term Memory, have outperformed traditional prognosis algorithms, they are still dependent on large labeled training datasets. With respect to real-life PHM applications, high-quality labeled training data might be both challenging and time-consuming to acquire. Alternatively, unsupervised DL techniques introduce an initial pre-training stage to extract degradation related features from raw unlabeled training data automatically. Thus, the combination of unsupervised and supervised (semi-supervised) learning has the potential to provide high RUL prediction accuracy even with reduced amounts of labeled training data. This paper investigates the effect of unsupervised pre-training in RUL predictions utilizing a semi-supervised setup. Additionally, a Genetic Algorithm (GA) approach is applied in order to tune the diverse amount of hyper-parameters in the training procedure. The advantages of the proposed semi-supervised setup have been verified on the popular C-MAPSS dataset. The experimental study, compares this approach to purely supervised training, both when the training data is completely labeled and when the labeled training data is reduced, and to the most robust results in the literature. The results suggest that unsupervised pre-training is a promising feature in RUL predictions subjected to multiple operating conditions and fault modes."
+  }
+}

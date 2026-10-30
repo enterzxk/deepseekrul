@@ -1,0 +1,20 @@
+tool=pwsh
+input={"command":"$py = @'\nimport glob, os\nimport numpy as np, pandas as pd\nrows=[]\nfor p in sorted(glob.glob(\"experiments/order03/*/*/*/protocol_c_predictions.csv\")):\n    tag, ds = p.split(os.sep)[2], p.split(os.sep)[3]\n    df=pd.read_csv(p); per=df.groupby(\"abs_cut\").signed_error.apply(lambda s: float(np.sqrt(np.mean(s**2))))\n    rows.append((tag, float(np.sqrt(np.mean(df.signed_error**2))), float(per.mean())))\nfrom collections import defaultdict\ng=defaultdict(list)\nfor t,p,m in rows: g[t].append((p,m))\nfor t,v in sorted(g.items()):\n    p=[x[0] for x in v]; m=[x[1] for x in v]\n    print(t, \"pooled\", round(float(np.mean(p)),4), \"sd\", round(float(np.std(p,ddof=1)),4), \"macro\", round(float(np.mean(m)),4), \"sd\", round(float(np.std(m,ddof=1)),4))\n'@; $b=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server \"cd /home/yndx/zxk/bearing-rul-pi && echo $b | base64 -d | /home/yndx/miniconda3/envs/a40_env/bin/python\" 2>&1; Write-Output (\"EXIT=\" + $LASTEXITCODE)","description":"Compute protocol C SDs","timeoutMs":60000}
+status=completed
+result_len=750
+
+M0_raw_tf pooled 12.7248 sd 0.2537 macro 11.2375 sd 0.1432
+M2_pop pooled 12.1492 sd 0.1655 macro 10.74 sd 0.1495
+M3_cond pooled 12.2692 sd 0.1477 macro 11.0491 sd 0.2045
+M4_racdr pooled 11.5508 sd 0.1187 macro 9.941 sd 0.0736
+EXIT=0
+[stderr]
+ssh : hostfile_replace_entries: mkstemp: Permission denied
+所在位置 行:15 字符: 72
++ ... ytes($py)); ssh -o BatchMode=yes -o ConnectTimeout=10 lab-server "cd  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (hostfile_replac...rmission denied:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+update_known_hosts: hostfile_replace_entries failed for C:\\Users\\20562/.ssh/known_hosts: Permission denied
+
