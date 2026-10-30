@@ -1,10 +1,10 @@
 {
-  "updated": "2026-10-30T15:55:00Z",
+  "updated": "2026-10-30T16:15:00Z",
   "track": "E",
   "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
   "current_section": "none (pre-writing): evidence closure phase",
   "current_gap": "E3",
-  "next_action": "Assemble the manuscript (E7): sections 1-6 drafted except 4.5 refresh; then claims pass, figure scripts, and the E8 package. Human decisions still open: author block, test-disclosure sign-off, 260-vs-509.",
+  "next_action": "E11 finish (~03:00) -> architecture table + E11_RESULT; meanwhile sensitivity analysis (cutoff/cap/metric) and reference expansion 14 -> 35",
   "blockers": [
     "G1 human input required: journal, title choice (A/B/C), author order, affiliations, funding, COI",
     "test-data disclosure wording not yet decided by human (supplement data-use section)"
@@ -36,7 +36,9 @@
     "E9_variance": "CLOSED: engine sampling is 97.6% of the variance of a paired contrast, seed 2.4%. More seeds cannot rescue a comparison; only more held-out engines can.",
     "C1_rebuild": "CLOSED: the 2.6/31.5/65.9 table was reproduced exactly (2.57/31.52/65.91) and now has a script + JSON artefact",
     "E10": "CLOSED as NOT_REPRODUCED: PE-A -0.126 (-0.9%) CI [-1.073,+0.795] over 260 engines; per-fold -0.90/+1.70/-1.02/-0.48/-0.03; PE wins 51%; no lifespan effect (corr 0.015)",
-    "E10b": "CLOSED as REPRODUCED: BE-A +1.133 (+8.1%) CI [+0.245,+2.023]; single split +2.693 was 2.4x high. The design resolves 8% but not 1%."
+    "E10b": "CLOSED as REPRODUCED: BE-A +1.133 (+8.1%) CI [+0.245,+2.023]; single split +2.693 was 2.4x high. The design resolves 8% but not 1%.",
+    "E12": "DONE: GUM-style budget, u_c 0.613 (U 1.227) for PE-A and 0.630 (1.260) for BE-A; fold term is 63-65%. paper/SECTION_4_6.md",
+    "E11": "RUNNING 45/75: cnn1d, bilstm, gru complete (15 each); tcn 4/15; tf queued. 5 crashed cells relaunched."
   },
   "rules_in_force": [
     "no hand-written numbers in tables/figures: scripts/paper_*.py only",
