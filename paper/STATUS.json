@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-31T04:05:00Z",
+  "updated": "2026-10-31T10:35:00Z",
   "track": "E",
   "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
   "current_section": "none (pre-writing): evidence closure phase",
@@ -39,7 +39,8 @@
     "E10b": "CLOSED as REPRODUCED: BE-A +1.133 (+8.1%) CI [+0.245,+2.023]; single split +2.693 was 2.4x high. The design resolves 8% but not 1%.",
     "E12": "DONE: GUM-style budget, u_c 0.613 (U 1.227) for PE-A and 0.630 (1.260) for BE-A; fold term is 63-65%. paper/SECTION_4_6.md",
     "E11": "CLOSED: DISPERSED, three bands; all three pre-registered predictions failed and are reported as failures",
-    "E15_test": "CLOSED (one shot, authorised): A 23.958 / tf 23.976 / gru 25.061 / bilstm 25.247 / cnn1d 29.305 / tcn 29.779 on test_FD002 last-window, 235 engines. Training-side advantage over tf does not replicate (1.50 -> 0.02)."
+    "E15_test": "CLOSED (one shot, authorised): A 23.958 / tf 23.976 / gru 25.061 / bilstm 25.247 / cnn1d 29.305 / tcn 29.779 on test_FD002 last-window, 235 engines. Training-side advantage over tf does not replicate (1.50 -> 0.02).",
+    "E16": "CLOSED: three statistical corrections. (a) architecture CIs recomputed (fold-0-repeated-three-times bug) -> A-tf NOT significant. (b) MDE rebuilt on the delta-method RMSE statistic instead of the MAE statistic -> 1.54 at 260, and the engine-count error on FD001 fixed -> 4.84 at 20 engines. (c) GUM budget: u_engine double counted u_fold; corrected u_c 0.52 / U 1.04, and the fold term DOES scale as 1/sqrt(n) -> the \"adding engines buys nothing\" claim is withdrawn and replaced by a sample-size requirement of ~575 engines for a 5% claim."
   },
   "rules_in_force": [
     "no hand-written numbers in tables/figures: scripts/paper_*.py only",
@@ -69,5 +70,5 @@
     "queue": "paper/QUEUE.md"
   },
   "ops_note": "2026-10-30 21:10 local: the GPU was 98% occupied by the user's own ComfyUI service (pid 3274728, 41.6 GB, queue empty, 0% utilisation). Called its standard POST /free endpoint (unload_models + free_memory, HTTP 200); memory dropped 43 GB -> 0.9 GB and the service stayed up. It reloads lazily on the next request. No process was killed and no model was deleted.",
-  "headline": "Three bands on the training side (A 13.95 / tf-gru-bilstm 15.45-16.20 / tcn-cnn1d 19.82-19.97); on the official test set the A-tf gap vanishes (0.02) while the A-cnn1d gap holds (5.35): retention is monotone in effect size."
+  "headline": "Resolution at 260 FD002 engines is U = 1.0 RMSE (7% of baseline) and scales as 1/sqrt(n); an 8.1% effect reproduces across five folds, a 0.9% effect does not, and the candidate is tied with the Transformer in both protocols while beating cnn1d/tcn by ~5.7."
 }

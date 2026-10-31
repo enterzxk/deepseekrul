@@ -7,7 +7,7 @@ the tool column names something a reader can run.
 | # | Check | Evidence | Tool |
 |---|---|---|---|
 | G1 | **Report the engine count, not the window count.** Windows from one engine are not independent observations; a 30k-window test set is still 52 engines. | §4.1: engine sampling is 97.6% of the variance of a paired contrast | `scripts/mde.py` |
-| G2 | **Compute the minimum detectable effect for your own engine count before claiming a win.** | §4.2: MDE 1.46 RMSE at 260 engines (FD002), 2.38 at 20 (FD001) | `scripts/mde.py --residuals …` |
+| G2 | **Compute the minimum detectable effect for your own engine count before claiming a win.** | §4.2: MDE 1.54 RMSE at 260 engines (FD002), 4.84 at 20 (FD001) | `scripts/dsh_e16_mde_corrected.py` |
 | G3 | **Do not answer an underpowered comparison with more seeds.** Seeds address the 2.4% component. | §4.1: seed share 2.4%, engine share 97.6% | `scripts/dsh_e9_variance_decomp.py` |
 | G4 | **Hold out every engine at least once (k-fold), not once in total (single 80/20).** | §4.3.3: 5-fold cross-validation turns a non-significant 52-engine contrast into a 260-engine one | `scripts/run_candidate.py --fold k` |
 | G5 | **Score more than one cut per engine when the pipeline allows it.** Two cuts at fixed engine count cut the interval to two-thirds. | §4.5: width ratio 0.66–0.75 | `scripts/eval_resolution.py` |

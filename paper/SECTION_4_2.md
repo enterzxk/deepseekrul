@@ -7,69 +7,83 @@ that number is too optimistic.
 
 ## 4.2.1 The minimum detectable effect
 
-For a paired contrast on `n` held-out engines, with per-engine differences `d_i`
-having standard deviation `s`, the smallest effect detectable at 80% power and a
-two-sided 5% level is
+For a paired contrast on `n` held-out engines, the smallest effect detectable at 80%
+power and a two-sided 5% level is
 
 ```
-MDE(n) = (z_0.975 + z_0.80) · s / √n = 2.80 · s / √n
+MDE(n) = (z_0.975 + z_0.80) · σ / √n = 2.80 · σ / √n
 ```
 
-`scripts/mde.py` computes this from the archived per-engine residuals. On FD002:
+where `σ` is the standard deviation of the per-engine contribution to the statistic. The
+statistic matters: an RMSE difference is `√(mean e_A²) − √(mean e_B²)`, not a mean of
+absolute-error differences, so `σ` must come from the delta-method influence values
+`z_i = e_Ai²/(2·RMSE_A) − e_Bi²/(2·RMSE_B)`.
 
-| contrast | s (per engine) | MDE at 52 | at 100 | at 260 |
-|---|---:|---:|---:|---:|
-| A vs BE (time removed) | 8.42 | **3.27** | 2.36 | **1.46** |
-| A vs PE (bounded encoding) | 6.69 | 2.60 | 1.87 | 1.16 |
+An earlier version of this section used `sd(|e_A| − |e_B|)`, which is the standard error of
+a difference in **MAE**. It understates the RMSE-difference SD by 6–17% here, and it also
+counted engine×seed observations as independent when the population unit is the engine.
+Both errors are corrected in `scripts/dsh_e16_mde_corrected.py`; the numbers below
+supersede the earlier table.
 
-On FD001 (100 engines, 20 per split) the same calculation gives MDE 2.38 at 20
-engines and 1.84 at 100.
+| contrast | σ (RMSE statistic) | MDE at 52 | at 100 | at 260 | at 509 |
+|---|---:|---:|---:|---:|---:|
+| FD002 A vs BE | 8.88 | **3.45** | 2.49 | **1.54** | 1.10 |
+| FD002 A vs PE | 7.55 | 2.93 | 2.11 | 1.31 | 0.94 |
+| FD001 A vs BE | 7.73 | — | 2.16 (at 100) | 1.34 | 0.96 |
+
+FD001 holds out 20 engines per split, where the same formula gives **4.84**, so no contrast
+of the size observed there (+1.67) could have reached significance.
 
 Two consequences, both used later:
 
-* **A 5% improvement is not verifiable at this scale.** At the FD002 baseline of
-  ≈13 RMSE, 5% is 0.65 — below the 52-engine MDE of 2.6–3.3, and at the edge of
-  the 260-engine MDE of 1.2–1.5. This is why the project's original acceptance
-  criterion (≥5% over the strongest baseline, CI excluding zero) could not be met
-  by *any* method on this benchmark, independently of method quality.
-* **Engine count is the only cheap lever.** Seeds do not enter the formula as a
-  variance term (their share is 2.4%, §4.1); the standard error is set by how many
-  distinct engines are held out.
+* **A 5% improvement is not verifiable at this scale.** Against a ≈13–14 RMSE baseline, 5%
+  is 0.65–0.70 — well below the 52-engine MDE of 2.9–3.5, and still below the 260-engine
+  MDE of 1.3–1.5. This is why the project's original acceptance criterion (≥5% over the
+  strongest baseline, CI excluding zero) could not be met by any method on this benchmark,
+  independently of method quality.
+* **Engine count is the lever.** Seeds do not enter as a population variance (their share
+  is 2.4%, §4.1); the standard error is set by how many distinct engines are held out.
 
-## 4.2.2 The naive projection fails: a direct test
+## 4.2.2 Does the projection hold? A direct test
 
-The formula predicts that holding out all 260 FD002 engines instead of 52 should
-shrink the interval by √5 ≈ 2.24, from roughly ±1.3 to roughly ±0.6. That
-prediction was tested directly by 5-fold cross-validation
-(`paper/E10_CV_PREREGISTRATION.md`, `paper/E10_RESULT.md`): every engine held out
-exactly once, 3 seeds, 24 new runs.
+The formula predicts that holding out all 260 FD002 engines instead of 52 should shrink the
+interval by √5 ≈ 2.24. That was tested by 5-fold cross-validation
+(`paper/E10_CV_PREREGISTRATION.md`, `paper/E10_RESULT.md`): every engine held out exactly
+once, 3 seeds, 24 new runs.
 
 | | single split (52 engines) | five folds (260 engines) |
 |---|---:|---:|
 | ΔRMSE, PE − A | −0.908 (−7.7%) | **−0.126 (−0.9%)** |
 | 95% CI | [−2.03, +0.29] | **[−1.07, +0.80]** |
 | CI half-width | 1.16 | 0.93 |
-| projected half-width from 1/√n | — | 0.52 |
+| per-fold estimates | — | −0.90 / +1.70 / −1.02 / −0.48 / −0.03 |
 | engines where PE wins | — | 51% |
 
-The interval did shrink, but by **20%**, not by 55%. The reason is visible in the
-per-fold estimates:
+The half-width fell from 1.16 to 0.93, a 20% reduction, against a predicted 55%. Whether
+that counts as a failure of the projection depends on which single-split standard error is
+the right reference, and the archive contains two:
 
-| fold | 0 | 1 | 2 | 3 | 4 |
-|---|---:|---:|---:|---:|---:|
-| Δ (PE − A) | −0.904 | **+1.699** | −1.023 | −0.477 | −0.031 |
+* the bootstrap SE of fold 0 alone is **0.59**;
+* the SD of the five fold estimates is **0.87**, which is the better estimate of how much a
+  52-engine RMSE estimate moves from one engine sample to another.
 
-The between-fold standard deviation is **1.10 RMSE**. A five-fold interval cannot
-be narrower than what that heterogeneity allows: `1.10/√5 = 0.49` per standard
-error, which is exactly the observed 0.475. In other words:
+Against 0.87 the reduction is 45%, within sampling error of the predicted 55%. Against 0.59
+it is 20%. **Fold 0 was the tightest of the five folds**, and the earlier draft of this
+section used it as the reference; that was the wrong choice and the "projection fails"
+framing is withdrawn.
 
-> **The resolution of a k-fold comparison is bounded below by the between-fold
-> heterogeneity of the effect, not by the number of engines.** Adding folds helps
-> until `s_between/√k` meets `s_within/√(k·n_fold)`; after that, more engines buy
-> nothing.
+The same decomposition also settles a second question. If the fold-to-fold spread contained
+an extra non-shrinking component, it would have to exceed the within-fold sampling noise.
+It does not: the between-fold SD of the arm-A RMSE is **0.87**, while the mean within-fold
+bootstrap SE is **1.56**. The five fold estimates vary *less* than independent 52-engine
+samples would, which is what one expects when the five models share 156 of their 208
+training engines.
 
-This is a stronger statement than "more engines are better", and it is the reason
-§4.2.4 recommends reporting fold-level estimates alongside any pooled one.
+> **Resolution therefore scales approximately as 1/√n. There is no floor set by
+> between-fold heterogeneity, and the earlier claim that adding engines buys nothing is
+> withdrawn.** What does not scale is the *effect*: it varies across folds by more than its
+> own mean, which is why a pooled estimate must be reported with fold-level values beside
+> it (§4.2.4).
 
 ## 4.2.3 Five architectures and the candidate: three tiers, two resolvable boundaries
 
@@ -111,6 +125,26 @@ The within-tier comparisons need their own table because they are the ones that 
 two weakest architectures by ≈5.7 RMSE and better than GRU/BiLSTM by ≈2.2; it is **not
 distinguishable from the Transformer** (−1.43, interval includes zero, and the same pair
 is tied at 0.02 on the official test set, §4.2.4).
+
+### The baselines are not capacity-starved
+
+A reviewer will ask whether the five published architectures were strawmen. They were run at
+`d_model = 88`; the candidate at 64 with 41,858 parameters, a quarter to a third of the
+baselines. To test the objection the two architectures that matter — the Transformer,
+because the candidate only ties it, and CNN1D, because the largest contrast depends on it —
+were re-run at `d_model = 128` (2.1x and 2.1x parameters), same seed, same folds
+(`paper/E17_CAPACITY_RESULT.md`; rules frozen before the runs).
+
+| arm | d = 88 | d = 128 | change |
+|---|---:|---:|---:|
+| tf | 15.459 | 16.029 | **+0.57 (worse)** |
+| cnn1d | 19.754 | 19.636 | −0.12 (better) |
+
+Doubling the width moves them by +0.57 and −0.12 against a resolution limit of 1.3–1.5, so
+the between-tier contrasts are not a capacity artefact. The bound on this claim: none of the
+five baseline classes exposes a depth parameter, so only width could be varied, and one
+alternative configuration is not a hyperparameter search. The claim is "not rescued by the
+obvious capacity change", not "cannot be tuned to win".
 
 ### Equivalence, not just non-significance
 
@@ -172,7 +206,7 @@ design change.
 | **PE − A** (bounded vs linear time) | −0.908 (−7.7%) | **−0.126 (−0.9%)** | [−1.073, +0.795] | **not reproduced** |
 
 So the smallest effect this design resolves on FD002 is of order **1.1–1.3 RMSE
-(8–9%)**, in agreement with the independent MDE calculation of §4.2.1 (1.16–1.46 at
+(8–9%)**, in agreement with the independent MDE calculation of §4.2.1 (1.31–1.54 at
 260 engines). Below that, an interval computed on 260 engines still crosses zero —
 not because the estimator is imprecise, but because the fold-to-fold heterogeneity
 of the *effect itself* (SD ≈ 1.1) is as large as the effect.

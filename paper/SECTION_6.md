@@ -2,13 +2,21 @@
 
 ## 6.1 One dataset family, two subsets
 
-Every number in this paper comes from C-MAPSS training trajectories. FD001 and
-FD002 were used; **FD003 and FD004 remain sealed** and were never read. The
-official test files (`test_FD00x`, `RUL_FD00x`) were not used for model
-selection, tuning, calibration or any reported metric. Section 7 and the
-supplement state this in full, including the one disclosed exception (an
-exploratory script that read `test_FD001`/`test_FD002` once to count engines and
-produced no prediction).
+Every number in this paper comes from C-MAPSS training trajectories, with one exception
+that is stated here and in the supplement.
+
+**Training engines.** FD001 and FD002 only. **FD003 and FD004 remain sealed** and were
+never read by any script.
+
+**Official test files.** `test_FD002` and `RUL_FD002` were read **once**, on 2026-10-31,
+after every model in §4.2.4 had been trained, frozen and archived
+(`paper/TEST_SET_PROTOCOL_CHANGE.md`, authorised before the read; `paper/E15_TEST_RESULT.md`
+for the protocol and results). They were not used for model selection, tuning, calibration
+or any decision, and the pipeline was verified against the training path before the read
+(feature equality 0.0, prediction replay 0.084 RMSE). `test_FD001`, `test_FD003` and
+`test_FD004` were never used for any reported metric; an earlier exploratory script read
+`test_FD001` and `test_FD002` once to count engines and produced no prediction, which is
+disclosed in the supplement. FD003 and FD004 test data remain unread.
 
 Consequences: nothing here generalises to other turbofan datasets, to bearings,
 or to systems where the failure criterion is physical rather than simulated. The
@@ -19,7 +27,7 @@ convention.
 ## 6.2 Resolution is bounded by engine count, and FD001 is small
 
 The minimum detectable effect is a property of the held-out engine count, not of
-the method. FD002 has 260 engines and reaches MDE ≈ 1.46 RMSE at 260 held-out
+the method. FD002 has 260 engines and reaches MDE ≈ 1.54 RMSE at 260 held-out
 engines (section 4.2). FD001 has 100 engines; a 5-fold split exposes 20 per fold,
 and the same contrast that is significant on FD002 (BE − A = +2.69) is
 directionally identical but **below the FD001 MDE of 2.38** on FD001
