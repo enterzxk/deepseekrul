@@ -146,12 +146,17 @@ registered before unsealing are the counts observed:
 (`results/dsh/e21/test_all.json` `exclusions`; FD002's total-life comparison, 175.5 vs
 216.2, is in `results/dsh/e19/test_exclusion.json`.)
 
-In every subset the excluded engines are exactly the longest-remaining-life cases — the
-hardest ones — so every test RMSE in §4.3.6 is optimistic by an order that is bounded,
-not re-measured. For FD002 the bound is concrete: a constant-125 predictor scores 28.72
-on the excluded 24, and pooling that with the E21 FD002 ensemble 23.386 gives 23.93,
-**+0.54 (+2.3%)**. The same construction on the other subsets moves the score by a
-similar small order. These are illustrative bounds, not second evaluations; the reported
-test results stay frozen at the retained-engine counts, and any comparison of test-set
-RMSE across papers must state how short trajectories were handled.
+In every subset the excluded engines are exactly the longest-remaining-life cases — and
+under the capped-truth convention (§4.3.6) those are precisely the engines that a
+constant-125 predictor scores near zero on. The bound is computed exactly that way: a
+constant-125 predictor on the excluded set, pooled with the retained engines. FD001:
+10.45 → 10.78 (+3.2%); FD002: 11.96 → 12.01 (+0.4%); FD003: 10.09 → 9.95 (−1.4%);
+FD004: 12.27 → 11.77 (−4.1%). Under the uncapped convention of the first E21
+implementation the same construction gave +2.0% on FD002, because uncapped truth
+penalises exactly the long-life engines the protocol excludes; the sign of the
+exclusion bias is therefore itself a property of the truth convention, not of the
+models. These are illustrative bounds, not second evaluations; the reported test
+results stay frozen at the retained-engine counts, and any comparison of test-set
+RMSE across papers must state both how short trajectories were handled and whether
+the truth was capped.
 

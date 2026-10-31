@@ -27,10 +27,10 @@ gains.
 input costs 6.9 RMSE in a linear probe over 360 engines and 2.7 in the frozen neural
 pipeline; the frozen-pipeline contrast replicates on three of the four subsets (pooled
 +0.98 [+0.35, +1.61] over 709 engines), reverses sign on the fourth, and transfers to
-the official test sets at half the magnitude (pooled +0.48 [+0.04, +0.93] over 653
-engines). A model's accuracy on this benchmark is, to first approximation, the accuracy
-of its time representation — and a per-subset estimate of even that effect is not a
-measurement: the same evaluation protocol that shows the effect on three subsets
+the official test sets at essentially the same magnitude (pooled +0.77 [+0.24, +1.31]
+over 653 engines). A model's accuracy on this benchmark is, to first approximation, the
+accuracy of its time representation — and a per-subset estimate of even that effect is
+not a measurement: the same evaluation protocol that shows the effect on three subsets
 returns the opposite sign on FD003 in development and a significant positive effect on
 FD003 at test.
 

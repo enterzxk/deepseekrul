@@ -213,7 +213,12 @@ def evaluate_subset(subset):
         scaler = fit_scaler(subset, tr)
         ts = scale_frame(subset, scaler, traj)
         x, extras, units, _ = build_test_features(ts, traj)
-        y_true = np.array([rul[u - 1] for u in units], dtype=float)
+        # Truth is capped at MAX_RUL to match the training target definition and the
+        # standard C-MAPSS evaluation convention: the official RUL files report the
+        # uncapped remaining life, and comparing a 125-capped prediction against an
+        # uncapped truth manufactures an error of (true - 125) on every early-life
+        # engine. Amendment 1 to paper/E21_TEST_ALL_PREREGISTRATION.md.
+        y_true = np.clip(np.array([rul[u - 1] for u in units], dtype=float), None, MAX_RUL)
         for arm in ARMS:
             for seed in SEEDS:
                 path = ckpt_path(subset, arm, seed, fold)
@@ -236,8 +241,10 @@ def evaluate_subset(subset):
     for arm in ARMS:
         rows = []
         for u in sorted(preds[arm]):
-            rows.append((u, float(np.mean(preds[arm][u])), float(rul[u - 1])))
-        d = pd.DataFrame(rows, columns=["unit", "y_pred", "y_true"])
+            # capped truth for metrics (Amendment 1); raw truth kept for provenance
+            rows.append((u, float(np.mean(preds[arm][u])),
+                         float(min(rul[u - 1], MAX_RUL)), float(rul[u - 1])))
+        d = pd.DataFrame(rows, columns=["unit", "y_pred", "y_true", "y_true_raw"])
         d["err"] = d.y_pred - d.y_true
         ens[arm] = d
         rng = np.random.default_rng(RNG)

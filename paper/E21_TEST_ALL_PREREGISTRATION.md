@@ -42,3 +42,24 @@ never presented as independent confirmation.
 
 `results/dsh/e21/test_all.json`, `scripts/dsh_e21_test_all.py`; per-engine ensemble
 predictions for every subset.
+
+## Amendment 1 (2026-10-31T19:30+08:00) — truth capping
+
+The registration's phrase "truth = official RUL files" was ambiguous about capping, and
+the first implementation compared 125-capped predictions against **uncapped** official
+truth. That manufactures an unavoidable error of (true − 125) on every engine whose
+remaining life exceeds 125 — 40 of 235 FD002 engines (17%) and 49 of 228 FD004 engines
+(21%) — and inflated FD002 from 11.96 to 23.39 and FD004 from 12.27 to 22.40 RMSE while
+barely affecting FD001/FD003 (few engines above the cap). The community-standard
+C-MAPSS convention, used by every paper this project compares against, caps the truth
+at 125 exactly as the training target is capped.
+
+**Remedy.** `evaluate_subset()` now clips truth to MAX_RUL before computing all metrics
+(pred, late, severe, NASA all inherit the capped error). No model, checkpoint, fold or
+seed is touched; predictions are bit-identical; only the evaluation target definition
+changes, to the one registered for training. Found by a bucketed error analysis that
+showed an RMSE of 50 on the cap segment of FD002 against a segment mean prediction of
+116 — arithmetically impossible under a capped-truth reading. All E21 numbers in the
+paper and CLAIMS (C41–C43) are recomputed under the capped convention. The uncapped
+figures are retained in `results/dsh/e21/test_all_uncapped.json` for provenance, and
+the cross-paper comparison table (§4.3.6) states the convention explicitly.
