@@ -1,28 +1,34 @@
 # 6 Limitations
 
-## 6.1 One dataset family, two subsets
+## 6.1 One dataset family, four subsets of one simulator
 
-Every number in this paper comes from C-MAPSS training trajectories, with one exception
-that is stated here and in the supplement.
+Every number in this paper comes from C-MAPSS. Both the development analyses and the
+test analyses use only this family, and all four subsets were used in both roles.
 
-**Training engines.** FD001 and FD002 only. **FD003 and FD004 remain sealed** and were
-never read by any script.
+**Training engines.** FD001–FD004 training trajectories, through the identical
+pre-registered 5-fold design (§4.3.3b; pre-registrations `59bb5d9b`, `3f0142f9` and
+Amendment 2). FD003/FD004 train files were unsealed for this purpose under
+`paper/FD0034_PROTOCOL_CHANGE.md`.
 
-**Official test files.** `test_FD002` and `RUL_FD002` were read **once**, on 2026-10-31,
-after every model in §4.2.4 had been trained, frozen and archived
-(`paper/TEST_SET_PROTOCOL_CHANGE.md`, authorised before the read; `paper/E15_TEST_RESULT.md`
-for the protocol and results). They were not used for model selection, tuning, calibration
-or any decision, and the pipeline was verified against the training path before the read
-(feature equality 0.0, prediction replay 0.084 RMSE). `test_FD001`, `test_FD003` and
-`test_FD004` were never used for any reported metric; an earlier exploratory script read
-`test_FD001` and `test_FD002` once to count engines and produced no prediction, which is
-disclosed in the supplement. FD003 and FD004 test data remain unread.
+**Official test files.** Read **once per subset, after freezing**, never for selection,
+tuning, calibration or any decision. `test_FD002`/`RUL_FD002` were read on 2026-10-31
+under the E15 one-shot protocol after every §4.2.4 model was frozen
+(`paper/TEST_SET_PROTOCOL_CHANGE.md`, authorised before the read; feature equality 0.0,
+prediction replay 0.084 RMSE). The remaining three subsets were read under the unified
+E21 protocol (`paper/E21_TEST_ALL_PREREGISTRATION.md`, sha `1579e0e0`) after all
+training was complete: feature verification passed on all four subsets (max
+difference 0.0) before any test file was read, the FD003/FD004 test and RUL files were
+unsealed at that point with sha256 recorded and mtimes untouched
+(`results/dsh/e21/unseal_hashes.sha256`), and exclusions matched the registered counts
+(§6.10). The E21 FD002 evaluation supersedes the E15 numbers with a strictly larger
+model set (15 models including fold 0 vs 12); both are archived.
 
 Consequences: nothing here generalises to other turbofan datasets, to bearings,
 or to systems where the failure criterion is physical rather than simulated. The
 C-MAPSS "failure" is a defined point on a simulated degradation trajectory
 (Saxena et al., 2008); the lifespan scale `T` used in section 4.4 inherits that
-convention.
+convention. The four subsets are four operating regimes of one simulator, so
+"across C-MAPSS" means "across regimes of this simulator", nothing more.
 
 ## 6.2 Resolution is bounded by engine count, and FD001 is small
 
@@ -118,25 +124,34 @@ test that.
   The literature check (`paper/E1_LITERATURE.md`) found prior work on leakage,
   seed variance, benchmarking variance and C-MAPSS reporting inconsistency; the
   contribution is positioned against them, not above them.
-* It does not report FD003/FD004 or official-test performance.
 * It does not convert a null result into a positive one. Where an interval crosses
-  zero, the text says so, including in the abstract.
+  zero, the text says so, including in the abstract. FD003's reversal (§4.3.3b) and
+  FD002's test-side equivalence (§4.3.6) are reported in the same breath as the
+  significant pooled effects.
 
 ## 6.10 Exclusion of short test trajectories
 
-Of the 259 engines in `test_FD002`, **24 were excluded** by `scripts/dsh_test_verify.py:155`,
-which skips any trajectory shorter than the 50-cycle window (their observed lengths are
-21–49 cycles). This is a property of the protocol, not an implementation choice: a 50-cycle
-window cannot be formed from 21 cycles.
+The unified E21 protocol (`paper/E21_TEST_ALL_PREREGISTRATION.md`) skips any test
+trajectory shorter than the 50-cycle window — a property of the protocol, not an
+implementation choice: a 50-cycle window cannot be formed from 21 cycles. The counts
+registered before unsealing are the counts observed:
 
-Those 24 are not a random subset. Their true RUL averages **138.4** against **75.3** for the
-235 retained engines, and their total life averages 175.5 against 216.2. The evaluation
-therefore loses exactly the cases with the longest remaining life, which are the hardest.
+| subset | total | excluded | excluded length | excluded true-RUL mean | retained true-RUL mean |
+|---|---:|---:|---|---:|---:|
+| FD001 | 100 | 7 | 31–49 | 119.0 | 72.2 |
+| FD002 | 259 | 24 | 21–49 | 138.4 | 75.3 |
+| FD003 | 100 | 3 | 38–47 | 136.3 | 73.4 |
+| FD004 | 248 | 20 | 19–48 | 157.2 | 80.4 |
 
-The bias is bounded rather than re-measured: a constant-125 predictor scores RMSE 28.72 on the
-excluded set, and pooling that with the retained 23.96 gives 24.44, **+0.48 (+2.0%)**. That is
-an illustrative bound, not a second evaluation; the one-shot test result stays frozen at 23.96
-on 235 engines, and it is optimistic by roughly this order.
+(`results/dsh/e21/test_all.json` `exclusions`; FD002's total-life comparison, 175.5 vs
+216.2, is in `results/dsh/e19/test_exclusion.json`.)
 
-Any comparison of test-set RMSE across papers must state how short trajectories were handled.
+In every subset the excluded engines are exactly the longest-remaining-life cases — the
+hardest ones — so every test RMSE in §4.3.6 is optimistic by an order that is bounded,
+not re-measured. For FD002 the bound is concrete: a constant-125 predictor scores 28.72
+on the excluded 24, and pooling that with the E21 FD002 ensemble 23.386 gives 23.93,
+**+0.54 (+2.3%)**. The same construction on the other subsets moves the score by a
+similar small order. These are illustrative bounds, not second evaluations; the reported
+test results stay frozen at the retained-engine counts, and any comparison of test-set
+RMSE across papers must state how short trajectories were handled.
 
