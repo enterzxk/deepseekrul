@@ -1,0 +1,59 @@
+{
+  "model": "u_c = sqrt(sum u_i^2); U = 2 u_c (k = 2, ~95% coverage)",
+  "components_documented": {
+    "u_seed": "Type A, SD across 3 initialisations at fixed fold and architecture",
+    "u_engine": "Type A, engine sampling within folds (bootstrap SE scaled by 1/sqrt(n))",
+    "u_fold": "Type A, SD of the five fold-level estimates divided by sqrt(5)",
+    "u_arch": "Type A, SD across five architectures (E11), filled in when E11 closes",
+    "u_repro": "Type B, from-scratch re-run (paper/E4_RESULT.md): 0.0000 RMSE"
+  },
+  "rows": [
+    {
+      "estimand": "PE - A (bounded time encoding)",
+      "n_folds": 5,
+      "n_engines_per_fold": 52,
+      "n_seeds": 3,
+      "components": {
+        "u_seed": 0.15847646869777002,
+        "u_engine": 0.32797744250108707,
+        "u_fold": 0.4934138352379433,
+        "u_repro": 0.0
+      },
+      "u_combined": 0.6133035192502041,
+      "U_expanded": 1.2266070385004082,
+      "coverage_factor": 2.0,
+      "variance_shares": {
+        "u_seed": 0.06676958195994175,
+        "u_engine": 0.2859809052196947,
+        "u_fold": 0.6472495128203634,
+        "u_repro": 0.0
+      },
+      "dominant": "u_fold",
+      "point_estimate": -0.14725472224504302
+    },
+    {
+      "estimand": "BE - A (time channel removed)",
+      "n_folds": 5,
+      "n_engines_per_fold": 52,
+      "n_seeds": 3,
+      "components": {
+        "u_seed": 0.20297441187893464,
+        "u_engine": 0.32797744250108707,
+        "u_fold": 0.4984327334602747,
+        "u_repro": 0.0
+      },
+      "u_combined": 0.6302404338439692,
+      "U_expanded": 1.2604808676879384,
+      "coverage_factor": 2.0,
+      "variance_shares": {
+        "u_seed": 0.10372180324883523,
+        "u_engine": 0.27081668966227035,
+        "u_fold": 0.6254615070888944,
+        "u_repro": 0.0
+      },
+      "dominant": "u_fold",
+      "point_estimate": 1.1191958701701696
+    }
+  ],
+  "note": "u_fold dominates at 260 engines; adding engines cannot reduce u_c below the fold term, which is why section 4.2 recommends reporting fold-level estimates"
+}
