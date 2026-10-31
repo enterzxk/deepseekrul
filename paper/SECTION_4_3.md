@@ -227,3 +227,48 @@ dismiss as too weak to matter.
 * **Not supported.** That a 5% improvement could be verified on this benchmark at this
   scale: the smallest resolvable effect measured here is 8–9%, and anything below it sits
   inside the fold-to-fold spread.
+
+## 4.3.7 Two further protocol variables: coverage and input convention (E22a, E22b)
+
+**Coverage (E22a).** E21 reported the 653 engines that admit a 50-cycle window. E22a
+pads shorter trajectories by repeating the first frame (`src/dataset.py:298`, the same
+rule the training-side test builder uses) and evaluates all 707 engines — a rule frozen
+before the numbers were seen (`paper/E22A_FULL_TEST_PREREGISTRATION.md`, sha
+`8f18b75c`). The headline changes are not uniform across arms:
+
+| subset | arm | retained 653/707 (E21) | all engines (E22a) | change |
+|---|---|---:|---:|---:|
+| FD002 | A | 11.964 | 16.659 | **+4.70** |
+| FD002 | PE | 11.461 | 11.509 | +0.05 |
+| FD004 | A | 12.271 | 13.640 | +1.37 |
+| FD004 | PE | 12.160 | 11.794 | −0.37 |
+| FD001 | A | 10.447 | 10.382 | −0.07 |
+| FD003 | A | 10.086 | 9.947 | −0.14 |
+
+The 54 excluded engines are the longest-remaining-life cases, and they are a stress
+test that the linear time channel fails (FD002 arm A, +4.7 RMSE) and the bounded
+encoding passes (FD002 arm PE, +0.05). **The FD002 arm ranking flips with coverage**:
+on 235 engines A is best by 0.50; on all 259 PE is best by 5.15. Coverage is therefore
+a ranking variable, not a reporting detail — the pre-registered prediction that the
+full set would move every arm by ≤5% failed for exactly this reason, and the failure
+is reported.
+
+**Input convention (E22b).** The Dual-Mixer reproduction (RESS 2024, original
+hyperparameters, unified folds) failed to fit at all on the project's min-max scaler
+(validation RMSE 43) and converged normally on per-channel z-score (15.1) — the mixer's
+two sigmoid gates per layer attenuate the sub-1% ranges that min-max leaves on
+near-constant channels (`paper/E22B_DUALMIXER_PREREGISTRATION.md`, Amendment 1). Both
+numbers are recorded. Under the common protocol (z-score for both arms, 5 folds × 3
+seeds, E22a test rule), FD001 gives:
+
+| arm | params | dev val RMSE | test capped RMSE | per-model test sd |
+|---|---:|---:|---:|---:|
+| candidate A (z-score) | 41,858 | 9.28 ± 0.88 | **10.161** | 0.508 |
+| Dual-Mixer (RESS 2024) | 115,343 | 14.83 ± 1.83 | 13.390 | 1.345 |
+
+The reproduction lands where its own paper places it, so the comparison is credible;
+under the common protocol the 41.9k-parameter candidate is 3.2 RMSE better. This is a
+resolvable difference (>1.5 MDE), and the paper says so: the resolution argument does
+not predict that all models tie — it predicts which differences are decidable, and this
+one is. The candidate's advantage therefore rests on its extras (baseline/EMA channels,
+channel independence — §4.3.4), not on capacity.

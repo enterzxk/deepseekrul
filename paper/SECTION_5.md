@@ -16,6 +16,9 @@ the tool column names something a reader can run.
 | G8 | **Say which cap was applied to the target and where.** A cap change of 125→130 moves the reported RMSE by more than most method differences. | §4.5 | `run_candidate.py --max-rul` |
 | G9 | **Define the late/severe metric by an explicit error threshold.** The legacy proxy under-states severe late reporting by roughly 5×. | §4.5 | `run_candidate.py` (`severe_e10`) |
 | G10 | **Ship the per-engine predictions and the code hash with the table.** Without them a contrast cannot be re-derived, and a claim that looked multiplicative can turn out to have no artefact behind it at all. | §4.2 note on the withdrawn 21-pair table; §7 | `metrics.json` → `code_sha256`, `matched_cutoff_predictions.csv` |
+| G11 | **Report the evaluated-engine count and the exclusion rule, not only the score.** On FD002 the arm ranking flips between the 235-engine and the 259-engine coverage; the excluded 54 engines across four subsets are exactly the longest-life cases and cost one arm 4.7 RMSE while leaving another unchanged. | §4.3.7 (E22a) | `scripts/dsh_e22a_full_test.py` |
+| G12 | **Say whether the truth was capped, and report the NASA score under the convention it was defined for.** Uncapped truth against a 125-capped prediction inflates FD002 by 11.4 RMSE; the NASA late-penalty is defined against uncapped truth, so a capped-truth NASA score measures something else. Report both analyses, label both. | §4.3.6 Amendment 1; §4.3.7 | `scripts/dsh_e22a_full_test.py` (both blocks) |
+| G13 | **State how inputs were normalised, and check the baseline actually converges under your convention.** The same Dual-Mixer, same hyperparameters, scores 43 val RMSE on min-max channels and 15 on z-score; a baseline that fails to fit is a protocol artefact, not a weak method. | §4.3.7 (E22b), Amendment 1 | `--scaler {default,zscore}` |
 
 ## How to use the list
 
