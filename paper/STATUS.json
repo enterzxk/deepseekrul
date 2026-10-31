@@ -1,10 +1,10 @@
 {
-  "updated": "2026-10-31T10:30:00Z",
+  "updated": "2026-10-31T11:35:00Z",
   "track": "E",
   "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
   "current_section": "none (pre-writing): evidence closure phase",
   "current_gap": "E3",
-  "next_action": "E18 analysis when the 36 FD001 runs finish (est. 2h): paired contrasts at 20 engines per fold, compare against FD002, then write the Chinese decision report",
+  "next_action": "Chinese decision report; then main.tex assembly (E7), references to 35, E8 package",
   "blockers": [
     "G1 human input required: journal, title choice (A/B/C), author order, affiliations, funding, COI",
     "test-data disclosure wording not yet decided by human (supplement data-use section)"
@@ -42,7 +42,7 @@
     "E15_test": "CLOSED (one shot, authorised): A 23.958 / tf 23.976 / gru 25.061 / bilstm 25.247 / cnn1d 29.305 / tcn 29.779 on test_FD002 last-window, 235 engines. Training-side advantage over tf does not replicate (1.50 -> 0.02).",
     "E16": "CLOSED: three statistical corrections. (a) architecture CIs recomputed (fold-0-repeated-three-times bug) -> A-tf NOT significant. (b) MDE rebuilt on the delta-method RMSE statistic instead of the MAE statistic -> 1.54 at 260, and the engine-count error on FD001 fixed -> 4.84 at 20 engines. (c) GUM budget: u_engine double counted u_fold; corrected u_c 0.52 / U 1.04, and the fold term DOES scale as 1/sqrt(n) -> the \"adding engines buys nothing\" claim is withdrawn and replaced by two distinct targets: T1 320-644 engines, T2 627-1262 engines (E19).",
     "E19": "CLOSED: two sample-size targets separated (T1 precision 320-644, T2 80% power 627-1262); fold decomposition redone on the paired delta (ratio 0.55 / 0.91, no floor claim); test exclusion documented (24 of 259, RUL 138.4 vs 75.3, bound +2%).",
-    "E18": "RUNNING: FD001 5-fold, A/BE/PE x 3 seeds x folds 1-4 = 36 runs, prereg 59bb5d9b",
+    "E18": "CLOSED: FD001 5-fold replicates the time channel. BE-A +2.052 [+0.505,+3.733] significant on FD001; pooled across subsets +1.347 [+0.568,+2.126] on 360 engines. PE-A does not replicate in sign (both CIs cross 0). 3/4 predictions held, 1 failed favourably.",
     "E17": "CLOSED: doubling baseline width makes tf 0.57 WORSE and cnn1d 0.12 better, both inside the resolution limit; baselines are not capacity-starved. paper/E17_CAPACITY_RESULT.md",
     "E17b": "same as E17 (duplicate key kept for traceability)"
   },
@@ -74,5 +74,5 @@
     "queue": "paper/QUEUE.md"
   },
   "ops_note": "2026-10-30 21:10 local: the GPU was 98% occupied by the user's own ComfyUI service (pid 3274728, 41.6 GB, queue empty, 0% utilisation). Called its standard POST /free endpoint (unload_models + free_memory, HTTP 200); memory dropped 43 GB -> 0.9 GB and the service stayed up. It reloads lazily on the next request. No process was killed and no model was deleted.",
-  "headline": "Resolution at 260 FD002 engines is U = 1.0 RMSE (7% of baseline) and scales as 1/sqrt(n); an 8.1% effect reproduces across five folds, a 0.9% effect does not, and the candidate is tied with the Transformer in both protocols while beating cnn1d/tcn by ~5.7."
+  "headline": "The time channel is the one effect that replicates everywhere: +1.13 [+0.25,+2.02] on FD002, +2.05 [+0.51,+3.73] on FD001, pooled +1.35 [+0.57,+2.13] on 360 engines. Encoding choice, architecture ordering within a tier and the candidate-vs-Transformer gap all stay below the resolution boundary in both protocols."
 }

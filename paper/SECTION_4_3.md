@@ -84,6 +84,25 @@ the easiest fold for the baseline arm (A scores 12.68 there against 13.5–15.1
 elsewhere). Two contrasts are not enough to establish that as a rule; the paper reports
 the observation and its direction without generalising it.
 
+### 4.3.x The effect replicates across subsets
+
+FD001 (100 engines, one operating condition, 20 per fold) was run through the identical
+5-fold design (`paper/E18_RESULT.md`; pre-registration `59bb5d9b`). The interval is wider
+because each fold holds out only 20 engines, and the effect is larger:
+
+| contrast | FD002 (260 engines) | FD001 (100 engines) | pooled (360, inverse-variance) |
+|---|---:|---:|---:|
+| **BE − A** | **+1.133** [+0.245, +2.023] | **+2.052** [+0.505, +3.733] | **+1.347** [+0.568, +2.126] |
+| PE − A | −1.433 [−2.998, +0.133] | −0.634 [−2.159, +0.809] | signs differ, not pooled |
+| PE − BE | −3.561 | −2.686 | both significant |
+
+The time channel replicates: removing it costs 1.1–2.1 RMSE depending on subset, and the
+interval clears zero on both. The encoding choice does not: the two subsets disagree about
+its direction and neither interval excludes zero, which is what the resolution boundary
+predicts for a sub-1.5-RMSE difference. Of the four pre-registered predictions, three held
+and one failed in the favourable direction (the FD001 CI cleared zero where the
+registration expected it not to); the failure is reported, not absorbed.
+
 ## 4.3.4 The mechanism is alignment, not capacity
 
 The bounded encoder adds a `Linear(8, 64)` projection in place of `Linear(1, 64)`: +448
