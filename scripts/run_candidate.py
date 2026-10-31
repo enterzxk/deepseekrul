@@ -475,7 +475,7 @@ def build_cond(frame, values, window):
 
 def prepare(subset: str, split_seed: int, window: int, max_rul: float,
             condition_aware: bool, n_cond: int, cutoffs=(0.5, 0.7, 0.9),
-            ref_mode: str = "cond", fold: int = -1):
+            ref_mode: str = "cond", fold: int = -1, scaler_mode: str = "default"):
     """Build the development split. Engine partition depends ONLY on split_seed.
 
     fold < 0 reproduces the original single-split behaviour bit for bit: the first
@@ -530,9 +530,18 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
         tr_s, va_s = scaler.fit_transform(train_frame), scaler.transform(val_frame)
     else:
         cond_t = cond_v = None
-        scaler = SensorMinMaxScaler(cols)
-        tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
-        va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
+        if scaler_mode == "zscore":
+            # E22b paired arm (paper/E22B_DUALMIXER_PREREGISTRATION.md Amendment 1):
+            # per-channel z-score from training engines only, no condition model.
+            mu = train_frame[cols].to_numpy(np.float64).mean(axis=0)
+            sd = train_frame[cols].to_numpy(np.float64).std(axis=0)
+            sd = np.where(sd > 1e-8, sd, 1.0)
+            tr_s = ((train_frame[cols].to_numpy(np.float64) - mu) / sd).astype(np.float32)
+            va_s = ((val_frame[cols].to_numpy(np.float64) - mu) / sd).astype(np.float32)
+        else:
+            scaler = SensorMinMaxScaler(cols)
+            tr_s = scaler.fit_transform(train_frame[cols].to_numpy(np.float64))
+            va_s = scaler.transform(val_frame[cols].to_numpy(np.float64))
     # ---- condition-matched healthy reference (ORDER_03 Step 2) ----
     kmeans = None
     pop_ref = None
@@ -647,6 +656,9 @@ def main() -> int:
     parser.add_argument("--out", default="experiments/tournament")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--ref-mode", choices=("cond", "pop", "global"), default="cond")
+    parser.add_argument("--scaler", choices=("default", "zscore"), default="default",
+                        help="E22b paired-arm input convention; default keeps all "
+                             "existing results bit-identical")
     parser.add_argument("--late-weight", type=float, default=1.8)
     parser.add_argument("--shuffle-features", action="store_true")
     parser.add_argument("--norm-extras", action="store_true")
@@ -667,7 +679,7 @@ def main() -> int:
     _prep = prepare(
         (args.subsets or args.subset), args.split_seed, args.window, 125.0,
         condition_aware=any(x in (args.subsets or args.subset) for x in ("FD002", "FD004")), n_cond=6,
-        ref_mode=args.ref_mode, fold=args.fold,
+        ref_mode=args.ref_mode, fold=args.fold, scaler_mode=args.scaler,
     )
     train_set, val_set, train_units, val_units, pseudo_sets, val_unit_ids, abs_sets, matched_set, matched_units = _prep
     if args.norm_extras:
