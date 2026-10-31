@@ -105,4 +105,30 @@ reported alongside every number.
 
 ## 9. Amendments
 
-(none yet)
+### Amendment 1 — 2026-10-31T01:15+08:00 — TCN and Transformer reduced to a single seed
+
+**What changed.** `tcn` and `tf` run **1 seed (2027) × 5 folds = 10 runs**, not 3 seeds × 5
+folds = 30. `cnn1d`, `bilstm`, `gru` and `A` keep all 15 runs; nothing already completed
+is discarded.
+
+**Why.** Measured cost, not convenience. Under the 3-way concurrency used here, `cnn1d`
+runs at ≈0.5 min/epoch and `tcn` at ≈2.0 min/epoch on the same GPU (measured 01:05–01:13,
+3 concurrent, GPU at 100% utilisation, 43 GB free). The full 30-run plan therefore needs
+≈17 GPU-hours; the reduced 10-run plan needs ≈5.5. The first attempt also lost 30 runs to
+an external SIGTERM at 01:07 and had to be relaunched, which cost another hour.
+
+**Why this does not weaken the comparison.** The seed component of the uncertainty was
+measured directly in E9: **2.4% of the variance of a paired contrast on FD002**, against
+97.6% for engine sampling. A five-fold pooled estimate with one seed and with three seeds
+differ only through that 2.4% component. The between-fold term — the dominant one at 260
+engines (63–65% of `u_c`, §4.6) — is fully preserved, because all five folds are kept.
+
+**How it will be reported.** Any row in the architecture table computed from a single seed
+is marked `†` in the table and in the caption, and the per-architecture seed counts are
+listed in the supplement. No claim in the paper will rest on a single-seed difference
+smaller than `u_c`.
+
+**What was NOT changed.** The folds, the split seed, the evaluation protocol, the epoch
+budget, the decision rule of §3, and the five architectures themselves.
+
+
