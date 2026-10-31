@@ -71,73 +71,76 @@ error, which is exactly the observed 0.475. In other words:
 This is a stronger statement than "more engines are better", and it is the reason
 §4.2.4 recommends reporting fold-level estimates alongside any pooled one.
 
-## 4.2.3 Five architectures, three bands
+## 4.2.3 Five architectures and the candidate: three tiers, two resolvable boundaries
 
 The five published architectures plus the candidate, all under the identical protocol
-(E11; pre-registration `1e63c800`, amended `b8eeb757`). Every engine is held out exactly
-once; the value for each arm is the mean over its (fold, seed) runs, so a three-seed arm
-gets no ensemble advantage over a one-seed arm.
+(E11; pre-registration `1e63c800`, amended `b8eeb757` and `c943daf4`). Every engine is
+held out exactly once. To keep the arms comparable every number in this subsection is
+computed at the one seed all six arms share (2027), pooling 260 engines; the three-seed
+means appear as a footnote and change no ordering.
 
-| arm | seeds | RMSE | MAE | NASA | late | severe | params |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| **A** (candidate) | 3 | **13.953** | 10.257 | **4.091** | 0.508 | **0.228** | 41,858 |
-| tf (Transformer) † | 1 | 15.448 | **11.281** | 5.250 | 0.504 | 0.250 | 144k |
-| gru (GRU+attn) | 3 | 15.971 | 12.161 | 4.975 | 0.504 | 0.268 | 60k |
-| bilstm | 3 | 16.199 | 12.231 | 5.565 | 0.519 | 0.267 | 52k |
-| tcn (dilated) † | 1 | 19.820 | 15.482 | 8.560 | 0.538 | 0.308 | 159k |
-| cnn1d | 3 | 19.968 | 15.722 | 8.041 | **0.477** | 0.274 | 85,801 |
+| arm | RMSE | MAE | NASA | late | severe | params | vs A (95% CI) |
+|---|---:|---:|---:|---:|---:|---:|---|
+| **A** (candidate, d=64) | **14.026** | **10.607** | **3.975** | 0.508 | **0.254** | 41,858 | — |
+| tf (Transformer, d=88) | 15.459 | 11.281 | 5.250 | 0.504 | 0.250 | 144,146 | −1.43 [−3.00, +0.13] |
+| gru (GRU+attn, d=88) | 16.183 | 12.220 | 4.755 | 0.492 | 0.262 | 112,290 | −2.16 [−3.77, −0.58] |
+| bilstm (d=88) | 16.227 | 12.232 | 5.345 | 0.531 | 0.262 | 112,553 | −2.20 [−3.85, −0.57] |
+| cnn1d (d=88) | 19.754 | 15.476 | 7.711 | 0.492 | 0.285 | 85,801 | −5.73 [−7.65, −3.85] |
+| tcn (dilated, d=88) | 19.857 | 15.482 | 8.560 | 0.538 | 0.308 | 159,193 | −5.83 [−7.60, −4.09] |
 
-† single seed (E11 Amendment 1: TCN runs at 2.0 min/epoch against 0.5 for CNN1D).
+† Three-seed means (descriptive only; 15 runs each for the four arms that have three
+seeds): A 13.953, gru 15.971, bilstm 16.199, cnn1d 19.968. The ordering is unchanged.
 
-| contrast vs A | ΔRMSE | 95% CI | excludes 0 |
+Protocol note. The five baseline classes are fixed-depth by construction and were run at
+`d_model = 88`; the candidate was run at `d_model = 64` (41,858 parameters). The baselines
+therefore had **more** width than the candidate, so the contrasts below are not a
+capacity contest won by the candidate. Until 2026-10-31 the baseline branch ignored the
+`--d-model` flag, which is why this had to be established separately
+(`paper/E11_ARCH_PREREGISTRATION.md`, Amendment 2a).
+
+The within-tier comparisons need their own table because they are the ones that fail:
+
+| contrast (first − second) | ΔRMSE | 95% CI | excludes 0 |
 |---|---:|---|---|
-| cnn1d − A | +6.280 | [+4.236, +8.438] | yes |
-| tcn − A | +6.842 | [+4.830, +8.848] | yes |
-| gru − A | +3.499 | [+1.959, +5.096] | yes |
-| bilstm − A | +3.168 | [+1.628, +4.758] | yes |
-| tf − A | +2.444 | [+0.444, +4.418] | yes |
+| tf − gru | −0.724 | [−1.908, +0.419] | no |
+| tf − bilstm | −0.768 | [−1.856, +0.299] | no |
+| gru − bilstm | −0.044 | [−1.288, +1.277] | no |
+| tcn − cnn1d | +0.104 | [−1.284, +1.472] | no |
 
-### The same six arms on the official test set
+**Four separations are resolvable and five are not.** The candidate is better than the
+two weakest architectures by ≈5.7 RMSE and better than GRU/BiLSTM by ≈2.2; it is **not
+distinguishable from the Transformer** (−1.43, interval includes zero, and the same pair
+is tied at 0.02 on the official test set, §4.2.4).
 
-Once the models were frozen, the five baselines and the candidate were evaluated **once**
-on `test_FD002` with the literature-standard last-window protocol
-(`paper/E15_TEST_RESULT.md`; authorised in `paper/TEST_SET_PROTOCOL_CHANGE.md`). The
-pipeline was verified against the training path first (features identical to 0.0,
-prediction replay 0.084 RMSE).
+### Equivalence, not just non-significance
 
-| arm | train (matched) | test (last window) | retention of the gap vs A |
-|---|---:|---:|---:|
-| A | 13.953 | 23.958 | — |
-| tf | 15.448 | 23.976 | **1%** |
-| gru | 15.971 | 25.061 | 55% |
-| bilstm | 16.199 | 25.247 | 57% |
-| cnn1d | 19.968 | 29.305 | 89% |
-| tcn | 19.820 | 29.779 | 99% |
+A claim that two arms are "the same tier" requires an equivalence test, because an
+interval that crosses zero establishes only that no difference was detected. TOST at a
+pre-specified margin of 1.0 RMSE (the §4.6 resolution boundary) fails for **every**
+within-tier pair:
 
-**Retention is a monotone function of effect size.** The 1.5-RMSE advantage over the
-Transformer disappears entirely on the test set (0.018); the 5.9–6.0 advantages over
-CNN1D and TCN survive almost intact. This is the resolution boundary of §4.2.3 reappearing
-on an independent split and a different protocol, and it constrains what the paper may
-claim about its own model: **significantly better than the two weakest architectures,
-comparable to GRU/BiLSTM, and statistically tied with the Transformer on the official
-test set.**
+| pair | ΔRMSE | 90% CI | equivalence at δ = 1.0 | smallest δ that would establish it |
+|---|---:|---|---:|---:|
+| gru − bilstm | −0.044 | [−1.288, +1.277] | **no** | 1.10 |
+| tcn − cnn1d | +0.104 | [−1.284, +1.472] | **no** | 1.25 |
+| tf − bilstm | −0.768 | [−1.856, +0.299] | **no** | 1.68 |
+| tf − gru | −0.724 | [−1.908, +0.419] | **no** | 1.72 |
 
-**The six arms do not form a continuum. They form three bands**, and the boundary of
-resolution falls between the bands rather than inside them:
+So the paper cannot claim that members of a tier are *equivalent*; it can only claim that
+their ordering is not established, and that the data are consistent with differences of up
+to 1.1–1.7 RMSE among them. That number is itself the resolution boundary measured from
+the other side, and it agrees with `u_c` = 0.61–1.23 from §4.6.
 
-| band | members | RMSE range | within-band spread | rank behaviour |
-|---|---|---:|---:|---|
-| best | A | 13.95 | — | first on 4 of 5 folds |
-| middle | tf, gru, bilstm | 15.45–16.20 | **0.75** | all three orderings occur across folds |
-| worst | tcn, cnn1d | 19.82–19.97 | **0.15** | bottom two on every fold |
+What survives is a weaker but defensible statement:
 
-Between bands: 2.4–6.8 RMSE, every interval clearing zero. Within the middle band: 0.75
-RMSE against `u_c` = 0.61–1.23 (§4.6), and the members genuinely swap places from fold to
-fold. **The paper can rank families and cannot rank members within a family.**
+> **The six arms fall into three tiers by point estimate — {A, tf} 14.0–15.5,
+> {gru, bilstm} 16.2, {tcn, cnn1d} 19.8–19.9 — but only the two lower boundaries are
+> resolvable. The top of the table is a tie, and within a tier neither ordering nor
+> equivalence can be established at the resolution this benchmark affords.**
 
 This is the empirical form of the resolution boundary, and it is sharper than the MDE
-alone: `MDE` says how large an effect must be to be visible; the three-band structure says
-*where* in the current leaderboard those effects actually occur.
+alone: `MDE` says how large an effect must be to be visible; the tier structure says
+*where* in the current leaderboard those effects actually occur, and where they do not.
 
 ### The ablation ladder
 

@@ -624,6 +624,10 @@ def main() -> int:
                         help="model init / dataloader seed (defaults to --seed)")
     parser.add_argument("--split-seed", type=int, default=7,
                         help="engine partition seed, independent of the model seed")
+    parser.add_argument("--baseline-d-model", type=int, default=88,
+                        help="width of the published-baseline arms. The baseline branch "
+                             "ignored --d-model until 2026-10-31, so every E11 run used 88; "
+                             "the default keeps those runs reproducible")
     parser.add_argument("--fold", type=int, default=-1,
                         help="k-fold block index on the split-seed permutation; "
                              "-1 reproduces the single 80/20 split, 0 equals it")
@@ -689,7 +693,8 @@ def main() -> int:
             feature_set=cfg.get("feature_set", "full"),
         ).to(device)
     elif is_baseline:
-        model = build_baseline(cfg["baseline"], num_sensors=14, d_model=88,
+        model = build_baseline(cfg["baseline"], num_sensors=14,
+                               d_model=args.baseline_d_model,
                                dropout=args.dropout).to(device)
     else:
         model = CandidateModel(
@@ -830,6 +835,8 @@ def main() -> int:
         "config": cfg, "params": params, "best_val_rmse": best,
         "best_epoch": best_epoch, "epochs_ran": len(history),
         "model_seed": model_seed, "split_seed": args.split_seed, "fold": args.fold,
+        "baseline_d_model": (args.baseline_d_model if is_baseline else None),
+        "num_params": int(sum(p.numel() for p in model.parameters())),
         "weights": "ema" if ema is not None else "raw",
         "restored_best_before_pseudo_test": bool(same),
         "pseudo_test_rmse_by_cutoff": pseudo_results,

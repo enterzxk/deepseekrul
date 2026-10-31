@@ -132,3 +132,45 @@ smaller than `u_c`.
 budget, the decision rule of §3, and the five architectures themselves.
 
 
+
+## Amendment 2 (2026-10-31T09:50+08:00) — baseline capacity sensitivity
+
+**Why.** A reviewer will ask whether the five architectures were strawmen: every arm was
+trained at `d_model=64, num_layers=1`, i.e. the smallest configuration that fits the
+protocol. If a larger baseline closes the gap to A, then the between-band contrasts of
+E11 are a tuning artefact rather than a property of the architectures.
+
+**What.** Two architectures are re-run at `d_model=128, num_layers=2` (4x parameters),
+seed 2027 only, all 5 folds = 10 runs. Chosen because they are the two that matter:
+`tf` because it is the arm A ties with on the official test set, `cnn1d` because the
+largest between-band contrast (+6.28) depends on it being weak.
+
+**Decision rule, fixed before the runs.**
+
+| outcome | interpretation |
+|---|---|
+| tuned `tf` still within ±1.0 of A | the A–tf gap is not a capacity artefact; §4.2.3 stands |
+| tuned `tf` beats A by >1.0 | the candidate's advantage over the Transformer is withdrawn; §4.2.3 and §4.3 must say so |
+| tuned `cnn1d` improves by >2.0 | the +6.28 contrast is a capacity artefact and the largest between-band claim is withdrawn |
+
+The same three rules apply to `cnn1d`. No re-running to "find a better setting": one
+alternative configuration per architecture, pre-declared, reported whatever it shows.
+
+**Cost.** ~1 GPU-hour.
+
+**Amendment 2a (10:05).** The first launch was a **no-op and is void**: the baseline branch
+of `run_candidate.py` built every baseline with `d_model=88` hard-coded and never forwarded
+`--d-model` or `--num-layers`, so `--d-model 128 --num-layers 2` produced the *identical*
+configuration. Seven runs completed before this was noticed; all seven reproduce their E11
+counterparts to six decimal places (`e16` comparison, 2026-10-31T10:03), which is recorded
+separately as a determinism check rather than as a capacity result. All seven directories
+are marked void and are not used.
+
+Two consequences for the manuscript. (i) Every E11 baseline ran at `d_model=88` while the
+candidate ran at `d_model=64`, so the baselines had **more** width than the candidate, not
+less; the protocol description in §4.2.3 has been corrected accordingly. (ii) None of the
+five baseline classes exposes a depth parameter, so the only capacity lever is width.
+
+The code now has an explicit `--baseline-d-model` (default 88, which preserves the E11
+runs bit-for-bit) and records `baseline_d_model` and `num_params` in every `metrics.json`.
+The sensitivity is re-run at 128 under `experiments/e17b`.

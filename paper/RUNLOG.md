@@ -29,6 +29,12 @@ One row per completed task. Columns: task | UTC | command (abridged) | exit | ar
 | T18 | 2026-10-30T15:30Z | 12 BE runs; `dsh_e10b_analyze.py` | 0 | `experiments/e10b/*`, `results/dsh/e10/E10b_be_cv.json`, `paper/E10B_RESULT.md` | prereg 532a1d5d | **REPRODUCED**: BE-A +1.133 (+8.1%) CI [+0.245,+2.023]; single split +2.693 was 2.4x too high |
 | T19 | 2026-10-30T15:45Z | writing only | — | `paper/SECTION_4_1.md`, `SECTION_4_2.md`, `SECTION_4_3.md`, `SECTION_4_4.md`, `SECTION_5.md`, `SECTION_6.md` | — | sections 4.1-4.6 drafted around the two-contrast calibration |
 
+| T20 | 2026-10-31T09:45Z | fold composition check | 0 | `results/dsh/e16_fold_composition.csv` | — | folds balanced on lifespan (202-216 vs overall 206.8); condition mix varies 8-23% but no association with fold error |
+| T21 | 2026-10-31T09:50Z | TOST on within-tier pairs | 0 | `results/dsh/e16_tost.json` | — | **4/4 fail at delta=1.0**; min margin 1.10/1.25/1.68/1.72 -> "equivalent" is not claimable |
+| T22 | 2026-10-31T09:55Z | corrected architecture contrasts | 0 | `results/dsh/e16/arch_corrected.json`, `scripts/dsh_e16_arch_corrected.py` | — | **CI bug found** (fold 0 counted 3x, fold 4 missing): A-tf -1.433 [-3.00,+0.13] NOT significant; 4 of 5 contrasts stand |
+| T23 | 2026-10-31T10:05Z | E17 first launch | 0 | void, 7 runs | model 4c57... runner 60f14f50 | **no-op**: baseline branch hard-codes d_model=88, --d-model never applied; the 7 runs are bit-identical re-runs of E11 (kept as a determinism check) |
+| T24 | 2026-10-31T10:10Z | E17b capacity sensitivity (d=128) | running | `experiments/e17b/*` | prereg 8335783d | 10 runs, tf and cnn1d at doubled width |
+
 ## Scheduler
 
 * WorkBuddy CLI: `EADDRINUSE` on the default port, then `Authentication required`
