@@ -1,0 +1,53 @@
+{
+  "H+_clear": {
+    "theta_true": null,
+    "coverage_theta": 0.9,
+    "coverage_band": 0.55,
+    "prc_decisions": {
+      "A robustly better": 0.05,
+      "protocol-sensitive": 0.95
+    },
+    "naive_decisions": {
+      "A robustly better": 0.05,
+      "protocol-sensitive": 0.95
+    },
+    "mean_theta_width": 0.6424202276547746
+  },
+  "H+_small": {
+    "theta_true": null,
+    "coverage_theta": 0.92,
+    "coverage_band": 0.67,
+    "prc_decisions": {
+      "protocol-sensitive": 1.0
+    },
+    "naive_decisions": {
+      "A robustly better": 0.01,
+      "protocol-sensitive": 0.99
+    },
+    "mean_theta_width": 0.633485119647386
+  },
+  "H0_flip": {
+    "theta_true": null,
+    "coverage_theta": 0.89,
+    "coverage_band": 0.8,
+    "prc_decisions": {
+      "protocol-sensitive": 1.0
+    },
+    "naive_decisions": {
+      "protocol-sensitive": 1.0
+    },
+    "mean_theta_width": 0.6057795777187909
+  },
+  "H0_zero": {
+    "theta_true": null,
+    "coverage_theta": 0.9,
+    "coverage_band": 0.83,
+    "prc_decisions": {
+      "protocol-sensitive": 1.0
+    },
+    "naive_decisions": {
+      "protocol-sensitive": 1.0
+    },
+    "mean_theta_width": 0.6031984973002961
+  }
+}

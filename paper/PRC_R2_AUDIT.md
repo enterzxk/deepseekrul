@@ -100,3 +100,25 @@ python scripts/prc/exp_coverage_r2.py 200 200 conditional   # the table above
 Full grid (2000 replicates, both inference modes, both resampling schemes) is a
 background run; the conclusion above does not depend on it, because the failure is in
 the band's construction, not in sampling noise.
+
+## 7. Full-scale confirmation (2000 replicates, both inference modes)
+
+The 200-replicate table above is confirmed at 2,000 replicates (MC CI width ±0.015):
+
+| mode | scenario | band coverage | PRC correct | IUT correct |
+|---|---|---:|---:|---:|
+| conditional | A_dominant | 0.88 | 0.29 | **0.92** |
+| conditional | B_dominant | 0.88 | 0.31 | **0.92** |
+| conditional | sign_flip | 0.92 | 1.00 | 1.00 |
+| conditional | near_zero | 0.92 | 1.00 | 0.80 |
+| unconditional | A_dominant | 0.86 | 0.29 | **0.92** |
+| unconditional | B_dominant | 0.86 | 0.31 | **0.92** |
+| unconditional | sign_flip | **0.76** | 1.00 | 1.00 |
+| unconditional | near_zero | 0.91 | 1.00 | 0.80 |
+
+Two additions from the full run: (i) the band's coverage is **worse** unconditionally
+(0.76 on sign_flip) because the training-randomness variance is not exchangeable with
+engine draws — the nested scheme this design never implemented; (ii) the IUT's decision
+accuracy is unchanged by the mode switch, confirming that its size control does not
+depend on the resampling scheme at all. The NO-GO verdict therefore holds at full scale
+and is, if anything, stronger.

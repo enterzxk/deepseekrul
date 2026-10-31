@@ -1,0 +1,126 @@
+{
+  "reps": 2000,
+  "n": 200,
+  "mode": "unconditional",
+  "results": {
+    "A_dominant": {
+      "band_cov": 0.861,
+      "band_cov_mc_ci": [
+        0.845,
+        0.876
+      ],
+      "theta_cov": 0.946,
+      "theta_cov_mc_ci": [
+        0.936,
+        0.956
+      ],
+      "prc": {
+        "A robustly better": 0.286,
+        "inconclusive": 0.7135,
+        "protocol dependence confirmed": 0.0005
+      },
+      "iut": {
+        "A robustly better": 0.9185,
+        "inconclusive": 0.0735,
+        "protocol dependence confirmed": 0.008
+      },
+      "bonferroni": {
+        "A robustly better": 0.286,
+        "inconclusive": 0.714
+      },
+      "prc_correct": 0.286,
+      "iut_correct": 0.9185,
+      "mean_width": 6.569,
+      "mean_seconds": 0.003,
+      "expected": "A robustly better"
+    },
+    "B_dominant": {
+      "band_cov": 0.861,
+      "band_cov_mc_ci": [
+        0.845,
+        0.876
+      ],
+      "theta_cov": 0.986,
+      "theta_cov_mc_ci": [
+        0.98,
+        0.991
+      ],
+      "prc": {
+        "B robustly better": 0.3095,
+        "inconclusive": 0.6905
+      },
+      "iut": {
+        "B robustly better": 0.9185,
+        "inconclusive": 0.0755,
+        "protocol dependence confirmed": 0.006
+      },
+      "bonferroni": {
+        "B robustly better": 0.3095,
+        "inconclusive": 0.6905
+      },
+      "prc_correct": 0.3095,
+      "iut_correct": 0.9185,
+      "mean_width": 6.575,
+      "mean_seconds": 0.002,
+      "expected": "B robustly better"
+    },
+    "sign_flip": {
+      "band_cov": 0.755,
+      "band_cov_mc_ci": [
+        0.737,
+        0.774
+      ],
+      "theta_cov": 0.903,
+      "theta_cov_mc_ci": [
+        0.89,
+        0.916
+      ],
+      "prc": {
+        "protocol dependence confirmed": 1.0
+      },
+      "iut": {
+        "protocol dependence confirmed": 1.0
+      },
+      "bonferroni": {
+        "inconclusive": 1.0
+      },
+      "prc_correct": 1.0,
+      "iut_correct": 1.0,
+      "mean_width": 6.168,
+      "mean_seconds": 0.003,
+      "expected": "protocol dependence confirmed"
+    },
+    "near_zero": {
+      "band_cov": 0.914,
+      "band_cov_mc_ci": [
+        0.902,
+        0.926
+      ],
+      "theta_cov": 0.964,
+      "theta_cov_mc_ci": [
+        0.956,
+        0.972
+      ],
+      "prc": {
+        "A robustly better": 0.0005,
+        "inconclusive": 0.9985,
+        "protocol dependence confirmed": 0.001
+      },
+      "iut": {
+        "B robustly better": 0.017,
+        "A robustly better": 0.04,
+        "inconclusive": 0.7995,
+        "protocol dependence confirmed": 0.1435
+      },
+      "bonferroni": {
+        "A robustly better": 0.0005,
+        "inconclusive": 0.9995
+      },
+      "prc_correct": 0.9985,
+      "iut_correct": 0.7995,
+      "mean_width": 5.444,
+      "mean_seconds": 0.002,
+      "expected": "inconclusive"
+    }
+  }
+}
