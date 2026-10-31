@@ -126,8 +126,11 @@ def write_rows():
         w.writerows(rows)
 
     print(f"added={added} total_rows={len(rows)}")
-    if not (12 <= len(rows) <= 15):
-        raise SystemExit(f"ACCEPTANCE BREACH: total {len(rows)} outside [12,15]")
+    # Acceptance was 12-15 when T6 ran it. The 2026-10-31 task book raised the target
+    # to 35 verified rows; scripts/e1_add_refs.py now owns the 19 additional rows, so
+    # the gate is widened rather than left to fail on a CSV that legitimately grew.
+    if not (30 <= len(rows) <= 40):
+        raise SystemExit(f"ACCEPTANCE BREACH: total {len(rows)} outside [30,40]")
 
 
 def main():

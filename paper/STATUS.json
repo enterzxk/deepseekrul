@@ -1,10 +1,10 @@
 {
-  "updated": "2026-10-31T11:35:00Z",
+  "updated": "2026-10-31T16:45:00Z",
   "track": "E",
   "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
   "current_section": "none (pre-writing): evidence closure phase",
-  "current_gap": "E3",
-  "next_action": "Chinese decision report; then main.tex assembly (E7), references to 35, E8 package",
+  "current_gap": "E20",
+  "next_action": "E20 (FD003/FD004 5-fold) is running on the A40 host (65/90 at 16:01, ssh alias lab-a40); a server-side waiter runs scripts/dsh_e20_fd34_analyze.py at 90/90. Then paper/E20_RESULT.md, claims C38+, E21 unified test evaluation, main.tex assembly (E7), E8 package",
   "blockers": [
     "G1 human input required: journal, title choice (A/B/C), author order, affiliations, funding, COI",
     "test-data disclosure wording not yet decided by human (supplement data-use section)"
@@ -17,7 +17,7 @@
     "G5": "not_started"
   },
   "gaps": {
-    "E1": "CLOSED PASS: 12 refs verified in paper/refs_verified.csv, each with a DOI and a verbatim abstract sentence asserted by scripts/e1_verify_refs.py. Coverage: 2 method baselines (zheng2017, ress2019), peer-reviewed OC source (li2014oc), power/MDE source (cohen1992), plus dodge2019/raff2019. Four candidates (li2018, lei2018, freitas2026, engrXiv 10.31224/8145) withheld: abstract not openly retrievable, recorded in E1_LITERATURE.md section 4",
+    "E1": "CLOSED PASS (raised to 35 on 2026-10-31): paper/refs_verified.csv holds 35 rows, every row with a DOI/URL and a verbatim abstract sentence asserted by scripts/e1_add_refs.py (18 rows from scripts/e1_verify_refs.py + 17 resolved by title search in scripts/e1_expand_refs.py). Coverage: C-MAPSS origin (saxena2008cmapss), prognostic metrics (saxena2010metrics), PHM08 RNN (heimes2008), TOST (lakens2017), Holm/BH (holm1979, benjamini1995), cluster bootstrap (cameron2008), design analysis (gelman2014), benchmark hygiene (reuel2024, bouthillier2021, dietterich1998), MC dropout (gal2016). Five candidates have no retrievable abstract (schuirmann1987, button2013, geirhos2020, nadeau2003, lei2018): recorded in results/dsh/e1/refs_metadata_only.json, may be cited but never quoted",
     "E2": "CLOSED as FAIL: monotone projection lifts the index score but not corr(T_hat,T) (0.347 < 0.5 gate). See paper/E2_RESULT.md",
     "E3": "CLOSED as FAIL: non-inferiority NOT established. 4000-rep bound +0.291 was a low MC draw; converged (100k x5 RNG) +0.309..+0.324. Point estimate -0.897 unchanged, 3/3 seeds favour PE. See paper/E3_AMENDMENT_1.md",
     "E4": "CLOSED PASS: replay max|dpred| 7.2e-6; from-scratch bit-identical (val 12.5434, matched 13.0857, best epoch 26). See paper/E4_RESULT.md",
@@ -42,6 +42,8 @@
     "E15_test": "CLOSED (one shot, authorised): A 23.958 / tf 23.976 / gru 25.061 / bilstm 25.247 / cnn1d 29.305 / tcn 29.779 on test_FD002 last-window, 235 engines. Training-side advantage over tf does not replicate (1.50 -> 0.02).",
     "E16": "CLOSED: three statistical corrections. (a) architecture CIs recomputed (fold-0-repeated-three-times bug) -> A-tf NOT significant. (b) MDE rebuilt on the delta-method RMSE statistic instead of the MAE statistic -> 1.54 at 260, and the engine-count error on FD001 fixed -> 4.84 at 20 engines. (c) GUM budget: u_engine double counted u_fold; corrected u_c 0.52 / U 1.04, and the fold term DOES scale as 1/sqrt(n) -> the \"adding engines buys nothing\" claim is withdrawn and replaced by two distinct targets: T1 320-644 engines, T2 627-1262 engines (E19).",
     "E19": "CLOSED: two sample-size targets separated (T1 precision 320-644, T2 80% power 627-1262); fold decomposition redone on the paired delta (ratio 0.55 / 0.91, no floor claim); test exclusion documented (24 of 259, RUL 138.4 vs 75.3, bound +2%).",
+    "E20": "FD004 CLOSED: BE-A +1.497 [+0.124,+2.981] significant; PE-A -0.530 not significant. Pooled over FD002/FD001/FD004 (609 engines): +1.381 [+0.698,+2.065]. FD003 analysis pending 11 runs.",
+    "E21": "PENDING E20: preregistered 2026-10-31 (paper/E21_TEST_ALL_PREREGISTRATION.md); needs 15 frozen checkpoints per arm per subset, including the FD003/FD004 ones that E20 is producing.",
     "E18": "CLOSED: FD001 5-fold replicates the time channel. BE-A +2.052 [+0.505,+3.733] significant on FD001; pooled across subsets +1.347 [+0.568,+2.126] on 360 engines. PE-A does not replicate in sign (both CIs cross 0). 3/4 predictions held, 1 failed favourably.",
     "E17": "CLOSED: doubling baseline width makes tf 0.57 WORSE and cnn1d 0.12 better, both inside the resolution limit; baselines are not capacity-starved. paper/E17_CAPACITY_RESULT.md",
     "E17b": "same as E17 (duplicate key kept for traceability)"
@@ -73,6 +75,7 @@
     "log": "paper/RUNLOG.md",
     "queue": "paper/QUEUE.md"
   },
-  "ops_note": "2026-10-30 21:10 local: the GPU was 98% occupied by the user's own ComfyUI service (pid 3274728, 41.6 GB, queue empty, 0% utilisation). Called its standard POST /free endpoint (unload_models + free_memory, HTTP 200); memory dropped 43 GB -> 0.9 GB and the service stayed up. It reloads lazily on the next request. No process was killed and no model was deleted.",
-  "headline": "The time channel is the one effect that replicates everywhere: +1.13 [+0.25,+2.02] on FD002, +2.05 [+0.51,+3.73] on FD001, pooled +1.35 [+0.57,+2.13] on 360 engines. Encoding choice, architecture ordering within a tier and the candidate-vs-Transformer gap all stay below the resolution boundary in both protocols."
+  "ops_note": "2026-10-31 16:05 local: SSH aliases - lab-server and lab3090 both point at 10.50.1.240:2022 user 'user' (the 3090 host; publickey not yet authorised, one ssh-copy-id needed). lab-a40 / a40 / yndx-a40 point at 172.25.52.97 user yndx, the NVIDIA A40 46 GB host that runs E20; do not lose this alias or the E20 results become unreachable. | 2026-10-30 21:10 local: the GPU was 98% occupied by the user's own ComfyUI service (pid 3274728, 41.6 GB, queue empty, 0% utilisation). Called its standard POST /free endpoint (unload_models + free_memory, HTTP 200); memory dropped 43 GB -> 0.9 GB and the service stayed up. It reloads lazily on the next request. No process was killed and no model was deleted.",
+  "headline": "The time channel is the one effect that replicates everywhere: +1.13 [+0.25,+2.02] on FD002, +2.05 [+0.51,+3.73] on FD001, pooled +1.35 [+0.57,+2.13] on 360 engines. Encoding choice, architecture ordering within a tier and the candidate-vs-Transformer gap all stay below the resolution boundary in both protocols.",
+  "ops_note_ssh": "2026-10-31 ~15:55: the lab-server alias (10.50.1.240) began resolving to a different machine; the training host YNDXTEA0034 is reached via lab-a40 (172.25.52.97). Training was never interrupted. All tooling now uses lab-a40."
 }

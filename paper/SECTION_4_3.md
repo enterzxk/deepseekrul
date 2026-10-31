@@ -84,24 +84,27 @@ the easiest fold for the baseline arm (A scores 12.68 there against 13.5–15.1
 elsewhere). Two contrasts are not enough to establish that as a rule; the paper reports
 the observation and its direction without generalising it.
 
-### 4.3.x The effect replicates across subsets
+### 4.3.3b The effect replicates across subsets
 
-FD001 (100 engines, one operating condition, 20 per fold) was run through the identical
-5-fold design (`paper/E18_RESULT.md`; pre-registration `59bb5d9b`). The interval is wider
-because each fold holds out only 20 engines, and the effect is larger:
+FD001 (100 engines, one operating condition, 20 per fold) and FD004 (249 engines, six
+operating conditions, 50 per fold) were run through the identical 5-fold design
+(`paper/E18_RESULT.md`, `paper/E20_FD0034_CV_PREREGISTRATION.md`; pre-registrations
+`59bb5d9b` and `3f0142f9`). FD001's interval is wider because each fold holds out only 20
+engines, and its effect is larger:
 
-| contrast | FD002 (260 engines) | FD001 (100 engines) | pooled (360, inverse-variance) |
-|---|---:|---:|---:|
-| **BE − A** | **+1.133** [+0.245, +2.023] | **+2.052** [+0.505, +3.733] | **+1.347** [+0.568, +2.126] |
-| PE − A | −1.433 [−2.998, +0.133] | −0.634 [−2.159, +0.809] | signs differ, not pooled |
-| PE − BE | −3.561 | −2.686 | both significant |
+| contrast | FD002 (260) | FD001 (100) | FD004 (249) | pooled (609, inverse-variance) |
+|---|---:|---:|---:|---:|
+| **BE − A** | **+1.133** [+0.245, +2.023] | **+2.052** [+0.505, +3.733] | **+1.497** [+0.124, +2.981] | **+1.381** [+0.698, +2.065] |
+| PE − A | −1.433 [−2.998, +0.133] | −0.634 [−2.159, +0.809] | −0.530 [−1.363, +0.258] | signs consistent, none significant |
+| PE − BE | −3.561 | −2.686 | −2.027 | all significant |
 
 The time channel replicates: removing it costs 1.1–2.1 RMSE depending on subset, and the
-interval clears zero on both. The encoding choice does not: the two subsets disagree about
-its direction and neither interval excludes zero, which is what the resolution boundary
-predicts for a sub-1.5-RMSE difference. Of the four pre-registered predictions, three held
-and one failed in the favourable direction (the FD001 CI cleared zero where the
-registration expected it not to); the failure is reported, not absorbed.
+interval clears zero on **all three subsets**, spanning one-condition and six-condition
+regimes. The encoding choice does not: PE − A is −0.53 to −1.43 everywhere and never
+significant, which is what the resolution boundary predicts for a sub-1.5-RMSE difference.
+Of E18's four pre-registered predictions, three held and one failed in the favourable
+direction (the FD001 CI cleared zero where the registration expected it not to); the
+failure is reported, not absorbed.
 
 ## 4.3.4 The mechanism is alignment, not capacity
 

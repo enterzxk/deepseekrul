@@ -1,7 +1,7 @@
 #!/bin/bash
 # Poll the two E20 batches every 5 minutes until both report ALLDONE (max ~5h).
 for i in $(seq 1 60); do
-  out=$(timeout 60 ssh -o BatchMode=yes -o ConnectTimeout=20 -o UpdateHostKeys=no lab-server \
+  out=$(timeout 60 ssh lab-a40 -o BatchMode=yes -o ConnectTimeout=20 -o UpdateHostKeys=no lab-server \
     'f3=$(grep -c "^done FD003" /tmp/e20f3_status.txt 2>/dev/null); f3a=$(grep -c ALLDONE /tmp/e20f3_status.txt 2>/dev/null); \
      f4=$(grep -c "^done FD004" /tmp/e20f4_status.txt 2>/dev/null); f4a=$(grep -c ALLDONE /tmp/e20f4_status.txt 2>/dev/null); \
      bad=$(grep -h "rc=[^0]" /tmp/e20f3_status.txt /tmp/e20f4_status.txt 2>/dev/null | wc -l); \
