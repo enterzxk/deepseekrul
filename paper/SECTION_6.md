@@ -121,3 +121,22 @@ test that.
 * It does not report FD003/FD004 or official-test performance.
 * It does not convert a null result into a positive one. Where an interval crosses
   zero, the text says so, including in the abstract.
+
+## 6.10 Exclusion of short test trajectories
+
+Of the 259 engines in `test_FD002`, **24 were excluded** by `scripts/dsh_test_verify.py:155`,
+which skips any trajectory shorter than the 50-cycle window (their observed lengths are
+21–49 cycles). This is a property of the protocol, not an implementation choice: a 50-cycle
+window cannot be formed from 21 cycles.
+
+Those 24 are not a random subset. Their true RUL averages **138.4** against **75.3** for the
+235 retained engines, and their total life averages 175.5 against 216.2. The evaluation
+therefore loses exactly the cases with the longest remaining life, which are the hardest.
+
+The bias is bounded rather than re-measured: a constant-125 predictor scores RMSE 28.72 on the
+excluded set, and pooling that with the retained 23.96 gives 24.44, **+0.48 (+2.0%)**. That is
+an illustrative bound, not a second evaluation; the one-shot test result stays frozen at 23.96
+on 235 engines, and it is optimistic by roughly this order.
+
+Any comparison of test-set RMSE across papers must state how short trajectories were handled.
+

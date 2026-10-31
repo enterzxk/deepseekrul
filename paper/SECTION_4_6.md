@@ -61,33 +61,38 @@ resolution of every comparison in this paper. It is consistent with the independ
 calculation of §4.2.1 (1.31–1.54 at 260 engines), which arrives at the same scale from a
 completely different route.
 
-## 4.6.3 The sample size a 5% claim would need
+## 4.6.3 Two different sample-size questions
 
-Because `u_fold` is an engine-sampling quantity measured at 52 engines per fold, it shrinks
-as more engines are held out, like every other sampling term:
+"How many engines do I need?" has two answers, and they must not be mixed.
 
-```
-u_c(n) ≈ u_c(260) · sqrt(260 / n)
-```
+| target | definition | formula for a 0.70-RMSE (5%) difference |
+|---|---|---|
+| **T1 interval precision** | expanded uncertainty U = 2u_c does not exceed 0.70 | `n = (2σ / 0.70)²` |
+| **T2 detection power** | 80% power to reject zero at two-sided α = 0.05 when the true difference is 0.70 | `n = ((1.96 + 0.84)σ / 0.70)²` |
 
-| total engines | u_c | U (k=2) | U as % of a 14-RMSE baseline |
-|---:|---:|---:|---:|
-| 260 (FD002) | 0.518 | 1.04 | 7.4% |
-| 360 (FD001+FD002) | 0.440 | 0.88 | 6.3% |
-| 708 (all four subsets) | 0.314 | 0.63 | 4.5% |
-| 1300 (projected) | 0.232 | 0.46 | 3.3% |
+T2 is strictly larger because it also pays the power term. An earlier draft of this section
+reported only T1 (≈575 engines) and let it read as a power requirement; that was wrong.
 
-**To resolve a 5% difference (0.70 RMSE) at 95% with 80% power this design needs about 575
-held-out engines.** FD002 alone provides 260, which is why no 5% claim in this literature
-can be settled on one subset; the four subsets together (708) are just sufficient.
+Because σ varies across folds by about 30% (§4.2.1), both answers are ranges:
 
-This replaces an earlier conclusion of this section, which held that the fold term sets a
-floor that more data cannot move and that quintupling the engine pool would change `u_c` by
-only 12%. That was a consequence of the double counting described in §4.6.1; the correct
-scaling is the 1/√n above, and the "data collection has hit a floor" claim is withdrawn.
+| target | σ = 6.26 (fold 0) | σ = 8.88 (3-seed pooled) |
+|---|---:|---:|
+| **T1** | **320 engines** | **644 engines** |
+| **T2** | **627 engines** | **1262 engines** |
+
+A non-parametric paired power simulation (20 000 resamples per grid point, drawing per-engine
+influence values) agrees with the closed form: at σ = 6.26 the simulated power reaches 0.85 at
+n = 708, slightly conservative against the formula's 627
+(`results/dsh/e19/power_and_folds.json`).
+
+**Consequence.** FD002 alone (260 engines) meets neither target. The four subsets together
+(708) meet T1 and meet T2 only at the lower σ estimate. The correct statement for the
+guidelines is therefore:
+
+> **A 5% RMSE difference is visible at k = 2 from roughly 320–640 held-out engines, and
+> detectable at 80% power from roughly 630–1260.** On a single C-MAPSS subset neither is
+> available, so a 5% improvement claim is not decidable there — independently of method
+> quality.
 
 What does *not* scale is the effect itself: it varies across folds by more than its own mean
-(§4.2.2), which is why §4.2.4 recommends reporting fold-level estimates beside any pooled
-one. More engines narrow the interval around the pooled value; they do not make the
-fold-to-fold spread of the effect disappear, and that spread is what a reader needs in order
-to judge whether a reported improvement would survive a different split.
+(§4.2.2), so §4.2.4 recommends reporting fold-level estimates beside any pooled one.

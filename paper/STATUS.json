@@ -1,10 +1,10 @@
 {
-  "updated": "2026-10-31T10:35:00Z",
+  "updated": "2026-10-31T10:30:00Z",
   "track": "E",
   "working_title": "C (default): What C-MAPSS Can and Cannot Measure: Resolution, Shortcuts, and Identifiability in RUL Benchmarks",
   "current_section": "none (pre-writing): evidence closure phase",
   "current_gap": "E3",
-  "next_action": "Write main.tex from sections 1-6 (E7); expand references to 35; assemble the E8 package.",
+  "next_action": "E18 analysis when the 36 FD001 runs finish (est. 2h): paired contrasts at 20 engines per fold, compare against FD002, then write the Chinese decision report",
   "blockers": [
     "G1 human input required: journal, title choice (A/B/C), author order, affiliations, funding, COI",
     "test-data disclosure wording not yet decided by human (supplement data-use section)"
@@ -40,7 +40,9 @@
     "E12": "DONE: GUM-style budget, u_c 0.613 (U 1.227) for PE-A and 0.630 (1.260) for BE-A; fold term is 63-65%. paper/SECTION_4_6.md",
     "E11": "CLOSED: DISPERSED, three bands; all three pre-registered predictions failed and are reported as failures",
     "E15_test": "CLOSED (one shot, authorised): A 23.958 / tf 23.976 / gru 25.061 / bilstm 25.247 / cnn1d 29.305 / tcn 29.779 on test_FD002 last-window, 235 engines. Training-side advantage over tf does not replicate (1.50 -> 0.02).",
-    "E16": "CLOSED: three statistical corrections. (a) architecture CIs recomputed (fold-0-repeated-three-times bug) -> A-tf NOT significant. (b) MDE rebuilt on the delta-method RMSE statistic instead of the MAE statistic -> 1.54 at 260, and the engine-count error on FD001 fixed -> 4.84 at 20 engines. (c) GUM budget: u_engine double counted u_fold; corrected u_c 0.52 / U 1.04, and the fold term DOES scale as 1/sqrt(n) -> the \"adding engines buys nothing\" claim is withdrawn and replaced by a sample-size requirement of ~575 engines for a 5% claim."
+    "E16": "CLOSED: three statistical corrections. (a) architecture CIs recomputed (fold-0-repeated-three-times bug) -> A-tf NOT significant. (b) MDE rebuilt on the delta-method RMSE statistic instead of the MAE statistic -> 1.54 at 260, and the engine-count error on FD001 fixed -> 4.84 at 20 engines. (c) GUM budget: u_engine double counted u_fold; corrected u_c 0.52 / U 1.04, and the fold term DOES scale as 1/sqrt(n) -> the \"adding engines buys nothing\" claim is withdrawn and replaced by a sample-size requirement of ~575 engines for a 5% claim.",
+    "E19": "CLOSED: two sample-size targets separated (T1 precision 320-644, T2 80% power 627-1262); fold decomposition redone on the paired delta (ratio 0.55 / 0.91, no floor claim); test exclusion documented (24 of 259, RUL 138.4 vs 75.3, bound +2%).",
+    "E18": "RUNNING: FD001 5-fold, A/BE/PE x 3 seeds x folds 1-4 = 36 runs, prereg 59bb5d9b"
   },
   "rules_in_force": [
     "no hand-written numbers in tables/figures: scripts/paper_*.py only",

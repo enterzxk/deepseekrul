@@ -25,14 +25,21 @@ counted engine×seed observations as independent when the population unit is the
 Both errors are corrected in `scripts/dsh_e16_mde_corrected.py`; the numbers below
 supersede the earlier table.
 
-| contrast | σ (RMSE statistic) | MDE at 52 | at 100 | at 260 | at 509 |
-|---|---:|---:|---:|---:|---:|
-| FD002 A vs BE | 8.88 | **3.45** | 2.49 | **1.54** | 1.10 |
-| FD002 A vs PE | 7.55 | 2.93 | 2.11 | 1.31 | 0.94 |
-| FD001 A vs BE | 7.73 | — | 2.16 (at 100) | 1.34 | 0.96 |
+σ is estimated from the per-engine influence values `z_i = e_Ai²/(2·RMSE_A) − e_Bi²/(2·RMSE_B)`.
+It is **not stable across folds**, because the influence values scale as `1/(2·RMSE)` and the
+folds differ in error level. Both estimates are therefore reported.
 
-FD001 holds out 20 engines per split, where the same formula gives **4.84**, so no contrast
-of the size observed there (+1.67) could have reached significance.
+| contrast | σ, fold 0 (52 engines) | σ, 3-seed pooled | MDE at 52 | at 260 | at 509 |
+|---|---:|---:|---:|---:|---:|
+| FD002 A vs BE | 6.26 | 8.88 | 2.43 – 3.45 | **1.09 – 1.54** | 0.78 – 1.10 |
+| FD002 A vs PE | 6.50 | 7.55 | 2.53 – 2.93 | 1.13 – 1.31 | 0.81 – 0.94 |
+| FD001 A vs BE | 7.73 | — | — | 1.34 | 0.96 |
+
+FD001 holds out 20 engines per fold, where MDE = 2.80·7.73/√20 = **4.84**, so no contrast of
+the size observed there (+1.67) could have reached significance. Earlier versions of this
+section reported only the 3-seed column (the conservative branch) and, for FD001, counted
+engine×seed observations as independent; both errors are corrected in
+`scripts/dsh_e19_power_folds.py`.
 
 Two consequences, both used later:
 
@@ -72,12 +79,25 @@ it is 20%. **Fold 0 was the tightest of the five folds**, and the earlier draft 
 section used it as the reference; that was the wrong choice and the "projection fails"
 framing is withdrawn.
 
-The same decomposition also settles a second question. If the fold-to-fold spread contained
-an extra non-shrinking component, it would have to exceed the within-fold sampling noise.
-It does not: the between-fold SD of the arm-A RMSE is **0.87**, while the mean within-fold
-bootstrap SE is **1.56**. The five fold estimates vary *less* than independent 52-engine
-samples would, which is what one expects when the five models share 156 of their 208
-training engines.
+The decomposition is done on the **paired difference**, not on one model's RMSE, because the
+two answer different questions:
+
+* **within-fold bootstrap SE** holds the trained model fixed and resamples only the held-out
+  engines — pure engine sampling;
+* **between-fold SD** also changes the training partition — engine sampling plus training-set
+  change, with the five folds sharing 156 of their 208 training engines.
+
+| contrast | per-fold Δ (seed 2027) | between-fold SD | mean within-fold SE | ratio |
+|---|---|---:|---:|---:|
+| BE − A | +1.13 / −0.16 / +0.79 / +1.46 / +0.69 | **0.607** | 1.097 | **0.55** |
+| PE − A | −0.73 / +1.65 / −0.88 / −0.30 / −0.15 | **1.015** | 1.111 | **0.91** |
+
+Both ratios are below 1, so a partition change does not add variance beyond engine sampling;
+the fold estimates are if anything more concentrated than independent 52-engine samples,
+which is the expected signature of shared training engines. **This is not evidence that an
+irreducible floor exists, nor that it does not** — only that no extra component is visible at
+5 folds of 52 engines. The paper therefore drops the word "floor" and reports the two
+quantities separately instead of adding them.
 
 > **Resolution therefore scales approximately as 1/√n. There is no floor set by
 > between-fold heterogeneity, and the earlier claim that adding engines buys nothing is
