@@ -528,6 +528,14 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
         cond_v = ((val_frame[op].to_numpy(np.float64) - mean) / std).astype(np.float32)
         scaler = OperatingConditionScaler(cols, n_clusters=n_cond, random_state=split_seed)
         tr_s, va_s = scaler.fit_transform(train_frame), scaler.transform(val_frame)
+        if scaler_mode == "zscore":
+            # E22b paired arm on multi-condition subsets: condition model off, plain
+            # per-channel z-score, so the paired comparison is input-identical.
+            mu = train_frame[cols].to_numpy(np.float64).mean(axis=0)
+            sd = train_frame[cols].to_numpy(np.float64).std(axis=0)
+            sd = np.where(sd > 1e-8, sd, 1.0)
+            tr_s = ((train_frame[cols].to_numpy(np.float64) - mu) / sd).astype(np.float32)
+            va_s = ((val_frame[cols].to_numpy(np.float64) - mu) / sd).astype(np.float32)
     else:
         cond_t = cond_v = None
         if scaler_mode == "zscore":

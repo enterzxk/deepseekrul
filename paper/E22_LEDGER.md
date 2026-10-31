@@ -42,3 +42,28 @@ FD001 queue running: 15 A-zscore runs + 15 Dual-Mixer runs (5 folds × 3 seeds).
 Smoke tests: A-zscore fold0 seed2027 val 9.397 (arms match, 41,858 params);
 Dual-Mixer fold0 seed2027 val 15.1 on z-score input after the Amendment-1 fix (val 43
 on the project's min-max input — the failed fit is documented in the amendment).
+
+## E22b FD001 outcome (2026-11-01T00:10+08:00)
+
+15 + 15 runs complete under the unified protocol (5 folds × 3 seeds, z-score inputs,
+50-window, matched-protocol validation). Test = E22a full-set protocol (100 engines).
+
+| arm | params | dev val RMSE (mean ± sd) | test capped RMSE | test uncapped | per-model test mean ± sd |
+|---|---:|---:|---:|---:|---:|
+| A_zscore | 41,858 | 9.28 ± 0.88 | **10.161** | 11.397 | 10.888 ± 0.508 |
+| Dual-Mixer | 115,343 | 14.83 ± 1.83 | **13.390** | 14.690 | 15.240 ± 1.345 |
+
+**P1 FAILED**: the registration predicted the two models would be inseparable at the
+1.5-RMSE margin. Observed dev gap 5.55, test gap 3.23 — both resolvable. The candidate
+wins decisively under the common protocol.
+**P3 FAILED**: predicted ≥3× parameters *and* a ≤1.5 test gap. Parameter ratio is 2.75×
+(below 3×) and the test gap is 3.23 (above 1.5). Both directions wrong.
+
+Interpretation (to be stated in the paper, not tuned): the Dual-Mixer reproduction
+lands at 13.39 on FD001, close to the range its own paper reports, so the reproduction
+is credible; under the unified protocol it does not beat the 41.9k-parameter candidate.
+Two readings are reported side by side: (i) the resolution argument does not predict
+"all models tie" — a 3-RMSE design difference is above the MDE and is correctly
+resolved; (ii) the candidate's advantage therefore rests on its extras (baseline/EMA
+channels, channel independence), not on capacity, which is the mechanism §4.3.4 already
+established.

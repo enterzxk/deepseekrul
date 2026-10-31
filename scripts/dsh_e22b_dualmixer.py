@@ -45,11 +45,8 @@ EPOCHS, BATCH, LR, PATIENCE = 100, 1024, 1e-3, 5
 def windows_from_frame(scaled: np.ndarray, frame, cap=MAX_RUL):
     """Sliding 50-cycle windows per engine, stride 1, target = min(RUL, cap)."""
     xs, ys = [], []
-    order = np.argsort(frame["unit"].to_numpy())
-    units = frame["unit"].to_numpy()[order]
-    pos = np.arange(len(frame))[order]
-    bounds = np.flatnonzero(np.diff(units)) + 1
-    for idx in np.split(pos, bounds):
+    for _, g in frame.groupby("unit", sort=True):
+        idx = g.index.to_numpy(np.int64)
         arr = scaled[idx]
         L = len(arr)
         for i in range(0, L - WINDOW + 1):
