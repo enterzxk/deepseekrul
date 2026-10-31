@@ -31,10 +31,16 @@ while FD002 PE moved +0.4% (11.46 → 11.51). The failure is informative: the 54
 short-trajectory engines do not perturb every arm equally — they are a stress test that
 the linear time channel fails and the bounded encoding passes.
 
-**New finding (not pre-registered).** On FD002 the arm ranking flips between coverage
-regimes: with the 235 retained engines A is best (11.96 vs PE 11.46 — A better by 0.50);
-with all 259 engines PE is best by 5.15. Coverage definition is therefore a ranking
-variable, which is RQ1 evidence for E22c.
+**Finding (not pre-registered), corrected 2026-11-01T01:00 after an external check.**
+On FD002, PE is the best arm under both coverages; what changes is its margin over A:
+0.50 on the 235 retained engines, 5.15 on all 259. There is **no ranking flip** — an
+earlier version of this ledger said there was, and that statement was wrong. The
+defensible claim is narrower: coverage choice changes the *size* of an arm difference
+by an order of magnitude (0.50 → 5.15), large enough that a 0.50-margin "win" on the
+retained set would be unresolvable at the 1.5 MDE while the full-set comparison is
+clearly resolved. Attribution to "time-encoding robustness" is not established by this
+experiment: first-frame padding changes both the sequence distribution and the derived
+extras simultaneously, so the mechanism remains open and is flagged as such.
 
 ## E22b status (2026-11-01T00:30+08:00)
 

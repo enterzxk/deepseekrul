@@ -245,13 +245,18 @@ before the numbers were seen (`paper/E22A_FULL_TEST_PREREGISTRATION.md`, sha
 | FD001 | A | 10.447 | 10.382 | −0.07 |
 | FD003 | A | 10.086 | 9.947 | −0.14 |
 
-The 54 excluded engines are the longest-remaining-life cases, and they are a stress
-test that the linear time channel fails (FD002 arm A, +4.7 RMSE) and the bounded
-encoding passes (FD002 arm PE, +0.05). **The FD002 arm ranking flips with coverage**:
-on 235 engines A is best by 0.50; on all 259 PE is best by 5.15. Coverage is therefore
-a ranking variable, not a reporting detail — the pre-registered prediction that the
-full set would move every arm by ≤5% failed for exactly this reason, and the failure
-is reported.
+The 54 excluded engines are the longest-remaining-life cases, and the two FD002 arms
+respond to them very differently: A degrades by 4.7 RMSE while PE moves by 0.05. PE is
+the better arm under both coverages; what coverage changes is its **margin**, from 0.50
+on the retained 235 engines to 5.15 on all 259. There is no ranking flip — an earlier
+draft of this section said there was and the statement was withdrawn. The defensible
+claim is narrower and still useful: coverage choice changes a comparison's *effect
+size* by an order of magnitude, so a margin that sits below the MDE under one coverage
+can be clearly resolved under another. The mechanism is not established here —
+first-frame padding alters both the input sequence and the derived extras at once, so
+"the time channel is less robust" remains a hypothesis, not a finding, and is reported
+as such. The pre-registered prediction that the full set would move every arm by ≤5%
+failed (FD002 arm A: +39%); the failure is reported.
 
 **Input convention (E22b).** The Dual-Mixer reproduction (RESS 2024, original
 hyperparameters, unified folds) failed to fit at all on the project's min-max scaler
