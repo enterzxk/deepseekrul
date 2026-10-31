@@ -31,7 +31,7 @@ sys.path.insert(0, f"{ROOT}/scripts")
 
 import run_candidate as rc  # noqa: E402
 from dataset import (load_cmapss_train, OperatingConditionScaler, SensorMinMaxScaler,  # noqa: E402
-                     SELECTED_SENSOR_COLUMNS)  # noqa: E402
+                     SELECTED_SENSOR_COLUMNS, CMAPSS_COLUMNS)  # noqa: E402
 from candidates.model import CandidateModel  # noqa: E402
 
 WINDOW, MAX_RUL, SPLIT_SEED, N_COND = 50, 125.0, 7, 6
@@ -50,6 +50,10 @@ CONFIG = {
 
 def ckpt_path(subset, arm, seed, fold):
     cfg = CONFIG[subset]
+    # e20 runs are organised as e20/<subset>/<arm>_s<seed>_f<fold>/<subset>/<arm>_s<seed>/
+    # (subset level appears twice, and fold 0 also carries the _f0 suffix).
+    if subset in ("FD003", "FD004"):
+        return f"{ROOT}/experiments/e20/{subset}/{arm}_s{seed}_f{fold}/{subset}/{arm}_s{seed}/best_model.pt"
     if fold == 0:
         return f"{ROOT}/experiments/{cfg['fold0']}/{arm}_s{seed}/{subset}/{arm}_s{seed}/best_model.pt"
     exp = cfg["later"]
@@ -65,11 +69,32 @@ def build_model():
 
 
 def load_model(path):
-    m = build_model()
+    """Rebuild the architecture from the run's own summary.json (the training-time
+    variant config), not from a one-size-fits-all spec — BE lacks the cycle channel
+    and PE carries pe_proj, so a fixed spec silently corrupts both."""
+    run_dir = os.path.dirname(path)
+    with open(os.path.join(run_dir, "metrics.json")) as fh:
+        meta = json.load(fh)
+    cfg = meta["config"]
+    m = CandidateModel(
+        num_sensors=14, window_size=WINDOW, d_model=64, num_layers=1, dropout=0.15,
+        use_baseline=cfg["use_baseline"], use_ema_features=cfg["use_ema_features"],
+        use_cycle=cfg["use_cycle"], use_pe=cfg.get("use_pe", False),
+        use_pe_scramble=cfg.get("use_pe_scramble", False),
+        use_graph=cfg["use_graph"], use_dual_head=cfg["use_dual_head"],
+        use_sensor_id=cfg.get("use_sensor_id", False),
+        use_shuffled_id=cfg.get("use_shuffled_id", False),
+        use_fixed_id=cfg.get("use_fixed_id", False),
+        capacity_pad=cfg.get("capacity_pad", False),
+        use_independent_channels=cfg.get("use_independent_channels", False),
+        use_reliability=cfg.get("use_reliability", False),
+        gate_mode=cfg.get("gate_mode", "evidence"),
+    )
     obj = torch.load(path, map_location="cpu")
     state = obj.get("model", obj) if isinstance(obj, dict) else obj
     missing, unexpected = m.load_state_dict(state, strict=False)
     assert not unexpected, f"unexpected keys {unexpected[:5]}"
+    assert not missing, f"missing keys {missing[:5]}"
     m.eval()
     return m
 
@@ -171,7 +196,9 @@ def evaluate_subset(subset):
     raw = load_cmapss_train(os.path.join(ROOT, "data", "CMAPSS"), subset)  # for column order only
     del raw
     traj = pd.read_csv(f"{ROOT}/data/CMAPSS/test_{subset}.txt", sep=r"\s+", header=None)
-    traj = traj.rename(columns={0: "unit", 1: "cycle"})
+    assert traj.shape[1] == len(CMAPSS_COLUMNS), \
+        f"test_{subset}.txt has {traj.shape[1]} cols, expected {len(CMAPSS_COLUMNS)}"
+    traj.columns = list(CMAPSS_COLUMNS)
     rul = pd.read_csv(f"{ROOT}/data/CMAPSS/RUL_{subset}.txt", sep=r"\s+", header=None)[0].to_numpy(float)
 
     lengths = traj.groupby("unit").cycle.max()

@@ -84,27 +84,34 @@ the easiest fold for the baseline arm (A scores 12.68 there against 13.5–15.1
 elsewhere). Two contrasts are not enough to establish that as a rule; the paper reports
 the observation and its direction without generalising it.
 
-### 4.3.3b The effect replicates across subsets
+### 4.3.3b The effect replicates across subsets — with one dissent
 
-FD001 (100 engines, one operating condition, 20 per fold) and FD004 (249 engines, six
-operating conditions, 50 per fold) were run through the identical 5-fold design
-(`paper/E18_RESULT.md`, `paper/E20_FD0034_CV_PREREGISTRATION.md`; pre-registrations
-`59bb5d9b` and `3f0142f9`). FD001's interval is wider because each fold holds out only 20
-engines, and its effect is larger:
+FD001 (100 engines, one operating condition), FD003 (100 engines, one condition, fan
+degradation) and FD004 (249 engines, six conditions) were run through the identical
+5-fold design as FD002 (`paper/E18_RESULT.md`,
+`paper/E20_FD0034_CV_PREREGISTRATION.md` incl. Amendment 2; pre-registrations
+`59bb5d9b` and `3f0142f9`):
 
-| contrast | FD002 (260) | FD001 (100) | FD004 (249) | pooled (609, inverse-variance) |
-|---|---:|---:|---:|---:|
-| **BE − A** | **+1.133** [+0.245, +2.023] | **+2.052** [+0.505, +3.733] | **+1.497** [+0.124, +2.981] | **+1.381** [+0.698, +2.065] |
-| PE − A | −1.433 [−2.998, +0.133] | −0.634 [−2.159, +0.809] | −0.530 [−1.363, +0.258] | signs consistent, none significant |
-| PE − BE | −3.561 | −2.686 | −2.027 | all significant |
+| contrast | FD002 (260) | FD001 (100) | FD004 (249) | FD003 (100) | pooled (709, inverse-variance) |
+|---|---:|---:|---:|---:|---:|
+| **BE − A** | **+1.133** [+0.245, +2.023] | **+2.052** [+0.505, +3.733] | **+1.497** [+0.124, +2.981] | −1.315 [−2.949, +0.316] | **+0.979** [+0.348, +1.610] |
+| PE − A | −1.433 [−2.998, +0.133] | −0.634 [−2.159, +0.809] | −0.530 [−1.363, +0.258] | −0.952 [−2.438, +0.276] | signs consistent, none significant |
+| PE − BE | −3.561 | −2.686 | −2.027 | +0.363 | 3 of 4 significant |
 
-The time channel replicates: removing it costs 1.1–2.1 RMSE depending on subset, and the
-interval clears zero on **all three subsets**, spanning one-condition and six-condition
-regimes. The encoding choice does not: PE − A is −0.53 to −1.43 everywhere and never
-significant, which is what the resolution boundary predicts for a sub-1.5-RMSE difference.
-Of E18's four pre-registered predictions, three held and one failed in the favourable
-direction (the FD001 CI cleared zero where the registration expected it not to); the
-failure is reported, not absorbed.
+The time channel replicates on three of four subsets, spanning one-condition and
+six-condition regimes, and the four-subset pooled estimate is +0.979 [+0.348, +1.610]
+over 709 engines — but the heterogeneity is high (Cochran Q = 9.90, df = 3, I² = 70%),
+because **FD003 reverses sign** (−1.315, n.s.): on that subset removing the time channel
+does not hurt and if anything helps. The three-subset pooling reported earlier
+(+1.381 [+0.698, +2.065], 609 engines) excluded FD003 and is retained for provenance.
+The encoding choice does not replicate anywhere: PE − A is −0.53 to −1.43 on the first
+three subsets and never significant, which is what the resolution boundary predicts for
+a sub-1.5-RMSE difference. Of E18's four pre-registered predictions, three held and one
+failed in the favourable direction (the FD001 CI cleared zero where the registration
+expected it not to); the failure is reported, not absorbed. One e20 run (FD003/A/seed
+2027/fold 0) was trained with a wrong layer count by a launcher defect, was preserved,
+retrained to the registered specification, and the subset re-analysed; the numbers above
+are the fixed-architecture ones (Amendment 2).
 
 ## 4.3.4 The mechanism is alignment, not capacity
 
@@ -137,6 +144,48 @@ The same BE − A contrast on FD001 (20 held-out engines per split) is **+1.674 
 +3.699]**: directionally identical, statistically invisible, because that subset's MDE
 at 20 engines is 4.84. This is not a contradiction between subsets; it is the same effect
 measured with a coarser instrument. §4.2 gives the general form.
+
+## 4.3.6 Official-test generalisation (E21)
+
+After all training was frozen, the official test sets of all four subsets were evaluated
+under one pre-registered protocol (`paper/E21_TEST_ALL_PREREGISTRATION.md`, sha
+`1579e0e0`): one prediction per engine (last observable 50-cycle window), each fold's
+training scaler applied unchanged, ensemble over 5 folds × 3 seeds × 3 arms, truth = the
+official RUL files. The FD003/FD004 test files were kept permission-sealed until that
+point and unsealed on 2026-10-31 with sha256 recorded and mtimes untouched
+(`results/dsh/e21/unseal_hashes.sha256`). Short trajectories are excluded as in §6.10
+(FD001 7/100, FD002 24/259, FD003 3/100, FD004 20/248 — exactly the counts registered).
+
+Ensemble RMSE (95% bootstrap CI over engines):
+
+| subset | A | BE | PE | n |
+|---|---:|---:|---:|---:|
+| FD001 | 11.340 [9.422, 13.199] | 13.104 [10.884, 15.272] | 10.608 [8.812, 12.392] | 93 |
+| FD002 | 23.386 [20.022, 26.594] | 23.329 [20.085, 26.460] | 23.224 [19.734, 26.552] | 235 |
+| FD003 | 11.192 [9.297, 13.052] | 12.879 [10.721, 14.970] | 11.484 [9.464, 13.496] | 97 |
+| FD004 | 22.404 [19.429, 25.244] | 22.940 [20.023, 25.729] | 22.317 [19.253, 25.232] | 228 |
+
+Paired contrasts (delta-method bootstrap of engine pairs, 100k reps, 3 RNG seeds;
+margin δ = 1.0 RMSE for TOST):
+
+| contrast | FD001 | FD002 | FD003 | FD004 | pooled (653, inverse-variance) |
+|---|---:|---:|---:|---:|---:|
+| BE − A | +1.764 [−0.038, +3.538] | −0.057 [−0.737, +0.643] ᵉ | **+1.687** [+0.311, +3.109] | +0.537 [−0.125, +1.243] | **+0.482** [+0.038, +0.927] |
+| PE − A | −0.733 [−1.570, +0.073] | −0.162 [−0.793, +0.403] ᵉ | +0.292 [−0.679, +1.194] | −0.086 [−0.531, +0.352] ᵉ | — |
+
+ᵉ TOST-equivalent at δ = 1.0.
+
+Three observations, each in the direction the measurement framing predicts rather than
+against it. First, the time-channel effect survives transfer: the test-side pooled
+estimate is +0.482 [+0.038, +0.927] (I² = 58%) against the dev-side +0.979 [+0.348,
++1.610] (I² = 70%) — same sign, half the magnitude, both consistent with an effect of
+roughly 0.5–1.0 RMSE measured through instruments whose per-subset resolution is ≈1.5
+RMSE. Second, subset-level signs are not stable across protocols: FD003 flips from
+−1.32 (dev) to **+1.69 (test, significant)**, and FD002 is TOST-equivalent at test. A
+single-subset single-protocol estimate of a sub-1-RMSE effect is not a measurement; only
+the pooled pattern is. Third, the encoding benefit does not transfer at all: three of
+four PE−A intervals lie inside ±0.75 RMSE and none is significant — the PE advantage
+lived inside the training distribution, which is where §4.3.3 already placed it.
 
 ## What this section establishes, and what it does not
 

@@ -56,3 +56,32 @@ No completed run is invalidated: the permutation, the scaler seeds and every fol
 partition are unchanged. A third defect (a corrupted character introduced while editing
 run_candidate.py, caught by py_compile before any job started) left the queue idle for
 about 25 minutes and cost no runs.
+
+## Amendment 2 (2026-10-31T17:30+08:00)
+
+Architecture deviation found and fixed, discovered during E21 preflight (checkpoint
+loading), after all E20 analysis outputs existed.
+
+**Deviation.** Exactly one of the 90 e20 runs — FD003/A/seed2027/fold0, the single run
+produced by the Amendment-1 xargs defect — was trained with `num_layers=2` (75,330
+parameters): its launcher line predated the corrected queue form and omitted
+`--num-layers 1`, which defaults to 2. The other 89 runs carry the registered 1-layer
+architecture (A 41,858 / BE 41,730 / PE 42,306). Found by parameter-count comparison
+against `metrics.json` on every checkpoint.
+
+**Impact on the original analysis.** None of the E20 numbers were computed from
+checkpoints: `dsh_e20_fd34_analyze.py` reads each run's own
+`matched_cutoff_predictions.csv`, so every original number reflects the architecture
+that actually produced it. The deviation contaminated 1 of 45 runs pooled into the
+FD003 estimate.
+
+**Remedy.** The deviant run directory was preserved at
+`experiments/e20/FD003/A_s2027_f0_LAYERS2_DEVIATION/` and the run retrained with the
+registered configuration (identical command plus `--num-layers 1`; deterministic split
+SPLIT_SEED 7+20261020, seed 2027, so the same train/validation partition). Retrained
+run: val RMSE 11.772, 41,858 params. FD003 was then re-analysed from the regenerated
+predictions. Fixed-architecture FD003 results: A 10.934 / BE 9.619 / PE 9.982 (pooled
+RMSE, seed 2027); BE−A −1.315 [−2.949, +0.316]; PE−A −0.952 [−2.438, +0.276]. The
+qualitative conclusions are unchanged: no significant BE−A or PE−A effect on FD003,
+direction reversed relative to the other three subsets. E20_cv.json now contains only
+fixed-architecture numbers.
