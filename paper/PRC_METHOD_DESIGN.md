@@ -221,3 +221,16 @@ What this round does establish: the three-state decision rule is *correct* (H0 i
 declared a robust win), the conditional/unconditional distinction is necessary and
 non-obvious, and the failure mode of the naive symmetric band is now measured rather
 than assumed.
+
+## 9. R2 revision (2026-11-01) — superseded in part
+
+The R2 brief required four changes, all implemented: a latent-prediction simulator with
+protocol transforms and a genuinely sign-flipping scenario (`simulator_v2.py`,
+`scenarios_v2.py`); explicit conditional/unconditional targets; a four-state decision
+with IUT baselines (`prc_v2.py`); and a consistency gate before the coverage gate. The
+outcome is reported in `PRC_R2_AUDIT.md`: **the simultaneous band fails its coverage
+gate (0.84–0.86 where 0.93 is required) and the four-state decision is dominated by the
+plain IUT** (89–93% correct vs 23–31% for the band-based rule, on the same data). The
+verdict recorded there is NO-GO for the band-based method; what remains defensible is
+the four-state IUT framework, the conditional/unconditional distinction, and the
+simulator as infrastructure.
