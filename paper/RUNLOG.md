@@ -35,6 +35,9 @@ One row per completed task. Columns: task | UTC | command (abridged) | exit | ar
 | T23 | 2026-10-31T10:05Z | E17 first launch | 0 | void, 7 runs | model 4c57... runner 60f14f50 | **no-op**: baseline branch hard-codes d_model=88, --d-model never applied; the 7 runs are bit-identical re-runs of E11 (kept as a determinism check) |
 | T24 | 2026-10-31T10:10Z | E17b capacity sensitivity (d=128) | running | `experiments/e17b/*` | prereg 8335783d | 10 runs, tf and cnn1d at doubled width |
 
+| T25 | 2026-10-31T14:45Z | E20 launch attempt 1-2 | 1/90 | `/tmp/e20_status.txt` (void) | — | **three launch defects, zero results lost**: (1) xargs -a without -n ran 1 job of 45; (2) prepare() asserted every fold = n_val but FD004 has 249 engines and the prereg already declared fold 4 = 49, so 9 runs hit the assertion; (3) a corrupted quote in run_candidate.py was caught by py_compile before any job started |
+| T26 | 2026-10-31T14:45Z | corrected relaunch | running | `experiments/e20/*` | prereg 3f0142f9 (Amendment 1) | FD003 44 runs (4 slots) + FD004 fold 4 9 runs (2 slots, 49 val engines); folds 0-3 of FD004 (36 runs, rc=0) unaffected; a fourth defect (CRLF line endings from a Python-written launcher) was found by bash -n before launch |
+
 ## Scheduler
 
 * WorkBuddy CLI: `EADDRINUSE` on the default port, then `Authentication required`

@@ -37,3 +37,22 @@ validation analysis is complete and the models are frozen.
 
 `experiments/e20/{FD003,FD004}/{arm}_s{seed}_f{fold}/`, `results/dsh/e20/E20_cv.json`,
 `scripts/dsh_e20_fd34_analyze.py`.
+
+## Amendment 1 (2026-10-31T14:45+08:00)
+
+Two launch defects, both found before any FD003/FD004 result was analysed.
+
+1. FD003 batch ran one run instead of 45: the launcher passed all 45 four-field job
+   lines to a single bash -c invocation because xargs -a was used without -n. One valid
+   run exists (A, seed 2027, fold 0); the other 44 are relaunched with the corrected
+   three-field form.
+2. FD004 fold 4 failed 9/9 on an assertion: prepare() asserted every fold has exactly
+   n_val engines, but 249 engines cannot be split into five folds of 50. The design
+   table above already declared fold 4 = 49, so the code contradicted the registration
+   and the assertion is relaxed to allow a smaller final fold. FD004 folds 0-3 (36 runs,
+   all rc=0) are unaffected; fold 4 is rerun with 49 validation engines.
+
+No completed run is invalidated: the permutation, the scaler seeds and every fold 0-3
+partition are unchanged. A third defect (a corrupted character introduced while editing
+run_candidate.py, caught by py_compile before any job started) left the queue idle for
+about 25 minutes and cost no runs.

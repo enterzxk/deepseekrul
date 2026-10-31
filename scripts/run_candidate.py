@@ -507,7 +507,11 @@ def prepare(subset: str, split_seed: int, window: int, max_rul: float,
     if fold >= 0:
         start = fold * n_val
         val_units = sorted(int(x) for x in shuffled[start:start + n_val])
-        assert len(val_units) == n_val, f'fold {fold} runs past the permutation'
+        # The last fold may be smaller than n_val when len(units) is not divisible by
+        # k (FD004: 249 engines -> folds of 50,50,50,50,49). The pre-registration
+        # declares exactly that, so the earlier assertion len == n_val was wrong and
+        # is relaxed here. Amended in paper/E20_FD0034_CV_PREREGISTRATION.md.
+        assert len(val_units) >= 1, f"fold {fold} is empty"
         train_units = sorted(int(x) for x in units if int(x) not in set(val_units))
     else:
         val_units = sorted(int(x) for x in shuffled[:n_val])
