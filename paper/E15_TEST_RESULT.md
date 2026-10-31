@@ -1,3 +1,15 @@
+> **CORRECTED 2026-10-31 (E16/E19).** This note was written before the statistical
+> audit. Two of its statements no longer stand. (i) The paired intervals in
+> `dsh_e11_arch_analyze.py` were computed from a slice that counted fold 0 three times and
+> omitted fold 4; the corrected intervals are in `results/dsh/e16/arch_corrected.json`.
+> **A vs the Transformer is −1.43 [−2.998, +0.133] and is NOT significant.** The other four
+> contrasts stand. (ii) No equivalence test had been run; TOST at δ = 1.0 fails for every
+> within-tier pair (§4.2.3). The resolution/sample-size numbers were also revised:
+> MDE 1.09–1.54 at 260 engines; T1 320–644 engines, T2 627–1262 engines
+> (`results/dsh/e19/power_and_folds.json`). Use those, not the figures below.
+>
+> This file is kept as an audit trail. The current text is `paper/SECTION_4_2.md`.
+
 # E15 — Official test set, one shot: the advantage is real only where it is large
 
 Executed 2026-10-31 11:35–11:55 local, once, after every model was frozen.

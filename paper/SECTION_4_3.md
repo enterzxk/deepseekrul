@@ -113,7 +113,7 @@ PE-versus-A question turned out to be a question about a 1% detail rather than a
 
 The same BE − A contrast on FD001 (20 held-out engines per split) is **+1.674 [−0.250,
 +3.699]**: directionally identical, statistically invisible, because that subset's MDE
-at 20 engines is 2.38. This is not a contradiction between subsets; it is the same effect
+at 20 engines is 4.84. This is not a contradiction between subsets; it is the same effect
 measured with a coarser instrument. §4.2 gives the general form.
 
 ## What this section establishes, and what it does not

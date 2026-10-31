@@ -30,7 +30,7 @@ The minimum detectable effect is a property of the held-out engine count, not of
 the method. FD002 has 260 engines and reaches MDE ≈ 1.54 RMSE at 260 held-out
 engines (section 4.2). FD001 has 100 engines; a 5-fold split exposes 20 per fold,
 and the same contrast that is significant on FD002 (BE − A = +2.69) is
-directionally identical but **below the FD001 MDE of 2.38** on FD001
+directionally identical but **below the FD001 MDE of 4.84** on FD001
 (+1.67, interval crossing zero). Section 4.3.3 reports this as a boundary of the
 measurement, not as a contradiction between subsets.
 

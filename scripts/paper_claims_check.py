@@ -81,8 +81,10 @@ def main() -> int:
     else:
         print("all cited artefacts exist and are committed")
 
+    # a row counts as withdrawn only if its status cell *starts* with a withdrawal marker;
+    # text such as "the earlier wording is withdrawn" inside a supported row is not one.
     withdrawn = [c[1].strip() for c in (l.split("|") for l in rows)
-                 if len(c) > 6 and "withdraw" in c[5].lower()]
+                 if len(c) > 6 and re.match(r"\*{0,2}withdrawn", c[5].strip().lower())]
     print(f"\nwithdrawn rows: {len(withdrawn)} -> {', '.join(withdrawn) if withdrawn else 'none'}")
 
     return 1 if problems else 0

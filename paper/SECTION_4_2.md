@@ -311,9 +311,12 @@ is itself an instance of the failure mode the paper documents.
 * **Supported.** The smallest effect this design resolves on FD002 is 1.1–1.3 RMSE
   (8–9%): an 8.1% effect reproduces (BE − A) while a 0.9% effect does not (PE − A),
   on the same folds, seeds and estimator.
-* **Supported.** The six arms fall into three bands; every between-band contrast is
-  significant (2.4–6.8 RMSE) and every within-band ordering is not (0.75 and 0.15).
-  Architecture families are rankable; members within a family are not.
+* **Supported.** Of the five architecture contrasts against the candidate, four are
+  resolvable (5.7–5.8 against cnn1d/tcn, 2.2 against gru/bilstm) and one is not: A vs the
+  Transformer (−1.43, CI includes zero, tied on the official test set).
+* **Not established.** Equivalence within a tier: TOST at δ = 1.0 fails for all four
+  within-tier pairs, and equivalence would need a margin of 1.10–1.72. The paper says
+  "ordering not established", never "equivalent".
 * **Not supported (thesis narrowed).** That method differences on C-MAPSS are
   unresolvable in general. E11 failed its own predictions on exactly this point, and the
   claim is now bounded at ≈1.2 RMSE rather than stated globally.
