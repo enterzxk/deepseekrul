@@ -115,6 +115,21 @@ def main():
         print(f"  -> isotonic (best monotone for MSE): rmse {iso['rmse']:.2f} "
               f"max|b| {iso['max_abs_b']:.2f}  biases {iso['biases']}")
 
+        # isotonic fitted ON TEST. This is the MSE-optimal monotone map for the very sample
+        # being scored, so it is free of any dev-to-test shift. If even this map leaves band
+        # bias, the bias cannot be attributed to a mis-fitted map.
+        yh_all = np.concatenate([np.clip(load_test(ROOT, s, arm)["yhat"], 0, MAX_RUL)
+                                 for s in SUBSETS])
+        y_all = np.concatenate([load_test(ROOT, s, arm)["y"] for s in SUBSETS])
+        o2 = np.argsort(yh_all, kind="mergesort")
+        g2 = pava(y_all[o2])
+        ux2, i2 = np.unique(yh_all[o2], return_index=True)
+        gx2 = g2[i2]
+        j2 = np.clip(np.searchsorted(ux2, yh_all, side="right") - 1, 0, len(gx2) - 1)
+        iso_tr = metrics(gx2[j2], y_all)
+        print(f"  -> isotonic fitted ON TEST (shift-free): rmse {iso_tr['rmse']:.2f} "
+              f"max|b| {iso_tr['max_abs_b']:.2f}  biases {iso_tr['biases']}")
+
         # oracle per-band shift: not achievable, an upper bound only
         gs, ys = [], []
         for s in SUBSETS:
@@ -131,7 +146,7 @@ def main():
               f"max|b| {orc['max_abs_b']:.2f}")
 
         report[arm] = {"ybar": ybar, "curve": rows, "best": best, "isotonic": iso,
-                       "oracle": orc}
+                       "isotonic_on_test": iso_tr, "oracle": orc}
 
     out = ROOT / "experiments" / "cal" / "bias_tradeoff.json"
     out.write_text(json.dumps(report, indent=1), encoding="utf-8")

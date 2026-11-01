@@ -433,8 +433,16 @@ def score_interval(lo, hi, y):
                      "wink": winkler(lo, hi, y), "crps": None}}
 
 
-def run(arm, subsets, n_boot=2000, out=None):
-    devs = {s: load_dev(ROOT, s, arm) for s in subsets}
+def run(arm, subsets, n_boot=2000, out=None, fit_subsets=None, quiet=False):
+    """Fit on `fit_subsets` dev, evaluate on `subsets` test.
+
+    Splitting the two is what makes leave-one-fleet-out possible: fit on three fleets, score
+    the fourth. In pooled mode they are the same list. LOSO is the only protocol here that
+    answers "does one calibrator transfer to a fleet it has never been fitted on"; pooled
+    does not, because it has seen that fleet's dev sample.
+    """
+    fit_subsets = list(fit_subsets or subsets)
+    devs = {s: load_dev(ROOT, s, arm) for s in fit_subsets}
     pooled = {k: np.concatenate([d[k] for d in devs.values()]) for k in ("unit", "yhat", "y")}
     y_dev = pooled["y"]
 
@@ -585,7 +593,10 @@ def run(arm, subsets, n_boot=2000, out=None):
                          "scp": 1, "nscp": 4, "cqr": 8},
             "protocol": "all methods fitted on the same pooled out-of-fold dev sample; "
                         "every distributional method's width tuned so cross-fitted dev "
-                        "PICP90 = 0.90 before touching test"}
+                        "PICP90 = 0.90 before touching test",
+            "fit_subsets": fit_subsets, "eval_subsets": list(subsets)}
+    if quiet:
+        return meta, report
     out = Path(out or ROOT / "experiments" / "cal" / f"v2_{arm}")
     out.mkdir(parents=True, exist_ok=True)
     (out / "compare.json").write_text(json.dumps({"meta": meta, "subsets": report}, indent=1))
@@ -598,5 +609,20 @@ if __name__ == "__main__":
     ap.add_argument("--arm", default="A")
     ap.add_argument("--subsets", default="FD001,FD002,FD003,FD004")
     ap.add_argument("--n-boot", type=int, default=2000)
+    ap.add_argument("--loso", action="store_true",
+                    help="leave one fleet out: fit on three, score the fourth")
     a = ap.parse_args()
-    run(a.arm, a.subsets.split(","), a.n_boot)
+    if not a.loso:
+        run(a.arm, a.subsets.split(","), a.n_boot)
+    else:
+        subs = a.subsets.split(",")
+        res = {}
+        for tgt in subs:
+            fit = [s for s in subs if s != tgt]
+            meta, rep = run(a.arm, [tgt], a.n_boot, fit_subsets=fit, quiet=True)
+            res[tgt] = {"meta": meta, "eval": rep[tgt]}
+            print(f"  {a.arm} LOSO <= {tgt}: crps(cens)={rep[tgt]['methods']['cens']['crps']:.2f}")
+        out = ROOT / "experiments" / "cal" / f"v2_loso_{a.arm}"
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "loso.json").write_text(json.dumps(res, indent=1))
+        print(f"arm {a.arm}: wrote {out/'loso.json'}")

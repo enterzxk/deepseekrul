@@ -133,6 +133,27 @@ def main():
                      f"{np.mean(biases):+.2f} | "
                      f"[{min(biases):+.2f}, {max(biases):+.2f}] |")
 
+    # ---- table 6: LOSO vs pooled, does the calibrator transfer across fleets? ---------
+    loso = {}
+    for a in ARMS:
+        f = ROOT / "experiments" / "cal" / f"v2_loso_{a}" / "loso.json"
+        if f.exists():
+            loso[a] = json.load(open(f))
+    if loso:
+        lines.append("\n### T6  LOSO（在三个舰队 dev 上拟合，在第四个舰队 test 上评价）"
+                     "对比 pooled\n")
+        lines.append("| 骨干 | 目标舰队 | pooled CRPS | LOSO CRPS | Δ | pooled PICP90 | LOSO PICP90 |")
+        lines.append("|---|---|---:|---:|---:|---:|---:|")
+        for a in ARMS:
+            if a not in loso:
+                continue
+            for s in SUBSETS:
+                po = R[a]["subsets"][s]["methods"]["cens"]
+                lo_ = loso[a][s]["eval"]["methods"]["cens"]
+                lines.append(f"| {a} | {s} | {po['crps']:.2f} | {lo_['crps']:.2f} | "
+                             f"{lo_['crps'] - po['crps']:+.2f} | {po['picp90']:.3f} | "
+                             f"{lo_['picp90']:.3f} |")
+
     txt = "\n".join(lines)
     (ROOT / "experiments" / "cal" / "v2_tables.md").write_text(txt, encoding="utf-8")
     print(txt)
