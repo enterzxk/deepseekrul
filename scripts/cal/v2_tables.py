@@ -154,6 +154,35 @@ def main():
                              f"{lo_['crps'] - po['crps']:+.2f} | {po['picp90']:.3f} | "
                              f"{lo_['picp90']:.3f} |")
 
+    # ---- table 7: per-subset, the only regime where 66 parameters run short of data ----
+    psub = {}
+    for a in ARMS:
+        f = ROOT / "experiments" / "cal" / f"v2_persub_{a}" / "per_subset.json"
+        if f.exists():
+            psub[a] = json.load(open(f))
+    if psub:
+        lines.append("\n### T7  per-subset（只用本舰队 dev 拟合）对比 pooled\n")
+        lines.append("| 方法 | per-subset 平均 CRPS | pooled 平均 CRPS | 差 |")
+        lines.append("|---|---:|---:|---:|")
+        for k in MAIN:
+            a1 = np.mean([psub[a][s]["eval"]["methods"][k]["crps"]
+                          for a in ARMS if a in psub for s in SUBSETS])
+            a2 = np.mean([R[a]["subsets"][s]["methods"][k]["crps"]
+                          for a in ARMS for s in SUBSETS])
+            lines.append(f"| {LABEL[k]} | {a1:.2f} | {a2:.2f} | {a1 - a2:+.2f} |")
+        lines.append("\n各舰队 dev 规模：FD001/003 为 100 台，FD002 为 260 台，FD004 为 249 台。\n")
+        lines.append("| 骨干 | 子集 | n_dev | censored MLP | constant sigma | 层是否胜过无层 |")
+        lines.append("|---|---|---:|---:|---:|---|")
+        for a in ARMS:
+            if a not in psub:
+                continue
+            for s in SUBSETS:
+                m = psub[a][s]["eval"]["methods"]
+                n = psub[a][s]["meta"]["n_dev"]
+                verdict = "是" if m["cens"]["crps"] < m["homosc"]["crps"] else "**否**"
+                lines.append(f"| {a} | {s} | {n} | {m['cens']['crps']:.2f} | "
+                             f"{m['homosc']['crps']:.2f} | {verdict} |")
+
     txt = "\n".join(lines)
     (ROOT / "experiments" / "cal" / "v2_tables.md").write_text(txt, encoding="utf-8")
     print(txt)

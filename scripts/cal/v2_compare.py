@@ -611,8 +611,24 @@ if __name__ == "__main__":
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--loso", action="store_true",
                     help="leave one fleet out: fit on three, score the fourth")
+    ap.add_argument("--per-subset", action="store_true",
+                    help="fit and score within one fleet; the dev sample is then ~100-250 "
+                         "engines instead of 709, which is the only setting where the "
+                         "66-parameter layer can be short of data")
     a = ap.parse_args()
-    if not a.loso:
+    if a.per_subset:
+        subs = a.subsets.split(",")
+        res = {}
+        for tgt in subs:
+            meta, rep = run(a.arm, [tgt], a.n_boot, fit_subsets=[tgt], quiet=True)
+            res[tgt] = {"meta": meta, "eval": rep[tgt]}
+            print(f"  {a.arm} per-subset {tgt}: n_dev={meta['n_dev']} "
+                  f"crps(cens)={rep[tgt]['methods']['cens']['crps']:.2f}")
+        out = ROOT / "experiments" / "cal" / f"v2_persub_{a.arm}"
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "per_subset.json").write_text(json.dumps(res, indent=1))
+        print(f"arm {a.arm}: wrote {out/'per_subset.json'}")
+    elif not a.loso:
         run(a.arm, a.subsets.split(","), a.n_boot)
     else:
         subs = a.subsets.split(",")
