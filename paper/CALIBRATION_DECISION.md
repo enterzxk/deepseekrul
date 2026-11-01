@@ -131,17 +131,29 @@ N-CMAPSS（15.76 GB）下载至 7.4 GB，8 线程续传中，剩余约 3.4 小�
 
 按依赖顺序，全部完成后才能投稿：
 
-| # | 工作 | 判定标准 | 预计 |
+| # | 工作 | 判定标准 | 状态 |
 |---|---|---|---|
-| 1 | N-CMAPSS 下载完成 + 解析 DS02 | 能读出 (unit, cycle, 传感器, RUL) 且与官方 readme 一致 | 3.5h 下载 + 2h |
-| 2 | 在 N-CMAPSS 上训一个骨干（可弱，只需存在） | capped RMSE 报告出来，不需 SOTA | 3–6h 算力 |
-| 3 | 冻结本层结构与超参选择规则，再跑 | 结构/超参在跑之前写进文件并 commit | 1h |
-| 4 | 复现 §6 的分箱覆盖表 | N-CMAPSS 上同样出现分箱覆盖偏离 + 高估段 | 1h |
+| 1 | N-CMAPSS 下载完成 + 解析 DS02 | 能读出 (unit, cycle, 传感器, RUL) 且与官方 readme 一致 | 下载 8.3/15.76 GB；`scripts/ncmapss/{fetch.sh,unpack.py}` 已就绪 |
+| 2 | 在 N-CMAPSS 上训一个骨干（可弱，只需存在） | capped RMSE 报告出来，不需 SOTA | 未开始 |
+| 3 | 冻结本层结构与超参选择规则，再跑 | 结构/超参在跑之前写进文件并 commit | 结构已在 `CALIBRATION_MATH_SPEC.md` §2 冻结 |
+| 4 | 复现 §1.3 的分箱覆盖表 | N-CMAPSS 上同样出现分箱覆盖偏离 + 高估段 | 未开始 |
 | 5 | ~~LOSO 协议补跑~~ | **已完成**：Δ pooled − LOSO = −0.07…+0.14 | ✅ |
-| 6 | 若 1–5 全过 → 写正文 | — | — |
-| 7 | 若第 4 步不复现 → **NO-GO 全线终止** | — | — |
+| 6 | ~~per-subset 协议补跑~~ | **已完成**：FD003 三骨干全部输给常数方差 | ✅ |
+| 7 | 若 1–4 全过 → 写正文 | — | — |
+| 8 | 若第 4 步不复现 → **NO-GO 全线终止** | — | — |
 
-第 7 条是硬判据：**独立数据不复现即放弃，不解释、不调参、不换指标。**
+第 8 条是硬判据：**独立数据不复现即放弃，不解释、不调参、不换指标。**
+
+**第 1 步的可重入入口**（下载会被中断，两段脚本都可重跑）：
+
+```bash
+bash scripts/ncmapss/fetch.sh /tmp/ncmapss     # 8 段续传 + 长度校验 + 拼接
+python scripts/ncmapss/unpack.py --list        # 只列成员，不解包
+python scripts/ncmapss/unpack.py --members N-CMAPSS_DS02
+```
+
+`unpack.py` 走 local file header 流式解包，不需要先把 15.76 GB 的 `data_set.zip` 落盘
+（可省约 16 GB 磁盘）。其解包逻辑已在 `CMAPSSData.zip` 上验证与 `zipfile` 逐字节一致。
 
 ---
 
