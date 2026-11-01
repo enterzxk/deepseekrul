@@ -68,13 +68,15 @@ def collate(seqs, device):
     age = np.zeros((B, T), np.float32)
     mask = np.zeros((B, T, N_SENSORS), np.float32)
     rul = np.zeros((B, T), np.float32)
+    life = np.zeros((B, T), np.float32)
     valid = np.zeros((B, T), np.float32)
     for i, s in enumerate(seqs):
         L = s["L"]
         x[i, :L] = s["x"]; op[i, :L] = s["op"]; age[i, :L] = s["age"]
         mask[i, :L] = s["mask"]; rul[i, :L] = s["rul"]; valid[i, :L] = 1.0
+        life[i, :L] = float(L)
     t = lambda a: torch.from_numpy(a).to(device)  # noqa: E731
-    return t(x), t(op), t(mask), t(age), t(rul), t(valid)
+    return t(x), t(op), t(mask), t(age), t(rul), t(life), t(valid)
 
 
 def make_weight(valid, rul, min_rul=0.0):
@@ -89,7 +91,7 @@ def evaluate(model, seqs, device, batch=32):
     with torch.no_grad():
         for i in range(0, len(seqs), batch):
             chunk = seqs[i:i + batch]
-            x, op, mask, age, rul, valid = collate(chunk, device)
+            x, op, mask, age, rul, life, valid = collate(chunk, device)
             out = model(x, op, mask, age, valid)
             q = out["q"]
             pred = model.rul_mean(q)
@@ -164,7 +166,7 @@ def main():
         tot, nb = 0.0, 0
         for i in range(0, len(order), a.batch):
             chunk = [tr[j] for j in order[i:i + a.batch]]
-            x, op, mask, age, rul, valid = collate(chunk, device)
+            x, op, mask, age, rul, life, valid = collate(chunk, device)
             out = model(x, op, mask, age, valid)
             w = make_weight(valid, rul)
             # subsample cycles to keep the sequential loop affordable
@@ -172,8 +174,8 @@ def main():
                 sel = torch.zeros_like(valid)
                 sel[:, ::STRIDE] = 1.0
                 w = w * sel
-            loss_nll = model.nll(out["q"], rul, w)
-            loss_crps = model.crps(out["q"], rul, w)
+            loss_nll = model.nll(out["q"], life, w)
+            loss_crps = model.crps(out["rul"], rul, w)
             obs_nll = F.mse_loss(out["mu"] * mask, x * mask, reduction="none").mean()
             loss = loss_nll + 0.05 * loss_crps + 0.3 * obs_nll
             opt.zero_grad()

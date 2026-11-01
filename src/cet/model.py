@@ -30,8 +30,9 @@ import torch.nn.functional as F
 
 N_SENSORS = 14
 N_COND = 3
-K_BINS = 320          # RUL horizon in cycles, 1-cycle resolution
+K_BINS = 600          # ABSOLUTE failure time in cycles, 1-cycle resolution
 N_BASIS = 12          # B-spline-like basis for the log-LR over RUL
+RUL_MAX = 400         # support of the remaining-life view
 
 
 def causal_conv_stack(in_ch: int, d: int, dilations=(1, 2, 4, 8)) -> nn.Module:
@@ -145,7 +146,7 @@ class CEIO(nn.Module):
         return (w.unsqueeze(-1) - du @ corr).squeeze(-1), sigma2
 
     def forward(self, e_t, nu, log_sigma, u, prev_ema, prev_logE, prev_lambda_sum,
-                prev_lambda_sq, valid):
+                prev_lambda_sq, valid, age_t=None):
         z, sigma2 = self.whiten(nu, log_sigma, u)
         w = self.direction(e_t)                            # (B, M)
         wz = (w * z).sum(-1)
@@ -187,7 +188,9 @@ class CEIO(nn.Module):
                            r_placeholder(e_t)], dim=-1)
         coeff = self.evidence(feats)                        # (B, N_BASIS)
         # Gaussian log-likelihood over remaining life, in cycles
-        loc = self.loc(feats).squeeze(-1) * 100.0           # cycles
+        # absolute failure time = current age + a positive predicted remaining life
+        offset = F.softplus(self.loc(feats).squeeze(-1)) * 80.0 + 2.0
+        loc = (age_t if age_t is not None else torch.zeros_like(offset)) + offset
         scale = F.softplus(self.log_scale(feats).squeeze(-1)) * 20.0 + 3.0
 
         return dict(score=score, raw=raw, gate=gate, logE=logE, ema=ema, coeff=coeff,
@@ -203,46 +206,63 @@ def r_placeholder(e_t: torch.Tensor) -> torch.Tensor:
 
 
 class SurvivalBelief(nn.Module):
-    """q_t(R) over remaining life in cycles, updated by survival advance + evidence."""
+    """q_t(T): belief over the ABSOLUTE failure time T, in cycles.
 
-    def __init__(self, k_bins: int = K_BINS, basis: Optional[torch.Tensor] = None):
+    An earlier version carried the belief over remaining life R and advanced it by
+    shifting one bin per cycle. That is wrong: a broad prior shifted 150 times walks its
+    own tail into the low-R region, and the measured distribution at a cutoff had
+    q[:6] ~ 0.017 with sd 35 while its mean was nearly correct. Belief over absolute
+    failure time needs no shift - survival conditioning is just "zero the bins at or
+    below the current age and renormalise", which is exact and loses no mass.
+    """
+
+    def __init__(self, k_bins: int = K_BINS, basis: Optional[torch.Tensor] = None,
+                 prior: Optional[torch.Tensor] = None):
         super().__init__()
         self.k = k_bins
         self.register_buffer("basis", basis if basis is not None else
                              CEIO._make_basis(k_bins, N_BASIS))
+        if prior is None:
+            t = torch.arange(1, k_bins + 1, dtype=torch.float32)
+            prior = torch.exp(-0.5 * ((t - 220.0) / 70.0) ** 2)
+        self.register_buffer("prior", (prior / prior.sum()).float())
 
     def initial(self, batch: int, device) -> torch.Tensor:
-        """Prior: broad, weakly increasing mass over the horizon, no lifetime knowledge."""
-        r = torch.arange(self.k, device=device, dtype=torch.float32)
-        logits = -0.5 * ((r - 0.55 * self.k) / (0.35 * self.k)) ** 2
-        q = torch.softmax(logits, dim=-1)
-        return q.unsqueeze(0).expand(batch, -1).contiguous()
+        return self.prior.to(device).unsqueeze(0).expand(batch, -1).contiguous()
 
-    def advance(self, q: torch.Tensor) -> torch.Tensor:
-        """Survival conditioning: q-(R) proportional to q(R+1); mass at R=0 is dropped.
-
-        This is the only step allowed when no new observation arrives, and it is why
-        past measurements are never re-used: their likelihood was already absorbed.
-        """
-        q_next = torch.zeros_like(q)
-        q_next[:, :-1] = q[:, 1:]
-        q_next[:, -1] = q[:, -1]
-        return q_next / (q_next.sum(-1, keepdim=True) + 1e-9)
+    def condition_on_survival(self, q: torch.Tensor, age: torch.Tensor) -> torch.Tensor:
+        """Zero every bin with T <= age (the engine is alive at `age`) and renormalise."""
+        idx = torch.arange(1, self.k + 1, device=q.device, dtype=q.dtype).unsqueeze(0)
+        alive = (idx > age.unsqueeze(-1)).to(q.dtype)
+        q = q * alive
+        return q / (q.sum(-1, keepdim=True) + 1e-9)
 
     def update(self, q, gate, coeff, loc=None, scale=None) -> torch.Tensor:
-        """Evidence tilt: a Gaussian log-likelihood in R, plus a basis residual."""
-        # Student-t log-likelihood over remaining life. A Gaussian tilt grows as -z^2 and
-        # reaches -4e4 for far bins, which saturates the softmax and kills the gradient
-        # (the run that did this went 16.7 -> 113 RMSE in one epoch). Heavy tails keep
-        # every bin alive while still allowing a sharp mode.
-        tilt = 0.15 * torch.tanh(coeff @ self.basis.t())    # (B, K) bounded residual
+        """Evidence tilt over absolute failure time: Student-t likelihood + residual."""
+        tilt = 0.15 * torch.tanh(coeff @ self.basis.t())
         if loc is not None and scale is not None:
-            r = torch.arange(q.shape[-1], device=q.device, dtype=q.dtype).unsqueeze(0)
+            r = torch.arange(1, q.shape[-1] + 1, device=q.device, dtype=q.dtype).unsqueeze(0)
             z = (r - loc.unsqueeze(-1)) / scale.unsqueeze(-1)
             nu = 4.0
             tilt = tilt - 0.5 * (nu + 1.0) * torch.log1p(z ** 2 / nu)
         log_q = torch.log(q + 1e-9) + gate.unsqueeze(-1) * tilt
         return torch.softmax(log_q, dim=-1)
+
+    @staticmethod
+    def to_rul(q: torch.Tensor, age: torch.Tensor, r_max: int = RUL_MAX) -> torch.Tensor:
+        """p(R) = q(T = age + R) on R in [0, r_max), renormalised. Shape (B, r_max).
+
+        Clamping age + R to the last bin (the previous implementation) aliases hundreds
+        of distinct R values onto the top bin, multiplies its mass by that count, and
+        sends the mean to the horizon. Bins beyond the support must be *zero*, not
+        folded together.
+        """
+        k = q.shape[-1]
+        r = torch.arange(r_max, device=q.device).unsqueeze(0)
+        t = age.unsqueeze(-1).long() + r
+        in_range = (t < k)
+        p = torch.gather(q, 1, t.clamp(max=k - 1)) * in_range.to(q.dtype)
+        return p / (p.sum(-1, keepdim=True) + 1e-9)
 
 
 class CETRUL(nn.Module):
@@ -259,8 +279,14 @@ class CETRUL(nn.Module):
         self.belief = SurvivalBelief(k_bins, self.ceio.basis)
         self.summary = nn.Linear(d + 2, 5)     # belief summary -> (mean, sd, entropy, ...)
 
-    def forward(self, x, op, mask, age, valid):
-        """x (B,T,14) scaled, op (B,T,3), mask (B,T,14), age (B,T), valid (B,T)."""
+    def forward(self, x, op, mask, age, valid, detach_every: int = 32):
+        """x (B,T,14) scaled, op (B,T,3), mask (B,T,14), age (B,T), valid (B,T).
+
+        ``detach_every`` truncates backpropagation through the belief chain. Without it
+        the graph spans 300+ sequential steps: the gradient either vanishes or is
+        clipped away, and in practice the belief never learns to sharpen (90% interval
+        width came out at 145 cycles against a 10-14 RMSE competitor range).
+        """
         B, T, _ = x.shape
         enc_in = torch.cat([x * mask, op, (age / 250.0).unsqueeze(-1),
                             mask.mean(-1, keepdim=True)], dim=-1)
@@ -272,20 +298,28 @@ class CETRUL(nn.Module):
         lam_sum = torch.zeros(B, device=x.device)
         lam_sq = torch.zeros(B, device=x.device)
 
-        q_hist, gate_hist, logE_hist = [], [], []
+        q_hist, rul_hist, gate_hist, logE_hist = [], [], [], []
         mu_hist, ls_hist = [], []
         for t in range(T):
-            q = self.belief.advance(q)
-            mean_r = (q * torch.arange(self.k, device=x.device)).sum(-1) / self.k
-            ent = -(q * torch.log(q + 1e-9)).sum(-1) / math.log(self.k)
+            # survival conditioning at the current age, then the evidence update
+            q = self.belief.condition_on_survival(q, age[:, t])
+            p_rul = SurvivalBelief.to_rul(q, age[:, t])
+            n_rul = p_rul.shape[-1]
+            mean_r = (p_rul * torch.arange(n_rul, device=x.device)).sum(-1) / 100.0
+            ent = -(p_rul * torch.log(p_rul + 1e-9)).sum(-1) / math.log(n_rul)
             summ = self.summary(torch.cat([e[:, t], mean_r.unsqueeze(-1),
                                            ent.unsqueeze(-1)], dim=-1))   # (B, 5)
 
-            mu, log_sigma, u = self.obs(e[:, t], summ, op[:, t])
+            # The observation model must forecast y_t from the state BEFORE seeing it.
+            # Using e[:, t] (the encoder output at t, which already contains y_t) made
+            # yhat_t ~ y_t, so the innovation was identically zero and the operator had
+            # no evidence to act on: the gate sat at its initialisation for the whole run.
+            e_prev = e[:, t - 1] if t > 0 else torch.zeros_like(e[:, t])
+            mu, log_sigma, u = self.obs(e_prev, summ, op[:, t])
             nu = (x[:, t] - mu) * mask[:, t]
 
             out = self.ceio(e[:, t], nu, log_sigma, u, prev_ema, prev_logE,
-                            lam_sum, lam_sq, valid[:, t])
+                            lam_sum, lam_sq, valid[:, t], age_t=age[:, t])
             prev_ema, prev_logE = out["ema"], out["logE"]
             lam_sum, lam_sq = out["stats"]["lambda_sum"], out["stats"]["lambda_sq"]
 
@@ -299,13 +333,22 @@ class CETRUL(nn.Module):
                 gate = out["gate"]
 
             q = self.belief.update(q, gate, out["coeff"], out["loc"], out["scale"])
+            if detach_every and (t % detach_every) == (detach_every - 1):
+                # truncated BPTT: the belief stays a valid state, but gradients only
+                # travel the last `detach_every` steps
+                q = q.detach()
+                prev_ema = prev_ema.detach()
+                prev_logE = prev_logE.detach()
+                lam_sum, lam_sq = lam_sum.detach(), lam_sq.detach()
             q_hist.append(q)
+            rul_hist.append(SurvivalBelief.to_rul(q, age[:, t]))
             gate_hist.append(gate)
             logE_hist.append(out["logE"])
             mu_hist.append(mu)
             ls_hist.append(log_sigma)
 
-        return dict(q=torch.stack(q_hist, 1),            # (B, T, K)
+        return dict(q=torch.stack(q_hist, 1),            # (B, T, K) absolute time
+                    rul=torch.stack(rul_hist, 1),        # (B, T, K) remaining life
                     gate=torch.stack(gate_hist, 1),      # (B, T)
                     logE=torch.stack(logE_hist, 1),      # (B, T)
                     mu=torch.stack(mu_hist, 1),          # (B, T, M)
@@ -331,15 +374,17 @@ class CETRUL(nn.Module):
         return lo_v, hi_v
 
     @staticmethod
-    def nll(q, rul, weight):
-        """Discrete NLL with right-censoring at the horizon."""
+    def nll(q, life, weight):
+        """Discrete NLL of the observed lifetime under q(T), with censoring at the horizon.
+
+        q is the belief over absolute failure time, so the target is the engine's true
+        lifetime L (a constant per engine), not a per-cycle remaining life.
+        """
         k = q.shape[-1]
-        idx = rul.round().long().clamp(0, k - 1)
+        idx = life.round().long().clamp(0, k - 1)
         logp = torch.log(q.gather(-1, idx.unsqueeze(-1)).squeeze(-1) + 1e-9)
-        # right-censoring at the horizon: P(R >= K-1) = mass in the last bin, because
-        # the survival advance accumulates all overflow there
-        surv = torch.log(q[..., -1] + 1e-9)
-        censored = (rul >= k - 1)
+        surv = torch.log(q[..., -1] + 1e-9)        # P(T >= horizon)
+        censored = (life >= k - 1)
         val = torch.where(censored, surv, logp)
         return -(val * weight).sum() / weight.sum().clamp(min=1e-6)
 
