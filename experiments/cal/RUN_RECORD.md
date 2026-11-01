@@ -100,9 +100,28 @@ C-MAPSS 原始 test 文件 + RUL_FD00x.txt
 | `experiments/cal/per_subset/calibration_report.json` | 同上（per_subset） |
 | `experiments/cal/calibration_report.json` | 最早的单臂 per-subset 运行，仅存档 |
 | `experiments/cal/shift_report.json` | dev→test 残差分布漂移诊断 |
+| `experiments/cal/calibrators/calibrator_{A,BE,PE}.json` | **冻结的 66 参数层**：权重、scale、拟合目标、dev 行数、dev 数据摘要 |
 | `experiments/cal/MANIFEST.sha256` | 上述全部文件 + 180 个 dev 预测 CSV 的 SHA256 |
 
 **权威结果 = `eval_{A,BE,PE}/eval_report.json`（20:53–20:54 生成）。** 其余目录是迭代痕迹，不得引用其数字。
+
+### 3.1 冻结校准器与端到端校验
+
+`calibrator_<arm>.json` 存的是层的**全部 66 个参数**加上 `scale` 与名义水平。这是刻意的：
+一个 66 参数的层由权重完全决定，把它存下来，报告里的每个数字就成为"已提交文件的函数"，
+不再依赖拟合过程的随机种子或某台机器上的检查点。
+
+`scripts/cal/verify_frozen.py` 做这件事的校验：只用 JSON + `results/dsh/e21/preds/*.csv`，
+手工重建 pmf，再和 `eval_report.json` 逐项比。实测：
+
+| 臂 | max\|冻结复算 − 报告\|（CRPS / PICP90 / MPIW90） |
+|---|---:|
+| A | 1.05e-06 |
+| BE | 1.45e-06 |
+| PE | 2.45e-06 |
+
+误差在浮点精度内。**这意味着校准层的结论不依赖检查点是否还在 A40 上。**
+`dev_sha256` 是 dev 预测行的摘要：若预处理变化导致 dev 预测改变，摘要会变，记录会显式失效而不是悄悄出错。
 
 ## 4. 环境与版本
 
