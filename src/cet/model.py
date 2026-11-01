@@ -30,7 +30,7 @@ import torch.nn.functional as F
 
 N_SENSORS = 14
 N_COND = 3
-K_BINS = 200          # RUL horizon in cycles, 1-cycle resolution
+K_BINS = 320          # RUL horizon in cycles, 1-cycle resolution
 N_BASIS = 12          # B-spline-like basis for the log-LR over RUL
 
 
@@ -114,9 +114,14 @@ class CEIO(nn.Module):
         self.direction = nn.Linear(d, N_SENSORS)          # w_t
         self.evidence = nn.Sequential(nn.Linear(6 + 4, 64), nn.GELU(),
                                       nn.Linear(64, N_BASIS))
+        # location/scale of the implied likelihood over remaining life. These give the
+        # belief an explicit way to become sharp; the basis term is only a residual.
+        self.loc = nn.Linear(6 + 4, 1)
+        self.log_scale = nn.Linear(6 + 4, 1)
         # temperature starts at 3 so the gate is live at initialisation; with the
         # betting fraction floored at 0.3 the gradient never vanishes (see below)
         self.temperature = nn.Parameter(torch.tensor(math.log(3.0)))
+        self.gate_bias = nn.Parameter(torch.tensor(-1.5))
         self.basis = self._make_basis()
 
     @staticmethod
@@ -170,16 +175,23 @@ class CEIO(nn.Module):
 
         # gate: instantaneous log-evidence scaled by the threshold, times a learned
         # temperature; no free-form MLP gate anywhere
-        temp = torch.exp(self.temperature).clamp(0.05, 20.0)
-        gate = (temp * log_e / self.log_alpha_inv).clamp(0.0, 1.0) * valid
+        # gate = sigmoid(theta0 + theta1 * log_e / log(1/alpha)): two parameters, a
+        # monotone map of the calibrated evidence. Never exactly 0 or 1, so the gradient
+        # survives; at log_e = 0 it sits at sigmoid(theta0) = 0.18 by initialisation.
+        z = torch.exp(self.temperature).clamp(0.05, 20.0) * log_e / self.log_alpha_inv
+        gate = torch.sigmoid(self.gate_bias + z) * valid
 
         feats = torch.cat([score.unsqueeze(-1), raw.unsqueeze(-1), persist.unsqueeze(-1),
                            transient.unsqueeze(-1), logE.unsqueeze(-1).clamp(-20, 20),
                            gate.unsqueeze(-1),
                            r_placeholder(e_t)], dim=-1)
         coeff = self.evidence(feats)                        # (B, N_BASIS)
+        # Gaussian log-likelihood over remaining life, in cycles
+        loc = self.loc(feats).squeeze(-1) * 100.0           # cycles
+        scale = F.softplus(self.log_scale(feats).squeeze(-1)) * 20.0 + 3.0
 
         return dict(score=score, raw=raw, gate=gate, logE=logE, ema=ema, coeff=coeff,
+                    loc=loc, scale=scale,
                     persist=persist, transient=transient,
                     stats=dict(lambda_sum=prev_lambda_sum + score * valid,
                                lambda_sq=prev_lambda_sq + score * score * valid))
@@ -202,7 +214,7 @@ class SurvivalBelief(nn.Module):
     def initial(self, batch: int, device) -> torch.Tensor:
         """Prior: broad, weakly increasing mass over the horizon, no lifetime knowledge."""
         r = torch.arange(self.k, device=device, dtype=torch.float32)
-        logits = -0.5 * (r / (0.6 * self.k)) ** 2
+        logits = -0.5 * ((r - 0.55 * self.k) / (0.35 * self.k)) ** 2
         q = torch.softmax(logits, dim=-1)
         return q.unsqueeze(0).expand(batch, -1).contiguous()
 
@@ -217,8 +229,18 @@ class SurvivalBelief(nn.Module):
         q_next[:, -1] = q[:, -1]
         return q_next / (q_next.sum(-1, keepdim=True) + 1e-9)
 
-    def update(self, q: torch.Tensor, gate: torch.Tensor, coeff: torch.Tensor) -> torch.Tensor:
-        tilt = coeff @ self.basis.t()                       # (B, K)
+    def update(self, q, gate, coeff, loc=None, scale=None) -> torch.Tensor:
+        """Evidence tilt: a Gaussian log-likelihood in R, plus a basis residual."""
+        # Student-t log-likelihood over remaining life. A Gaussian tilt grows as -z^2 and
+        # reaches -4e4 for far bins, which saturates the softmax and kills the gradient
+        # (the run that did this went 16.7 -> 113 RMSE in one epoch). Heavy tails keep
+        # every bin alive while still allowing a sharp mode.
+        tilt = 0.15 * torch.tanh(coeff @ self.basis.t())    # (B, K) bounded residual
+        if loc is not None and scale is not None:
+            r = torch.arange(q.shape[-1], device=q.device, dtype=q.dtype).unsqueeze(0)
+            z = (r - loc.unsqueeze(-1)) / scale.unsqueeze(-1)
+            nu = 4.0
+            tilt = tilt - 0.5 * (nu + 1.0) * torch.log1p(z ** 2 / nu)
         log_q = torch.log(q + 1e-9) + gate.unsqueeze(-1) * tilt
         return torch.softmax(log_q, dim=-1)
 
@@ -276,7 +298,7 @@ class CETRUL(nn.Module):
             else:
                 gate = out["gate"]
 
-            q = self.belief.update(q, gate, out["coeff"])
+            q = self.belief.update(q, gate, out["coeff"], out["loc"], out["scale"])
             q_hist.append(q)
             gate_hist.append(gate)
             logE_hist.append(out["logE"])
