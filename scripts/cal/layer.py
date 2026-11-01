@@ -29,6 +29,22 @@ from scipy.special import ndtr as _ndtr_np
 
 MAX_RUL = 125
 K = MAX_RUL + 1  # bins 0..125, last one is the atom
+BASE = 125       # the scale the constants below were written for
+
+
+def set_grid(max_rul):
+    """Retarget every grid-dependent constant to a different RUL scale.
+
+    The layer's constants (20, 20, 1) are dimensional: they mean a shift of 0.16*S and a
+    scale of 0.16*S*softplus + 0.008*S. Dividing by BASE keeps the dimensionless form, and
+    at S == BASE the ratio is exactly 1.0, so the C-MAPSS numbers are bit-identical.
+    Needed because N-CMAPSS counts RUL in flight cycles and tops out near 100, not 125.
+    """
+    global MAX_RUL, K
+    MAX_RUL = int(max_rul)
+    K = MAX_RUL + 1
+    assert MAX_RUL > 0
+
 
 
 # --------------------------------------------------------------------------- pmf
@@ -75,9 +91,10 @@ class LocationScale(nn.Module):
             raise ValueError(kind)
 
     def params(self, yhat):
+        r = MAX_RUL / BASE
         out = self.net((yhat / MAX_RUL).unsqueeze(-1))
-        mu = yhat + 20.0 * out[..., 0]
-        sigma = F.softplus(out[..., 1].clamp(-4.0, 3.0)) * 20.0 + 1.0
+        mu = yhat + 20.0 * r * out[..., 0]
+        sigma = F.softplus(out[..., 1].clamp(-4.0, 3.0)) * 20.0 * r + 1.0 * r
         return mu, sigma
 
 
