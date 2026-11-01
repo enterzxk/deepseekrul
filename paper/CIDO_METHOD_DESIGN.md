@@ -176,12 +176,14 @@ with `h`, the confounding direction rotates; the residual null space is
 `{(0, c) : c \perp span_t{g'(h_t)}}` — a bias component orthogonal to every sensitivity
 direction, which is genuinely unobservable and must be reported rather than estimated.
 
-**Falsification test (F1).** Train two otherwise identical models, one with `g_φ` affine in
-`h` and one nonlinear. Inject a common-mode step offset into all channels at mid-life.
-Prediction: the affine model's `b̂` drifts along `g'` and `ĥ` is biased by the same amount;
-the nonlinear model absorbs the offset into `b̂` with `ĥ` unchanged within its posterior SD.
-Both numbers are reported; if the nonlinear model does not separate them, Prop. 1 is
-empirically empty and the bias-state operator loses its justification.
+**Falsification test (F1) — RUN, RESULT: FAILED. Proposition 1 is false as stated.** See
+`paper/CIDO_F1_RESULT.md`. The rank claim holds instantaneously (affine smallest eigenvalue
+−7.1e−11 vs nonlinear 1.84e+04) but the trajectory system is identified by the **dynamics
+asymmetry** (h drifts, b does not), not by the observation nonlinearity; with a valid test
+the affine model is twice as accurate (RMSE 0.0206 vs 0.0617) because its sensitivity does
+not decay as the engine degrades. Consequence: the bias-state operator has no identifiability
+argument behind it and is demoted to an engineering component. The nonlinear `g_φ` is no
+longer required.
 
 ### 4.2 Proposition 2 — first passage under a filtered drift interpolates between two laws
 
