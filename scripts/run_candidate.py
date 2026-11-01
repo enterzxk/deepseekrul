@@ -289,7 +289,8 @@ def build_cond_labels(frame, op_values, kmeans):
     return kmeans.predict(np.asarray(op_values, dtype=np.float64)).astype(np.int64)
 
 
-def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutoff=None):
+def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutoff=None,
+                  return_meta=False):
     """Windows plus (per-sensor healthy baseline, fixed-scale cycle coordinate).
 
     Fallbacks, all computable from observations available online:
@@ -298,10 +299,16 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
         a global early-life mean covering any engine without an early segment;
       * the cycle coordinate divides by a FIXED constant (250) and never by a
         test engine's true lifetime.
+
+    ``return_meta=True`` additionally returns an int array of shape (n, 3) with
+    columns (unit, end_cycle, observed_length). A state-space model needs to know
+    which engine a window belongs to and where it sits in that engine's history;
+    the default stays a 3-tuple so every existing caller is unaffected.
     """
     xs, ys, extras = [], [], []
+    meta = []
     global_baseline = np.asarray(values, dtype=np.float32)[: 5 * 20].mean(axis=0)
-    for _, group in frame.groupby("unit", sort=True):
+    for unit_id, group in frame.groupby("unit", sort=True):
         pos = group.index.to_numpy(dtype=np.int64)
         seq = np.asarray(values[pos], dtype=np.float32)
         early = seq[: min(5, seq.shape[0])]
@@ -343,7 +350,9 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
             extras.append(np.concatenate([
                 baseline, [min(cycles[end - 1] / CYCLE_SCALE, 1.0)], evidence(end - 1)
             ]))
+            meta.append((int(unit_id), int(cycles[end - 1]), int(seq.shape[0])))
         elif test_mode:
+            obs_len = seq.shape[0]
             if seq.shape[0] < window:
                 pad = np.repeat(seq[:1], window - seq.shape[0], axis=0)
                 seq = np.concatenate([pad, seq], axis=0)
@@ -352,6 +361,7 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
                 baseline, [min(cycles[-1] / CYCLE_SCALE, 1.0)], evidence(seq.shape[0] - 1)
             ]))
             ys.append(0.0)
+            meta.append((int(unit_id), int(cycles[-1]), int(obs_len)))
         else:
             rul = build_piecewise_linear_rul(group, max_rul=max_rul)
             start = 0
@@ -361,8 +371,12 @@ def build_windows(frame, values, window, stride, max_rul, test_mode=False, cutof
                 extras.append(np.concatenate([
                     baseline, [min(cycles[end] / CYCLE_SCALE, 1.0)], evidence(end)
                 ]))
-    return (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
-            np.stack(extras).astype(np.float32))
+                meta.append((int(unit_id), int(cycles[end]), int(seq.shape[0])))
+    out = (np.stack(xs).astype(np.float32), np.asarray(ys, dtype=np.float32),
+           np.stack(extras).astype(np.float32))
+    if return_meta:
+        return out + (np.asarray(meta, dtype=np.int64).reshape(-1, 3),)
+    return out
 
 
 def build_windows_abs(frame, values, window, max_rul, abs_cut):

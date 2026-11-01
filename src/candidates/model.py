@@ -222,13 +222,19 @@ class CandidateModel(nn.Module):
             out[:, t] = acc
         return out
 
-    def forward(
+    def encode(
         self,
         x: torch.Tensor,
         cond: Optional[torch.Tensor] = None,
         extras: Optional[torch.Tensor] = None,
-        return_diagnostics: bool = False,
-    ):
+    ) -> torch.Tensor:
+        """Per-timestep observation representation, shape (B, L, D).
+
+        Extracted verbatim from the body of ``forward`` so that downstream models
+        (state-space / first-passage heads) can reuse the encoder without copying
+        300 lines. Behaviour is bit-identical to the pre-refactor forward: the
+        same operations in the same order produce the same tensor.
+        """
         # x: (B, L, N); extras: (B, N + 1) = baseline per sensor + cycle coord
         batch, length, sensors = x.shape
         if extras is not None:
@@ -336,7 +342,16 @@ class CandidateModel(nn.Module):
             else:
                 pooled = pooled + self.cycle_proj(cycle).unsqueeze(1)
         pooled = self.norm(pooled)
+        return pooled
 
+    def forward(
+        self,
+        x: torch.Tensor,
+        cond: Optional[torch.Tensor] = None,
+        extras: Optional[torch.Tensor] = None,
+        return_diagnostics: bool = False,
+    ):
+        pooled = self.encode(x, cond=cond, extras=extras)
         context = pooled.mean(dim=1)
         prediction = self.reg_head(context)
         raw_traj = self.reg_head(pooled).squeeze(-1)
