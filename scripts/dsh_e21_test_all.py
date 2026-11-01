@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-ROOT = "/home/yndx/zxk/bearing-rul-pi"
+ROOT = os.environ.get("RUL_ROOT", "/home/yndx/zxk/bearing-rul-pi")
 sys.path.insert(0, f"{ROOT}/src")
 sys.path.insert(0, f"{ROOT}/scripts")
 
