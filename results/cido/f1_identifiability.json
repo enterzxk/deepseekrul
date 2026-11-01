@@ -1,0 +1,35 @@
+{
+  "F1a": {
+    "affine": {
+      "smallest": -7.073452934491797e-11,
+      "second": 87999.99999999994,
+      "largest": 5414513.622908315,
+      "condition": 5.414513622908315e+36,
+      "n_below_1e_minus_6": 1
+    },
+    "nonlinear": {
+      "smallest": 18426.009286016615,
+      "second": 87999.99999999991,
+      "largest": 1299812.6036790903,
+      "condition": 70.54227442865287,
+      "n_below_1e_minus_6": 0
+    }
+  },
+  "F1a_pass": true,
+  "F1b": {
+    "affine": {
+      "definition": "RMSE of h-hat when the filter is given a rate 15%% too high",
+      "rmse_wrong_rate": 0.02061076189347091,
+      "rmse_right_rate": 0.019426592719824127,
+      "penalty_of_wrong_rate": 0.0011841691736467833
+    },
+    "nonlinear": {
+      "definition": "RMSE of h-hat when the filter is given a rate 15%% too high",
+      "rmse_wrong_rate": 0.06170688826861286,
+      "rmse_right_rate": 0.05174346928952767,
+      "penalty_of_wrong_rate": 0.00996341897908519
+    }
+  },
+  "F1b_pass": false,
+  "F1_pass": false
+}
