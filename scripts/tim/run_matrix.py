@@ -104,21 +104,26 @@ def run_subset(subset):
     rows = {}
 
     # ---- frozen layer
+    # Coverage is reported on the integer-endpoint rule for every construction, so that
+    # one table compares like with like.  The mass-based figure (`cov_mass`) is carried
+    # alongside as a diagnostic, never as the headline: for two intervals built to the
+    # same nominal level it is equal by construction, so it cannot rank them.
     for lv in LEVELS:
         lo_i, hi_i = C.interval_from_pmf(layer["p_cens"], lv)
         lo_s, hi_s = C.shortest_from_pmf(layer["p_cens"], lv)
-        rows[f"layer-short@{lv:.2f}"] = dict(
-            cov=C.randomized_pit_cov(layer["p_cens"], y.astype(int), lv),
-            cov_int=C.coverage(lo_s, hi_s, y),
-            width=C.width(lo_s.astype(float), hi_s.astype(float)),
-            winkler=C.winkler(lo_s.astype(float), hi_s.astype(float), y, lv),
-            cov_lo=None, cov_hi=None, n=n)
-        rows[f"layer@{lv:.2f}"] = dict(
-            cov=C.randomized_pit_cov(layer["p_cens"], y.astype(int), lv),
-            cov_int=C.coverage(lo_i, hi_i, y),
-            width=C.width(lo_i.astype(float), hi_i.astype(float)),
-            winkler=C.winkler(lo_i.astype(float), hi_i.astype(float), y, lv),
-            cov_lo=None, cov_hi=None, n=n)
+        for tag, (lo, hi) in (("layer-short", (lo_s, hi_s)), ("layer", (lo_i, hi_i))):
+            lo = lo.astype(float)
+            hi = hi.astype(float)
+            rows[f"{tag}@{lv:.2f}"] = dict(
+                cov=C.coverage(lo, hi, y),
+                cov_mass=C.interval_mass(layer["p_cens"], lo.astype(int), hi.astype(int)),
+                width=C.width(lo, hi),
+                winkler=C.winkler(lo, hi, y, lv),
+                cov_lo=C.wilson(int(round(C.coverage(lo, hi, y) * n)), n)[0],
+                cov_hi=C.wilson(int(round(C.coverage(lo, hi, y) * n)), n)[1],
+                n=n)
+        rows[f"layer-pit@{lv:.2f}"] = dict(
+            cov=C.randomized_pit_cov(layer["p_cens"], y.astype(int), lv), n=n)
 
     acc = {}
     gamma_log = {}

@@ -222,7 +222,13 @@ def symmetry_tax(lo_len, hi_len):
 
 # --------------------------------------------------------------------------- pmf layer
 def randomized_pit_cov(p, y, level, nrep=200, seed=7):
-    """Coverage of the central interval of a pmf, averaging over the within-bin position."""
+    """Coverage of a *central* interval of a pmf, averaging over the within-bin position.
+
+    This is a diagnostic for the central interval only, and it is a tautology in one
+    direction: the central interval is built to contain 1-level of the mass, so this
+    returns 1-level up to lattice effects.  It is *not* the coverage of an arbitrary
+    interval and must not be copied onto one (see `interval_mass`).
+    """
     y = np.asarray(y, int)
     cdf = np.cumsum(p, axis=1)
     prev = np.concatenate([np.zeros((len(p), 1)), cdf[:, :-1]], axis=1)
@@ -234,6 +240,25 @@ def randomized_pit_cov(p, y, level, nrep=200, seed=7):
         u = prev[idx, y] + rng.random(len(y)) * p[idx, y]
         acc += float(((u >= a) & (u <= 1.0 - a)).mean())
     return acc / nrep
+
+
+def interval_mass(p, lo, hi):
+    """Mean probability mass an arbitrary interval [lo, hi] carries under the pmf.
+
+    This is the mass-based (continuous) notion of coverage: sum_{x=lo..hi} p(x).  It is
+    what randomised PIT would report for that interval, and it differs from the integer
+    rule -- which counts the whole atom at Y -- by the atom that straddles the endpoint.
+    For a central interval and a shortest interval built to the same nominal level the
+    mass is equal by construction, so comparing them on mass alone is uninformative;
+    the integer-endpoint rate is the one that differs and the one most papers report.
+    """
+    p = np.asarray(p, float)
+    cdf = np.cumsum(p, axis=1)
+    prev = np.concatenate([np.zeros((len(p), 1)), cdf[:, :-1]], axis=1)
+    lo = np.asarray(lo, int)
+    hi = np.asarray(hi, int)
+    idx = np.arange(len(p))
+    return float(np.mean(cdf[idx, hi] - prev[idx, lo]))
 
 
 def shortest_from_pmf(p, level):
@@ -269,44 +294,50 @@ def interval_from_pmf(p, level):
 
 
 # --------------------------------------------------------------------------- helpers
-def mde(n, p0, alpha=0.05, power=0.80, two_sided=True, direction=-1):
-    """Smallest deviation from p0 a binomial test of size n detects with `power`.
+def mde_detail(n, p0, alpha=0.05, power=0.80, grid=2001):
+    """Detectable deviation, with the two definitions the discreteness forces apart.
 
-    ``direction=-1`` searches the under-coverage side (p1 < p0), which is the side that
-    matters for a coverage guarantee. The test rejects when the observed count falls
-    outside the exact two-sided acceptance region of Bin(n, p0).
+    The rejection region is exactly the test the paper reports: reject a count k when the
+    exact two-sided binomial p-value of (k, n, p0) is below alpha, with the doubling
+    convention p = min(1, 2*min(P[X<=k], P[X>=k])).
+
+    The binomial power function is a sawtooth in p1, not monotone, so "the largest
+    alternative that reaches the target power" can land on an isolated spike.  Two
+    answers are therefore returned:
+
+      envelope  p0 - max{p1 : power(q) >= target for every q <= p1}.  This is the
+                smallest deviation that is detected *reliably*, and it is the number
+                quoted in the paper.
+      naive     p0 - max{p1 : power(p1) >= target}, no monotonicity.  Reported only to
+                show how far the two can drift (up to 0.055 at n=19).
+
+    An earlier implementation bisected on power, which silently assumed monotonicity and
+    disagreed with the stated test.
     """
     from scipy import stats
 
     if n <= 0:
-        return float("nan")
-    tail = alpha / (2 if two_sided else 1)
-    c_lo = int(stats.binom.ppf(tail, n, p0)) - 1
-    c_hi = int(stats.binom.isf(tail, n, p0)) + 1
+        return float("nan"), float("nan")
+    ks = np.arange(n + 1)
+    left = stats.binom.cdf(ks, n, p0)
+    right = stats.binom.sf(ks - 1, n, p0)
+    rej = np.minimum(1.0, 2.0 * np.minimum(left, right)) < alpha
+    if not rej.any():
+        return float("nan"), float("nan")
 
-    def power_at(p1):
-        if direction < 0:
-            return float(stats.binom.cdf(c_lo, n, p1))
-        return float(stats.binom.sf(c_hi - 1, n, p1))
+    ps = np.linspace(0.0, p0, grid)
+    pw = stats.binom.pmf(ks[None, :], n, ps[:, None])[:, rej].sum(axis=1)
+    ok = pw >= power
+    # running minimum from the low-coverage end = "reliably detected from here down"
+    stable = np.minimum.accumulate(ok)
+    env = ps[np.where(stable)[0].max()] if stable.any() else 0.0
+    nai = ps[np.where(ok)[0].max()] if ok.any() else 0.0
+    return float(p0 - env), float(p0 - nai)
 
-    lo, hi = 0.0, p0
-    if direction > 0:
-        lo, hi = p0, min(p0 + 0.5, 1.0)
-    if power_at(hi if direction < 0 else lo) >= power:
-        return 0.0
-    for _ in range(80):
-        mid = 0.5 * (lo + hi)
-        if direction < 0:
-            if power_at(mid) >= power:
-                lo = mid
-            else:
-                hi = mid
-        else:
-            if power_at(mid) >= power:
-                hi = mid
-            else:
-                lo = mid
-    return float(abs(p0 - (lo if direction < 0 else hi)))
+
+def mde(n, p0, alpha=0.05, power=0.80, grid=2001):
+    """Smallest reliably detectable under-coverage; see `mde_detail`."""
+    return mde_detail(n, p0, alpha, power, grid)[0]
 
 
 def bootstrap_units(stat_fn, units, n_boot=2000, seed=11):

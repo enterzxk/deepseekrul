@@ -95,31 +95,47 @@ def main():
     u = np.concatenate(pooled["u"])
     fl = np.concatenate(pooled["f"])
 
+    # ------------------------------------------------------------------ pooled protocol
+    # The rule is fixed on DEVELOPMENT data only: the score sample is the concatenation
+    # of every fleet's dev residuals (units that are not in any test set).  The method is
+    # then applied once to the test queries and the labels are read for the first time.
+    # No test label enters calibration, so this is the deployment protocol rather than a
+    # leave-one-fleet-out construction on the test set.
+    r_dev_all = np.concatenate([data[(f, "dev")]["y"] - data[(f, "dev")]["p"] for f in fleets])
+
     for lv in LEVELS:
-        alpha = 1 - lv
-        a2 = alpha / 2
+        alpha = 1.0 - lv
+        a2 = alpha / 2.0
         res = {}
-        for tag, (slo, shi) in {"asym": (y - p, y - p), "sym": (-np.abs(y - p), np.abs(y - p))}.items():
-            # leave-one-fleet-out calibration, so no test cycle is scored from its own fleet
-            LO = np.full(len(y), np.nan)
-            HI = np.full(len(y), np.nan)
-            for f in fleets:
-                cal = fl != f
-                te = fl == f
-                lo, hi = C.split_conformal(p[te], slo[cal], shi[cal], a2, a2)
-                LO[te], HI[te] = lo, hi
+        arms = {
+            "asym": (r_dev_all, r_dev_all, a2, a2),
+            "sym": (-np.abs(r_dev_all), np.abs(r_dev_all), alpha, alpha),
+        }
+        per_fleet = {}
+        for tag, (slo, shi, alo, ahi) in arms.items():
+            LO, HI = C.split_conformal(p, slo, shi, alo, ahi)
             cov = C.coverage(LO, HI, y)
             wid = C.width(LO, HI)
             cb = boot_units(u, lambda i: C.coverage(LO[i], HI[i], y[i]))
             wb = boot_units(u, lambda i: C.width(LO[i], HI[i]))
-            res[tag] = dict(cov=cov, cov_lo=float(np.percentile(cb, 2.5)), cov_hi=float(np.percentile(cb, 97.5)),
-                            width=wid, width_lo=float(np.percentile(wb, 2.5)), width_hi=float(np.percentile(wb, 97.5)),
-                            n=int(len(y)), units=int(len(np.unique(u))))
+            cov_f = {f: C.coverage(LO[fl == f], HI[fl == f], y[fl == f]) for f in fleets}
+            wid_f = {f: C.width(LO[fl == f], HI[fl == f]) for f in fleets}
+            res[tag] = dict(
+                cov=cov, cov_lo=float(np.percentile(cb, 2.5)), cov_hi=float(np.percentile(cb, 97.5)),
+                width=wid, width_lo=float(np.percentile(wb, 2.5)), width_hi=float(np.percentile(wb, 97.5)),
+                # macro = every fleet weighted equally, micro = every query weighted equally
+                cov_macro=float(np.mean(list(cov_f.values()))),
+                width_macro=float(np.mean(list(wid_f.values()))),
+                per_fleet={f: dict(cov=cov_f[f], width=wid_f[f]) for f in fleets},
+                n=int(len(y)), units=int(len(np.unique(u))), n_cal=int(len(r_dev_all)))
+            per_fleet[tag] = res[tag]
         res["tax"] = float(1 - res["asym"]["width"] / res["sym"]["width"])
+        res["tax_macro"] = float(1 - res["asym"]["width_macro"] / res["sym"]["width_macro"])
         report["pooled"][f"{lv:.2f}"] = res
         print(f"pooled lv={lv:.2f} asym cov {res['asym']['cov']:.3f} "
               f"[{res['asym']['cov_lo']:.3f},{res['asym']['cov_hi']:.3f}] w {res['asym']['width']:.1f} | "
-              f"sym cov {res['sym']['cov']:.3f} w {res['sym']['width']:.1f} | tax {res['tax']*100:.0f}%")
+              f"sym cov {res['sym']['cov']:.3f} w {res['sym']['width']:.1f} | tax {res['tax']*100:.0f}% "
+              f"(macro {res['tax_macro']*100:.0f}%) | cal n={len(r_dev_all)}")
 
     (OUT / "ncmapss.json").write_text(json.dumps(report, indent=1))
     print("wrote", OUT / "ncmapss.json")

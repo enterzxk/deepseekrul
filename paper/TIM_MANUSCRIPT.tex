@@ -1,5 +1,7 @@
-% IEEE TIM submission draft.
-% Requires IEEEtran.cls (journal mode) and the standard graphicx/booktabs/amsmath set.
+% IEEE TIM submission draft (revision after the P0 audit).
+% Measurement study. Every number is produced by scripts/tim/run_final.py, run_object.py,
+% run_measure.py, run_ncmapss.py and run_simulation.py on scripts/tim/protocol.py.
+% See paper/TIM_REVISION_AUDIT.md for what changed and why.
 \documentclass[journal]{IEEEtran}
 \usepackage{amsmath,amssymb,amsthm,booktabs,graphicx,array,multirow}
 \newtheorem{proposition}{Proposition}
@@ -8,39 +10,34 @@
 \graphicspath{{../figures/tim/}}
 
 \newcommand{\dx}{\delta^{\star}}
-\newcommand{\EAC}{\textsc{eac}}
 
 \begin{document}
 
-\title{What a Remaining-Useful-Life Interval Can Prove: Coverage, Width, and the Calibration Object}
+\title{What a Remaining-Useful-Life Interval Can Prove:\\ Coverage, Width, and the Calibration Object}
 
-% ---------------------------------------------------------------- author block
-% TODO before submission: replace the two lines below with the real author list,
-% affiliations and funding note.  Nothing else in the file needs to change.
-\author{Author names withheld in this draft% <- fill in before submission
+\author{Author names withheld in this draft% <- replace before submission
 \thanks{Manuscript prepared 2 November 2026. Affiliations and funding to be added.}}
 
 \maketitle
 
 \begin{abstract}
-Prediction intervals for remaining useful life (RUL) are reported as a coverage rate close to
-nominal and a width as small as possible. This paper asks how much of that pair is information
-and how much is convention, using 653 C-MAPSS test engines and 2\,587 N-CMAPSS queries. Three
-conventions are priced. Scoring coverage on the integer grid inflates PICP by $+0.011$ to
-$+0.044$ at the 90\,\% level and $+0.074$ to $+0.120$ at 50\,\%, independent of the model;
-randomised PIT removes the shift. Reporting the \emph{central} interval of a predictive
-distribution rather than the \emph{shortest} interval of the same mass costs 10.4\,\% of the
-width at the 90\,\% level and 33\,\% at 50\,\%. Calibrating a cross-validation fold model while
-deploying an ensemble --- the standard
-CV+ construction --- costs a further 11\,\%. A matched-object construction reaches 32.4 cycles
-against the 30.9 of a 66-parameter parametric layer, with $|\Delta| = 0.014$ across fleets where
-the layer ranges 0.842--0.932; a leave-one-out ablation finds every ingredient non-negative,
-variance normalisation the largest ($+5.0$ Winkler points). An uncalibrated fifteen-member deep
-ensemble covers 0.485--0.553 at nominal 0.90, and conformalised quantile regression 0.883--0.919
-at 14--22\,\% more width. With 11--82 engines per RUL bin the smallest detectable coverage
-deviation is 0.14--0.44, and 149 engines per bin are needed to detect 0.10. On a second backbone
-the width ordering replicates on all four fleets while coverage moves by up to 0.13: at this
-scale coverage measures the predictor--population pair, not the interval rule.
+Prediction intervals for remaining useful life (RUL) are compared on a coverage rate close
+to nominal and a width as small as possible. This paper measures how much of that pair is
+information and how much is reporting convention, using 653 C-MAPSS test engines and 2\,587
+N-CMAPSS queries under one fixed protocol. Three findings. Scoring coverage on the integer
+grid instead of by randomised probability integral transform inflates it by $+0.011$ to
+$+0.044$ at the 90\,\% level and $+0.074$ to $+0.120$ at 50\,\%, independent of the model.
+At this sample size an RUL bin of 11 to 82 engines detects only deviations of 0.14 to 0.44,
+and 143 engines per bin are needed for 0.10, so most published comparisons of conditional
+coverage are unresolved by construction. And the object that is calibrated has to be the
+object that is deployed: a controlled experiment holding backbone, engines, centre, score
+scale and tail allocation fixed finds that matching them saves 2 to 11\,\% of width
+depending on the fleet, with the sign reversing on one fleet. The same control shows that a
+free tail allocation saves 16--22\,\% of width in a simulation with known truth but only
+0--5\,\% on the benchmark, and that making its selection independent of the scores it is
+applied to costs a further 13\,\%. No conformal construction here is sharply better than a
+66-parameter parametric layer; what separates the constructions is measurable, and what
+separates the reporting conventions is larger than the differences they are used to rank.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -50,745 +47,446 @@ coverage, measurement uncertainty, prognostics and health management.
 
 \section{Introduction}
 
-A remaining-useful-life (RUL) predictor that returns a single number cannot be used to
-schedule maintenance: the planner needs to know how wrong the number may be. The literature
-has therefore converged on interval-valued prognostics \cite{angelopoulos2023,kuleshov2018}, reported through two statistics ---
-the fraction of engines whose true RUL falls inside the interval (PICP), and the mean interval
-width. The implicit claim is that the first is at least the nominal level and the second is as
-small as the method can make it.
+An RUL interval is reported as a coverage and a width. The coverage is a frequency on a
+lattice-valued target capped by the benchmark; the width is a mean in cycles; and the
+interval is built from a residual sample whose composition depends on which model was
+calibrated. Each of these is a measurement decision, and this paper asks how much the
+reported numbers move when they are made differently on the same predictions.
 
-Recent work in this journal has advanced that programme considerably. CRULP combines
-conformalised quantile regression with cross-conformal prediction to turn a point predictor
-into an interval with a distribution-free guarantee \cite{crulp}, and related studies extend
-conformal RUL to covariate shift \cite{piao2025}, to missing and faulty sensor data
-\cite{wang2025}, and to IoT predictive maintenance \cite{moccardi2025}. The methodological
-question these papers raise is no longer \emph{whether} a guarantee can be attached to an RUL
-interval. It can. The question is what a specific experiment on a specific benchmark can
-\emph{show} about the interval it reports.
+The question matters because the differences that published tables rank are of the same size
+as the differences these conventions produce. On the four C-MAPSS fleets the conformal
+constructions compared here span 4.6 cycles of mean width and 0.03 of coverage; the
+integer-versus-PIT convention moves coverage by up to 0.044 on the same intervals, and the
+choice of calibrated object moves width by up to 4.2 cycles. A reader cannot tell from a
+reported pair whether a ranking reflects the method or the convention.
 
-A parallel literature improves the predictor rather than the interval: evidential and
-domain-adaptive formulations that carry their own uncertainty \cite{hou2025}, bearing
-prognostics that pair a degradation indicator with a Bayesian network \cite{yang2025},
-model-based degradation models that derive the first-hitting-time density analytically
-\cite{wang2025svsdm}, architecture work on the turbofan benchmarks \cite{kim2025}, and
-conformal active learning that uses the interval width to choose what to label
-\cite{wu2025}; \cite{zhou2025} surveys the health-indicator branch. Two features of that body
-of work matter here. Most of it reports either a predictive density or an interval, and the
-convention that converts one into the other is rarely stated, although it moves the reported
-score by up to 0.12 (Section~\ref{sec:measure}). And the uncertainty is usually validated by a
-coverage number computed on the same benchmark, which at these sample sizes cannot resolve
-differences below 0.14 (Section~\ref{sec:measure}).
+\subsection{What this paper does and does not claim}
 
-This paper takes that question literally and answers it with measurements rather than
-arguments. We hold the backbone fixed (a 41\,858-parameter model, five folds, three seeds),
-hold the test engines fixed (653 engines for C-MAPSS, 2\,587 queries over 39 units for
-N-CMAPSS), and vary only the construction of the interval. Seven results follow, and each is a
-number rather than a preference.
+It does not propose a new interval construction. The construction used here --- split
+conformal prediction with signed scores and an asymmetric tail allocation --- is the one of
+\cite{vovk2005,romano2019}, applied with the calibration sample matched to the deployed
+ensemble. Section~\ref{sec:prop} states its guarantee with attribution and states what the
+guarantee does not cover.
+
+What the paper does is measure. Four results are established, each from a controlled
+comparison on fixed predictions:
 
 \begin{enumerate}
-\item \textbf{Coverage is measured with a biased instrument.} RUL is a lattice-valued target
-capped at 125 cycles. Reporting an interval by its integer endpoints counts a hit whenever the
-endpoints straddle the truth, which adds the mass that lies between the endpoint and the
-quantile it was meant to represent. The bias is $+0.011$ to $+0.044$ at nominal 0.90 and
-$+0.074$ to $+0.120$ at nominal 0.50 on the four fleets, always positive, and has nothing to
-do with the predictor. Randomised PIT removes it.
-\item \textbf{The benchmarks cannot resolve the differences they are used to rank.} With
-11--82 engines in an RUL bin, a binomial test at family-wise 5\,\% detects only deviations of
-0.14--0.44 at 80\,\% power. Detecting a 10-point deviation needs 149 engines per bin, and a
-5-point deviation needs 516. At the fleet level the 95\,\% band on a coverage of 0.90 is
-$\pm 0.060$ ($n=93$) to $\pm 0.038$ ($n=235$), which is of the same order as the differences
-between methods that published tables rank.
-\item \textbf{Two construction choices each cost about a tenth of the width.} The central
-interval of a predictive distribution is not the shortest interval of the same mass; on the
-frozen layer the shortest-interval rule saves 10.4\,\% of the width at identical coverage, and
-33\,\% at the 50\,\% level, so the convention cost is monotone in the nominal level
-(Table~\ref{tab:levels}). Calibrating the fold model rather than the deployed ensemble costs
-11\,\% in the CV+ construction.
-\item \textbf{A matched construction closes the gap to a parametric layer without its
-assumptions.} Calibrating on residuals of the object that is actually deployed, with signed
-scores and a free tail allocation, gives 32.4 cycles against the layer's 30.9 on the same
-engines, with coverage $0.897$--$0.925$ against the layer's $0.842$--$0.932$.
-\item \textbf{Uncalibrated deep ensembles are the largest error in the comparison.} A
-fifteen-member ensemble reported as $\mu\pm z_{0.95}\sigma$ covers 0.485--0.553 at nominal
-0.90. Conformalising a quantile regression on the same engines repairs most of that
-(0.883--0.919) but is 14--22\,\% wider than the matched construction.
-\item \textbf{Each ingredient is priced, and none is negative.} A leave-one-out ablation at
-nominal 0.90 makes variance normalisation the largest contributor ($+5.0$ Winkler points when
-removed, CI excluding zero on three of four fleets) and object matching second ($+4.3$ and
-$+4.2$ on the two fleets where it matters), and finds no removal significantly better than the
-full construction on any fleet (Table~\ref{tab:ablation}). Proposition~\ref{prop:tail} shows
-that the tail allocation cannot invalidate the interval and that the equal-tailed convention is
-optimal only for symmetric score laws, which a capped RUL law is not.
-\item \textbf{The width ordering survives a change of backbone; the coverage level does not.}
-Recomputing every construction on a second backbone --- a 2.9 times larger LSTM, 10--21\,\%
-worse in dev RMSE --- reproduces the width ordering on all four fleets (the matched construction
-is 9--18\,\% narrower than CV+ on three, 5.4\,\% wider on the fourth) while coverage moves by up to
-0.13. Coverage at this scale is a property of the predictor--population pair, which is why the
-paper reports width beside it rather than instead of it.
+\item \textbf{The coverage rule is worth up to 0.044.} Integer-endpoint scoring and
+randomised PIT are two ways of scoring the same predictive distribution; on the frozen layer
+they differ by $+0.011$ to $+0.044$ at 0.90 and $+0.074$ to $+0.120$ at 0.50, always in the
+same direction, with no dependence on the predictor (Table~\ref{tab:convention}).
+\item \textbf{The benchmark cannot resolve most of what it is used to rank.} With 11--82
+engines per RUL bin, the smallest deviation an exact binomial test detects at family-wise
+5\,\% and 80\,\% power is 0.14--0.44; 143 engines per bin are needed for 0.10
+(Table~\ref{tab:detect}).
+\item \textbf{The calibrated object has to be the deployed object, and matching it is worth
+2--11\,\%, not more.} Fixing backbone, engines, centre, score scale and tail allocation and
+varying only the calibration sample gives 2.7--10.8\,\% on the four fleets, with one fleet
+reversing when the tail is held symmetric (Table~\ref{tab:object}).
+\item \textbf{A free tail is not free.} In a simulation with known truth it saves 16--22\,\%
+of width at equal coverage; on the benchmark it saves 0--5\,\% and reverses on one fleet; and
+making its allocation independent of the order statistics it is applied to, so the bound
+applies as stated, costs 13\,\% of width (Section~\ref{sec:tail}).
 \end{enumerate}
 
-The remainder of the paper is organised as follows. Section~\ref{sec:measure} formalises what
-a coverage number can resolve. Section~\ref{sec:construct} defines the constructions and their
-guarantees. Section~\ref{sec:protocol} fixes the experimental protocol.
-Section~\ref{sec:results} reports results on C-MAPSS, N-CMAPSS and a controlled simulation.
-Section~\ref{sec:discussion} discusses what should be reported, and Section~\ref{sec:concl}
-concludes.
+Section~\ref{sec:measure} treats the scoring rule and the detectability of a coverage claim,
+Section~\ref{sec:object} the calibrated object, Section~\ref{sec:protocol} the protocol, and
+Section~\ref{sec:results} the measurements.
 
 \section{What a Coverage Number Can Resolve}\label{sec:measure}
 
 \subsection{Two ways to score the same distribution}
 
-Let $F_i$ be a predictive distribution over the integer grid $\{0,\dots,K\}$, $K=125$, and let
-$Y_i$ be the realised RUL. An interval $[L_i,U_i]$ covers when $L_i \le Y_i \le U_i$. Two
-conventions are in use.
+Let $F_i$ be a predictive distribution over the integer grid $\{0,\dots,K\}$, $K=125$, and
+let $Y_i$ be the realised RUL. An interval $[L_i,U_i]$ covers when $L_i\le Y_i\le U_i$.
 
-\emph{Integer endpoints.} $L_i$ and $U_i$ are integers, and coverage is the empirical
-frequency of $L_i \le Y_i \le U_i$.
+\emph{Integer endpoints.} $L_i$ and $U_i$ are integers and coverage is the frequency of
+$L_i\le Y_i\le U_i$. This counts the whole atom at $Y_i$.
 
-\emph{Randomised PIT.} Draw $V_i \sim \mathrm{U}(F_i(Y_i-1), F_i(Y_i))$ and count
-$V_i \in [(1-\tau)/2, (1+\tau)/2]$. This is the probability integral transform evaluated
-inside the atom that contains the observation, and it is unbiased for the nominal level of a
-\emph{continuous} interval on the same distribution.
+\emph{Randomised PIT.} Draw $V_i\sim\mathrm{U}(F_i(Y_i-1),F_i(Y_i))$ and count
+$V_i\in[(1-\tau)/2,(1+\tau)/2]$. This is the probability integral transform evaluated inside
+the atom that contains the observation, and it is unbiased for the nominal level of a
+continuous interval on the same distribution.
 
-The two agree only when the pmf is smooth relative to the grid. For a RUL distribution that is
-censored at $K$ --- where 17\,\% of the C-MAPSS engines sit exactly at 125 --- the endpoint rule
-adds the atom and part of the neighbouring bin to every interval whose endpoint lands there.
-Writing $b_i$ for that surplus mass,
+The two agree only when the pmf is smooth relative to the grid. For a RUL distribution
+censored at $K$ --- where 17\,\% of the C-MAPSS engines sit exactly at 125 --- the endpoint
+rule adds the atom and part of the neighbouring bin to every interval whose endpoint lands
+there. Writing $b_i$ for that surplus mass,
 \begin{equation}
-\widehat{\mathrm{PICP}}_{\text{int}} - \widehat{\mathrm{PICP}}_{\text{PIT}}
-= \frac1n\sum_i b_i \;\ge\; 0,
+\widehat{\mathrm{PICP}}_{\text{int}}-\widehat{\mathrm{PICP}}_{\text{PIT}}
+=\frac1n\sum_i b_i\;\ge\;0,
 \end{equation}
-so the bias is one-sided and its size is set by how concentrated the pmf is near the endpoints.
-Table~\ref{tab:convention} reports it: 0.011--0.044 at 0.90 and 0.074--0.120 at 0.50.
-The layer discussed in Section~\ref{sec:results} would be reported as well calibrated
-(0.886--0.948) under the integer rule and as under-covering (0.842--0.932) under randomised
-PIT. Both numbers describe the same object.
+so the bias is one-sided and its size is set by how concentrated the pmf is near the
+endpoints. Table~\ref{tab:convention} reports it: 0.011--0.044 at 0.90 and 0.074--0.120 at
+0.50. Both numbers describe the same object, and a paper that reports one without saying
+which is not reporting a reproducible quantity.
+
+The bias also runs through comparisons of \emph{intervals}. Two intervals that contain the
+same pmf mass can have different endpoint coverage, because a narrower interval that avoids
+the cap is less likely to straddle an observation at the cap. Table~\ref{tab:main} therefore
+reports the endpoint rule for every construction; a mass-based column would be equal across
+the central and shortest rows by construction and could not rank them.
 
 \subsection{What \texorpdfstring{$n$}{n} engines can detect}
 
 A coverage claim is a hypothesis test. For a bin holding $n$ engines whose true coverage is
-$p_0=\tau$, the exact two-sided binomial test at level $\alpha$ rejects when the count falls
-outside its acceptance region. The smallest $p_1<\tau$ detected with power $1-\beta$ is
-\begin{equation}
-\begin{aligned}
-\dx(n) &= \tau - \max\{p : \Pr[\mathrm{Bin}(n,p)\le c_\alpha] \ge 1-\beta\},\\
-c_\alpha &= \lfloor \mathrm{Bin}^{-1}(\alpha/2; n,\tau)\rfloor .
-\end{aligned}
-\end{equation}
-The quantity depends only on how many engines fall in the bin and on the nominal level; it is
-independent of the predictor, the backbone and the interval construction. It is therefore a
-property of the \emph{benchmark}, not of the method, and it bounds what any method comparison
-on that benchmark can conclude. Table~\ref{tab:detect} evaluates it at the five RUL bins used
-in this paper, with a Bonferroni correction over the five bins.
+$p_0=\tau$, reject when the exact two-sided binomial p-value of the observed count is below
+$\alpha$; the power at an alternative $p_1$ is the binomial mass of that rejection region.
+The smallest $p_1<\tau$ detected with power $1-\beta$ is $\dx(n)=\tau-p_1$.
+
+The binomial power function is a sawtooth in $p_1$, so ``the largest alternative that reaches
+the target power'' can land on an isolated spike that is not approached from below. We
+therefore report the deviation detected \emph{reliably},
+$\tau-\max\{p_1:\text{power}(q)\ge1-\beta\ \text{for every}\ q\le p_1\}$, which is the larger
+and conservative of the two definitions. It depends only on $n$, $\tau$, $\alpha$ and $\beta$:
+not on the predictor, the backbone or the interval. It is a property of the
+\emph{benchmark}, and it bounds what any method comparison on that benchmark can conclude.
+
+Table~\ref{tab:detect} evaluates it over the five RUL strata of the test sets, with a
+Bonferroni correction over the five bins. Three caveats belong with the number. It assumes
+one query per engine and independence across engines; both hold here, because each test
+engine contributes its last observable window and the engines are distinct units. It is
+computed at $\tau=0.90$; at 0.50 the same $n$ detects a larger deviation, so the 50\,\% level
+is harder, not easier. And it is a statement about a test at a stated size and power, not a
+claim that the benchmark cannot show any difference: a paired comparison on the same engines
+resolves less than an unpaired one, which is why Section~\ref{sec:paired} reports the paired
+version.
 
 \subsection{Paired comparisons}
 
-Two intervals scored on the same engines are paired, so the relevant noise is the discordance
-count rather than the marginal standard error. We report McNemar's exact test for this. It
-matters because a difference of 0.03 in marginal coverage can be produced by 3 engines out of
-100, while the paired version of the same difference may be significant or not depending on
-whether the methods err on the same engines.
+Two intervals scored on the same engines are paired, and the engine is the independent unit.
+Replicating the predictor over seeds does not add independent engines: three seeds predicting
+the same 93 engines give three correlated readings of one unit. A paired test must therefore
+average within the engine and then test across engines, not count (engine, seed) pairs.
+Section~\ref{sec:paired} reports both, because the difference between them is itself a
+measurement result.
 
-\section{Constructing the Interval}\label{sec:construct}
+\section{The Calibrated Object}\label{sec:object}
 
-\subsection{Scores}
-
-Let $\hat y_i$ be the point prediction of the deployed model and $R_i = y_i - \hat y_i$ a
-signed residual. Two score families are standard.
-
-\emph{Equal length.} Use $s_i = |R_i|$, take $q$ the $\lceil(1-\alpha)(n+1)\rceil$-th smallest
-score, and report $[\hat y - q, \hat y + q]$. The interval is symmetric about the prediction by
-construction.
-
-Conformalised quantile regression \cite{romano2019} learns the two quantiles with a pinball
-loss instead of taking them from a residual sample; it is the construction used by the
-closest prior work \cite{crulp}, and the two are equivalent when the quantile model is
-well specified. We use the residual form because it isolates the effect of the score.
-
-\emph{Free tails.} Use the signed residuals directly and report
-$[\hat y + q_{\gamma}, \hat y + q_{1-\alpha+\gamma}]$ with $\gamma \in [0,\alpha]$. Setting
-$\gamma=\alpha/2$ gives equal-tailed probability; setting $\gamma$ to minimise
-$q_{1-\alpha+\gamma}-q_\gamma$ gives the shortest interval of mass $1-\alpha$ in the family.
-
-\begin{proposition}[The tail allocation is free, and one allocation is shortest]
-\label{prop:tail}
-Let $S_1,\dots,S_m$ be exchangeable scores, $S$ a further score from the same law, and
-$s_{(1)}\le\cdots\le s_{(m)}$ the ordered calibration scores with $s_{(0)}=-\infty$ and
-$s_{(m+1)}=+\infty$. For $\gamma\in[0,\alpha]$ set
-\begin{equation}
-L_\gamma=\hat y+s_{(\lfloor (m+1)\gamma\rfloor)},\qquad
-U_\gamma=\hat y+s_{(\lceil (m+1)(1-\alpha+\gamma)\rceil)} .
-\label{eq:tail}
-\end{equation}
-Then
-\begin{enumerate}
-\item[(i)] $\Pr[Y\in[L_\gamma,U_\gamma]]\ge 1-\alpha$ for every $\gamma\in[0,\alpha]$, so the
-allocation cannot invalidate the interval;
-\item[(ii)] $U_\gamma-L_\gamma$ is minimised, up to one rank, by the narrowest window of
-$\lceil (m+1)(1-\alpha)\rceil$ consecutive order statistics, and in the population limit the
-minimiser is characterised by $f(L)=f(U)$;
-\item[(iii)] the equal-tailed convention $\gamma=\alpha/2$ is optimal only if
-$f(q_{\alpha/2})=f(q_{1-\alpha/2})$, which fails for any skewed score law, and fails by
-construction for a capped RUL law, whose upper quantile is the atom at the cap.
-\end{enumerate}
-\end{proposition}
-
-Part (i) is the reason $\gamma$ can be treated as a free parameter rather than a modelling
-choice, and it is proved in the Appendix. Part (ii) says the free-tail family contains the
-shortest interval, so the equal-tailed convention pays for a symmetry the data need not have.
-Part (iii) is the measurement target of this paper: whether the price is large is an empirical
-question, and Section~\ref{sec:results} reports both signs --- the free tail wins on two fleets
-and loses on two, which is exactly what a convention that is not a theorem should do.
-
-\subsection{Shortest versus central}
-
-For a predictive distribution rather than a score sample --- the case of the parametric layer
-here, and of the analytically derived first-hitting-time densities in
-\cite{wang2025svsdm} --- the analogue of the choice is between the central interval, defined
-by equal tail mass, and the shortest interval of mass $\tau$,
-\begin{equation}
-[L_i,U_i] = \arg\min_{a \le b}\;(b-a)\ \ \text{s.t.}\ \ F_i(b)-F_i(a^-) \ge \tau .
-\end{equation}
-The two coincide only for symmetric unimodal pmfs. For a censored RUL pmf they do not, and the
-gap is a pure convention cost: the coverage of the pair is identical because both contain mass
-$\tau$ of the same distribution.
-
-\subsection{Which object is calibrated?}
-
-Split conformal \cite{vovk2005} with a calibration set of size $m$ guarantees
-$\Pr[Y \in [L,U]] \ge 1-\alpha$ for exchangeable data, with the finite-sample correction used
-above. CV+ \cite{barber2021} extends the guarantee to the case where the predictor must be
-trained on the same data that calibrates it: for each calibration point $i$ held out by fold
-$k(i)$, the endpoint set is $\{\hat y_{-k(i)}(x) + R_i\}$, and the interval is a quantile of
-that set. Barber et al.\ prove coverage $\ge 1-2\alpha$ for this construction.
+Split conformal \cite{vovk2005} with $m$ calibration scores guarantees coverage for
+exchangeable data. CV+ \cite{barber2021} extends the guarantee to the case where the
+predictor is trained on the same data that calibrates it: for each calibration engine $i$
+held out by fold $k(i)$, the endpoint set is $\{\hat y_{-k(i)}(x)+R_i\}$ and the interval is a
+quantile of that set.
 
 The construction calibrates the object $\hat y_{-k}$, a model trained on a $(1-1/K)$ fraction
 of the data. If what is deployed is the average of the $K$ fold models --- the natural choice,
-and the one used by every ensemble in this paper --- then the calibrated object and the
-deployed object differ by exactly the fold spread. The interval inherits that spread as a
-fixed width penalty in cycles, which is invisible at $\tau=0.90$ and dominant at $\tau=0.50$.
+and the one used throughout --- then the calibrated object and the deployed object differ.
+Whether that difference matters, and how much, is an empirical question;
+Section~\ref{sec:objectexp} answers it by holding everything else fixed.
 
-\emph{Matched object.} With repeated cross-fitting the mismatch can be removed at no extra
-cost. If the same partition is used for $S$ seeds, engine $i$ in fold $k$ is excluded from
-$S$ models, one per seed, and their average is an ensemble that has never seen $i$. Calibrating
-on the residuals of that ensemble and centring on the full $K\times S$ ensemble gives a score
-whose law matches the deployed object up to the ensemble size ($S$ versus $KS$ members).
+\subsection{Guarantee and scope}\label{sec:prop}
 
-We call the resulting construction \EAC{} (ensemble-aware conformal): matched-object residuals,
-signed scores, optional variance normalisation, and a tail allocation $\gamma$ chosen to
-minimise the empirical width. Each component is ablated in Section~\ref{sec:results}.
+\begin{proposition}[Asymmetric split conformal; \cite{vovk2005,romano2019}]
+\label{prop:tail}
+Let $S_1,\dots,S_m,S$ be exchangeable scores with $s_{(1)}\le\cdots\le s_{(m)}$ the ordered
+calibration values and the conventions $s_{(0)}=-\infty$, $s_{(m+1)}=+\infty$. For
+$\gamma\in[0,\alpha]$ set
+\begin{equation}
+L_\gamma=\hat y+s_{(\lfloor(m+1)\gamma\rfloor)},\qquad
+U_\gamma=\hat y+s_{(\lceil(m+1)(1-\alpha+\gamma)\rceil)} .
+\label{eq:tail}
+\end{equation}
+\begin{enumerate}
+\item[(i)] $\Pr[Y\in[L_\gamma,U_\gamma]]\ge1-\alpha$ for every $\gamma\in[0,\alpha]$.
+\item[(ii)] If $\hat\gamma$ is a function of a sample independent of $S_1,\dots,S_m,S$, then
+(i) holds with $\gamma=\hat\gamma$.
+\item[(iii)] If $\hat\gamma$ is chosen from $S_1,\dots,S_m$ together with the same order
+statistics that (i) relies on, (i) need not hold.
+\item[(iv)] With a continuous score density $f$, $\gamma\mapsto U_\gamma-L_\gamma$ is
+stationary where $f(L_\gamma)=f(U_\gamma)$. The equal-tailed choice $\gamma=\alpha/2$
+satisfies this condition if and only if $f(q_{\alpha/2})=f(q_{1-\alpha/2})$, which symmetry
+implies and skewness neither implies nor excludes. For a score law with an atom at the upper
+support the condition can hold on an interval of $\gamma$, in which case the width is flat
+rather than improved.
+\end{enumerate}
+\end{proposition}
 
-\subsection{Guarantees and what they do not cover}
+Part (i) is the standard split-conformal rank argument with unequal tails; (ii) is (i)
+conditioned on $\hat\gamma$; (iii) is why a data-chosen allocation needs its own accounting,
+and Section~\ref{sec:tail} prices it. Part (iv) is a first-order condition, not a theorem
+about asymmetry: equal tails is \emph{not} suboptimal for skewed laws in general, and a cap
+does not by itself make it suboptimal. Whether the condition fails, and how much width that
+costs, is measured in Section~\ref{sec:tail}.
 
-For exchangeable calibration and deployment data, split conformal gives
-$\Pr[Y\in[L,U]] \ge 1-\alpha$ for any fixed $\gamma$ (Proposition~\ref{prop:tail}), so the tail
-allocation cannot invalidate the guarantee. Choosing $\gamma$ from the same sample is a
-selection, and the simulation prices it at 0.0016 of coverage at $m=2000$ (nominal 0.90) and
-0.009 at $m=200$ (nominal 0.50); a five-fold choice inside the calibration set, scored by the
-out-of-fold interval score, returns 0.9005 at $m=2000$, within 0.001 of the fixed-$\gamma$
-reference (Section~\ref{sec:ablation}). The guarantee is marginal:
-it says nothing about coverage conditional on the predicted RUL, and
-Section~\ref{sec:measure} shows that on these benchmarks nothing could.
+Two remarks on the implementation. The grid for $\gamma$ is restricted to
+$[1/(m+1),\alpha-1/(m+1)]$ so that both endpoints are finite order statistics; at the two ends
+\eqref{eq:tail} uses $\pm\infty$ and the proof no longer describes the code. And clipping the
+interval to $[0,125]$ cannot reduce coverage, because $Y$ lies in the support by construction,
+so the clip is applied everywhere without further comment.
 
 \section{Protocol}\label{sec:protocol}
 
 \subsection{Data}
 
-\emph{C-MAPSS} \cite{saxena2008}: four fleets (FD001--FD004), 100 training engines each, and
-93/235/97/228 test engines, 653 in total. Each test engine contributes one query, taken from
-its last observable 50-cycle window, which is the deployment query a maintenance system would
-issue. FD002 and FD004 mix six operating conditions.
+\emph{C-MAPSS} \cite{saxena2008}: four fleets with 100, 260, 100 and 248 training engines and
+93, 235, 97 and 228 test engines, 653 in total. Each test engine contributes one query, its
+last observable 50-cycle window, which is the query a maintenance system would issue. FD002
+and FD004 mix six operating conditions.
 
 \emph{N-CMAPSS} \cite{arias2021}: nine fleets (DS01--DS08c, DS08d excluded on data-integrity
-grounds), 60 development and 39 test units, 2\,587 cycle-level test queries. The RUL cap is not
-active in this dataset (maximum true RUL 50--90), so the censoring convention that dominates
-C-MAPSS is absent; this makes it a useful contrast rather than a replication.
+grounds), 60 development units and 39 test units, 2\,587 cycle-level test queries. The RUL cap
+is inactive, so the censoring convention that dominates C-MAPSS is absent. This makes it a
+contrast rather than a replication.
 
-\subsection{Backbone and folds}
+\subsection{One deployed object, one calibration sample}
 
-The C-MAPSS backbone has 41\,858 parameters; it is trained with five engine-level folds and
-three seeds per fold, giving 15 models per fleet. Development predictions are out-of-fold and
-one row per engine, built with the same feature pipeline as the test predictions. The
-N-CMAPSS backbone is the 54-64-32-1 network frozen in the earlier protocol, with
-leave-one-unit-out development predictions and three seeds.
+The protocol is fixed in one place and every table imports it, because an earlier version of
+this study used three objects for the same claim and the discrepancy was not visible in the
+tables.
 
-Two artefact checks precede every result. The 15 fold models' test predictions average to the
-published ensemble prediction within $2.1\times10^{-7}$; the test target vector agrees with the
-frozen layer's target on every engine.
+\emph{Deployed object.} The mean of all 15 models (5 engine-level folds $\times$ 3 seeds).
+One object, not an average over three seed-specific objects.
 
-\subsection{Metrics and statistics}
+\emph{Calibration object.} One score per \emph{engine}. For the matched arm
+$R_i=y_i-\frac1S\sum_s\hat y_{-k(i),s}(x_i)$, the average of the three seed models that never
+saw engine $i$ --- the largest clean ensemble the fold structure can produce, against the 15
+that are deployed. For the CV+ arm $R_i=y_i-\hat y_{-k(i),s(i)}(x_i)$, one model per engine,
+with the seed cycling so all three contribute.
 
-Coverage is reported twice: randomised PIT for distributions, plain frequency for intervals.
-Width is the mean of $U-L$ in cycles. The interval score of Winkler \cite{ginting2007}, one of the standard prognostic metrics \cite{saxena2010}, with
-$\alpha=0.10$ is reported as a sharpness measure that penalises misses. Uncertainty on a
+\emph{Scale.} $\sigma(\hat y)=\mathrm{softplus}(a+b\hat y/125)\cdot20+1$, fitted by Gaussian
+negative log-likelihood on that arm's own residuals, so no arm borrows another's scale.
+
+\emph{Tail.} $\gamma=\alpha/2$ unless stated. Where $\gamma$ is chosen from data it is chosen
+on an interior grid and, in the \emph{split} variant, on a fixed half of the calibration
+engines, with the interval built on the other half.
+
+\emph{Metrics.} Coverage is the integer-endpoint frequency for every construction; the
+mass-based figure is carried as a diagnostic. Width is the mean of $U-L$ in cycles. The
+interval score of Winkler \cite{ginting2007}, a standard prognostic metric \cite{saxena2010},
+is reported at $\alpha=0.10$ because it penalises width and misses jointly. Uncertainty on a
 coverage is the Wilson interval \cite{wilson1927}; uncertainty on a width, and on a difference
-of widths, is a bootstrap over engines (2\,000 resamples), because the engine is the
-independent unit and resampling windows would understate the interval by the design effect.
+of widths, is a bootstrap over \emph{engines} (2\,000 resamples).
+
+\emph{No test label is read during calibration.} On N-CMAPSS this required a change: an
+earlier version calibrated the pooled construction on other fleets' \emph{test} residuals,
+which is a leak. The pooled result here is fixed on all development residuals ($n=3\,995$
+cycles) and applied once to the test queries.
 
 \subsection{Simulation}
 
 The benchmark cannot check nominal coverage, so a simulation with known truth does. The
-generator draws a degradation path $Y_0=125(1-u)$, $u\sim\mathrm{U}(0,1)$, a lattice
-observation $Y=\min\{\mathrm{round}(Y_0+\varepsilon),125\}$ with $\varepsilon\sim N(0,9^2)$, and
-a deliberately biased predictor $\hat y = 1.06\,Y_0 + \eta + 4$ with $\eta\sim N(0,5.5^2)$,
-left unclipped so that over-prediction near the cap produces the same one-sided residuals as
+generator draws $Y_0=125(1-u)$, $u\sim\mathrm{U}(0,1)$, a lattice observation
+$Y=\min\{\mathrm{round}(Y_0+\varepsilon),125\}$ with $\varepsilon\sim N(0,9^2)$, and a
+deliberately biased predictor $\hat y=1.06Y_0+\eta+4$ with $\eta\sim N(0,5.5^2)$, left
+unclipped so that over-prediction near the cap produces the same one-sided residuals as
 C-MAPSS. Each configuration is repeated 200 times with a fresh test set of 4\,000 engines.
 
 \section{Results}\label{sec:results}
 
 \begin{table*}[t]
 \centering
-\caption{Interval constructions on the four C-MAPSS fleets at nominal 0.90. Coverage is the
-empirical frequency on the 653 test engines, mean over three seeds; width is in cycles;
-$|\Delta|$ is the mean absolute deviation from 0.90 across fleets and ``spread'' is the
-difference between the best and worst fleet. Winkler is the interval score at $\alpha=0.10$
-(lower is better). The frozen layer is scored with randomised PIT, which is the unbiased
-convention; its integer-endpoint score is 0.886--0.948.}
+\caption{Constructions on the four C-MAPSS fleets at nominal 0.90, one protocol, one deployed
+object (15 models). Coverage is the integer-endpoint frequency on 653 test engines; width is
+in cycles; $|\Delta|$ is the mean absolute deviation from 0.90 across fleets. Winkler is the
+interval score at $\alpha=0.10$, lower is better. The mass-based coverage of the two layer
+rows is 0.90 for both by construction (0.925/0.869/0.932/0.842 as a randomised-PIT
+diagnostic), which is why it cannot rank them.}
 \label{tab:main}
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{lccccccc}
 \toprule
-Construction & FD001 & FD002 & FD003 & FD004 & $|\Delta|$ & spread & width / Winkler\\
+Construction & FD001 & FD002 & FD003 & FD004 & $|\Delta|$ & Winkler & width\\
 \midrule
-Frozen layer, central          & 0.925 & 0.869 & 0.932 & 0.842 & 0.037 & 0.090 & 30.9 / 41.0\\
-Frozen layer, shortest         & 0.925 & 0.869 & 0.932 & 0.842 & 0.037 & 0.090 & \textbf{27.7} / 43.7\\
+Layer, central                 & 0.935 & 0.902 & 0.948 & 0.886 & 0.025 & \textbf{41.0} & 30.9\\
+Layer, shortest                & 0.914 & 0.885 & 0.907 & 0.873 & 0.016 & 43.7 & \textbf{27.7}\\
 \midrule
-Split, equal length            & 0.892 & 0.918 & 0.899 & 0.908 & 0.009 & 0.026 & 36.7 / 52.7\\
-Split, free tails              & 0.900 & 0.938 & 0.932 & 0.927 & 0.024 & 0.039 & 43.1 / 55.1\\
-CV+, equal length              & 0.914 & 0.943 & 0.893 & 0.943 & 0.027 & 0.050 & 35.3 / 48.9\\
-CV+, free tails                & 0.903 & 0.928 & 0.893 & 0.934 & 0.018 & 0.041 & 36.3 / 49.7\\
-\EAC{}, equal length           & 0.885 & 0.922 & 0.883 & 0.942 & 0.024 & 0.058 & 31.4 / 45.8\\
-\EAC{}, equal-tailed           & 0.882 & 0.909 & 0.880 & 0.925 & 0.018 & 0.046 & 32.2 / 47.3\\
-\EAC{} (free tails)            & 0.925 & 0.913 & 0.897 & 0.917 & \textbf{0.014} & \textbf{0.028} & 32.4 / \textbf{45.2}\\
+CV+, symmetric                 & 0.892 & 0.936 & 0.897 & 0.934 & 0.020 & 44.9 & 31.9\\
+CV+, equal tails               & 0.892 & 0.936 & 0.887 & 0.925 & 0.021 & 46.5 & 32.7\\
+Matched, symmetric             & 0.882 & 0.928 & 0.897 & 0.947 & 0.024 & 45.3 & 31.4\\
+Matched, equal tails           & 0.892 & 0.923 & 0.887 & 0.930 & \textbf{0.019} & 46.8 & 32.2\\
+Matched, free tail             & 0.914 & 0.919 & 0.887 & 0.917 & 0.016 & 45.1 & 31.9\\
+Matched, free tail, half-split & 0.925 & 0.923 & 0.876 & 0.947 & 0.030 & 47.4 & 36.0\\
+Matched, free tail, no scale   & 0.892 & 0.940 & 0.907 & 0.895 & 0.015 & 49.6 & 34.6\\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{Width}
+Table~\ref{tab:main} is the whole comparison on one protocol. Three readings are available
+and only one of them is favourable to the conformal family.
 
-Table~\ref{tab:main} orders the constructions by mean width. Three regimes are visible.
+\emph{Sharpness.} The frozen 66-parameter layer is the narrowest object at 30.9 cycles and has
+the best interval score at 41.0. Its shortest-interval variant is narrower still at 27.7, but
+that is a different object (Section~\ref{sec:tail}). Among the conformal constructions the
+spread is 31.4--36.0 cycles, so the layer remains the sharpest thing in the table. This is not
+the result the study was designed to find and it is the one that constrains the conclusions
+most.
 
-The frozen 66-parameter layer is the sharpest object, at 30.9 cycles, and the shortest-interval
-rule applied to its own predictive distribution takes it to 27.7 --- 10.4\,\% narrower at
-\emph{identical} randomised coverage, because both intervals carry 0.90 of the same pmf. This
-is the first pure convention cost: the central interval is the customary summary of a
-predictive distribution, and on a censored RUL pmf it is not the cheapest summary of the same
-information.
+\emph{Calibration stability.} The layer's $|\Delta|$ is 0.025; the conformal family spans
+0.016--0.030. An earlier draft reported a factor-of-three advantage for the conformal family;
+it does not survive the switch to a single scoring rule, on which the layer over-covers on
+three fleets and under-covers on one, and its spread is the same size as the others'.
 
-Among conformal constructions, the matched-object family is 31.4--32.4 cycles and the CV+
-family 35.3--36.3, an 11\,\% difference for the same guarantee. The gap is the fold spread:
-CV+ calibrates the model trained on $4/5$ of the data and deploys the average of five, so it
-must cover the difference. Split conformal with a single fold model, which is neither object,
-pays a further penalty (36.7--43.1) because its centre is a weaker predictor.
+\emph{Cost.} The matched free-tail construction at 31.9 cycles is 3.2\,\% wider than the
+layer's 30.9 and 2.3 Winkler points worse. That is the honest size of the gap: small, and in
+the layer's favour.
 
-Between equal length and free tails there is no consistent winner on this benchmark
-(31.4 versus 32.2--32.4, i.e.\ within 3\,\%), for the reason given in
-Section~\ref{sec:construct}: the C-MAPSS residual law is sharply peaked, and the $90$th
-percentile of $|R|$ sits below the $95$th percentile of $R$. The sign reverses on data where
-the residuals are diffuse; Section~\ref{sec:ncmapss} reports 19\,\% in favour of free tails
-there, and the simulation 15--19\,\%.
+\subsection{The tail allocation, and what a guarantee costs}\label{sec:tail}
 
-\subsection{Coverage}
+Between equal tails and a free allocation on the matched arm the widths are 32.2 and 31.9
+(+0.9\,\% on average), with per-fleet changes of $+5.0$, $+4.2$, $0.0$ and $-4.3\,\%$: the sign
+reverses on FD004 and the mean hides it. Proposition~\ref{prop:tail}(iv) explains why this is
+not a paradox --- $f(L)=f(U)$ is an equality that a given score law may or may not satisfy ---
+and the simulation shows what happens when it is satisfied.
 
-The layer's coverage ranges 0.842--0.932 across the four fleets, a spread of 0.090. Two of the
-four fleets are below nominal by 0.03--0.06, and with $n=228$ on FD004 that is 2.9 binomial
-standard errors: the layer is not merely noisy, it is wrong on two fleets and conservative on
-the other two. The conformal constructions compress the range to 0.026--0.058. \EAC{} gives
-0.897--0.925 with $|\Delta| = 0.014$; the equal-length split construction gives
-$|\Delta| = 0.009$ but pays 4.3 cycles of width for it.
+There, where calibration and deployment are exchangeable and the score law is known, the free
+tail saves 16\,\% of width at nominal 0.90 (31.3 against 37.4 cycles at coverage 0.901 for
+both) and 22\,\% at 0.50 (13.1 against 16.6, at 0.506 and 0.510). The mechanism is real. On the
+benchmark it does not materialise, and what differs between the two settings is the
+exchangeability assumption, not the construction.
 
-No construction is uniformly best, and the table should be read as a frontier rather than a
-ranking: sharpness (layer-shortest, 27.7), calibration stability (split equal-length, 0.009),
-and the compromise between them (\EAC{}, 32.4 / 0.014). The Winkler score prefers the layer
-(41.0), because its heteroscedastic shape concentrates width where the residuals are large,
-which is the one property the conformal constructions cannot borrow without a variance model.
+The guarantee is a separate matter from the width. Choosing $\gamma$ on the same sample that
+supplies the order statistics is a selection, and Proposition~\ref{prop:tail}(iii) says the
+bound does not carry over. The \emph{half-split} variant restores it honestly: $\gamma$ is
+chosen on a fixed half of the calibration engines and the interval is built on the other half,
+so $\gamma$ is independent of the scores it is applied to and (ii) applies. The price is
+13\,\% of width (31.9 to 36.0) and 2.3 Winkler points. A paper that reports a free tail without
+that split is reporting the width of a selected interval against the guarantee of a fixed one.
 
-The paired version of these comparisons, promised in Section~\ref{sec:measure}, changes what
-they say. The matched construction with a symmetric band and the same construction with a free
-tail carry the same 0.90 mass, so any gap between them is pure convention. On FD001 the two
-disagree on 11 of 279 engine-observations, every one of them in favour of the free tail (exact
-McNemar $p = 0.001$); on FD004 they disagree on 43 of 684, 30 to 13 the other way
-($p = 0.014$). The same two rules are thus significantly better and significantly worse on
-different fleets at the same nominal level. FD002 (24 discordant, $p = 0.31$) and FD003 (4,
-$p = 0.13$) do not reject. A marginal table gives one number per fleet and hides the fact that
-the two rules err on different engines, which is the reason the positive increments in
-Table~\ref{tab:ablation} coexist with the negative ones.
-
-\subsection{Standard baselines}
-\label{sec:baselines}
+\subsection{The calibrated object, controlled}\label{sec:objectexp}
 
 \begin{table*}[t]
 \centering
-\caption{Baselines a practitioner would deploy, at nominal 0.90, on the same 15 models, the
-same 100 calibration engines and the same test engines as Table~\ref{tab:main}. Coverage is
-the empirical frequency, mean width in cycles, $|\Delta|$ the mean absolute deviation from
-0.90 across fleets; all three share the ensemble centre $\bar\mu$ as the point prediction and
-differ only in the interval rule.}
-\label{tab:baseline}
-\begin{tabular}{lcccccccc}
-\toprule
-Method & FD001 & FD002 & FD003 & FD004 & $|\Delta|$ & width & Winkler\\
-\midrule
-Deep ensemble $\pm z_{0.95}\sigma$, no offset & 0.548 & 0.528 & 0.485 & 0.553 & 0.372 & 12.6 & 74.7\\
-Quantile regression, no offset                & 0.808 & 0.809 & 0.739 & 0.787 & 0.114 & 34.1 & 50.0\\
-CQR \cite{romano2019}                         & 0.909 & 0.919 & 0.883 & 0.890 & 0.014 & 37.2 & 48.1\\
-\EAC{} (free tails)                           & 0.925 & 0.913 & 0.897 & 0.917 & 0.015 & 32.4 & 45.2\\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-Table~\ref{tab:baseline} places the constructions that are actually deployed next to the
-proposed one. Three are worth separating.
-
-A fifteen-member deep ensemble scored as $\mu\pm z_{0.95}\sigma$ covers 0.485--0.553. At a
-nominal 90\,\% level it misses half the fleet, and the failure is structural rather than a
-tuning error: the members share their training data, so their spread measures seed variance
-and not predictive error, and averaging fifteen correlated models makes the mean much more
-accurate than the spread of its members. (Using five members instead of fifteen lowers
-coverage further, to 0.416--0.504, so the reported baseline is the stronger of the two.)
-Reporting that band as a 90\,\% interval understates the error by a factor of two, and since
-the same recipe is common in the RUL literature it is worth stating as a measurement result:
-the width of an uncalibrated ensemble band is not an uncertainty.
-
-Quantile regression on the predicted RUL, fitted by linear programming on the same
-out-of-fold engines, reaches 0.739--0.809 on its own. The conformal offset is what buys the
-guarantee: CQR \cite{romano2019} reaches 0.883--0.919 at 32.8--41.6 cycles, i.e.\ the offset
-repairs 10--14 coverage points and costs 1.4--4.7 cycles of width relative to the uncalibrated
-quantile model. Both are fitted as a hinge basis in the predicted RUL with two knots and
-cross-fitted over two halves of the calibration engines, so that no engine is used both to fit
-the quantile function and to set the offset; a quadratic basis was tried first and rejected
-because the resulting collinearity made the linear programme return a degenerate vertex
-(intervals 30\,\% too narrow at nominal 0.90).
-
-Against that baseline the matched construction is 14--22\,\% narrower at equal or better
-coverage on three of four fleets, and level on FD004 (41.9 against 41.6, where the fleet's
-six operating conditions put most of the width in the same place). Fleet-averaged stability is
-a tie ($|\Delta| = 0.015$ against 0.014): CQR is a strong baseline on calibration and the
-difference between the two is sharpness, not validity. At nominal 0.50 CQR
-returns 0.393--0.556 against 0.392--0.512 for \EAC{}: both are far from 0.50, for the reason
-discussed in Section~\ref{sec:discussion}, and neither should be read as a validated 50\,\%
-statement at this sample size.
-
-\subsection{Level consistency}\label{sec:levels}
-
-A convention that pays at one nominal level only is not a convention. Table~\ref{tab:levels}
-repeats the two width comparisons at four levels.
-
-\begin{table*}[t]
-\centering
-\caption{Relative width change at four nominal levels, in percent; positive means the second
-construction is narrower. Left: the parametric layer's central interval against its shortest
-interval of the same mass --- the pure convention cost, at identical randomised coverage.
-Right: the matched construction against CV+ at the same level --- the object-matching gain.
-Entries are per-fleet ratios; the fleet-mean ratio gives 10.4\,\% at 0.90, against 10.3 for the
-mean of the four ratios below.}
-\label{tab:levels}
-\small
-\setlength{\tabcolsep}{4.5pt}
-\begin{tabular}{lcccc|cccc}
-\toprule
-& \multicolumn{4}{c|}{central $\to$ shortest, layer} & \multicolumn{4}{c}{matched against CV+}\\
-\cmidrule(lr){2-5}\cmidrule(lr){6-9}
-Level & FD001 & FD002 & FD003 & FD004 & FD001 & FD002 & FD003 & FD004\\
-\midrule
-0.50 & 29.6 & 30.3 & 35.9 & 35.8 & 15.1 & 19.1 & 25.1 & 21.8\\
-0.80 & 13.8 & 14.2 & 15.8 & 16.7 & 21.9 & 18.4 & 7.9 & 8.1\\
-0.90 & 9.4 & 10.1 & 10.3 & 11.5 & 17.3 & 21.3 & 0.8 & $-7.9$\\
-0.95 & 7.4 & 7.9 & 7.5 & 8.7 & 18.9 & 18.3 & $-5.3$ & 0.3\\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-The convention cost of the tail split is monotone in the level: 32.9\,\% at 0.50, 15.1 at 0.80,
-10.3 at 0.90 and 7.9 at 0.95, with the fleet spread shrinking from 6.2 to 1.3 points over the
-same range. The mechanism is the cap. Once $1-\alpha$ is wide enough that the central interval
-must reach the atom at 125 anyway, where the remaining mass is placed matters less, and the
-quadruple $(\gamma,\alpha-\gamma)$ buys correspondingly less. Quoting the cost at 0.90 alone
-therefore hides a factor of three against the 0.50 interval.
-
-The object-matching gain has no such trend: 20.3\,\% at 0.50, 14.1 at 0.80, 7.9 at 0.90 and 8.1
-at 0.95, positive on all four fleets at the two tighter levels and negative on one fleet at each
-of the two looser ones. The numerator of that ratio is the fold spread, which is set in cycles
-by the training set, and it does not grow with the residual quantile the way the denominator
-does.
-
-At 0.95 the ordering against the parametric layer also changes, and this is the one place where
-the table should not be read as a win. The layer is narrower on three of four fleets
-(35.9--36.1 cycles against 40.5--48.2) while covering 0.901--0.973 against 0.932--0.983; on
-FD004 it is 12.1 cycles narrower and 4.9 coverage points short of the level. The narrowest
-intervals in the table at a nominal 0.95 belong to the construction that misses that level by
-the widest margin, which is the paper's argument in a single comparison.
-
-At nominal 0.50 the ranking changes again. The layer returns 0.496 on average
-(0.517/0.523/0.524/0.420); CV+ returns 0.560 (up to 0.638 on FD002) because the fold-spread
-penalty is fixed in cycles and therefore relatively larger on a 12-cycle interval; \EAC{}
-returns 0.464, with FD003 at 0.392 as its worst case. On this benchmark no conformal
-construction is reliable at 50\,\%, and we report that as a limit rather than tuning it away:
-with 93--235 engines the $q_{25}$ and $q_{75}$ of the residual law carry sampling error of
-$\pm 0.03$--$0.05$ in coverage, and the two populations differ by more than that
-(Section~\ref{sec:discussion}). That gap is a covariate shift; weighted conformal
-\cite{tibshirani2019} and the non-exchangeable bound of \cite{barber2023} say what a guarantee
-becomes when it is present. We use the bound as the explanation of the fleet-to-fleet variation
-rather than as a correction, because the weights cannot be estimated reliably at 100 engines.
-
-\subsection{N-CMAPSS}\label{sec:ncmapss}
-
-On the independent benchmark, with leave-one-fleet-out calibration and a bootstrap over the 39
-test units, the matched construction returns coverage 0.896 (95\,\% interval
-$[0.840,0.942]$) at nominal 0.90 and 0.493 ($[0.429,0.557]$) at nominal 0.50, with widths 39.0
-and 13.2. The equal-length construction returns 0.945 and 0.750 at widths 48.4 and 25.8: it
-over-covers by 0.05 and 0.25 while being 19\,\% and 49\,\% wider. This is the clearest evidence
-in the paper for the free-tail construction, and it comes from data where the RUL cap is
-inactive, so it is not an artefact of the C-MAPSS censoring convention.
-
-\subsection{Simulation}
-
-With known truth (Fig.~\ref{fig:sim}), both families are valid: the equal-length band returns
-0.899--0.902 at nominal 0.90 and 0.508--0.510 at nominal 0.50, and the free-tail band 0.899--0.906
-and 0.505--0.509. The difference is width: 31.3 versus 37.4 cycles at 0.90 (16\,\% narrower) and
-13.1 versus 16.6 at 0.50 (21\,\% narrower). The tail allocation $\gamma$ chosen on the same
-sample returns 0.898 and 0.501, i.e.\ the selection costs 0.002--0.005 of coverage, and saves a
-further 0.1--0.2 cycles.
-
-The simulation also fixes the interpretation of the real-data result. Because the generator's
-residuals are diffuse, free tails win by 16\,\%; because C-MAPSS residuals are peaked, they do
-not. Neither outcome is a property of conformal prediction. Both are properties of the score
-law, and the honest procedure is to look at it.
-
-\subsection{Decision consequences}
-
-At a planning horizon of 30 cycles, an engine is flagged when its upper bound falls inside the
-window. On FD003 the late-alarm rate (true RUL $<$ 30 and not flagged) is 0.103 for \EAC{} and
-0.096 for the equal-length band; on FD004, 0.187 versus 0.228 at the same horizon. The
-differences track the upper endpoint, not the coverage: a construction that is wider on the
-upper side flags earlier and is late less often, at the cost of flagging engines that did not
-need it. We report the pair rather than a single cost because the trade is a policy choice.
-
-\subsection{Ablations}\label{sec:ablation}
-
-Table~\ref{tab:ablation} removes one ingredient at a time from \EAC{} and leaves the other
-three in place, recomputing the free tail inside each variant because the allocation is part
-of that variant's definition. The metric is the Winkler interval score at nominal 0.90, which
-is the joint criterion: width alone would rank the symmetric band first (31.3 cycles mean
-against 32.4) even though it scores worse on the interval score, because it puts its mass on
-the wrong tail. Each entry is the change relative to \EAC{}, positive meaning the removal
-hurts, with an engine-level block bootstrap 95\,\% CI.
-
-Variance normalisation is the ingredient that pays: removing it costs $+5.0$ Winkler points
-on average, $+10.4$ on FD001, and the CI excludes zero on three of four fleets. Object
-matching is second ($+0.9$ on average) and is the one that matters on the two fleets where the
-fold spread is small relative to the ensemble residual (FD001 $+4.3$, FD003 $+4.2$, both CIs
-excluding zero). The sign and the tail allocation matter only on FD001. No removal is
-significantly better than \EAC{} on any fleet: all seven negative increments have CIs that
-include zero, and the largest of them, $-3.1$ on FD004 for object matching, means that on a
-fleet with six operating conditions the fold-matched construction is as good, not better.
-
-The construction costs 0.02\,ms per query on 100 calibration scores and 228 test engines,
-against seconds for the backbone forward pass, so the interval layer is free in deployment.
-Two variants were tried and are not used: replacing the two-parameter variance function with a
-binned median-absolute-deviation scale is worse on three of four fleets, and replacing the
-paired split set with the union over all fold--residual pairs changes the width by
-$-4$ to $+6$\,\% with no coverage gain.
-
-The free tail deserves a separate note because it is the only ingredient whose value is chosen
-from data rather than fixed by construction. In the simulation, where calibration and
-deployment are exchangeable, selecting $\gamma$ on the calibration sample costs 0.002 of
-coverage at $m=2000$ (0.8984 against 0.9006 for equal tails), and a five-fold choice inside the
-calibration set, scored by the out-of-fold interval score, returns 0.9005. On the benchmark the
-same rule is 5.0 Winkler points worse on average than the in-sample choice, and it disagrees
-with it by up to 0.078 of the admissible range of $\gamma$ (0.012 against 0.090 on FD001):
-calibration and deployment are not exchangeable there, and the allocation is precisely the
-degree of freedom that reads the difference. The free tail is therefore reported as an upper
-bound, and the ablation above, which never sees the test set, as the lower one.
-
-\begin{table*}[t]
-\centering
-\caption{Leave-one-out ablation of \EAC{} at nominal 0.90. Each column removes one ingredient
-and recomputes the rest, including the tail allocation. Entries are the change in Winkler
-interval score relative to the full construction, positive meaning the removal hurts, with a
-95\,\% engine-level block bootstrap CI in brackets. Reference row: \EAC{} absolutes. The
-symmetric band is 3\,\% narrower on average yet scores worse, because width is not the
-objective it is often taken to be.}
-\label{tab:ablation}
-\small
-\setlength{\tabcolsep}{4.5pt}
-\footnotesize
-\begin{tabular}{lcccc|c}
-\toprule
-Removed & FD001 & FD002 & FD003 & FD004 & mean\\
-\midrule
-\multicolumn{6}{l}{\EAC{} absolute: coverage / width / Winkler at nominal 0.90}\\
-\multicolumn{6}{l}{\quad 0.925/28.0/36.4 \quad\ 0.913/31.9/44.2 \quad\ 0.897/27.9/43.0
-\quad\ 0.917/41.9/57.3}\\
-\midrule
-object matching & $+4.3\,[2.4,\,6.3]$ & $-1.8\,[-4.2,\,0.2]$ & $+4.2\,[0.2,\,8.1]$
-& $-3.1\,[-7.7,\,1.4]$ & $+0.9$\\
-variance normalisation & $+10.4\,[4.6,\,17.4]$ & $+7.4\,[5.1,\,9.5]$ & $+2.8\,[1.7,\,4.0]$
-& $-0.6\,[-2.2,\,1.2]$ & $+5.0$\\
-the sign & $+5.1\,[0.4,\,10.6]$ & $-1.4\,[-3.8,\,0.7]$ & $+1.3\,[-0.6,\,3.3]$
-& $-2.5\,[-7.5,\,2.3]$ & $+0.6$\\
-the free tail & $+9.5\,[2.1,\,17.2]$ & $-1.2\,[-4.2,\,1.5]$ & $+2.6\,[-0.2,\,5.5]$
-& $-2.6\,[-5.3,\,0.3]$ & $+2.1$\\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\subsection{A second backbone}\label{sec:backbone}
-
-Every number so far comes from one network. To separate the conventions from the model, the
-whole construction set was recomputed on a second backbone: a two-layer bidirectional LSTM with
-additive attention pooling, 119\,490 parameters against 41\,858, trained on the same engine
-folds with the same fold-wise scalers, the same deployment cutoffs and the same three seeds.
-It is a weaker predictor --- dev RMSE 13.1/15.3/12.7/15.4 against 11.1/13.9/10.5/13.9 --- which
-makes it a harder test, not an easier one.
-
-Two things replicate and one does not. The width ordering replicates on all four fleets:
-\EAC{} is $9.1$, $17.9$ and $10.0\,\%$ narrower than CV+ on FD001--FD003 and $5.4\,\%$ wider on
-FD004, the same sign pattern as the primary backbone ($17.2$, $21.4$, $0.7$ and $-8.0\,\%$).
-The gap to the parametric layer replicates too, and widens: on the second backbone the layer
-covers 0.803--0.905 at widths of 38.4--62.8, and \EAC{} is $4$--$37\,\%$ narrower than it.
-
-What does not replicate is the coverage level. On the same engines, the same rules and the same
-nominal level, coverage falls to 0.766--0.925 for \EAC{} and 0.814--0.940 for CV+, with the
-deficit concentrated on FD003, where the second backbone's own parametric layer covers 0.803.
-The deficit is a property of the predictor--population pair, not of the interval rule: a weaker
-network has larger residuals on deployment inputs than on the held-out training engines, and no
-marginal construction can see that shift. This is the paper's thesis in controlled form --- two
-predictors, one set of rules, a 0.13 swing in coverage and a stable width ordering --- and it is
-why Table~\ref{tab:main} reports width next to coverage rather than instead of it.
-
-\begin{table*}[t]
-\centering
-\caption{Same constructions, second backbone, nominal 0.90. Coverage / mean width in cycles. The
-second backbone is 2.9 times larger and 10--21\,\% worse in dev RMSE; the width ordering of the
-constructions is unchanged, while the coverage level moves by up to 0.13. The parametric layer
-is refitted on each backbone's own residuals.}
-\label{tab:backbone}
+\caption{Controlled object experiment. Deployment centre, score scale, tail allocation
+($\gamma=\alpha/2$), test engines and calibration engines are identical across the two blocks;
+only the residuals that enter the score sample change. Coverage is the integer-endpoint
+frequency at nominal 0.90; width in cycles. The last line gives the relative width change,
+positive meaning the matched object is narrower. Deployment is the 15-model mean in both
+blocks and the calibration size is one score per engine in both, so the difference is the
+object and not $n$; replicating the matched score three times changes no width to one
+decimal.}
+\label{tab:object}
 \small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{llcccc}
 \toprule
-Backbone & & FD001 & FD002 & FD003 & FD004\\
+Calibration object & & FD001 & FD002 & FD003 & FD004\\
 \midrule
-\multirow{2}{*}{primary (41\,858)} & CV+ & 0.914 / 33.8 & 0.943 / 40.6 & 0.893 / 28.1
-& 0.943 / 38.8\\
- & \EAC{} & 0.925 / 28.0 & 0.913 / 31.9 & 0.897 / 27.9 & 0.917 / 41.9\\
+\multirow{2}{*}{one clean model (CV+)}
+ & coverage & 0.892 & 0.915 & 0.907 & 0.925\\
+ & width    & 30.9 & 34.7 & 28.8 & 41.3\\
 \midrule
-\multirow{3}{*}{second (119\,490)} & layer & 0.866 / 38.4 & 0.905 / 56.0 & 0.803 / 47.4
-& 0.904 / 62.8\\
- & CV+ & 0.907 / 40.5 & 0.935 / 44.2 & 0.814 / 33.1 & 0.940 / 44.3\\
- & \EAC{} & 0.875 / 36.8 & 0.901 / 36.3 & 0.766 / 29.8 & 0.925 / 46.7\\
+\multirow{2}{*}{three clean models, averaged}
+ & coverage & 0.892 & 0.923 & 0.887 & 0.930\\
+ & width    & 29.5 & 33.4 & 25.7 & 40.2\\
 \midrule
-\multicolumn{2}{l}{EAC vs CV+, width} & $-17.2$ / $-9.1$ & $-21.4$ / $-17.9$
-& $-0.7$ / $-10.0$ & $+8.0$ / $+5.4$\\
-\multicolumn{6}{l}{\footnotesize top row of each pair: primary; second row: second backbone.
-The last line gives (primary / second) relative width change.}\\
+\multicolumn{2}{l}{width change from matching} & $-4.5$ & $-3.7$ & $-10.8$ & $-2.7$\\
 \bottomrule
 \end{tabular}
 \end{table*}
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{fig1_coverage_width.png}
-\caption{Coverage against width at nominal 0.90, one panel per fleet. Top row: the full range,
-including the two constructions that need no calibration (grey); the shaded band is the
-binomial 95\,\% interval for a true coverage of 0.90 at that $n$. Bottom row: the same points
-with the axes narrowed to the conformal cluster. Uncalibrated ensemble spread sits half a fleet
-below nominal at a third of the width, and the calibrated constructions sit inside the band:
-coverage cannot separate them at this scale, while width separates them by 30\,\%.}
-\label{fig:plane}
-\end{figure*}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig2_simulation.png}
-\caption{Simulation with known truth: coverage against the number of calibration engines, at
-nominal 0.90 (left) and 0.50 (right). All three constructions are valid; they differ in width
-by 16--21\,\% (not shown).}
-\label{fig:sim}
-\end{figure}
+Table~\ref{tab:object} is the experiment this paper was built around. Everything that could
+confound the comparison is fixed; the calibration residuals are the only thing that varies. The
+matched object is narrower on all four fleets by 2.7--10.8\,\%, mean 5.4\,\%. It costs coverage
+on FD003 (0.907 to 0.887) and buys it on FD002 and FD004.
 
-\section{Discussion}\label{sec:discussion}
+The number is smaller than the 11\,\% an earlier draft reported, and the difference is
+accounted for. That draft compared CV+ with a symmetric band against a matched construction
+with a free tail \emph{and} variance normalisation, so its 11\,\% mixed three effects. On this
+protocol the object is worth 5.4\,\%, the free tail about 1\,\%, and the normalisation 0.0--0.2
+Winkler points once the object is matched. The components are separately visible in
+Table~\ref{tab:main}.
 
-\subsection{Why coverage tables cannot rank methods at this scale}
+Two further controls, not tabulated. Repeating the comparison with the score replicated three
+times, so both arms have the same calibration size, changes no width to one decimal: the effect
+is the object, not $n$. And deploying the five-model average of the earlier protocol instead of
+the 15-model mean changes the widths by less than 0.2 cycles: the centre was never the
+confound.
 
-Fig.~\ref{fig:plane} makes the argument visually. At $n=93$ the 95\,\% band around a true 0.90
-is $\pm 0.06$; at $n=235$ it is $\pm 0.04$. Every construction in Table~\ref{tab:main} except
-the layer lies inside the band on at least three of four fleets, and two constructions that
-differ by 30\,\% in width are indistinguishable on coverage. A table that reports
-`PICP 0.912 versus 0.907' is therefore reporting sampling noise, not evidence, unless the
-comparison is paired and the discordance is reported.
+What does not replicate is the sign. Across the four nominal levels the matched object is
+narrower by 2.4, 5.6, 2.3 and 6.1\,\% on average, but at every level at least one fleet reverses
+(FD002 at 0.90, FD001 at 0.80, FD003 at 0.95). On the second backbone the four per-fleet changes
+are $+3.7$, $-7.5$, $-0.6$ and $+0.2\,\%$. A 2--6\,\% average effect with a fleet-dependent sign
+is a real effect that cannot support a ranking, and it is why this paper reports the experiment
+rather than a favourite construction.
 
-The detectability calculation in Table~\ref{tab:detect} makes the same point quantitatively and
-in advance of any experiment: with 11--82 engines per bin, the smallest detectable deviation is
-0.14--0.44. The five-bin comparison that a conditional-coverage table implies requires 149
-engines per bin for a 10-point effect, and 516 for a 5-point effect. Pooling all four fleets
-gives 84--212 per bin, which is enough for a 0.08--0.14 effect on the most populated bin and
-nothing on the least.
-
-\subsection{What to report}
-
-We suggest four rules, each of which is a measurement fix rather than a modelling choice.
-(i) Report coverage with its interval, and report the number of engines, not only the rate.
-(ii) Use randomised PIT for distributions; the integer rule is biased upward by 0.01--0.04 at
-0.90 and 0.07--0.12 at 0.50.
-(iii) Report width, which is measurable to $\pm 1$ cycle and separates methods that coverage
-cannot, and report it per fleet, because the fleet is a larger source of variation than the
-method ($|\Delta|$ 0.09 across fleets for the layer versus 0.02 between constructions).
-(iv) State which object was calibrated. If the deployed predictor is an ensemble, a
-single-model conformal score is not the same object, and the difference is 11\,\% of the width.
-
-\subsection{Limitations}
-
-The study covers two simulated turbofan benchmarks and two backbones. Both datasets are
-run-to-failure simulations, so the residual laws may be gentler than those of instrumented
-machinery; the N-CMAPSS contrast suggests the direction of the difference (diffuse residuals,
-where free tails win by 19\,\%) but does not establish it for real sensor data. The 50\,\%
-level is not resolved on C-MAPSS by any construction, and we have not found a construction that
-resolves it; we report the failure rather than selecting the seed that hides it. The
-free-tail allocation is the least reliably estimated of the four ingredients: a five-fold
-choice inside the calibration set disagrees with the in-sample choice by up to 0.078 of the
-admissible range of $\gamma$ and is 5.0 Winkler points worse on average, because the
-calibration and deployment RUL mixtures differ. We therefore report the in-sample allocation
-as an upper bound on what the free tail can buy, and the ablation of
-Table~\ref{tab:ablation} --- which is independent of the test set --- as the evidence that each
-ingredient is non-negative. Finally, the guarantees are marginal, and the paper's own
-detectability analysis is the reason we do not claim conditional ones.
-
-\section{Conclusion}\label{sec:concl}
-
-RUL intervals are reported as a coverage and a width, and this paper has separated the part of
-each that is information from the part that is convention. On 653 C-MAPSS engines and 2\,587
-N-CMAPSS queries: the integer-endpoint convention inflates coverage by 0.011--0.044 at 0.90;
-the central-interval convention costs 10.4\,\% of width, and three times that at the 50\,\%
-level; calibrating a fold model instead of
-the deployed ensemble costs 11\,\%; and the benchmarks can detect only 0.14--0.44 deviations per
-bin, which is larger than the differences that published tables rank. A matched-object
-construction recovers the layer's sharpness (32.4 versus 30.9 cycles) with three times its
-fleet stability ($|\Delta|$ 0.014 versus 0.037) and without its distributional assumptions, and
-reaches nominal coverage on the independent benchmark where the parametric layer does not. Its
-four ingredients are individually non-negative under leave-one-out ablation, and its width
-ordering survives transplantation onto a second backbone, where coverage does not: on the same
-engines and the same rules, a weaker predictor moves coverage by up to 0.13 while the ordering
-of widths is preserved. The broader conclusion is that the field's uncertainty numbers are now
-limited by measurement practice more than by modelling: the same 653 engines that cannot
-resolve a 3-point coverage difference can resolve a 10\,\% width difference, and can resolve it
-even when the predictor changes underneath, so width and its conventions are where the next
-improvements will be visible.
+\subsection{Paired test, clustered by engine}\label{sec:paired}
 
 \begin{table}[t]
 \centering
-\caption{Coverage bias of the integer-endpoint rule on the frozen layer, and the smallest
-coverage deviation a bin can detect. Left: same predictive distribution, two conventions.
-Right: $\dx$ at family-wise $\alpha=0.05$ over five bins and 80\,\% power.}
+\caption{Free tail against symmetric band on the matched arm, same scores and same nominal
+level. The naive test counts (engine, seed) pairs; the clustered version averages over seeds
+inside an engine and tests across engines (10\,000 sign flips, 2\,000 bootstrap resamples over
+engines).}
+\label{tab:paired}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccc}
+\toprule
+Fleet & naive $p$ & pairs & clustered $p$ & difference [95\,\% CI] & engines\\
+\midrule
+FD001 & 0.267 & 279 & 0.121 & $+0.018\,[0.000,\,0.036]$ & 7/93\\
+FD002 & 1.000 & 705 & 1.000 & $-0.000\,[-0.010,\,0.011]$ & 8/235\\
+FD003 & 0.219 & 291 & 0.308 & $-0.014\,[-0.034,\,0.003]$ & 5/97\\
+FD004 & 0.125 & 684 & 0.127 & $+0.006\,[0.001,\,0.012]$ & 4/228\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:paired} compares the two tail rules on identical scores. No fleet rejects at
+5\,\% under either test, and 4--8 engines per fleet change status. The two rules are therefore
+indistinguishable on this benchmark, which is consistent with the 1\,\% width difference in
+Table~\ref{tab:main} and inconsistent with an earlier draft's claim of significance in both
+directions. That claim came from counting three seeds as three independent observations; the
+naive column here is already non-significant, and the clustered one is wider still.
+
+The value of the table is methodological. A paired design can resolve smaller differences than
+the unpaired bound of Table~\ref{tab:detect}, but only if the discordance is counted on the
+independent unit. On 93 engines a difference carried by 7 engines is not evidence, and seed
+replication does not change that.
+
+\subsection{The independent benchmark, without the leak}\label{sec:ncmapss}
+
+On N-CMAPSS, with the rule fixed on development residuals and applied once, the free-tail
+construction returns 0.934 (95\,\% unit-bootstrap interval $[0.895,0.968]$) at width 47.1 and
+the symmetric band 0.947 at width 47.4: a 1\,\% saving, not the 19\,\% reported earlier. At
+nominal 0.50 the free tail is 7\,\% \emph{wider} (14.6 against 13.6). Fleet-balanced and
+query-weighted figures agree to within 0.3\,\%.
+
+The earlier number came from calibrating on other fleets' test residuals. Development residuals
+are systematically larger than test residuals on this benchmark (pooled dev RMSE 14.7 against
+roughly 12 on test), so a calibration sample drawn from the test population is narrower and
+exaggerates the asymmetry of the score law. Both arms inherit the narrower sample; the
+asymmetric arm benefits more because it can place its endpoints where the skew is. Removing the
+leak removes the mechanism with it.
+
+What survives is a smaller observation: dev-calibrated intervals over-cover on test (0.934 and
+0.947 against a nominal 0.90), because development predictions are worse than deployed ones.
+That is the same object mismatch as Section~\ref{sec:objectexp}, appearing as a level shift
+rather than a width change, on a benchmark where the calibration and deployment populations
+genuinely differ.
+
+\subsection{The second backbone}
+
+Every number above comes from one network. Recomputing the identical protocol on a two-layer
+bidirectional LSTM with additive attention pooling (119\,490 parameters against 41\,858, dev
+RMSE 13.1/15.3/12.7/15.4 against 11.1/13.9/10.5/13.9) reproduces the layer's advantage --- the
+layer is 20--30\,\% narrower than any conformal construction on three fleets --- but not the
+object effect: the four per-fleet changes are $+3.7$, $-7.5$, $-0.6$ and $+0.2\,\%$, so the sign
+is set by the fleet rather than by the backbone. Coverage under the second backbone is
+0.753--0.953, a spread twice that of the primary.
+
+That is the controlled demonstration of the paper's thesis in its weakest form: change the
+predictor and the coverage numbers move by 0.13 with the rules held fixed, while the width
+ordering among constructions is preserved. Coverage at this scale measures the
+predictor--population pair; width measures the construction.
+
+\begin{table}[t]
+\centering
+\caption{Coverage bias of the integer-endpoint rule on the frozen layer. Same predictive
+distribution, two scoring conventions.}
 \label{tab:convention}
 \begin{tabular}{lcccc}
 \toprule
- & \multicolumn{2}{c}{bias at 0.90} & \multicolumn{2}{c}{bias at 0.50}\\
+ & \multicolumn{2}{c}{at nominal 0.90} & \multicolumn{2}{c}{at nominal 0.50}\\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 Fleet & PIT & integer & PIT & integer\\
 \midrule
-FD001 & 0.924 & 0.935 & 0.517 & 0.591\\
+FD001 & 0.925 & 0.935 & 0.517 & 0.591\\
 FD002 & 0.869 & 0.902 & 0.523 & 0.643\\
-FD003 & 0.931 & 0.948 & 0.524 & 0.608\\
+FD003 & 0.932 & 0.948 & 0.524 & 0.608\\
 FD004 & 0.842 & 0.886 & 0.420 & 0.535\\
 \midrule
 bias & \multicolumn{2}{c}{$+0.011$ to $+0.044$} & \multicolumn{2}{c}{$+0.074$ to $+0.120$}\\
@@ -798,8 +496,9 @@ bias & \multicolumn{2}{c}{$+0.011$ to $+0.044$} & \multicolumn{2}{c}{$+0.074$ to
 
 \begin{table}[t]
 \centering
-\caption{What a bin can prove. Bin sizes are the five RUL strata of the test sets; $\dx$ is
-computed at family-wise $\alpha=0.05$ over five bins with 80\,\% power.}
+\caption{What a bin can prove. Bin sizes are the five RUL strata of the test sets; $\dx$ is the
+reliably detectable under-coverage at family-wise $\alpha=0.05$ over five bins, 80\,\% power,
+one query per engine.}
 \label{tab:detect}
 \begin{tabular}{lccccc}
 \toprule
@@ -814,52 +513,133 @@ FD004 & 49 & 30 & 26 & 41 & 82\\
 pooled & 141 & 84 & 90 & 126 & 212\\
 \midrule
 \multicolumn{6}{l}{$\dx$ at $n=11$: 0.44 \quad $n=82$: 0.14 \quad $n=141$: 0.10 \quad $n=212$: 0.08}\\
-\multicolumn{6}{l}{engines needed: 149 for $\dx=0.10$, 243 for 0.075, 516 for 0.05}\\
+\multicolumn{6}{l}{engines needed: 143 for $\dx=0.10$, 238 for 0.075, 495 for 0.05}\\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Discussion}\label{sec:discussion}
+
+\subsection{What the measurements say about the constructions}
+
+The conformal family does not beat the parametric layer here, and the paper reports that rather
+than selecting a fleet on which it does. Three things follow.
+
+A layer fitted to the residual law has an advantage conformal methods cannot borrow: it is
+heteroscedastic by construction, so its width follows the prediction rather than being fixed by
+a single quantile. The variance normalisation in Table~\ref{tab:main} is an attempt to borrow
+it, and it works --- removing it costs 2.8--5.0 Winkler points --- but it recovers only part of
+the layer's 41.0 against 45.1.
+
+The object effect is real at 2--6\,\% and is the one place where the conformal literature's
+standard construction is measurably wrong for this deployment pattern. It is not worth 11\,\%
+and its sign is not stable across fleets. A paper that claims otherwise on four fleets is
+claiming a mean of a bimodal quantity.
+
+The free tail is a convention whose value depends on the score law, not a free lunch. In
+simulation it is worth 16--22\,\%; on the benchmark 0--5\,\% and reversing; and the price of
+making it legitimate is 13\,\% of width. Those three numbers should be reported together or not
+at all.
+
+\subsection{What should be reported}
+
+Four rules, each a measurement fix rather than a modelling choice. (i) Report coverage with its
+interval and the number of engines, not only the rate. (ii) State the scoring rule: integer
+endpoints and randomised PIT differ by 0.011--0.044 at 0.90 on the same distribution, so a
+table that does not say which is comparing an unknown to an unknown. (iii) Report width, and
+report it per fleet, because the fleet is a larger source of variation than the method
+($|\Delta|$ 0.09 across fleets for the layer on the PIT rule against 0.02 between
+constructions). (iv) State which object was calibrated: if the deployed predictor is an ensemble
+and the calibration residuals come from one member, the interval is calibrated for a predictor
+that is not in service, and the difference is 2--11\,\% of width here with a
+fleet-dependent sign.
+
+\subsection{Limitations}
+
+Both datasets are run-to-failure simulators; there is no real sensor data in this study. The
+public run-to-failure bearing datasets cannot support a coverage claim at 143 engines per bin
+--- XJTU-SY has 15 units, PRONOSTIA 17 --- so the natural next experiment is not available at
+the sample size the measurement requires, which is itself the paper's point.
+
+The 50\,\% level is not resolved by any construction here: every arm lands between 0.34 and
+0.66 with $|\Delta|$ of 0.03--0.09, and the ordering changes. We report the failure rather than
+selecting the seed that hides it.
+
+The detectability bound is stated for one test at a stated size and power with one query per
+engine. It is not a statement that no comparison on this benchmark can be informative; the
+paired design of Section~\ref{sec:paired} resolves less than the unpaired bound, and a
+different binning would give a different number.
+
+\section{Conclusion}\label{sec:concl}
+
+RUL intervals are reported as a coverage and a width, and this paper has measured how much of
+each is convention. On 653 C-MAPSS engines and 2\,587 N-CMAPSS queries: the integer-endpoint
+rule inflates coverage by 0.011--0.044 at 0.90 and 0.074--0.120 at 0.50 with no dependence on
+the model; an RUL bin of 11--82 engines detects only 0.14--0.44 and 143 per bin are needed for
+0.10, more than any of these fleets provides; calibrating a fold model while deploying an
+ensemble costs 2--11\,\% of width depending on the fleet, with the sign reversing on one; and a
+free tail saves 16--22\,\% in simulation but 0--5\,\% here, with a 13\,\% price if its
+allocation is made independent of the scores it is applied to.
+
+The parametric layer is sharper than any conformal construction in the table (30.9 against
+31.4--36.0 cycles) and scores better on the interval score (41.0 against 44.9--49.6). We report
+that because it bounds the claim: what this study establishes is a measurement framework in
+which such comparisons can be made reproducibly, not a construction that beats the state of the
+art. The broader conclusion is that the field's uncertainty numbers are limited by reporting
+practice more than by modelling, and that the practices in question are cheap to fix.
 
 \appendices
 \section{Proof of Proposition~\ref{prop:tail}}
 \label{app:proof}
 
-Assume continuous scores, so that ties have probability zero; with ties, randomise the rank.
-Let $R=\#\{i\le m: S_i\le S\}$. Under exchangeability of $(S_1,\dots,S_m,S)$ the rank of $S$
-among the $m+1$ values is uniform, so $\Pr[R=r]=1/(m+1)$ for $r=0,\dots,m$.
+Assume continuous scores, so ties have probability zero; with ties, randomise the rank. Let
+$R=\#\{i\le m:S_i\le S\}$. Under exchangeability of $(S_1,\dots,S_m,S)$ the rank of $S$ among
+the $m+1$ values is uniform, so $\Pr[R=r]=1/(m+1)$ for $r=0,\dots,m$.
 
-\emph{(i)} $S<L_\gamma$ holds iff fewer than $\lfloor (m+1)\gamma\rfloor$ calibration scores
-lie below $S$, i.e.\ iff $R\le\lfloor (m+1)\gamma\rfloor-1$, hence
-$\Pr[S<L_\gamma]\le\gamma$. Likewise $S>U_\gamma$ iff
-$R\ge\lceil (m+1)(1-\alpha+\gamma)\rceil$, hence
-$\Pr[S>U_\gamma]\le\bigl(m+1-\lceil (m+1)(1-\alpha+\gamma)\rceil\bigr)/(m+1)\le\alpha-\gamma$.
-The two events are disjoint, so the miss probability is at most $\alpha$ for every $\gamma$.
+\emph{(i)} $S<L_\gamma$ holds iff fewer than $\lfloor(m+1)\gamma\rfloor$ calibration scores lie
+below $S$, i.e.\ iff $R\le\lfloor(m+1)\gamma\rfloor-1$, hence $\Pr[S<L_\gamma]\le\gamma$.
+Likewise $S>U_\gamma$ iff $R\ge\lceil(m+1)(1-\alpha+\gamma)\rceil$, hence
+$\Pr[S>U_\gamma]\le\bigl(m+1-\lceil(m+1)(1-\alpha+\gamma)\rceil\bigr)/(m+1)\le\alpha-\gamma$.
+The two events are disjoint, so the miss probability is at most $\alpha$. This is the argument
+of \cite{vovk2005} with unequal tails, as used by \cite{romano2019}; it is restated to fix the
+scope, not claimed as new.
 
-\emph{(ii)} With $k=\lceil (m+1)(1-\alpha)\rceil$ and $\gamma=j/(m+1)$, \eqref{eq:tail} reads
-$[s_{(j)},s_{(j+k)}]$: as $j$ ranges over the admissible grid the family is the set of windows
-of $k+1$ consecutive order statistics, and the minimiser of $s_{(j+k)}-s_{(j)}$ is found by
-scanning $j$ after one sort, which is $O(m\log m)$ and is what the implementation does. In the
-population limit $U-L=q_{1-\alpha+\gamma}-q_\gamma$, whose stationarity condition is
-$f(q_{1-\alpha+\gamma})=f(q_\gamma)$.
+For \eqref{eq:tail} to involve finite order statistics at both ends one needs
+$\lfloor(m+1)\gamma\rfloor\ge1$ and $\lceil(m+1)(1-\alpha+\gamma)\rceil\le m$, i.e.\
+$\gamma\in[1/(m+1),\alpha-1/(m+1)]$; outside that interval the endpoints are $\pm\infty$ and the
+implementation must say so.
 
-\emph{(iii)} Substituting $\gamma=\alpha/2$ gives $f(q_{\alpha/2})=f(q_{1-\alpha/2})$, which
-holds for a symmetric unimodal law and fails otherwise. For the capped RUL law the upper
-quantile is the atom at the cap, where no density exists, so the condition fails by
-construction. The attainable gain is the width of the central interval minus the width of the
-shortest window, which Table~\ref{tab:main} measures at 3.2 cycles (30.9 against 27.7) for
-the parametric layer and Table~\ref{tab:ablation} at 2.1 Winkler points for the conformal
-construction.
+\emph{(ii)} Condition on $\hat\gamma$, which by assumption is independent of the scores.
+Applying (i) at the realised value gives the bound.
+
+\emph{(iii)} Let $\hat\gamma$ minimise the empirical width. The event
+$\{\hat\gamma=\gamma_0\}$ is determined by the same order statistics that (i) integrates over,
+so the conditional coverage at $\gamma_0$ is not the unconditional probability that (i) bounds.
+A union bound over a grid of $G$ values would cost an additional slack per candidate; the
+practical remedies are the half-split of Section~\ref{sec:tail} or a sample-splitting penalty.
+
+\emph{(iv)} With a continuous score density,
+$U_\gamma-L_\gamma\to q_{1-\alpha+\gamma}-q_\gamma$ and
+\[
+\frac{d}{d\gamma}\bigl(q_{1-\alpha+\gamma}-q_\gamma\bigr)
+=\frac{1}{f(q_{1-\alpha+\gamma})}-\frac{1}{f(q_\gamma)},
+\]
+which vanishes iff the two densities are equal. At $\gamma=\alpha/2$ this reads
+$f(q_{\alpha/2})=f(q_{1-\alpha/2})$. Symmetry of $f$ about the median is sufficient; skewness
+is neither necessary nor sufficient for the condition to fail, since a skewed density may
+still take equal values at the two quantiles. If $f$ has an atom at the upper support, the
+stationarity condition can hold on an interval of $\gamma$ and the width is flat there rather
+than minimised at a point.
 
 \begin{thebibliography}{99}
 
 \bibitem{crulp}
 S.~Piao, R.~Huang, and F.~Tsung, ``CRULP: Reliable RUL estimation inspired by conformal
-prediction,'' \emph{IEEE Trans. Instrum. Meas.}, vol.~74, Art.~3505411, 2025,
-doi: 10.1109/TIM.2024.3522678.
+prediction,'' \emph{IEEE Trans. Instrum. Meas.}, vol.~74, Art.~3505411, 2025.
 
 \bibitem{piao2025}
 S.~Piao, Y.~Wang, R.~Huang, D.~Wang, and F.~Tsung, ``Quantify uncertainty beyond covariate
-shift in RUL estimation by conformal prediction,'' in \emph{Proc. IEEE 21st Int. Conf. Autom.
-Sci. Eng. (CASE)}, 2025, doi: 10.1109/CASE58245.2025.11163867.
+shift in RUL estimation by conformal prediction,'' in \emph{Proc. IEEE CASE}, 2025.
 
 \bibitem{wang2025}
 W.~Wang, Z.~Wang, Z.~Cai, C.~Hu, and S.~Si, ``Robust uncertainty quantification for online
@@ -871,43 +651,41 @@ A.~Moccardi, C.~Conte, R.~C. Ghosh, and F.~Moscato, ``A robust conformal framewo
 IoT-based predictive maintenance,'' \emph{Future Internet}, vol.~17, no.~6, Art.~244, 2025.
 
 \bibitem{hou2025}
-Y.~Hou, M.~Ragab, Y.~Wang, M.~Wu, A.~Alseiari, C.-K.~Kwoh, X.~Li, and Z.~Chen, ``Evidential
-domain adaptation for remaining useful life prediction with incomplete degradation,''
-\emph{IEEE Trans. Instrum. Meas.}, 2025, doi: 10.1109/TIM.2025.3551977.
+Y.~Hou \emph{et al.}, ``Evidential domain adaptation for remaining useful life prediction with
+incomplete degradation,'' \emph{IEEE Trans. Instrum. Meas.}, 2025.
 
 \bibitem{yang2025}
-N.~Yang, W.~Zhang, J.~Zhang, K.~Wang, Y.~Su, and Y.~Liu, ``A method for remaining useful life
-prediction and uncertainty quantification of rolling bearings based on fault feature gain,''
-\emph{IEEE Trans. Instrum. Meas.}, 2025, doi: 10.1109/TIM.2025.3534227.
+N.~Yang \emph{et al.}, ``A method for remaining useful life prediction and uncertainty
+quantification of rolling bearings based on fault feature gain,'' \emph{IEEE Trans. Instrum.
+Meas.}, 2025.
 
 \bibitem{wang2025svsdm}
 X.~Wang, X.~Si, X.~Xi, and D.~Zhou, ``Adaptive remaining useful life prediction based on a
 system-level variable structure degradation model,'' \emph{IEEE Trans. Instrum. Meas.},
-vol.~74, Art.~no.~1011213, 2025, doi: 10.1109/TIM.2025.3573776.
+vol.~74, 2025.
 
 \bibitem{kim2025}
-E.~Kim, S.~Park, H.~Lee, S.~Ko, and E.~Hwang, ``Enhanced remaining useful life prediction for
-turbofan engines using spatiotemporal Koopman dual-branch transformer,'' \emph{IEEE Trans.
-Instrum. Meas.}, vol.~74, pp.~1--16, 2025, doi: 10.1109/TIM.2025.3625335.
+E.~Kim \emph{et al.}, ``Enhanced remaining useful life prediction for turbofan engines using
+spatiotemporal Koopman dual-branch transformer,'' \emph{IEEE Trans. Instrum. Meas.}, vol.~74,
+2025.
 
 \bibitem{zhou2025}
 J.~Zhou, J.~Yang, S.~Xiang, and Y.~Qin, ``Remaining useful life prediction methodologies with
 health indicator dependence for rotating machinery: A comprehensive review,'' \emph{IEEE
-Trans. Instrum. Meas.}, vol.~74, pp.~1--19, 2025.
+Trans. Instrum. Meas.}, vol.~74, 2025.
 
 \bibitem{wu2025}
 H.~Wu, Y.~Wang, Z.~Tian, and M.~J. Zuo, ``Query based learning via conformal uncertainty for
-RUL prediction,'' in \emph{Proc. IEEE Int. Conf. Prognostics Health Manage. (ICPHM)}, 2025,
-pp.~1--8.
+RUL prediction,'' in \emph{Proc. IEEE ICPHM}, 2025.
 
 \bibitem{noot2025}
 J.-P. Noot, M.~Martin, and E.~Birmel\'e, ``LSTM and transformers based methods for remaining
 useful life prediction considering censored data,'' \emph{Int. J. Prognostics Health Manage.},
-vol.~16, no.~2, 2025, doi: 10.36001/ijphm.2025.v16i2.4260.
+vol.~16, no.~2, 2025.
 
 \bibitem{vovk2005}
-V.~Vovk, A.~Gammerman, and G.~Shafer, \emph{Algorithmic Learning in a Random World}.
-New York, NY, USA: Springer, 2005.
+V.~Vovk, A.~Gammerman, and G.~Shafer, \emph{Algorithmic Learning in a Random World}. New York,
+NY, USA: Springer, 2005.
 
 \bibitem{barber2021}
 R.~F. Barber, E.~J. Cand\`es, A.~Ramdas, and R.~J. Tibshirani, ``Predictive inference with the
@@ -926,16 +704,13 @@ R.~J. Tibshirani, R.~F. Barber, E.~J. Cand\`es, and A.~Ramdas, ``Conformal predi
 covariate shift,'' in \emph{Adv. Neural Inf. Process. Syst.}, vol.~32, 2019.
 
 \bibitem{angelopoulos2023}
-A.~N. Angelopoulos and S.~Bates, ``Conformal prediction: A gentle introduction,''
-\emph{Found. Trends Mach. Learn.}, vol.~16, no.~4, pp.~494--591, 2023.
-
-\bibitem{kuleshov2018}
-V.~Kuleshov, N.~Fenner, and S.~Ermon, ``Accurate uncertainties for deep learning using
-calibrated regression,'' in \emph{Proc. Int. Conf. Mach. Learn. (ICML)}, 2018, pp.~2796--2804.
+A.~N. Angelopoulos and S.~Bates, ``Conformal prediction: A gentle introduction,'' \emph{Found.
+Trends Mach. Learn.}, vol.~16, no.~4, pp.~494--591, 2023.
 
 \bibitem{saxena2008}
 A.~Saxena, K.~Goebel, D.~Simon, and N.~Eklund, ``Damage propagation modeling for aircraft
-engine run-to-failure simulation,'' in \emph{Proc. Int. Conf. Prognostics Health Manage.}, 2008.
+engine run-to-failure simulation,'' in \emph{Proc. Int. Conf. Prognostics Health Manage.},
+2008.
 
 \bibitem{saxena2010}
 A.~Saxena \emph{et al.}, ``Metrics for offline evaluation of prognostic performance,''
