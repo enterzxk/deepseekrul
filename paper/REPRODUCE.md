@@ -172,3 +172,21 @@ python scripts/ncmapss/tables_nc.py          # -> experiments/ncmapss/tables.md
    本项目所有比对都在同一台 A40 上完成。
 3. **`torch` 版本。** 层的训练用了 `torch.optim.Adam` 与 `torch.special.ndtr`，
    不同版本的默认 `eps` 未变，但若结果有系统性偏移，先查版本。
+
+---
+
+## 5. 重标定上限的复现
+
+```bash
+python scripts/audit/protocol_audit.py    # -> experiments/cal/audit/protocol_audit.json
+```
+
+一次运行产出三块内容，全部逐位可复算：
+
+1. **可交换性诊断**：dev 与 test 在预测（KS）、误差绝对值（KS）、PIT（CvM）上的两样本比较。
+2. **覆盖口径对比**：整数端点 vs 随机化 PIT 的覆盖，以及模型自报的概率含量。
+3. **八个重标定族的迁移结果**，外加三个在 test 自身拟合的 ORACLE 天花板。
+
+随机化覆盖用固定种子 `seed=7`、`n_rep=60`；改变种子只影响第三位小数。
+`scripts/audit/protocol_audit.py` 会 `sys.path` 注入 `scripts/cal`，
+以便复用 `npforward.py` 的 numpy 前向（不依赖 torch）。
