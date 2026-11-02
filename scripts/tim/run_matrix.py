@@ -29,10 +29,20 @@ from scipy import optimize
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import core as C
 
-LEVELS = (0.90, 0.50)
+LEVELS = tuple(float(x) for x in
+                os.environ.get("RUL_LEVELS", "0.90,0.50").split(","))
 TAG = os.environ.get("RUL_PRED_TAG", "A")
 OUT = C.ROOT / "experiments" / "tim"
 OUT.mkdir(parents=True, exist_ok=True)
+
+
+def _out_name():
+    """matrix.json for the default run; anything else is suffixed so nothing is clobbered."""
+    base = "matrix" if TAG == "A" else f"matrix_{TAG}"
+    if LEVELS == (0.90, 0.50):
+        return OUT / f"{base}.json"
+    lv = "_".join(f"{x:.2f}".replace("0.", "") for x in LEVELS)
+    return OUT / f"{base}_lv{lv}.json"
 
 
 def fit_scale(yhat, r):
@@ -193,12 +203,12 @@ def main():
     for subset in C.SUBSETS:
         rows = run_subset(subset)
         report["subsets"][subset] = rows
-        print(f"== {subset} (n={rows['layer@0.90']['n']})")
+        print(f"== {subset} (n={rows[f'layer@{LEVELS[0]:.2f}']['n']})")
         for k, v in rows.items():
             w = f"{v['width']:5.1f}" if v.get("width") is not None else "  -  "
             c = f"{v['cov']:.3f}" if v.get("cov") is not None else "  -  "
             print(f"   {k:14s} cov {c}  w {w}")
-    dst = OUT / ("matrix.json" if TAG == "A" else f"matrix_{TAG}.json")
+    dst = _out_name()
     dst.write_text(json.dumps(report, indent=1))
     print("wrote", dst)
 

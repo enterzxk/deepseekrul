@@ -30,7 +30,8 @@ conventions are priced. Scoring coverage on the integer grid inflates PICP by $+
 $+0.044$ at the 90\,\% level and $+0.074$ to $+0.120$ at 50\,\%, independent of the model;
 randomised PIT removes the shift. Reporting the \emph{central} interval of a predictive
 distribution rather than the \emph{shortest} interval of the same mass costs 10.4\,\% of the
-width. Calibrating a cross-validation fold model while deploying an ensemble --- the standard
+width at the 90\,\% level and 33\,\% at 50\,\%. Calibrating a cross-validation fold model while
+deploying an ensemble --- the standard
 CV+ construction --- costs a further 11\,\%. A matched-object construction reaches 32.4 cycles
 against the 30.9 of a 66-parameter parametric layer, with $|\Delta| = 0.014$ across fleets where
 the layer ranges 0.842--0.932; a leave-one-out ablation finds every ingredient non-negative,
@@ -81,7 +82,7 @@ differences below 0.14 (Section~\ref{sec:measure}).
 This paper takes that question literally and answers it with measurements rather than
 arguments. We hold the backbone fixed (a 41\,858-parameter model, five folds, three seeds),
 hold the test engines fixed (653 engines for C-MAPSS, 2\,587 queries over 39 units for
-N-CMAPSS), and vary only the construction of the interval. Five results follow, and each is a
+N-CMAPSS), and vary only the construction of the interval. Seven results follow, and each is a
 number rather than a preference.
 
 \begin{enumerate}
@@ -99,9 +100,10 @@ $\pm 0.060$ ($n=93$) to $\pm 0.038$ ($n=235$), which is of the same order as the
 between methods that published tables rank.
 \item \textbf{Two construction choices each cost about a tenth of the width.} The central
 interval of a predictive distribution is not the shortest interval of the same mass; on the
-frozen layer the shortest-interval rule saves 10.4\,\% of the width at identical coverage.
-Calibrating the fold model rather than the deployed ensemble costs 11\,\% in the CV+
-construction.
+frozen layer the shortest-interval rule saves 10.4\,\% of the width at identical coverage, and
+33\,\% at the 50\,\% level, so the convention cost is monotone in the nominal level
+(Table~\ref{tab:levels}). Calibrating the fold model rather than the deployed ensemble costs
+11\,\% in the CV+ construction.
 \item \textbf{A matched construction closes the gap to a parametric layer without its
 assumptions.} Calibrating on residuals of the object that is actually deployed, with signed
 scores and a free tail allocation, gives 32.4 cycles against the layer's 30.9 on the same
@@ -400,6 +402,17 @@ and the compromise between them (\EAC{}, 32.4 / 0.014). The Winkler score prefer
 (41.0), because its heteroscedastic shape concentrates width where the residuals are large,
 which is the one property the conformal constructions cannot borrow without a variance model.
 
+The paired version of these comparisons, promised in Section~\ref{sec:measure}, changes what
+they say. The matched construction with a symmetric band and the same construction with a free
+tail carry the same 0.90 mass, so any gap between them is pure convention. On FD001 the two
+disagree on 11 of 279 engine-observations, every one of them in favour of the free tail (exact
+McNemar $p = 0.001$); on FD004 they disagree on 43 of 684, 30 to 13 the other way
+($p = 0.014$). The same two rules are thus significantly better and significantly worse on
+different fleets at the same nominal level. FD002 (24 discordant, $p = 0.31$) and FD003 (4,
+$p = 0.13$) do not reject. A marginal table gives one number per fleet and hides the fact that
+the two rules err on different engines, which is the reason the positive increments in
+Table~\ref{tab:ablation} coexist with the negative ones.
+
 \subsection{Standard baselines}
 \label{sec:baselines}
 
@@ -455,9 +468,57 @@ returns 0.393--0.556 against 0.392--0.512 for \EAC{}: both are far from 0.50, fo
 discussed in Section~\ref{sec:discussion}, and neither should be read as a validated 50\,\%
 statement at this sample size.
 
-\subsection{Level consistency}
+\subsection{Level consistency}\label{sec:levels}
 
-At nominal 0.50 the ranking changes. The layer returns 0.496 on average
+A convention that pays at one nominal level only is not a convention. Table~\ref{tab:levels}
+repeats the two width comparisons at four levels.
+
+\begin{table*}[t]
+\centering
+\caption{Relative width change at four nominal levels, in percent; positive means the second
+construction is narrower. Left: the parametric layer's central interval against its shortest
+interval of the same mass --- the pure convention cost, at identical randomised coverage.
+Right: the matched construction against CV+ at the same level --- the object-matching gain.
+Entries are per-fleet ratios; the fleet-mean ratio gives 10.4\,\% at 0.90, against 10.3 for the
+mean of the four ratios below.}
+\label{tab:levels}
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lcccc|cccc}
+\toprule
+& \multicolumn{4}{c|}{central $\to$ shortest, layer} & \multicolumn{4}{c}{matched against CV+}\\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+Level & FD001 & FD002 & FD003 & FD004 & FD001 & FD002 & FD003 & FD004\\
+\midrule
+0.50 & 29.6 & 30.3 & 35.9 & 35.8 & 15.1 & 19.1 & 25.1 & 21.8\\
+0.80 & 13.8 & 14.2 & 15.8 & 16.7 & 21.9 & 18.4 & 7.9 & 8.1\\
+0.90 & 9.4 & 10.1 & 10.3 & 11.5 & 17.3 & 21.3 & 0.8 & $-7.9$\\
+0.95 & 7.4 & 7.9 & 7.5 & 8.7 & 18.9 & 18.3 & $-5.3$ & 0.3\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The convention cost of the tail split is monotone in the level: 32.9\,\% at 0.50, 15.1 at 0.80,
+10.3 at 0.90 and 7.9 at 0.95, with the fleet spread shrinking from 6.2 to 1.3 points over the
+same range. The mechanism is the cap. Once $1-\alpha$ is wide enough that the central interval
+must reach the atom at 125 anyway, where the remaining mass is placed matters less, and the
+quadruple $(\gamma,\alpha-\gamma)$ buys correspondingly less. Quoting the cost at 0.90 alone
+therefore hides a factor of three against the 0.50 interval.
+
+The object-matching gain has no such trend: 20.3\,\% at 0.50, 14.1 at 0.80, 7.9 at 0.90 and 8.1
+at 0.95, positive on all four fleets at the two tighter levels and negative on one fleet at each
+of the two looser ones. The numerator of that ratio is the fold spread, which is set in cycles
+by the training set, and it does not grow with the residual quantile the way the denominator
+does.
+
+At 0.95 the ordering against the parametric layer also changes, and this is the one place where
+the table should not be read as a win. The layer is narrower on three of four fleets
+(35.9--36.1 cycles against 40.5--48.2) while covering 0.901--0.973 against 0.932--0.983; on
+FD004 it is 12.1 cycles narrower and 4.9 coverage points short of the level. The narrowest
+intervals in the table at a nominal 0.95 belong to the construction that misses that level by
+the widest margin, which is the paper's argument in a single comparison.
+
+At nominal 0.50 the ranking changes again. The layer returns 0.496 on average
 (0.517/0.523/0.524/0.420); CV+ returns 0.560 (up to 0.638 on FD002) because the fold-spread
 penalty is fixed in cycles and therefore relatively larger on a 12-cycle interval; \EAC{}
 returns 0.464, with FD003 at 0.392 as its worst case. On this benchmark no conformal
@@ -697,7 +758,8 @@ detectability analysis is the reason we do not claim conditional ones.
 RUL intervals are reported as a coverage and a width, and this paper has separated the part of
 each that is information from the part that is convention. On 653 C-MAPSS engines and 2\,587
 N-CMAPSS queries: the integer-endpoint convention inflates coverage by 0.011--0.044 at 0.90;
-the central-interval convention costs 10.4\,\% of width; calibrating a fold model instead of
+the central-interval convention costs 10.4\,\% of width, and three times that at the 50\,\%
+level; calibrating a fold model instead of
 the deployed ensemble costs 11\,\%; and the benchmarks can detect only 0.14--0.44 deviations per
 bin, which is larger than the differences that published tables rank. A matched-object
 construction recovers the layer's sharpness (32.4 versus 30.9 cycles) with three times its
