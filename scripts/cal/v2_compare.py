@@ -522,6 +522,22 @@ def run(arm, subsets, n_boot=2000, out=None, fit_subsets=None, quiet=False):
             "isot_exact": isotonic_pmf(iso_exact, base, te["yhat"]),
             "isot_drop": isotonic_pmf(iso_drop, base, te["yhat"]),
         }
+        # Optional per-sample dump, so downstream audit code can reconstruct any interval
+        # without re-fitting. Off unless V2_DUMP is set; changes nothing that is reported.
+        _dump = os.environ.get("V2_DUMP")
+        if _dump:
+            dd = Path(_dump)
+            dd.mkdir(parents=True, exist_ok=True)
+            with torch.no_grad():
+                _mu, _sg = nets["cens"].params(
+                    torch.tensor(te["yhat"], dtype=torch.float64))
+            np.savez_compressed(
+                dd / f"{s}_{arm}.npz", unit=te["unit"], y=y, yhat=te["yhat"],
+                mu=_mu.numpy(), sigma=_sg.numpy(),
+                p_cens=p_te["cens"], p_homosc=p_te["homosc"], p_trunc=p_te["trunc"],
+                p_emos_c=p_te["emos_c"], scale_cens=scales["cens"],
+                scale_trunc=scales["trunc"], scale_emos_c=scales["emos_c"], s0=s0)
+
         rec = {k: score(v, y) for k, v in p_te.items()}
         for k, v in p_te.items():
             rec[k]["sharp90"] = width_at_coverage(v, y, grid=np.linspace(0.5, 3.0, 26))

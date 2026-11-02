@@ -133,6 +133,9 @@ def fit_all(dev):
               "cqr": V.apply_cqr(cq, yh)}
         return p, iv
 
+    # Stash the fitted nets on the returned callable so a dump script can reach the
+    # (mu, sigma) behind the pmf without re-fitting. Adds no behaviour to the evaluator.
+    dist.nets, dist.scales, dist.s0 = nets, scales, s0
     return dist, scales, times, s0
 
 
