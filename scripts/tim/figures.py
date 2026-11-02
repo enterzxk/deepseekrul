@@ -75,8 +75,8 @@ def fig_coverage_width():
                 ax.set_xlabel("mean width (cycles)", fontsize=7.4)
     axes[0, 0].set_ylabel("coverage\n(nominal 0.90)", fontsize=7.8)
     axes[1, 0].set_ylabel("coverage, zoomed", fontsize=7.4)
-    axes[1, 0].text(0.03, 0.94, "same points, zoomed on the cluster", transform=axes[1, 0].transAxes,
-                    fontsize=6.2, color="#555", va="top")
+    for ax in axes[1]:
+        ax.set_title("zoomed", fontsize=7.0, color="#555", pad=2.0)
     h, lab = axes[0, 0].get_legend_handles_labels()
     fig.legend(h, lab, loc="lower center", ncol=5, fontsize=6.4, bbox_to_anchor=(0.5, -0.10),
                handletextpad=0.15, columnspacing=0.9)

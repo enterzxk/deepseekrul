@@ -40,19 +40,26 @@ def read_csv(path):
     return np.array(us)[o], np.array(ys)[o], np.array(ps)[o]
 
 
-def load_set(root):
+def load_set(root, tag="A"):
     out = {}
-    for f in sorted(Path(root).glob("A_s*_f*.csv")):
+    for f in sorted(Path(root).glob(f"{tag}_s*_f*.csv")):
         seed, fold = f.stem.split("_")[1], f.stem.split("_")[2]
         out[(int(seed[1:]), int(fold[1:]))] = read_csv(f)
     return out
 
 
 def load_fleet(subset: str):
-    """dev OOF predictions (all cycles, 5 folds x 3 seeds) and per-fold test predictions."""
-    dev = load_set(ROOT / "experiments" / "cal" / "dev_preds" / subset)
-    tst = load_set(ROOT / "experiments" / "calx" / "fold_test" / subset)
-    layer = np.load(ROOT / "experiments" / "cal" / "audit" / f"{subset}_A.npz")
+    """dev OOF predictions (all cycles, 5 folds x 3 seeds) and per-fold test predictions.
+
+    The tree and the file prefix are read from the environment so that a second
+    backbone can be evaluated by the same downstream code:
+    RUL_PRED_ROOT=<dir> RUL_PRED_TAG=B python run_matrix.py
+    """
+    pred_root = Path(os.environ.get("RUL_PRED_ROOT", ROOT / "experiments"))
+    tag = os.environ.get("RUL_PRED_TAG", "A")
+    dev = load_set(pred_root / "cal" / "dev_preds" / subset, tag)
+    tst = load_set(pred_root / "calx" / "fold_test" / subset, tag)
+    layer = np.load(pred_root / "cal" / "audit" / f"{subset}_{tag}.npz")
     return dev, tst, layer
 
 

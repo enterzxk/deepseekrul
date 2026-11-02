@@ -19,6 +19,7 @@ is actually deployed. EAC calibrates the deployed object.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import core as C
 
 LEVELS = (0.90, 0.50)
+TAG = os.environ.get("RUL_PRED_TAG", "A")
 OUT = C.ROOT / "experiments" / "tim"
 OUT.mkdir(parents=True, exist_ok=True)
 
@@ -196,7 +198,7 @@ def main():
             w = f"{v['width']:5.1f}" if v.get("width") is not None else "  -  "
             c = f"{v['cov']:.3f}" if v.get("cov") is not None else "  -  "
             print(f"   {k:14s} cov {c}  w {w}")
-    dst = OUT / "matrix.json"
+    dst = OUT / ("matrix.json" if TAG == "A" else f"matrix_{TAG}.json")
     dst.write_text(json.dumps(report, indent=1))
     print("wrote", dst)
 
