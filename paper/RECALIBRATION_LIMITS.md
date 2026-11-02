@@ -6,6 +6,13 @@
 
 数据：`experiments/cal/audit/protocol_audit.json`，复现：`python scripts/audit/protocol_audit.py`。
 
+> **更正（2026-11-02，见 `CONFORMAL_RESULTS.md` §5）**：第 5 行与 §3/§4 的覆盖率数字
+> （0.79–0.86、过度自信 0.07–0.15）出自 `calibrator_A.json`，那是 `calibrate.CalibNet`
+> 这一实现；主结果表（`CALIBRATION_V2_RESULTS.md`、`verify_v2_A.json`）与审计 npz 用的是
+> `layer.LocationScale`，覆盖率是 **0.924 / 0.869 / 0.932 / 0.842**，真实过度自信均值
+> **0.038**。两份对象都能自洽复现，差 0.012–0.142（FD003 最大）。**总报告的 0/8 结论不受
+> 影响**——那 8 族是在同一份对象内部相互比较的；受影响的是"层本身有多差"这一句的量级。
+
 ---
 
 ## 1. 试过的方法族与结果
