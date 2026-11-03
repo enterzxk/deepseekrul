@@ -121,10 +121,11 @@ class Block(nn.Module):
 class PCDT(nn.Module):
     def __init__(self, nf: int, d: int = 64, n_layers: int = 2, n_heads: int = 4,
                  ffn: int = 256, arm: str = "full", L: int = 40,
-                 scale_head: str = "gru"):
+                 scale_head: str = "gru", detach_lam: bool = False):
         super().__init__()
         self.arm = arm
         self.L = L
+        self.detach_lam = detach_lam
         n_in_bias = 3 if arm == "both" else (2 if arm in ("full", "rand", "oracle") else 1)
         self.scale = ScaleHead(nf, kind=scale_head)
         self.inp = nn.Linear(nf + (1 if arm == "tau" else 0), d)
@@ -137,6 +138,14 @@ class PCDT(nn.Module):
     def forward(self, x, life=None, cyc=None, xs=None):
         N, L, _ = x.shape
         mu, sig = self.scale(xs if xs is not None else x)   # raw mu: loss path unclamped
+        if self.detach_lam:
+            # Lambda-hat is trained ONLY by the lifetime NLL.  Without the cut,
+            # RUL-loss gradients flow through the bias path and the head can be
+            # co-opted into producing a scale estimate that helps attention
+            # instead of an honest one -- the mini-matrix showed that learned
+            # Lambda-hat hurts MORE than random noise, which is the signature
+            # of this co-opting, not of noise.
+            mu = mu.detach()
         lam = mu.clamp(LOG_L_MIN, LOG_L_MAX).exp()   # clamp only the bias path
         coords_for_eval = {"mu": mu, "sig": sig}
         if self.arm == "oracle":

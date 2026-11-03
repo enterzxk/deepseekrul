@@ -13,6 +13,14 @@ from collections import defaultdict
 import numpy as np
 
 
+def variant(r):
+    """Group key: arm + scale-head kind + detach flag (gru/plain-head runs
+    recorded before these fields existed default to gru/no-detach)."""
+    head = r.get("scale_head", "gru")
+    det = "+det" if r.get("detach_lam") else ""
+    return f"{r['arm']}{'' if head == 'gru' else ':' + head}{det}"
+
+
 def load_runs(root="experiments/lsc/runs"):
     runs = []
     for f in sorted(glob.glob(f"{root}/*.json")):
@@ -23,7 +31,7 @@ def load_runs(root="experiments/lsc/runs"):
 def arm_table(runs):
     by = defaultdict(list)
     for r in runs:
-        by[r["arm"]].append(r)
+        by[variant(r)].append(r)
     print(f"{'arm':8s} {'n':>3s} {'RMSE(all)':>10s} {'sd':>5s} {'lam_corr':>9s} "
           f"{'MAE@c100':>9s} {'bias@c100':>10s} params")
     for arm, rs in sorted(by.items()):
@@ -41,7 +49,7 @@ def bucket_table(runs):
     by = defaultdict(lambda: defaultdict(list))
     for r in runs:
         for q, v in r.get("bias_buckets", {}).items():
-            by[r["arm"]][q].append(v)
+            by[variant(r)][q].append(v)
     if not by:
         return
     print("\n=== lifetime-scale stratification (all windows, train-quartile buckets)")
@@ -61,7 +69,7 @@ def paired_bootstrap(runs, a, b, reps=4000, seed=2026):
     def eng_err(arm):
         d = defaultdict(list)
         for r in runs:
-            if r["arm"] != arm:
+            if variant(r) != arm:
                 continue
             for e in r["err_all"]:
                 d[e["eng"]].append(e["err"] ** 2)
@@ -83,7 +91,7 @@ def paired_bootstrap(runs, a, b, reps=4000, seed=2026):
 
 
 def pair_table(runs, focal="full"):
-    arms = sorted({r["arm"] for r in runs})
+    arms = sorted({variant(r) for r in runs})
     print(f"\n=== paired engine-cluster bootstrap vs {focal} (MSE units, 95% CI)")
     print("  positive CI = focal worse than the comparator")
     for arm in arms:

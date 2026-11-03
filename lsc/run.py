@@ -102,6 +102,7 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--ffn", type=int, default=256)
     ap.add_argument("--scale_head", default="gru", choices=("gru", "attn"))
+    ap.add_argument("--detach_lam", action="store_true")
     ap.add_argument("--out", default="experiments/lsc/runs")
     args = ap.parse_args()
 
@@ -111,7 +112,7 @@ def main():
 
     tr, va, scaler, edges = D.make_fold_data(args.subset, args.fold)
     model = N.PCDT(D.NF, ffn=args.ffn, arm=args.arm, L=D.WINDOW,
-                   scale_head=args.scale_head).to(device)
+                   scale_head=args.scale_head, detach_lam=args.detach_lam).to(device)
     n_params = N.count_params(model)
 
     X = torch.from_numpy(tr["X"]).to(device)
@@ -173,7 +174,8 @@ def main():
     result = dict(subset=args.subset, arm=args.arm, fold=args.fold, seed=args.seed,
                   params=n_params, val_rmse=best, **best_val)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
-    name = out / f"{args.subset}_{args.arm}_f{args.fold}_s{args.seed}.json"
+    tag = ("_attn" if args.scale_head == "attn" else "") + ("_det" if args.detach_lam else "")
+    name = out / f"{args.subset}_{args.arm}{tag}_f{args.fold}_s{args.seed}.json"
     name.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({k: result[k] for k in
                       ("subset", "arm", "fold", "seed", "params", "val_rmse",
