@@ -101,6 +101,7 @@ def main():
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--ffn", type=int, default=256)
+    ap.add_argument("--scale_head", default="gru", choices=("gru", "attn"))
     ap.add_argument("--out", default="experiments/lsc/runs")
     args = ap.parse_args()
 
@@ -109,7 +110,8 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     tr, va, scaler, edges = D.make_fold_data(args.subset, args.fold)
-    model = N.PCDT(D.NF, ffn=args.ffn, arm=args.arm, L=D.WINDOW).to(device)
+    model = N.PCDT(D.NF, ffn=args.ffn, arm=args.arm, L=D.WINDOW,
+                   scale_head=args.scale_head).to(device)
     n_params = N.count_params(model)
 
     X = torch.from_numpy(tr["X"]).to(device)

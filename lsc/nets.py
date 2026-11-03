@@ -32,14 +32,32 @@ class ScaleHead(nn.Module):
     a sane lambda happens only where lambda feeds the attention bias.
     """
 
-    def __init__(self, nf: int, d: int = 64):
+    def __init__(self, nf: int, d: int = 64, kind: str = "gru"):
         super().__init__()
-        self.gru = nn.GRU(nf, d, batch_first=True)
-        self.out = nn.Linear(d, 2)
+        self.kind = kind
+        if kind == "gru":
+            self.gru = nn.GRU(nf, d, batch_first=True)
+            self.out = nn.Linear(d, 2)
+        elif kind == "attn":
+            # single-query attention pooling over the history: the gate showed
+            # lifetime information is spread across the prefix (corr rises with
+            # prefix length), so pooling over rows beats reading the last state
+            self.proj = nn.Linear(nf, d)
+            self.query = nn.Parameter(torch.randn(d) * 0.02)
+            self.ln = nn.LayerNorm(d)
+            self.out = nn.Linear(d, 2)
+        else:
+            raise ValueError(kind)
 
     def forward(self, x):
-        h, _ = self.gru(x)
-        mu, log_sig = self.out(h[:, -1]).unbind(-1)
+        if self.kind == "gru":
+            h, _ = self.gru(x)
+            g = h[:, -1]
+        else:
+            k = self.ln(self.proj(x))                       # (N, S, d)
+            w = (k @ self.query).softmax(dim=1)             # (N, S)
+            g = (w.unsqueeze(-1) * k).sum(dim=1)            # (N, d)
+        mu, log_sig = self.out(g).unbind(-1)
         sig = log_sig.clamp(math.log(0.02), math.log(5.0)).exp()
         return mu, sig
 
@@ -102,12 +120,13 @@ class Block(nn.Module):
 
 class PCDT(nn.Module):
     def __init__(self, nf: int, d: int = 64, n_layers: int = 2, n_heads: int = 4,
-                 ffn: int = 256, arm: str = "full", L: int = 40):
+                 ffn: int = 256, arm: str = "full", L: int = 40,
+                 scale_head: str = "gru"):
         super().__init__()
         self.arm = arm
         self.L = L
         n_in_bias = 3 if arm == "both" else (2 if arm in ("full", "rand", "oracle") else 1)
-        self.scale = ScaleHead(nf)
+        self.scale = ScaleHead(nf, kind=scale_head)
         self.inp = nn.Linear(nf + (1 if arm == "tau" else 0), d)
         self.pos = nn.Embedding(L, d)
         self.bias = (BiasMLP(n_in_bias, n_heads)
