@@ -126,16 +126,16 @@ class PCDT(nn.Module):
         self.arm = arm
         self.L = L
         self.detach_lam = detach_lam
-        n_in_bias = 3 if arm == "both" else (2 if arm in ("full", "rand", "oracle") else 1)
+        n_in_bias = 3 if arm == "both" else (2 if arm in ("full", "rand", "oracle", "hgb") else 1)
         self.scale = ScaleHead(nf, kind=scale_head)
         self.inp = nn.Linear(nf + (1 if arm == "tau" else 0), d)
         self.pos = nn.Embedding(L, d)
         self.bias = (BiasMLP(n_in_bias, n_heads)
-                     if arm in ("rel", "full", "rand", "oracle", "both") else None)
+                     if arm in ("rel", "full", "rand", "oracle", "hgb", "both") else None)
         self.blocks = nn.ModuleList(Block(d, n_heads, ffn) for _ in range(n_layers))
         self.read = nn.Sequential(nn.LayerNorm(d), nn.Linear(d, 2))
 
-    def forward(self, x, life=None, cyc=None, xs=None):
+    def forward(self, x, life=None, cyc=None, xs=None, lam_ext=None):
         N, L, _ = x.shape
         mu, sig = self.scale(xs if xs is not None else x)   # raw mu: loss path unclamped
         if self.detach_lam:
@@ -154,6 +154,14 @@ class PCDT(nn.Module):
             # dt normalised by the lifetime scale.
             assert life is not None
             lam = life.clamp(math.exp(LOG_L_MIN), math.exp(LOG_L_MAX))
+        elif self.arm == "hgb":
+            # two-stage variant: lambda comes from the stage-1 gate's OOF HGB
+            # probe (prefix statistics -> total life, corr ~0.73), interpolated
+            # at the window's age.  Independent of this network's training --
+            # the honest external estimate that the learned scale head fails
+            # to match.
+            assert lam_ext is not None
+            lam = lam_ext.clamp(math.exp(LOG_L_MIN), math.exp(LOG_L_MAX))
         if self.arm == "rand":
             perm = torch.randperm(N, device=x.device)
             lam_u = lam[perm]

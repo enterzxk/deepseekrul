@@ -1,0 +1,47 @@
+<Slide notes={`最后是边界和下一步。局限三个：两个基准都是仿真；50% 档所有构造落在 0.34 到 0.66，排序不稳；真实轴承数据只有 15 到 17 台，达不到 143 台一箱。下一步：投 TIM 的 7 页测量学短文；B 线 CAI 还在训练、汇总没出，今天不报结论。带走的结论：宽度可比、覆盖率在这个规模不可比，先修约定再谈方法。`} style={{ width: 1280, height: 720, background: '#FFFFFF', padding: 60, fontFamily: 'Microsoft YaHei, Arial', position: 'relative' }}>
+  <Box style={{ height: 72, background: '#1E4FA8', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 }}>
+    <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' }}>边界、局限与下一步</Text>
+    <Text style={{ fontSize: 16, color: '#DCE7F7' }}>04 · 讨论</Text>
+  </Box>
+  <Box style={{ marginTop: 24, height: 504, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: 56, background: '#E8EFF8', borderLeft: '4px solid #1E4FA8', paddingLeft: 18, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, color: '#1A2230' }}>先修报告约定，再谈方法优劣。</Text>
+    </Box>
+    <Box style={{ height: 360, marginTop: 16, display: 'flex', flexDirection: 'row', gap: 24 }}>
+      <Box style={{ width: 370, height: 360, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 20, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230' }}>局限</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 16 }}>· 两个基准都是仿真，无真实传感器数据</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· 50% 档全部落在 0.34–0.66，排序不稳</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· 真实轴承数据只有 15 / 17 台，达不到 143 台/箱</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· 检测门槛依赖分箱与 Bonferroni 假设</Text>
+        <Text style={{ fontSize: 15, color: '#8B97A8', lineHeight: 1.45, marginTop: 18 }}>这些限制不隐藏，已写进论文 Limitations。</Text>
+      </Box>
+      <Box style={{ width: 370, height: 360, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 20, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230' }}>下一步</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 16 }}>· 投 TIM：7 页测量学短文，已编译</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· B 线：RID 已否证；CAI 训练中，汇总未出</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· 复现包：17 个脚本、21 个 JSON、一条命令重跑</Text>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.5, marginTop: 14 }}>· 把四条报告规范写成 checklist</Text>
+        <Text style={{ fontSize: 15, color: '#8B97A8', lineHeight: 1.45, marginTop: 18 }}>B 线结果出来之前，不写成结论。</Text>
+      </Box>
+      <Box style={{ width: 370, height: 360, background: '#1E4FA8', padding: 22, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#DCE7F7' }}>TAKEAWAY</Text>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginTop: 4 }}>可以带走的结论</Text>
+        <Box style={{ height: 1, background: '#6E8FC7', marginTop: 14, marginBottom: 4 }} />
+        <Text style={{ fontSize: 16, color: '#DCE7F7', marginTop: 14 }}>宽度</Text>
+        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}>可比，±1 周期</Text>
+        <Text style={{ fontSize: 16, color: '#DCE7F7', marginTop: 14 }}>覆盖率</Text>
+        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}>此规模不可比，±0.04–0.06</Text>
+        <Text style={{ fontSize: 16, color: '#DCE7F7', marginTop: 14 }}>优先级</Text>
+        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}>先修约定，再谈方法</Text>
+      </Box>
+    </Box>
+    <Box style={{ height: 48, marginTop: 16, borderLeft: '4px solid #1E4FA8', paddingLeft: 16, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>覆盖率测的是预测器—总体配对，宽度测的才是构造。</Text>
+    </Box>
+  </Box>
+  <Box style={{ position: 'absolute', left: 60, right: 60, bottom: 20, height: 24, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>RUL 区间测量学 · 课题组进展汇报</Text>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>10 / 10</Text>
+  </Box>
+</Slide>

@@ -1,0 +1,53 @@
+<Slide notes={`过程中我主动撤回四条。
+N-CMAPSS 的 19% 是泄漏，修复后剩 1%。
+对象匹配的 11% 混了三个效应，受控后 5.4%。
+配对检验把三个种子当独立观测，按发动机聚类后四舰队全不显著。
+命题一是既有理论的特化，不声称新定理。
+一个小约定错误造出的发现，比真实效应大一个数量级——这本身就是论文的论点。`} style={{ width: 1280, height: 720, background: '#FFFFFF', padding: 60, fontFamily: 'Microsoft YaHei, Arial', position: 'relative' }}>
+  <Box style={{ height: 72, background: '#1E4FA8', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 }}>
+    <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' }}>主动撤回的四条结论</Text>
+    <Text style={{ fontSize: 16, color: '#DCE7F7' }}>04 · 讨论</Text>
+  </Box>
+  <Box style={{ marginTop: 24, height: 504, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: 56, background: '#E8EFF8', borderLeft: '4px solid #1E4FA8', paddingLeft: 18, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, color: '#1A2230' }}>修掉实现问题后，两条主结论反转；这些撤回本身就是论文的论据。</Text>
+    </Box>
+    <Box style={{ height: 360, marginTop: 16, display: 'flex', flexDirection: 'row', gap: 24 }}>
+      <Box style={{ width: 568, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <Box style={{ height: 170, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>01 · N-CMAPSS 泄漏</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230', marginTop: 4 }}>自由尾收益 19% → 1%</Text>
+          <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.4, marginTop: 6 }}>旧口径拿其他舰队的测试残差校准；修复后 50% 档由“省 7%”变为“宽 7%”。</Text>
+          <Text style={{ fontSize: 14, color: '#3D7BD9', marginTop: 8 }}>→ 论文删去 19% 的表述</Text>
+        </Box>
+        <Box style={{ height: 170, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>02 · 校准对象</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230', marginTop: 4 }}>对象匹配 11% → 5.4%</Text>
+          <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.4, marginTop: 6 }}>旧 11% 混了对象、自由尾、方差归一化三个效应；受控后符号随舰队翻转。</Text>
+          <Text style={{ fontSize: 14, color: '#3D7BD9', marginTop: 8 }}>→ 只报区间，不做方法排序</Text>
+        </Box>
+      </Box>
+      <Box style={{ width: 568, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <Box style={{ height: 170, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>03 · 配对检验</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230', marginTop: 4 }}>四舰队全部不显著</Text>
+          <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.4, marginTop: 6 }}>把 3 个 seed 当独立观测；按发动机聚类后，仅 4–8 台发动机改变状态。</Text>
+          <Text style={{ fontSize: 14, color: '#3D7BD9', marginTop: 8 }}>→ 改为按发动机聚类</Text>
+        </Box>
+        <Box style={{ height: 170, borderTop: '3px solid #1E4FA8', background: '#F7F9FC', padding: 16 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>04 · 命题 1</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230', marginTop: 4 }}>既有理论的特化，不声称新定理</Text>
+          <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.4, marginTop: 6 }}>同一校准样本上选 γ 不保有限样本保证；半分裂的代价是 +13% 宽度。</Text>
+          <Text style={{ fontSize: 14, color: '#3D7BD9', marginTop: 8 }}>→ 改写成重述 + 归因</Text>
+        </Box>
+      </Box>
+    </Box>
+    <Box style={{ height: 48, marginTop: 16, borderLeft: '4px solid #D9534F', paddingLeft: 16, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>一个小约定错误，能造出比真实效应大一个数量级的“发现”——这正是论文的论点。</Text>
+    </Box>
+  </Box>
+  <Box style={{ position: 'absolute', left: 60, right: 60, bottom: 20, height: 24, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>RUL 区间测量学 · 课题组进展汇报</Text>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>09 / 10</Text>
+  </Box>
+</Slide>

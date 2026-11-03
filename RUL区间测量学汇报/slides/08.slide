@@ -1,0 +1,74 @@
+<Slide notes={`主表。66 参数的概率层：宽度 30.9 圈、综合分 41.0，全场最好。综合分等于宽度加 20 倍脱靶惩罚，越低越好。我的构造 31.9 和 45.1，输的是脱靶惩罚，不是宽度。唯一稳定占优的是覆盖率稳定性，0.016 对 0.025。这个负结果如实写进了论文。`} style={{ width: 1280, height: 720, background: '#FFFFFF', padding: 60, fontFamily: 'Microsoft YaHei, Arial', position: 'relative' }}>
+  <Box style={{ height: 72, background: '#1E4FA8', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 }}>
+    <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' }}>主表：66 参数层在宽度与区间得分上都最好</Text>
+    <Text style={{ fontSize: 16, color: '#DCE7F7' }}>03 · 结果</Text>
+  </Box>
+  <Box style={{ marginTop: 24, height: 504, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: 56, background: '#E8EFF8', borderLeft: '4px solid #1E4FA8', paddingLeft: 18, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, color: '#1A2230' }}>同一协议、同一部署对象（15 模型）、653 台测试机，90% 名义水平。</Text>
+    </Box>
+    <Box style={{ height: 300, marginTop: 16, display: 'flex', flexDirection: 'row', gap: 32 }}>
+      <Box style={{ width: 760, height: 300 }}>
+        <Table
+          style={{ width: 760, height: 260 }}
+          defaultTextStyle={{ fontSize: 15, textAlign: 'center', color: '#1A2230' }}
+          defaultCellStyle={{ border: { bottom: { width: 1, color: '#D6DCE5' } } }}
+          cells={[
+            [
+              { text: '构造（90% 名义）', textStyle: { bold: true, color: '#FFFFFF', textAlign: 'left' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: 'FD001', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: 'FD002', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: 'FD003', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: 'FD004', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: '|Δ|', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: '宽度', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } },
+              { text: 'Winkler', textStyle: { bold: true, color: '#FFFFFF' }, cellStyle: { background: { color: '#1E4FA8' } } }
+            ],
+            [
+              { text: '参数层（中心）', textStyle: { bold: true, color: '#1E4FA8', textAlign: 'left' } },
+              { text: '.935', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '.902', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '.948', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '.886', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '.025', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '30.9', textStyle: { bold: true, color: '#1E4FA8' } },
+              { text: '41.0', textStyle: { bold: true, color: '#1E4FA8' } }
+            ],
+            [
+              { text: 'CV+ 对称', textStyle: { textAlign: 'left' } },
+              '.892', '.936', '.897', '.934', '.020', '31.9', '44.9'
+            ],
+            [
+              { text: '匹配 + 自由尾', textStyle: { textAlign: 'left' } },
+              '.914', '.919', '.887', '.917', '.016', '31.9', '45.1'
+            ],
+            [
+              { text: '匹配 + 自由尾 + 半分裂', textStyle: { textAlign: 'left' } },
+              '.925', '.923', '.876', '.947', '.030', '36.0', '47.4'
+            ]
+          ]}
+        />
+      </Box>
+      <Box style={{ width: 368, height: 300, background: '#F7F9FC', border: '1px solid #D6DCE5', padding: 20, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>READING</Text>
+        <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1A2230', marginTop: 4 }}>参数层仍然最窄</Text>
+        <Box style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 6 }}>
+          <Text style={{ fontSize: 54, fontWeight: 'bold', color: '#1E4FA8', lineHeight: 1.0 }}>30.9</Text>
+          <Text style={{ fontSize: 16, color: '#4A5568', marginBottom: 6 }}>周期</Text>
+        </Box>
+        <Text style={{ fontSize: 16, color: '#4A5568', marginTop: 4 }}>Winkler 41.0；保形族 44.9–49.6</Text>
+        <Box style={{ height: 1, background: '#D6DCE5', marginTop: 12, marginBottom: 10 }} />
+        <Text style={{ fontSize: 16, color: '#1A2230' }}>保形族宽度 31.4–36.0</Text>
+        <Text style={{ fontSize: 16, color: '#1A2230', marginTop: 6 }}>唯一稳定优势：|Δ| 0.016 vs 0.025</Text>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#D9534F', marginTop: 6 }}>不足以支撑“更好构造”</Text>
+      </Box>
+    </Box>
+    <Box style={{ height: 48, marginTop: 16, borderLeft: '4px solid #1E4FA8', paddingLeft: 16, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>构造没有赢，测量赢了：这就是稿子从 full paper 降级为测量学短文的原因。</Text>
+    </Box>
+  </Box>
+  <Box style={{ position: 'absolute', left: 60, right: 60, bottom: 20, height: 24, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>RUL 区间测量学 · 课题组进展汇报</Text>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>08 / 10</Text>
+  </Box>
+</Slide>

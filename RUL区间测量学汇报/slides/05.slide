@@ -1,0 +1,44 @@
+<Slide notes={`第二个结果：样本量够不够。单舰队每个箱只有 11 到 82 台，能可靠检出的最小偏差是 0.14 到 0.44；要检出 0.10 需要 143 台一箱。而九种构造之间的覆盖率差只有 0.016 到 0.030，在噪声里。结论是：多数文献的条件覆盖率排名，在这个样本量下本来就无法分辨。`} style={{ width: 1280, height: 720, background: '#FFFFFF', padding: 60, fontFamily: 'Microsoft YaHei, Arial', position: 'relative' }}>
+  <Box style={{ height: 72, background: '#1E4FA8', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 }}>
+    <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' }}>11–82 台一箱，只能检测 0.14–0.44 的偏差</Text>
+    <Text style={{ fontSize: 16, color: '#DCE7F7' }}>03 · 结果</Text>
+  </Box>
+  <Box style={{ marginTop: 24, height: 504, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: 56, background: '#E8EFF8', borderLeft: '4px solid #1E4FA8', paddingLeft: 18, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, color: '#1A2230' }}>覆盖率要用来排序，先问这个样本量能不能分辨。</Text>
+    </Box>
+    <Box style={{ height: 360, marginTop: 16, display: 'flex', flexDirection: 'row', gap: 32 }}>
+      <Box style={{ width: 620, height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Image src='assets/fig_detect.png' style={{ width: 620, height: 360, objectFit: 'contain' }} />
+      </Box>
+      <Box style={{ width: 508, height: 360, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>FINDING 02</Text>
+        <Box style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 2 }}>
+          <Text style={{ fontSize: 68, fontWeight: 'bold', color: '#1E4FA8', lineHeight: 1.0 }}>143</Text>
+          <Text style={{ fontSize: 18, color: '#4A5568', marginBottom: 8 }}>台/箱，才能检测 0.10</Text>
+        </Box>
+        <Box style={{ height: 1, background: '#D6DCE5', marginTop: 14, marginBottom: 12 }} />
+        <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 17, color: '#4A5568' }}>单舰队每箱</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1A2230' }}>11–82 台 → 0.14–0.44</Text>
+        </Box>
+        <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+          <Text style={{ fontSize: 17, color: '#4A5568' }}>四舰队合并</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1A2230' }}>84–212 台 → 0.08–0.14</Text>
+        </Box>
+        <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+          <Text style={{ fontSize: 17, color: '#4A5568' }}>要检测 0.05</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1A2230' }}>495 台/箱</Text>
+        </Box>
+        <Text style={{ fontSize: 17, color: '#4A5568', lineHeight: 1.45, marginTop: 18 }}>本文九种构造的覆盖率差是 0.016–0.030，低于这个门槛。</Text>
+      </Box>
+    </Box>
+    <Box style={{ height: 48, marginTop: 16, borderLeft: '4px solid #1E4FA8', paddingLeft: 16, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>这不是说基准无用，而是说它不能给方法排序。</Text>
+    </Box>
+  </Box>
+  <Box style={{ position: 'absolute', left: 60, right: 60, bottom: 20, height: 24, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>RUL 区间测量学 · 课题组进展汇报</Text>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>05 / 10</Text>
+  </Box>
+</Slide>

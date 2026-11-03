@@ -1,0 +1,40 @@
+<Slide notes={`第一个结果：记法。基准把寿命封顶在 125 圈，17% 的发动机真值正好顶在这个格子上。用整数端点数包没包住，会把整块顶格原子都算进覆盖；换成随机 PIT 按比例计就不会。90% 档虚高 0.011 到 0.044，50% 档 0.074 到 0.120，恒为正，跟方法无关。所以一张不写记法的覆盖率表，是在拿未知比未知。`} style={{ width: 1280, height: 720, background: '#FFFFFF', padding: 60, fontFamily: 'Microsoft YaHei, Arial', position: 'relative' }}>
+  <Box style={{ height: 72, background: '#1E4FA8', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 24, paddingRight: 24 }}>
+    <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' }}>同一个分布，换一种记法，覆盖率最多高 0.044</Text>
+    <Text style={{ fontSize: 16, color: '#DCE7F7' }}>03 · 结果</Text>
+  </Box>
+  <Box style={{ marginTop: 24, height: 504, display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: 56, background: '#E8EFF8', borderLeft: '4px solid #1E4FA8', paddingLeft: 18, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, color: '#1A2230' }}>偏差恒为正：17%（111/653）的发动机真值落在 125 的封顶原子上。</Text>
+    </Box>
+    <Box style={{ height: 360, marginTop: 16, display: 'flex', flexDirection: 'row', gap: 32 }}>
+      <Box style={{ width: 620, height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Image src='assets/fig_convention.png' style={{ width: 620, height: 360, objectFit: 'contain' }} />
+      </Box>
+      <Box style={{ width: 508, height: 360, display: 'flex', flexDirection: 'column' }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#3D7BD9' }}>FINDING 01</Text>
+        <Box style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 4 }}>
+          <Text style={{ fontSize: 76, fontWeight: 'bold', color: '#1E4FA8', lineHeight: 1.0 }}>0.044</Text>
+          <Text style={{ fontSize: 18, color: '#4A5568', marginBottom: 8 }}>90% 档最大偏差</Text>
+        </Box>
+        <Box style={{ height: 1, background: '#D6DCE5', marginTop: 18, marginBottom: 16 }} />
+        <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 18, color: '#4A5568' }}>90% 档</Text>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>+0.011 ~ +0.044</Text>
+        </Box>
+        <Box style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+          <Text style={{ fontSize: 18, color: '#4A5568' }}>50% 档</Text>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>+0.074 ~ +0.120</Text>
+        </Box>
+        <Text style={{ fontSize: 18, color: '#4A5568', lineHeight: 1.5, marginTop: 20 }}>偏差不依赖模型：换任何预测器，方向与量级都在。</Text>
+      </Box>
+    </Box>
+    <Box style={{ height: 48, marginTop: 16, borderLeft: '4px solid #1E4FA8', paddingLeft: 16, display: 'flex', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1A2230' }}>不写记法的覆盖率表，是在拿未知比未知。</Text>
+    </Box>
+  </Box>
+  <Box style={{ position: 'absolute', left: 60, right: 60, bottom: 20, height: 24, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>RUL 区间测量学 · 课题组进展汇报</Text>
+    <Text style={{ fontSize: 14, color: '#8B97A8' }}>04 / 10</Text>
+  </Box>
+</Slide>

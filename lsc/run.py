@@ -29,7 +29,7 @@ def _corr(a, b):
 
 
 @torch.no_grad()
-def evaluate(model, va, edges, device, bs=4096):
+def evaluate(model, va, edges, device, lam_ext=None, bs=4096):
     """All-window metrics plus fixed-age diagnostics.
 
     Dev engines run to failure, so end-of-life windows are degenerate (RUL=0);
@@ -41,14 +41,20 @@ def evaluate(model, va, edges, device, bs=4096):
     Xs = torch.from_numpy(va["Xs"]).to(device)
     life = torch.from_numpy(va["life"]).to(device)
     cyc = torch.from_numpy(va["cyc"]).to(device)
+    lam_e = (torch.from_numpy(lam_ext).to(device) if lam_ext is not None else None)
     mus, lam = [], []
+    ext = lam_ext is not None
     for i in range(0, len(X), bs):
         mu, sg, ev = model(X[i:i + bs], life[i:i + bs], cyc[i:i + bs],
-                           xs=Xs[i:i + bs])
+                           xs=Xs[i:i + bs], lam_ext=lam_e[i:i + bs] if lam_e is not None else None)
         mus.append(mu.cpu().numpy())
-        lam.append(ev["mu"].cpu().numpy())
+        # the hgb arm's bias consumes the external lambda, so that is the
+        # scale whose quality must be reported -- not the idle scale head
+        lam.append(lam_e[i:i + bs].cpu().numpy() if ext else ev["mu"].cpu().numpy())
     mus = np.concatenate(mus)
-    lam = np.exp(np.concatenate(lam))
+    lam = np.concatenate(lam)
+    if not ext:
+        lam = np.exp(lam)
     err = mus - va["rul"]
     out = {
         "rmse_all": float(np.sqrt(np.mean(err ** 2))),
@@ -93,7 +99,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--subset", required=True)
     ap.add_argument("--arm", required=True,
-                    choices=("plain", "rel", "tau", "rand", "oracle", "full", "both"))
+                    choices=("plain", "rel", "tau", "rand", "oracle", "full", "both", "hgb"))
     ap.add_argument("--fold", type=int, required=True)
     ap.add_argument("--seed", type=int, default=2027)
     ap.add_argument("--epochs", type=int, default=300)
@@ -103,6 +109,8 @@ def main():
     ap.add_argument("--ffn", type=int, default=256)
     ap.add_argument("--scale_head", default="gru", choices=("gru", "attn"))
     ap.add_argument("--detach_lam", action="store_true")
+    ap.add_argument("--hgb_file", default="results/lsc_probe/fd002_predictions.json",
+                    help="OOF gate predictions for the hgb arm")
     ap.add_argument("--out", default="experiments/lsc/runs")
     args = ap.parse_args()
 
@@ -122,6 +130,18 @@ def main():
     cyc = torch.from_numpy(tr["cyc"]).to(device)
     # a window ending exactly at failure cannot condition on T > c
     lam_mask = (life > cyc)
+    # hgb arm: external leak-free lifetime estimate per window
+    lam_ext_tr = lam_ext_va = None
+    if args.arm == "hgb":
+        from lsc import hgb_lam as H
+        lam_ext_tr = H.lam_windows(args.hgb_file, args.subset, tr["eng"], tr["cyc"])
+        lam_ext_va = H.lam_windows(args.hgb_file, args.subset, va["eng"], va["cyc"])
+        lam_ext_tr_t = torch.from_numpy(lam_ext_tr).to(device)
+        print(f"[hgb] train lam corr with life: "
+              f"{np.corrcoef(lam_ext_tr, tr['life'])[0, 1]:.3f}  "
+              f"val: {np.corrcoef(lam_ext_va, va['life'])[0, 1]:.3f}", flush=True)
+    else:
+        lam_ext_tr_t = None
 
     # ---- warm-up: fit the scale head on the lifetime loss alone -----------
     # identical for every arm; the stage-1 gate showed lifetime information
@@ -152,7 +172,8 @@ def main():
         perm = rng.permutation(len(X))
         for i in range(0, len(X), args.batch):
             b = torch.from_numpy(perm[i:i + args.batch]).to(device)
-            mu, sg, _ = model(X[b], life[b], cyc[b], xs=Xs[b])
+            le = lam_ext_tr_t[b] if lam_ext_tr_t is not None else None
+            mu, sg, _ = model(X[b], life[b], cyc[b], xs=Xs[b], lam_ext=le)
             loss = N.gauss_nll(mu, sg, y[b])
             bl = b[lam_mask[b]]
             if len(bl):
@@ -162,7 +183,7 @@ def main():
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
             opt.step()
         sched.step()
-        val = evaluate(model, va, edges, device)
+        val = evaluate(model, va, edges, device, lam_ext=lam_ext_va)
         if val["rmse_all"] < best - 1e-4:
             best, bad, best_val = val["rmse_all"], 0, val
         else:
