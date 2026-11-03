@@ -1,119 +1,120 @@
 # C-MAPSS Remaining Useful Life Prediction
 
-Current milestone: **R3.1 closed (2026-10-29).** The deployable lifespan-scale
-feature (`c/T̂`) is a **negative result**: after fixing a validation-side leak
-that had fed the true lifespan into the estimator, `est` no longer beats the
-`cycle` arm (+0.08 RMSE, CI [−2.10, +2.27]) and the earlier "38% of the oracle
-gain" is withdrawn. See [`docs/director/REVIEW_20261022_R3.md`](docs/director/REVIEW_20261022_R3.md) §J.
-The TIM track (Stage 1 complete, Stage 2 folded into R1–R3) is archived below.
+Current milestone: **IDA-PE (TIM IDC track) — Gate 0 PASSED 4/4 (2026-11-03),
+status GO_TO_GATE1.** The gated pipeline is live: a strictly causal,
+nested-cross-fitted lifetime prior is injected into the frozen PE backbone,
+with pre-registered criteria and attribution controls. Branch: `tim-idc-rul`
+(fast-forwarded into `main`).
 
-> **Invalidation notice.** A real ordering bug was found in
-> `CRGraphTransformer._smooth_terminal` (tail window was old->new while the
-> weights and the `-k` offset are defined new->old), so **every P9/P10 number
-> that used the synergy head is void** and must be re-run. Baselines are not
-> affected. Fixed in this commit with regression tests
-> (`tests/test_audit_fixes.py`). The same commit corrects the Soft-NASA
-> surrogate, which invalidates the ABC/ABCE tournament cells.
+## IDA-PE in one paragraph
 
-Stage-1 literature/protocol table: [`docs/LITERATURE_BENCHMARK.md`](docs/LITERATURE_BENCHMARK.md).
-Audit + Stage-2 report: [`TIM_AUDIT_AND_STAGE2_REPORT.md`](TIM_AUDIT_AND_STAGE2_REPORT.md).
+**Causal lifetime prior -> individualized degradation clock -> conditioned PE
+predictor.** A `HistGradientBoosting` ensemble predicts remaining engine
+lifetime `mu_T` (and `sigma_T`) using only information available at each
+cutoff (staircase construction: a window ending at cycle `t` consumes the
+latest cutoff prediction `c <= t`, never a future interpolation). The
+degradation clock `tau = t / mu_T` and the prior itself are injected into the
+unchanged PE backbone via **zero-init** layers, so every arm starts exactly
+equivalent to M0 and the delta is attributable to the information, not to
+re-initialization.
 
-Previous milestone: **P10 complete.** Native 14x14 sensor-space graph filter
-(no pooling, exact identity at init) + adaptive tail slope. It fixes the FD002
-graph sign (-0.266 -> +0.257) and passes the FD002 80/20 gate, but the plain
-Transformer still wins at 5 seeds (13.289 / 12.707 vs ours 13.753 / 13.709);
-P9 remains the FD001 record (13.209 / 12.868 ensemble). See
-[`P10_FINAL_VICTORY_REPORT.md`](P10_FINAL_VICTORY_REPORT.md).
+## Gate 0 verdict (frozen criteria, engine-cluster bootstrap, 5000 reps)
 
-Previous milestone: **P9 complete. Sequential CR-GCN -> ConvTransformer ->
-synergized monotonic head, trained on 100% of engines for five seeds
-(2027-2031). FD001 13.209 single / 12.868 ensemble (best to date, beats the
-Transformer); FD002 13.490 / 12.904, still behind the Transformer by 0.51.
-See [`P9_DIRECTOR_REPORT.md`](P9_DIRECTOR_REPORT.md); earlier phases in
-[`P8_SOTA_REPORT.md`](P8_SOTA_REPORT.md) and
-[`P8_EXECUTION_LOG.md`](P8_EXECUTION_LOG.md).**
+| Criterion | Comparison | Delta RMSE | 95% CI | Verdict |
+|---|---|---:|---|---|
+| G0.1 | M1 (prior concat) vs M0 | **-0.279** | [-0.498, -0.053] | PASS |
+| G0.2 | M1_shuf (permuted mu_T) vs M1 | **+0.312** | [+0.114, +0.517] | PASS |
+| G0.3 | M1_const (median mu_T) vs M1 | **+0.279** | [+0.072, +0.485] | PASS |
+| G0.4 | FD001 guardrail (M1 vs M0) | -0.103 | upper < +0.5 | PASS |
+
+Attribution is closed: both controls have the same +192 parameters as M1, and
+both reverse the gain — the benefit comes from **engine-individual lifetime
+information**, not from capacity. Full report:
+[`docs/tim_idc/gate0_report.md`](docs/tim_idc/gate0_report.md); pre-registered
+criteria: [`docs/tim_idc/GATE0_PREREG.md`](docs/tim_idc/GATE0_PREREG.md) and
+[`gates.json`](gates.json) (frozen; amendments require a new file, never
+in-place edits).
+
+Supporting diagnostic ladder (FD002, same causal features): HGB direct RUL
+~31.3 vs prior-implied RUL 17.6 vs PE 12.0 vs M1 12.28 — lifetime *identity*
+is far more learnable than trajectory regression, which motivates the clock
+design rather than direct RUL transfer.
+
+## Gate pipeline and discipline
+
+- **Gate 0** (passed): does a causal prior add value at all (concat-only),
+  with shuffled/constant controls and an FD001 no-harm guardrail.
+- **Gate 1** (running): H1 (HGB direct RUL) / H2 (PE/HGB blend, inner-CV
+  weights) / H3 (PE + OOF H1 features) vs M1/M0 — decides Module B/C.
+- **Gate 2** (pending): uncertainty calibration; safety gate only if
+  Spearman(u, |mu_T - T|) > 0.3.
+- Rules: criteria frozen before results; a failed gate stops the line and is
+  documented, never re-metriced; **engine-level bootstrap only** (window-level
+  bootstrap is forbidden in any reported conclusion); the official test set is
+  unsealed exactly once; ensemble and single-model results are reported
+  separately.
+
+Key code: `src/lifetime_prior/` (nested causal prior), `scripts/run_ida.py`
+(five arms), `scripts/summarize_gate0.py` (verdicts),
+`scripts/run_h1.py` / `run_h2inner.py` / `run_h3.py` / `run_h2finalize.py`
+(Gate 1 arms), `tests/test_prior_causality.py` (leakage tests T1-T4, all
+passing), `scripts/diag_prior_rul.py` (diagnostic ladder). Artifacts under
+`experiments/ida/`.
+
+## Prior milestones (historical, kept for integrity)
+
+- **R3.1 closed (2026-10-29).** The deployable lifespan-scale feature (`c/T̂`)
+  is a **negative result**: after fixing a validation-side leak that had fed
+  the true lifespan into the estimator, `est` no longer beats the `cycle` arm
+  (+0.08 RMSE, CI [-2.10, +2.27]); the earlier "38% of the oracle gain" is
+  withdrawn. See [`docs/director/REVIEW_20261022_R3.md`](docs/director/REVIEW_20261022_R3.md)
+  §J. The lsc line's final positive residue: the HGB arm significantly beats
+  plain (12.98 vs 13.96, recovering 28.7% of the oracle gap) — this motivated
+  the IDA-PE prior estimator choice. EAC/FiLM: NO-GO; Modern Backbone: failed;
+  the PE backbone is retained.
+- **P-line (P7-P10) is not citable** — withdrawn at book level on 2026-10-29;
+  nothing from the P-line enters the manuscript (`paper/E5_CONSISTENCY.md` §4).
+  Kept for the audit trail: [`P10_FINAL_VICTORY_REPORT.md`](P10_FINAL_VICTORY_REPORT.md),
+  [`P9_DIRECTOR_REPORT.md`](P9_DIRECTOR_REPORT.md).
+- Stage-1 literature/protocol table: [`docs/LITERATURE_BENCHMARK.md`](docs/LITERATURE_BENCHMARK.md).
+
+## Baseline verification (2026)
+
+- **CET-MSA** (Springer JIM 2026): official code verified
+  (`suosimiaoqianli/Noise-Robust-RUL-CET-MSA`), cloned for reproduction.
+- **BootBoGs-TS** (2026): official code verified (`Gyouness/BootBoGs-TS`).
+- AIDGN / LVDACNN / MSMT-FDA: no official code available.
 
 ## Layout
 
 ~~~text
+gates.json                     frozen gate criteria (pre-registered)
+src/lifetime_prior/            nested causal lifetime prior (staircase)
 src/dataset.py                 C-MAPSS, clip125, windows, metrics, FD002 scaler
-src/model.py                   STG-MambaNet (identity-prior graph, SSM/LSTM)
-src/loss.py                    PhysicsGuidedLoss (MSE + asymmetric + monotonic)
-scripts/run_ablation.py        validation-selected, test-once runner
-scripts/tune_validation.py     validation-only P1/P2 tuner (never reads test)
-scripts/run_val_tuning.py      P1 grid launcher
-scripts/run_p2_tuning.py       P2 loss grid launcher
-scripts/lock_hparams.py        writes results/locked_hparams.json
-scripts/run_p3_locked.py       five-seed locked FD001 confirmatory runner
-scripts/run_fd002.py           FD002 condition-aware external validity
-scripts/summarize_ablations.py clip125 main + raw appendix aggregation
-scripts/generate_final_figures.py  Phase-5 figures
-scripts/generate_final_tables.py   results/final_tables.tex
-scripts/generate_morning_report.py MORNING_REPORT.md
-archive_root_v0/               archived root-level legacy implementation
-docs/FINAL_PROTOCOL.md         frozen protocol
-docs/STAGE3_REPORT.md          pilot/historical report (superseded)
-MORNING_REPORT.md              final overnight report
-results/final_FD001_5seeds/    final five-seed metrics
-results/final_FD002_3seeds/    final three-seed FD002 metrics
-figures/final/                 final PDF/PNG figures
+src/model.py                   PE backbone (retained; EAC/FiLM/modern NO-GO)
+scripts/run_ida.py             five-arm runner (M0/M1/M1p/shuffled/const)
+scripts/summarize_gate0.py     engine-cluster bootstrap verdicts
+scripts/run_h1.py              HGB direct-RUL arm (Gate 1)
+scripts/run_h2inner.py         PE/HGB blend, inner-CV weight selection
+scripts/run_h3.py              PE + OOF H1 features (zero-init)
+scripts/diag_prior_rul.py      prior-implied-RUL diagnostic ladder
+tests/test_prior_causality.py  leakage tests T1-T4
+docs/tim_idc/                  prereg, gate0 report, paper skeleton
+experiments/ida/               metrics/predictions (read-only aggregation)
 ~~~
-
-## Frozen protocol
-
-- Main label protocol: **clip125** for train/validation/test; raw test metrics
-  are stored in the appendix only.
-- Standard 14 sensors; training-only normalization.
-- FD001: window 50, stride 1, d_model 64, dropout 0.15, weight_decay 1e-4,
-  batch 256, lr 1e-3, 80 epochs, patience 20.
-- Graph: A = (1-alpha) I + alpha Softmax(ReLU(E1 E2^T)), alpha init 0.1.
-- Loss: MSE + Asym(1.0) + Mono(0.05), late weight 2.0.
-- Parameter-matched LSTM: 142,806 vs Full 144,265 (1.01%).
-- P3 seeds: 101, 202, 303, 404, 505.
-- Test suite: 34 collected, OK with 6 skipped while official test files are
-  sealed. Unseal explicitly only for authorized evaluation.
-
-## Final FD001 result (clip125, mean +/- std, 5 seeds)
-
-| Variant | RMSE | NASA Score |
-|---|---:|---:|
-| w/o A-GCN | 14.104 +/- 1.200 | 369.635 +/- 102.242 |
-| Identity-Graph (A=I) | 14.689 +/- 0.683 | 392.977 +/- 86.252 |
-| w/o SSM (matched LSTM) | 14.405 +/- 0.329 | 359.656 +/- 22.626 |
-| w/o Physics Loss | 14.123 +/- 0.868 | 357.238 +/- 56.818 |
-| w/o Mono Loss | 14.133 +/- 0.538 | 324.621 +/- 40.663 |
-| Full Model | 13.423 +/- 0.487 | 327.119 +/- 59.184 |
-
-Full has the best RMSE and MAE, but not the best NASA score (w/o Mono is
-slightly better). A-GCN, SSM, and the physics objective all have positive
-paired deltas on FD001; L_Mono improves RMSE but hurts the late-prediction
-fraction. FD002 reverses the temporal result: the matched LSTM is better than
-Full (14.363/1001.130 vs 14.955/1456.569). Do not claim a universal module win.
-
-## P7 surgical update
-
-P7 removes the delta features, switches the main temporal backbone to
-BiLSTM-Attn with zero-init condition FiLM, and scans hollow-graph alpha.
-FD001 (5 seeds, alpha=0.15): Full 14.155 / 357.740; w/o Mono Head
-13.587 / 313.152; Baseline BiLSTM 14.959 / 362.637. FD002 (1 seed):
-Full 14.120 / 799.204; Transformer 12.679 / 785.018. The FD001 <=12.5 gate
-is still not met and the FD002 Transformer is stronger. See
-P7_FINAL_VERDICT.md. **These P7 numbers are not citable** (withdrawn at book
-level on 2026-10-29; nothing from the P-line enters the manuscript) — see
-`paper/E5_CONSISTENCY.md` §4.
 
 ## Quick start
 
 ~~~bash
-cd /home/yndx/zxk/bearing-rul-pi
-python -m unittest discover -s tests -v
-python scripts/generate_final_figures.py --out figures/final
-python scripts/generate_final_tables.py
-python scripts/generate_morning_report.py
+python -m unittest tests.test_prior_causality -v   # leakage tests
+python scripts/run_ida.py --subset FD002 --arm M1 --fold 0 --seed 42
+python scripts/summarize_gate0.py                  # reproduce Gate 0 verdicts
 ~~~
 
 ## Integrity rule
 
-No ablation number is hand-written or selected to fit an expected story.
-All final numbers come from metrics.json / test_predictions.csv generated by
-the frozen runner. Negative results are reported as negative.
+No ablation number is hand-written or selected to fit an expected story. All
+reported numbers come from metrics / predictions files generated by frozen
+runners; aggregation scripts read those files, never human transcription.
+Gate criteria are frozen before results exist and are not modified after.
+Negative results are reported as negative.
