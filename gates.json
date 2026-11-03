@@ -1,0 +1,109 @@
+{
+  "protocol": "IDA-PE gated pipeline (2026-11-03 frozen; amendment requires a new file, never in-place edits)",
+  "bootstrap": {
+    "unit": "engine",
+    "forbidden": "window-level bootstrap in any reported conclusion",
+    "reps": 5000
+  },
+  "gate0": {
+    "purpose": "Does a strictly causal, nested-cross-fitted lifetime prior add value to the PE backbone at all (concat only)?",
+    "prior": {
+      "estimator": "HistGradientBoostingRegressor (lsc_feasibility sensor-arm features: age+ops+sensor)",
+      "nested": "outer 5-fold engine-level; inner 4-fold cross-fitting inside outer-train; ensemble of 5 seeds -> mu_T=mean, sigma_T=std",
+      "causal": "staircase: window ending at t consumes the latest cutoff c<=t prediction (c in {50,60,...,200}, c<true_T); NO interpolation to future cutoffs; t<50 -> training-fold median lifetime with flag",
+      "scaler": "OperatingConditionScaler fit on outer-train only (n_clusters=6 for FD002/FD004, 1 for FD001/FD003)"
+    },
+    "leakage_tests_required": [
+      "T1: perturbing sensors after cycle t must not change mu_T(t)",
+      "T2: perturbing an outer-val engine's true lifetime must not change any outer-train mu_T/sigma_T",
+      "T3: perturbing an outer-val engine's true lifetime must not change that engine's own mu_T",
+      "T4: assert for every window that its consumed cutoff <= window end cycle"
+    ],
+    "arms": {
+      "M0": "PE backbone, unchanged (num_layers=1, use_pe=True, use_ema_features=True; 42306 params)",
+      "M1": "PE + concat(mu_T, sigma_T) via zero-init injection",
+      "M1p": "PE + phi(tau) encoding (tau = t / mu_T), zero-init injection",
+      "M1_shuf": "M1 with mu_T permuted across engines (within fold)",
+      "M1_const": "M1 with constant training-fold median lifetime"
+    },
+    "criteria": [
+      {
+        "id": "G0.1",
+        "stat": "DeltaRMSE(engine-cluster bootstrap 95% CI) M1 vs M0 on FD002",
+        "pass": "CI upper < 0"
+      },
+      {
+        "id": "G0.2",
+        "stat": "DeltaRMSE M1_shuf vs M1 on FD002",
+        "pass": "CI lower > 0"
+      },
+      {
+        "id": "G0.3",
+        "stat": "DeltaRMSE M1_const vs M1 on FD002",
+        "pass": "CI lower > 0"
+      },
+      {
+        "id": "G0.4",
+        "stat": "DeltaRMSE M1 vs M0 on FD001 (guardrail)",
+        "pass": "CI upper < +0.5"
+      }
+    ],
+    "decision_rule": "All four must pass to enter Gate 1. On fail: stop, write gate0_report.md (corr(mu_T,T) by cutoff + hgb arm under the new staircase construction), wait for human.",
+    "plan": "stage A: 1 seed (101), FD002 all 5 arms x 5 outer folds + FD001 M0/M1 x 5 folds (fast direction check); stage B: on pass, extend to 3 seeds and freeze official numbers",
+    "dev_budget": "PE training budget unchanged (epochs<=80, patience 15, window 50, batch 256, lr 1e-3)"
+  },
+  "gate1": {
+    "purpose": "Consumption mechanism: is tau conditioning better than naive concat, and are internal mechanisms necessary?",
+    "prereq": "gate0 passed",
+    "arms": ["M0", "M1", "M1p", "H1 (HGB direct RUL, same nested causal features)", "H2 (PE/H1 weight avg, weight chosen on inner CV of outer-train)", "H3 (PE + H1 RUL prediction as input feature)"],
+    "criteria": [
+      {
+        "id": "G1.1",
+        "stat": "DeltaRMSE M1 or M1p vs H1 on FD002",
+        "pass": "CI excludes 0 (better)"
+      },
+      {
+        "id": "G1.2",
+        "stat": "DeltaRMSE M1 or M1p vs H2 on FD002",
+        "pass": "CI excludes 0 (better)"
+      },
+      {
+        "id": "G1.3",
+        "stat": "DeltaRMSE M1 or M1p vs H3 on FD002",
+        "pass": "CI excludes 0 (better)"
+      }
+    ],
+    "decision_rule": "At least one of M1/M1p must beat H1, H2 and H3. Else: conclusion becomes 'HGB RUL prediction alone suffices' -> analysis paper, no further modules.",
+    "modules_BC": "One small zero-init experiment each (<10% params), compared against M1p, with shuffled-tau control; keep only if CI excludes 0."
+  },
+  "gate2": {
+    "purpose": "Uncertainty calibration and safety gate",
+    "prereq": "gate1 passed (or module B/C kept)",
+    "criteria": [
+      {
+        "id": "G2.1",
+        "stat": "Spearman(u, |mu_T - T|) on outer-val, u = sigma_T / mu_T, per subset",
+        "pass": "> 0.3 on FD002 (and reported for all subsets)"
+      }
+    ],
+    "decision_rule": "Module D (uncertainty safety gate) implemented only if G2.1 passes; otherwise the paper drops the uncertainty-aware contribution claim.",
+    "module_E": "Cross-prefix consistency only after B/C or D has stable gains; drop if no clear benefit on RMSE + trajectory stability."
+  },
+  "gate3": {
+    "purpose": "Four-subset confirmation with frozen architecture",
+    "prereq": "architecture frozen after gate1/gate2",
+    "plan": "FD001-FD004 x 5 folds x 3 seeds, identical folds/budget/labels/cap/scaler/checkpoint rule; official test unsealed once at the very end",
+    "criteria": [
+      {
+        "id": "G3.1",
+        "stat": "pooled engine-cluster DeltaRMSE CI upper < 0; OR at least two subsets with CI excluding 0 and no subset worse than +1.0",
+        "pass": true
+      },
+      {
+        "id": "G3.2",
+        "stat": "any subset DeltaRMSE > +1.0",
+        "pass": "record and drop all positive claims for that subset"
+      }
+    ]
+  }
+}
