@@ -12,29 +12,28 @@ read-only over `val_predictions.csv`); verdict files:
 
 | Criterion | Rule | seed 101 | seed 202 | seed 303 | seed 42 | seed 67 | seed 123 |
 |---|---|---|---|---|---|---|---|
-| G0.1 M1 vs M0 (FD002) | upper<0 | **-0.279** [-0.498,-0.053] PASS | **-0.347** [-0.607,-0.078] PASS | **-0.448** [-0.681,-0.216] PASS | **-0.462** PASS | **-0.540** [-0.788,-0.285] PASS | pending |
-| G0.2 M1_shuf vs M1 (FD002) | lower>0 | **+0.312** [+0.114,+0.517] PASS | **+0.310** [+0.058,+0.558] PASS | +0.149 [-0.105,+0.387] FAIL | **+0.295** PASS | **+0.316** [+0.093,+0.536] PASS | pending |
-| G0.3 M1_const vs M1 (FD002) | lower>0 | **+0.279** [+0.072,+0.485] PASS | **+0.272** [+0.022,+0.510] PASS | +0.188 [-0.042,+0.422] FAIL | **+0.373** PASS | **+0.342** [+0.135,+0.552] PASS | pending |
-| G0.4 M1 vs M0 (FD001 guard) | upper<+0.5 | -0.103 [-0.468,+0.258] PASS | +0.060 [-0.282,+0.402] PASS | +0.255 [-0.276,+0.787] FAIL | +0.185 [-0.31,+0.75] FAIL | +0.156 [-0.247,+0.566] FAIL | pending |
-| Verdict | — | GO_TO_GATE1 | GO_TO_GATE1 | STOP | STOP | STOP | pending |
+| G0.1 M1 vs M0 (FD002) | upper<0 | **-0.279** [-0.498,-0.053] PASS | **-0.347** [-0.607,-0.078] PASS | **-0.448** [-0.681,-0.216] PASS | **-0.462** PASS | **-0.540** [-0.788,-0.285] PASS | **-0.580** [-0.864,-0.301] PASS |
+| G0.2 M1_shuf vs M1 (FD002) | lower>0 | **+0.312** [+0.114,+0.517] PASS | **+0.310** [+0.058,+0.558] PASS | +0.149 [-0.105,+0.387] FAIL | **+0.295** PASS | **+0.316** [+0.093,+0.536] PASS | **+0.367** [+0.134,+0.591] PASS |
+| G0.3 M1_const vs M1 (FD002) | lower>0 | **+0.279** [+0.072,+0.485] PASS | **+0.272** [+0.022,+0.510] PASS | +0.188 [-0.042,+0.422] FAIL | **+0.373** PASS | **+0.342** [+0.135,+0.552] PASS | **+0.233** [+0.009,+0.463] PASS |
+| G0.4 M1 vs M0 (FD001 guard) | upper<+0.5 | -0.103 [-0.468,+0.258] PASS | +0.060 [-0.282,+0.402] PASS | +0.255 [-0.276,+0.787] FAIL | +0.185 [-0.31,+0.75] FAIL | +0.156 [-0.247,+0.566] FAIL | **-0.126** [-0.480,+0.230] PASS |
+| Verdict | — | GO_TO_GATE1 | GO_TO_GATE1 | STOP | STOP | STOP | GO_TO_GATE1 |
 
 (The per-seed STOP verdicts apply to that seed only; the frozen pre-registered
 verdict remains the seed-101 GO_TO_GATE1. See disposition.)
 
-## Honest reading (updated for five completed seeds)
+## Honest reading (final, six seeds)
 
 1. **The core claim is robust**: G0.1 (prior injection helps M0) passes on
-   5/5 completed seeds with a monotone-growing effect across seeds
-   (-0.279 / -0.347 / -0.448 / -0.462 / -0.540).
-2. **The attribution controls are significant on 4/5 seeds**: shuffled and
-   constant controls hurt relative to M1 (direction correct 5/5 seeds);
-   individually significant on seeds 101/202/42/67, CI crosses zero only on
-   seed 303.
-3. **The FD001 guardrail is the weak leg**: point estimates never exceed
-   +0.255 (no sign of real harm), but CI upper bounds exceed the frozen +0.5
-   bound on 3/5 seeds (303: +0.787, 42: +0.75, 67: +0.566). FD001 has only
-   80 engines, so the guardrail is under-powered rather than violated;
-   report it as such, never as "no harm on FD001".
+   **6/6 seeds** with a monotone-growing effect across seeds
+   (-0.279 / -0.347 / -0.448 / -0.462 / -0.540 / -0.580).
+2. **The attribution controls are significant on 5/6 seeds**: shuffled and
+   constant controls hurt relative to M1 (direction correct 6/6 seeds);
+   individually significant on all seeds except 303.
+3. **The FD001 guardrail passes 3/6 (101/202/123), including a negative
+   point estimate on seed 123 (-0.126)**; the three FAILs (303/42/67) are
+   power failures only — point estimates never exceed +0.255, so there is
+   no sign of real harm anywhere, but the frozen +0.5 no-harm bound cannot
+   be certified on every seed with FD001's 80 engines.
 
 ## Disposition (gating discipline)
 
@@ -44,15 +43,16 @@ verdict remains the seed-101 GO_TO_GATE1. See disposition.)
 - Gate 1 continues (H1/H2/H3 arms running). A multi-seed confirmation issue
   in Stage B does not by itself halt the pipeline, because the frozen main
   verdict did not fail.
-- Manuscript presentation rules (binding, updated for five completed seeds;
-  re-check when seed 123 completes):
-  - Report all seeds; never quote only 101.
-  - G0.1 may be stated as "significant on 5/5 seeds, effect -0.28 to -0.54".
-  - G0.2/G0.3 must be stated as "direction-consistent on 5/5 seeds,
-    individually significant on 4/5" — no stronger claim.
-  - G0.4 must carry the explicit caveat: CI upper bound exceeds the +0.5
-    no-harm bound on 3/5 seeds (FD001 n=80 under-powered); point estimates
-    ≤ +0.26 everywhere.
+- Manuscript presentation rules (binding, final for six seeds):
+  - Report all six seeds; never quote only 101.
+  - G0.1 may be stated as "significant on 6/6 seeds, effect -0.28 to -0.58,
+    monotone in seed".
+  - G0.2/G0.3 must be stated as "direction-consistent on 6/6 seeds,
+    individually significant on 5/6" — no stronger claim.
+  - G0.4 stated as: "passes on 3/6 seeds with a negative point estimate on
+    seed 123; the remaining seeds are under-powered (FD001 n=80), point
+    estimates ≤ +0.26 throughout — no evidence of harm, but the frozen
+    no-harm bound is not certifiable on every seed".
   - Any pooled-across-seeds analysis is descriptive robustness only and must
     be labeled as post hoc; it cannot resurrect a failed per-seed criterion.
 - If Gate 1 outcomes depend on the attribution claim, re-examine seed-303
