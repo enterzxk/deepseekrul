@@ -1,0 +1,50 @@
+{
+  "FD002": {
+    "arm_rmse": {
+      "M0big": 12.7591,
+      "M1big": 12.4246,
+      "M1pbig": 12.5055
+    },
+    "contrasts": {
+      "M1big,M0big": {
+        "dRMSE": -0.3344,
+        "ci_low": -0.6474,
+        "ci_high": -0.0271
+      },
+      "M1pbig,M0big": {
+        "dRMSE": -0.2535,
+        "ci_low": -0.5331,
+        "ci_high": 0.0109
+      },
+      "M1pbig,M1big": {
+        "dRMSE": 0.0809,
+        "ci_low": -0.2504,
+        "ci_high": 0.3986
+      }
+    }
+  },
+  "FD001": {
+    "arm_rmse": {
+      "M0big": 10.0936,
+      "M1big": 9.8465,
+      "M1pbig": 9.9459
+    },
+    "contrasts": {
+      "M1big,M0big": {
+        "dRMSE": -0.2471,
+        "ci_low": -0.5802,
+        "ci_high": 0.0911
+      },
+      "M1pbig,M0big": {
+        "dRMSE": -0.1477,
+        "ci_low": -0.526,
+        "ci_high": 0.2555
+      },
+      "M1pbig,M1big": {
+        "dRMSE": 0.0995,
+        "ci_low": -0.3258,
+        "ci_high": 0.5414
+      }
+    }
+  }
+}

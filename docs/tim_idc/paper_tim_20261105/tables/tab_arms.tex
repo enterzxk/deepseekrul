@@ -1,0 +1,16 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Arms and budgets. The lightweight recipe is a controlled contrast; the full recipe is the performance table. Both use a fixed final checkpoint and no outer-validation epoch selection.}
+\label{tab:arms}
+\begin{tabular}{llll}
+\toprule
+Arm & Prior features & Injection & Role \\
+\midrule
+M0 & none & none & PE baseline \\
+OPS & age, operating conditions & $[\mu_T,\sigma_T]$ zero-init & age/condition control \\
+FULL & age, conditions, sensor summaries & $[\mu_T,\sigma_T]$ zero-init & sensor prior \\
+CET & adapted CET-MSA & architecture & external baseline \\
+\bottomrule
+\end{tabular}
+\end{table*}

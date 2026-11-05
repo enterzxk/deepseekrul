@@ -1,0 +1,15 @@
+\begin{table*}[t]
+\centering
+\caption{Official test, lightweight recipe (24 epochs, stride 5). RMSE in cycles; 95\% CI from 5,000 engine-paired bootstrap resamples. Bold: CI excludes zero.}
+\label{tab:light}
+\begin{tabular}{lcccccc}
+\toprule
+Subset & M0 & OPS & FULL & CET & FULL$-$M0 [95\% CI] & FULL$-$OPS [95\% CI] \\
+\midrule
+FD001 & 22.211 & 17.843 & 17.194 & 16.655 & \textbf{-5.017 [-6.434, -3.539]} & \textbf{-0.649 [-0.849, -0.432]} \\
+FD002 & 12.997 & 13.593 & 12.864 & 21.646 & -0.134 [-0.454, +0.181] & \textbf{-0.729 [-1.119, -0.349]} \\
+FD003 & 17.038 & 16.563 & 15.140 & 16.386 & \textbf{-1.898 [-2.671, -1.186]} & \textbf{-1.423 [-1.833, -1.010]} \\
+FD004 & 13.063 & 12.994 & 12.636 & 22.283 & \textbf{-0.427 [-0.777, -0.070]} & \textbf{-0.358 [-0.634, -0.075]} \\
+\bottomrule
+\end{tabular}
+\end{table*}
