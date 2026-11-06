@@ -21,10 +21,10 @@ First, the observation span is a first-order design variable that the 50-cycle c
 untouched. On the windows where a longer history exists, a 100-cycle window lowers the pooled error
 from 11.03 to 7.50 cycles. Because a long window is only available once the engine has been observed
 long enough, we schedule the span to the available history (50 cycles below 100 observed cycles,
-100 cycles above). Relative to the locked reference this reduces the pooled RMSE by 6.64% on FD002
-(95% CI 0.65-1.09 cycles) and 4.10% on FD004, improves all four metrics on both fleets, and improves
+100 cycles above). Relative to the locked reference this reduces the pooled RMSE by 7.20% on FD002
+(95% CI 0.79-1.11 cycles) and 3.89% on FD004 across two seeds, improves all four metrics on both fleets, and improves
 the individual engine on 73-83% of FD002 rather than on a tail of engines; the stratified interval is
-5.37% with a lower bound of 0.53 cycles. Three controls attribute the gain to the span: a late-window
+5.53% with a lower bound of 0.59 cycles. Three controls attribute the gain to the span: a late-window
 specialist at the same span is worth 3.5%, an equal-parameter span control 12.8%, and an equal-compute
 three-seed ensemble leaves the gain intact.
 
