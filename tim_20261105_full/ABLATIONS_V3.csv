@@ -1,0 +1,13 @@
+subset,variant,folds,note,rmse_variant,rmse_M0,delta,ci_lo,ci_hi,engines
+FD002,A_M0,1,trajectory monotonicity loss (lam1=lam2=0.5) (fold 2),14.3155,13.7318,0.5836,,,52
+FD002,B_FULL,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",12.7608,12.7508,0.01,,,52
+FD002,B_M0,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",13.1945,13.7318,-0.5373,,,52
+FD004,B_FULL,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",16.5823,15.6664,0.9159,,,50
+FD004,B_M0,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",15.6103,14.8241,0.7862,,,50
+FD002,C_FULL,1,"lifetime reparameterisation (predict L, RUL=min(125,L-t)) (fold 2)",14.0104,12.7508,1.2596,,,52
+FD002,C_M0,1,"lifetime reparameterisation (predict L, RUL=min(125,L-t)) (fold 2)",15.6203,13.7318,1.8884,,,52
+FD002,D_FULL,1,"engine-level mixup (alpha=0.2, all channels) (fold 2)",12.8564,12.7508,0.1056,,,52
+FD002,D_M0,1,"engine-level mixup (alpha=0.2, all channels) (fold 2)",12.477,13.7318,-1.2549,,,52
+FD002,DX_FULL,1,mixup on inputs only (prior not mixed) (fold 2),13.3282,12.7508,0.5774,,,52
+FD002,DX_M0,1,mixup on inputs only (prior not mixed) (fold 2),14.2148,13.7318,0.483,,,52
+FD002,E_M0,1,E (fold 2),14.6049,13.7318,0.873,,,52
