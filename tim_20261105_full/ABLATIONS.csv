@@ -1,18 +1,6 @@
 subset,variant,folds,note,rmse_variant,rmse_M0,delta,ci_lo,ci_hi,engines
-FD002,DIFF,2,window minus individual early reference,13.815693389682767,13.85325587468466,-0.0375624850018923,-0.5338638316023545,0.471930779866006,104
+FD002,DIFF,2,window minus individual early reference,13.815693389682767,13.85325587468466,-0.0375624850018923,-0.5338638316023545,0.47193077986600607,104
 FD002,PHASE,2,RUL = phi_hat * mu_T,17.76212164713549,13.85325587468466,3.908865772450831,2.3828217707306987,5.420622013091456,104
-FD002,M0_eqbal,1,engine-balanced sample weights,13.881520066256494,13.973618004488904,-0.0920979382324098,-0.873215407618464,0.7041641447293957,52
-FD002,NORM,5,cycle coordinate replaced by c/mu_T,14.590415729256556,13.504925951322727,1.0854897779338284,0.700092633527691,1.4734773639133505,260
-FD004,NORM,5,cycle coordinate replaced by c/mu_T,14.788521369230512,13.398093506666983,1.3904278625635271,0.932046352697906,1.869820230200896,249
-FD002,A_M0,1,trajectory monotonicity loss (lam1=lam2=0.5) (fold 2),14.3155,13.7318,0.5836,,,52
-FD002,B_FULL,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",12.7608,12.7508,0.01,,,52
-FD002,B_M0,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",13.1945,13.7318,-0.5373,,,52
-FD004,B_FULL,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",16.5823,15.6664,0.9159,,,50
-FD004,B_M0,1,"metric-matched pinball loss (tau=0.9, lam3=0.1) (fold 2)",15.6103,14.8241,0.7862,,,50
-FD002,C_FULL,1,"lifetime reparameterisation (predict L, RUL=min(125,L-t)) (fold 2)",14.0104,12.7508,1.2596,,,52
-FD002,C_M0,1,"lifetime reparameterisation (predict L, RUL=min(125,L-t)) (fold 2)",15.6203,13.7318,1.8884,,,52
-FD002,D_FULL,1,"engine-level mixup (alpha=0.2, all channels) (fold 2)",12.8564,12.7508,0.1056,,,52
-FD002,D_M0,1,"engine-level mixup (alpha=0.2, all channels) (fold 2)",12.477,13.7318,-1.2549,,,52
-FD002,DX_FULL,1,mixup on inputs only (prior not mixed) (fold 2),13.3282,12.7508,0.5774,,,52
-FD002,DX_M0,1,mixup on inputs only (prior not mixed) (fold 2),14.2148,13.7318,0.483,,,52
-FD002,E_M0,1,E (fold 2),14.6049,13.7318,0.873,,,52
+FD002,M0_eqbal,1,engine-balanced sample weights,13.881520066256494,13.973618004488904,-0.09209793823240986,-0.873215407618464,0.7041641447293957,52
+FD002,NORM,5,cycle coordinate replaced by c/mu_T,14.590415729256557,13.504925951322729,1.0854897779338284,0.700092633527691,1.4734773639133503,260
+FD004,NORM,5,cycle coordinate replaced by c/mu_T,14.788521369230512,13.398093506666985,1.3904278625635271,0.9320463526979059,1.8698202302008957,249
