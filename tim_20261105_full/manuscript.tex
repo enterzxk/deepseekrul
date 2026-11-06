@@ -111,6 +111,14 @@ Engine-level mixup does exactly that, with no additional parameters. Two windows
 Combined with the span schedule and the guard, the same model reaches 11.871 on FD002 and 12.173 on FD004 across two seeds, against 13.190 and 13.442 for the prior arm: 10.00 and 9.44 percent, with the stratified interval at 9.72 percent and bounds [1.524, 1.069] cycles. All four metrics improve on both fleets, and the FD004 asymmetric score falls from 9.94 to 7.40.
 
 The three devices act on different parts of the problem and the gains do not simply add. Mixup alone is worth 0.3 percent, the span schedule with the guard is worth 6.2 percent, and together they are worth 8.1 percent. Mixup reduces the variance of both the short and the long-window models, the schedule exploits the longer history where it exists, and the guard removes the residual tail.
+
+\subsection{Scope}
+
+The complete recipe is better than the prior arm on all four fleets, but the size of the gain tracks the number of operating conditions. On the two single-condition fleets it is 0.79 and 2.40 percent better (FD001 10.154 against 10.235, FD003 9.914 against 10.158); on the two six-condition fleets it is 10.00 and 9.44 percent better.
+
+Mixup alone shows the opposite pattern. On the single-condition fleets it is 1.04 and 4.67 percent worse than the prior arm, while on FD003 it remains 2.13 percent better than the plain backbone. The prior therefore carries information that nothing else supplies when the operating condition is fixed; the span schedule recovers that loss, and under six conditions the mixed-condition regularisation is worth more than the prior in the first place.
+
+We read the pattern as a scope statement rather than a caveat: the schedule exploits the longer history where that history is more informative, which is under varying conditions, and it still pays a small dividend when the condition is fixed.
 \subsection{What does not work}
 
 The span schedule changes how the measurement is taken. We tested nine model-side interventions with the same recipe, folds and metrics. Table~\ref{tab:neg} reports the single-fold screen against the 42k baseline on the same fold.
