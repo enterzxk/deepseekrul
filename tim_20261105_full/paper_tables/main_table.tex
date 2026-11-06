@@ -1,0 +1,27 @@
+\begin{table}[t]
+\centering
+\caption{Pooled metrics on the four C-MAPSS subsets. RMSE and MAE in cycles; the asymmetric score is the per-window mean. n is the number of seeds; the interval is an engine-clustered paired bootstrap against the locked reference.}
+\label{tab:main}
+\small
+\begin{tabular}{llcccccr}
+\toprule
+subset & arm & n & RMSE & MAE & score & bias & $\Delta$ [95\% CI] \\
+\midrule
+FD001 & M0 & 1 & 10.27 & 7.24 & 1.86 & +0.80 & 0.04 [-0.32, 0.39] \\
+ & \textbf{FULL} & 1 & 10.23 & 7.19 & 1.78 & -0.33 & 0.00 [0.00, 0.00] \\
+\midrule
+FD002 & M0 & 3 & 13.65 & 9.44 & 4.09 & +1.20 & 0.45 [0.07, 0.82] \\
+ & OPS & 1 & 13.38 & 9.29 & 3.90 & +0.78 & 0.32 [0.06, 0.58] \\
+ & \textbf{FULL} & 3 & 13.19 & 9.15 & 3.58 & +0.17 & 0.00 [0.00, 0.00] \\
+ & NORM & 3 & 14.59 & 10.29 & 4.63 & +0.92 & 1.54 [1.07, 1.98] \\
+\midrule
+FD003 & M0 & 1 & 10.86 & 7.41 & 2.00 & -1.72 & 0.70 [0.33, 1.12] \\
+ & \textbf{FULL} & 1 & 10.16 & 6.99 & 1.73 & -1.13 & 0.00 [0.00, 0.00] \\
+\midrule
+FD004 & M0 & 1 & 13.40 & 8.81 & 8.98 & -0.17 & 0.14 [-0.24, 0.52] \\
+ & OPS & 1 & 13.68 & 8.72 & 30.64 & -0.11 & 0.42 [0.12, 0.76] \\
+ & \textbf{FULL} & 1 & 13.25 & 8.66 & 11.25 & -1.04 & 0.00 [0.00, 0.00] \\
+ & NORM & 1 & 14.79 & 9.88 & 9.82 & +0.20 & 1.54 [0.99, 2.12] \\
+\bottomrule
+\end{tabular}
+\end{table}

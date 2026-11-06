@@ -1,0 +1,80 @@
+{
+  "rule": "lowest pooled engine-equal-weight RMSE among M0/OPS/FULL at seed 101, full budget (80 epochs, all windows, fixed final epoch); ties -> M0 > OPS > FULL",
+  "locked_at": "2026-11-05",
+  "subsets": {
+    "FD001": {
+      "values": {
+        "M0": {
+          "rmse": 10.273510888961377,
+          "engines": 100,
+          "windows": 15731
+        },
+        "FULL": {
+          "rmse": 10.234899529506546,
+          "engines": 100,
+          "windows": 15731
+        }
+      },
+      "reference": "FULL",
+      "reference_rmse": 10.234899529506546
+    },
+    "FD002": {
+      "values": {
+        "M0": {
+          "rmse": 13.504925951322729,
+          "engines": 260,
+          "windows": 41019
+        },
+        "OPS": {
+          "rmse": 13.376355298543253,
+          "engines": 260,
+          "windows": 41019
+        },
+        "FULL": {
+          "rmse": 13.05391864588101,
+          "engines": 260,
+          "windows": 41019
+        }
+      },
+      "reference": "FULL",
+      "reference_rmse": 13.05391864588101
+    },
+    "FD003": {
+      "values": {
+        "M0": {
+          "rmse": 10.862811975839936,
+          "engines": 100,
+          "windows": 19820
+        },
+        "FULL": {
+          "rmse": 10.157871673142944,
+          "engines": 100,
+          "windows": 19820
+        }
+      },
+      "reference": "FULL",
+      "reference_rmse": 10.157871673142944
+    },
+    "FD004": {
+      "values": {
+        "M0": {
+          "rmse": 13.398093506666985,
+          "engines": 249,
+          "windows": 49048
+        },
+        "OPS": {
+          "rmse": 13.675679677756818,
+          "engines": 249,
+          "windows": 49048
+        },
+        "FULL": {
+          "rmse": 13.2533369617735,
+          "engines": 249,
+          "windows": 49048
+        }
+      },
+      "reference": "FULL",
+      "reference_rmse": 13.2533369617735
+    }
+  }
+}

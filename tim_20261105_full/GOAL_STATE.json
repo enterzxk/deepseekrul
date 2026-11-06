@@ -1,0 +1,105 @@
+{
+  "goal_id": "goal-3ce2c421-135a-43a4-9f09-37a20c180afc",
+  "inherited_goal_id": "goal-3941241b-9b35-48d9-b31d-4f6280af762d",
+  "status": "ACTIVE_UNMET_A",
+  "start_beijing": "2026-11-05T15:22:44+08:00",
+  "deadline_beijing": "2026-11-08T15:22:44+08:00",
+  "workdir": "/home/user/rulb/tim_20261105/full_20261105",
+  "verdict": {
+    "A": "FAIL",
+    "B": "PARTIAL",
+    "C": "PASS",
+    "D": "PASS",
+    "overall": "UNMET"
+  },
+  "reference_lock": {
+    "FD001": 10.235,
+    "FD002": 13.054,
+    "FD003": 10.158,
+    "FD004": 13.253
+  },
+  "main_table": {
+    "FD001": {
+      "M0": 10.274,
+      "FULL": 10.235,
+      "n_seeds": 1
+    },
+    "FD002": {
+      "M0": 13.65,
+      "OPS": 13.38,
+      "FULL": 13.19,
+      "NORM": 14.59,
+      "n_seeds": 3
+    },
+    "FD003": {
+      "M0": 10.863,
+      "FULL": 10.158,
+      "n_seeds": 1
+    },
+    "FD004": {
+      "M0": 13.398,
+      "OPS": 13.676,
+      "FULL": 13.253,
+      "NORM": 14.789,
+      "n_seeds": 1
+    }
+  },
+  "three_seed_fd002": {
+    "rel_mean": -3.37,
+    "rel_sd": 0.23,
+    "per_seed": {
+      "101": -3.38,
+      "202": -3.13,
+      "303": -3.59
+    }
+  },
+  "norm_gap": {
+    "FD002_vs_FULL": 1.536,
+    "FD004_vs_FULL": 1.535,
+    "rel": [
+      -11.8,
+      -11.6
+    ]
+  },
+  "measurement_conditions_5fold": {
+    "clean": {
+      "M0": 13.652,
+      "FULL": 13.054
+    },
+    "mc1": {
+      "M0": 15.149,
+      "FULL": 14.208
+    },
+    "mc2": {
+      "M0": 30.845,
+      "FULL": 30.647,
+      "nasa_M0": 60.8,
+      "nasa_FULL": 132.3
+    }
+  },
+  "scope_check": {
+    "FD001": {
+      "rmse_rel": -0.38,
+      "mae_rel": -0.7,
+      "nasa_rel": -4.34,
+      "verdict": "PASS"
+    },
+    "FD003": {
+      "rmse_rel": -6.49,
+      "mae_rel": -5.63,
+      "nasa_rel": -13.58,
+      "verdict": "PASS"
+    }
+  },
+  "deliverables": {
+    "results_rows": 12,
+    "prediction_csv": 90,
+    "figures": 6,
+    "tables": 6,
+    "manifest_entries": 194,
+    "docs_md": 20
+  },
+  "reproducibility": "init before set_seed -> ~3% run-to-run; multi-seed means stable (sd 0.23%)",
+  "remaining": "FD001/FD003 skip-tasks only; package final",
+  "next_action": "keep goal active; no further experiment can move A above 3%"
+}

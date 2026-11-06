@@ -1,0 +1,62 @@
+[
+  {
+    "subset":"FD002",
+    "variant":"DIFF",
+    "folds":2,
+    "note":"window minus individual early reference",
+    "rmse_variant":13.8156933897,
+    "rmse_M0":13.8532558747,
+    "delta":-0.037562485,
+    "ci_lo":-0.5338638316,
+    "ci_hi":0.4719307799,
+    "engines":104
+  },
+  {
+    "subset":"FD002",
+    "variant":"PHASE",
+    "folds":2,
+    "note":"RUL = phi_hat * mu_T",
+    "rmse_variant":17.7621216471,
+    "rmse_M0":13.8532558747,
+    "delta":3.9088657725,
+    "ci_lo":2.3828217707,
+    "ci_hi":5.4206220131,
+    "engines":104
+  },
+  {
+    "subset":"FD002",
+    "variant":"M0_eqbal",
+    "folds":1,
+    "note":"engine-balanced sample weights",
+    "rmse_variant":13.8815200663,
+    "rmse_M0":13.9736180045,
+    "delta":-0.0920979382,
+    "ci_lo":-0.8732154076,
+    "ci_hi":0.7041641447,
+    "engines":52
+  },
+  {
+    "subset":"FD002",
+    "variant":"NORM",
+    "folds":5,
+    "note":"cycle coordinate replaced by c\/mu_T",
+    "rmse_variant":14.5904157293,
+    "rmse_M0":13.5049259513,
+    "delta":1.0854897779,
+    "ci_lo":0.7000926335,
+    "ci_hi":1.4734773639,
+    "engines":260
+  },
+  {
+    "subset":"FD004",
+    "variant":"NORM",
+    "folds":5,
+    "note":"cycle coordinate replaced by c\/mu_T",
+    "rmse_variant":14.7885213692,
+    "rmse_M0":13.3980935067,
+    "delta":1.3904278626,
+    "ci_lo":0.9320463527,
+    "ci_hi":1.8698202302,
+    "engines":249
+  }
+]
