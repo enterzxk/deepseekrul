@@ -1,0 +1,76 @@
+{
+  "status": "DEVELOPMENT_ONLY",
+  "next": "STOP_NO_GAIN",
+  "prior": "full",
+  "candidate": "learned_trend",
+  "references": {
+    "FD002": [
+      "scheduled",
+      "fixed_trend"
+    ],
+    "FD004": [
+      "pe50",
+      "fixed_trend"
+    ]
+  },
+  "mean_reference_gain_percent": 3.046681888324149,
+  "comparisons": {
+    "FD002": {
+      "scheduled": {
+        "gain_percent": 5.116392213276544,
+        "delta_rmse_cycles": -0.6357269327402015,
+        "delta_rmse_ci95_cycles": [
+          -1.5381866046283683,
+          0.19778000740518847
+        ],
+        "mae_ratio": 0.9730244064133653,
+        "nasa_ratio": 0.8978524186136664,
+        "delta_abs_bias_cycles": 0.07989570151256437
+      },
+      "fixed_trend": {
+        "gain_percent": 0.7430708831932198,
+        "delta_rmse_cycles": -0.08826070266793984,
+        "delta_rmse_ci95_cycles": [
+          -0.6482759017343365,
+          0.5015495813065394
+        ],
+        "mae_ratio": 1.0035588931719148,
+        "nasa_ratio": 1.0549747093261364,
+        "delta_abs_bias_cycles": -0.06223269772802331
+      }
+    },
+    "FD004": {
+      "pe50": {
+        "gain_percent": 0.9769715633717535,
+        "delta_rmse_cycles": -0.13414419856555426,
+        "delta_rmse_ci95_cycles": [
+          -1.0636562772856821,
+          0.9022558885593964
+        ],
+        "mae_ratio": 1.0282775711067673,
+        "nasa_ratio": 0.8624993268254905,
+        "delta_abs_bias_cycles": 1.2617291917847573
+      },
+      "fixed_trend": {
+        "gain_percent": -2.1074725265803895,
+        "delta_rmse_cycles": 0.2806277227859617,
+        "delta_rmse_ci95_cycles": [
+          -0.31938293367597265,
+          0.8430649276738972
+        ],
+        "mae_ratio": 1.0144743334710553,
+        "nasa_ratio": 1.138515858787076,
+        "delta_abs_bias_cycles": 0.219256326596323
+      }
+    }
+  },
+  "code_sha256": "9a13168141da5dcaa87aad6da17c2281092c2bf3f88048039fff114a07e48542",
+  "seeds": [
+    101
+  ],
+  "folds": [
+    0,
+    2
+  ],
+  "not_a_blind_test": true
+}

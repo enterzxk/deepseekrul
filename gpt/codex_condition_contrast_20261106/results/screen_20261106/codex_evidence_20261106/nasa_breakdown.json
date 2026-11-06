@@ -1,0 +1,470 @@
+{
+  "protocol": "Engine-equal mean NASA penalty split by the sign of prediction minus target. The opposite-sign windows contribute zero, preserving the same denominator.",
+  "source": "CCT completed screen, seed 101, folds 0 and 2, train-side holdout",
+  "subsets": {
+    "FD002": {
+      "pe50": {
+        "mean_nasa_overestimates": 2.532988812029138,
+        "mean_nasa_underestimates": 0.9864537312612072,
+        "top_engines": [
+          {
+            "unit": 252,
+            "nasa_late": 25.739858910886323,
+            "nasa_early": 0.09709206326145373,
+            "min_error": -5.814969999999999,
+            "max_error": 55.947239999999994,
+            "nasa_total": 25.836950974147776
+          },
+          {
+            "unit": 238,
+            "nasa_late": 22.458401934222277,
+            "nasa_early": 0.22226598214880733,
+            "min_error": -11.017803,
+            "max_error": 52.82899999999999,
+            "nasa_total": 22.680667916371085
+          },
+          {
+            "unit": 173,
+            "nasa_late": 15.227518402638328,
+            "nasa_early": 0.20169824502283495,
+            "min_error": -12.969054999999997,
+            "max_error": 51.074569999999994,
+            "nasa_total": 15.429216647661162
+          },
+          {
+            "unit": 57,
+            "nasa_late": 15.389863574853669,
+            "nasa_early": 0.00041089291977929043,
+            "min_error": -0.47721899999999984,
+            "max_error": 46.7214,
+            "nasa_total": 15.390274467773448
+          },
+          {
+            "unit": 137,
+            "nasa_late": 14.692975123238996,
+            "nasa_early": 0.1466572639995423,
+            "min_error": -10.331516,
+            "max_error": 45.42055499999999,
+            "nasa_total": 14.839632387238538
+          }
+        ]
+      },
+      "pe100": {
+        "mean_nasa_overestimates": 2.1028646435271106,
+        "mean_nasa_underestimates": 0.8864227060257821,
+        "top_engines": [
+          {
+            "unit": 238,
+            "nasa_late": 28.822112947851313,
+            "nasa_early": 0.27098053477938844,
+            "min_error": -8.831181999999998,
+            "max_error": 58.05293,
+            "nasa_total": 29.0930934826307
+          },
+          {
+            "unit": 173,
+            "nasa_late": 26.01096025899993,
+            "nasa_early": 0.12113663706443203,
+            "min_error": -6.47706,
+            "max_error": 52.515274000000005,
+            "nasa_total": 26.13209689606436
+          },
+          {
+            "unit": 252,
+            "nasa_late": 21.650269693886912,
+            "nasa_early": 0.14260198026303011,
+            "min_error": -8.501722,
+            "max_error": 53.73121999999999,
+            "nasa_total": 21.792871674149943
+          },
+          {
+            "unit": 29,
+            "nasa_late": 16.36140292185237,
+            "nasa_early": 0.13642534746500115,
+            "min_error": -7.585239999999999,
+            "max_error": 52.638999999999996,
+            "nasa_total": 16.49782826931737
+          },
+          {
+            "unit": 187,
+            "nasa_late": 11.559408834983872,
+            "nasa_early": 0.11384917284198304,
+            "min_error": -7.021905,
+            "max_error": 45.851265,
+            "nasa_total": 11.673258007825854
+          }
+        ]
+      },
+      "scheduled": {
+        "mean_nasa_overestimates": 2.375776367703585,
+        "mean_nasa_underestimates": 0.8400739707976891,
+        "top_engines": [
+          {
+            "unit": 252,
+            "nasa_late": 25.78341474794075,
+            "nasa_early": 0.08552480460193476,
+            "min_error": -5.602876,
+            "max_error": 55.947239999999994,
+            "nasa_total": 25.868939552542685
+          },
+          {
+            "unit": 238,
+            "nasa_late": 22.699893748016347,
+            "nasa_early": 0.16716087939510701,
+            "min_error": -7.7665299999999995,
+            "max_error": 52.82899999999999,
+            "nasa_total": 22.867054627411456
+          },
+          {
+            "unit": 173,
+            "nasa_late": 15.282963738648164,
+            "nasa_early": 0.1009870191331187,
+            "min_error": -12.969054999999997,
+            "max_error": 51.074569999999994,
+            "nasa_total": 15.383950757781282
+          },
+          {
+            "unit": 57,
+            "nasa_late": 15.347227092313878,
+            "nasa_early": 0.0023434353714422537,
+            "min_error": -1.156008,
+            "max_error": 46.7214,
+            "nasa_total": 15.34957052768532
+          },
+          {
+            "unit": 137,
+            "nasa_late": 14.67441353651679,
+            "nasa_early": 0.1447670386428163,
+            "min_error": -8.381897000000002,
+            "max_error": 45.42055499999999,
+            "nasa_total": 14.819180575159606
+          }
+        ]
+      },
+      "fixed_trend": {
+        "mean_nasa_overestimates": 2.0300014247521427,
+        "mean_nasa_underestimates": 0.7068973641934648,
+        "top_engines": [
+          {
+            "unit": 252,
+            "nasa_late": 26.7223337557205,
+            "nasa_early": 0.11928113681674152,
+            "min_error": -9.133827,
+            "max_error": 56.799170000000004,
+            "nasa_total": 26.84161489253724
+          },
+          {
+            "unit": 1,
+            "nasa_late": 18.02795162373363,
+            "nasa_early": 0.051339594235404885,
+            "min_error": -7.364191,
+            "max_error": 49.577079999999995,
+            "nasa_total": 18.079291217969036
+          },
+          {
+            "unit": 238,
+            "nasa_late": 17.80623193540292,
+            "nasa_early": 0.1363660080384007,
+            "min_error": -9.0876045,
+            "max_error": 52.883644000000004,
+            "nasa_total": 17.94259794344132
+          },
+          {
+            "unit": 97,
+            "nasa_late": 17.67463981682663,
+            "nasa_early": 0.01869403101505904,
+            "min_error": -3.4162549999999996,
+            "max_error": 48.721300000000014,
+            "nasa_total": 17.69333384784169
+          },
+          {
+            "unit": 29,
+            "nasa_late": 14.812370333361814,
+            "nasa_early": 0.12608838426487987,
+            "min_error": -10.037663000000002,
+            "max_error": 49.63784,
+            "nasa_total": 14.938458717626695
+          }
+        ]
+      },
+      "learned_trend": {
+        "mean_nasa_overestimates": 2.24291151576979,
+        "mean_nasa_underestimates": 0.6444474885531565,
+        "top_engines": [
+          {
+            "unit": 252,
+            "nasa_late": 48.92104155699257,
+            "nasa_early": 0.08101732331285279,
+            "min_error": -6.639406000000001,
+            "max_error": 54.96567999999999,
+            "nasa_total": 49.00205888030542
+          },
+          {
+            "unit": 192,
+            "nasa_late": 20.104660374540043,
+            "nasa_early": 0.07509913827905769,
+            "min_error": -4.634904000000001,
+            "max_error": 52.633835000000005,
+            "nasa_total": 20.1797595128191
+          },
+          {
+            "unit": 78,
+            "nasa_late": 18.99488254472445,
+            "nasa_early": 0.029111862275487427,
+            "min_error": -4.6461950000000005,
+            "max_error": 52.00551999999999,
+            "nasa_total": 19.02399440699994
+          },
+          {
+            "unit": 238,
+            "nasa_late": 15.921151903163036,
+            "nasa_early": 0.18301089455878636,
+            "min_error": -9.380769999999998,
+            "max_error": 55.43459,
+            "nasa_total": 16.104162797721823
+          },
+          {
+            "unit": 29,
+            "nasa_late": 14.983272987069324,
+            "nasa_early": 0.060982456200128356,
+            "min_error": -6.037166999999997,
+            "max_error": 49.47868,
+            "nasa_total": 15.044255443269451
+          }
+        ]
+      }
+    },
+    "FD004": {
+      "pe50": {
+        "mean_nasa_overestimates": 3.0429500213016696,
+        "mean_nasa_underestimates": 10.146617588770765,
+        "top_engines": [
+          {
+            "unit": 71,
+            "nasa_late": 2.0811769597883765,
+            "nasa_early": 871.5033110204747,
+            "min_error": -123.5433869,
+            "max_error": 30.557395999999997,
+            "nasa_total": 873.5844879802631
+          },
+          {
+            "unit": 185,
+            "nasa_late": 174.6854438749367,
+            "nasa_early": 39.164967449194855,
+            "min_error": -70.05962,
+            "max_error": 85.09449,
+            "nasa_total": 213.85041132413156
+          },
+          {
+            "unit": 17,
+            "nasa_late": 21.237177965089916,
+            "nasa_early": 0.01101849840436563,
+            "min_error": -2.6221469999999982,
+            "max_error": 49.019459999999995,
+            "nasa_total": 21.24819646349428
+          },
+          {
+            "unit": 189,
+            "nasa_late": 0.012387070798509632,
+            "nasa_early": 10.849280502139349,
+            "min_error": -67.32043999999999,
+            "max_error": 5.665719999999993,
+            "nasa_total": 10.861667572937858
+          },
+          {
+            "unit": 199,
+            "nasa_late": 9.74338212432944,
+            "nasa_early": 0.04810990856069819,
+            "min_error": -7.940917000000001,
+            "max_error": 53.17909,
+            "nasa_total": 9.791492032890138
+          }
+        ]
+      },
+      "pe100": {
+        "mean_nasa_overestimates": 130.51550893936627,
+        "mean_nasa_underestimates": 8.919195247491743,
+        "top_engines": [
+          {
+            "unit": 185,
+            "nasa_late": 12803.066242513356,
+            "nasa_early": 44.4257343054083,
+            "min_error": -67.511945,
+            "max_error": 122.92479,
+            "nasa_total": 12847.491976818765
+          },
+          {
+            "unit": 71,
+            "nasa_late": 24.115839143148293,
+            "nasa_early": 760.459479167085,
+            "min_error": -126.7333305,
+            "max_error": 66.174194,
+            "nasa_total": 784.5753183102332
+          },
+          {
+            "unit": 150,
+            "nasa_late": 54.51995306973864,
+            "nasa_early": 0.17709006864173438,
+            "min_error": -8.070433000000001,
+            "max_error": 62.4683,
+            "nasa_total": 54.69704313838037
+          },
+          {
+            "unit": 17,
+            "nasa_late": 30.063867762248652,
+            "nasa_early": 0.0512662580814505,
+            "min_error": -7.220530999999999,
+            "max_error": 53.545730000000006,
+            "nasa_total": 30.115134020330103
+          },
+          {
+            "unit": 79,
+            "nasa_late": 16.601488389894726,
+            "nasa_early": 0.0638459671628884,
+            "min_error": -9.121690000000001,
+            "max_error": 55.427809999999994,
+            "nasa_total": 16.665334357057613
+          }
+        ]
+      },
+      "scheduled": {
+        "mean_nasa_overestimates": 200.13440159791702,
+        "mean_nasa_underestimates": 9.257786766132348,
+        "top_engines": [
+          {
+            "unit": 180,
+            "nasa_late": 17480.17167776532,
+            "nasa_early": 0.24130164049144592,
+            "min_error": -16.521100000000004,
+            "max_error": 131.58574,
+            "nasa_total": 17480.41297940581
+          },
+          {
+            "unit": 185,
+            "nasa_late": 2337.789369754985,
+            "nasa_early": 44.573752032049356,
+            "min_error": -66.62836,
+            "max_error": 118.17409,
+            "nasa_total": 2382.3631217870343
+          },
+          {
+            "unit": 71,
+            "nasa_late": 14.494450798678585,
+            "nasa_early": 785.0434716528495,
+            "min_error": -123.7643144,
+            "max_error": 56.89398,
+            "nasa_total": 799.5379224515281
+          },
+          {
+            "unit": 236,
+            "nasa_late": 71.2001088261601,
+            "nasa_early": 0.2333717531875048,
+            "min_error": -15.184479999999994,
+            "max_error": 90.59389,
+            "nasa_total": 71.4334805793476
+          },
+          {
+            "unit": 17,
+            "nasa_late": 21.081547416059237,
+            "nasa_early": 0.06346007132659205,
+            "min_error": -6.333397,
+            "max_error": 49.019459999999995,
+            "nasa_total": 21.14500748738583
+          }
+        ]
+      },
+      "fixed_trend": {
+        "mean_nasa_overestimates": 2.159882302166055,
+        "mean_nasa_underestimates": 7.83206739006418,
+        "top_engines": [
+          {
+            "unit": 71,
+            "nasa_late": 3.8054749918068156,
+            "nasa_early": 622.9850116731325,
+            "min_error": -122.5746992,
+            "max_error": 45.71575,
+            "nasa_total": 626.7904866649393
+          },
+          {
+            "unit": 133,
+            "nasa_late": 100.63678797595465,
+            "nasa_early": 2.1893879997598678,
+            "min_error": -50.64349,
+            "max_error": 106.141106,
+            "nasa_total": 102.82617597571452
+          },
+          {
+            "unit": 185,
+            "nasa_late": 17.433784324990263,
+            "nasa_early": 54.1919565001191,
+            "min_error": -72.3998375,
+            "max_error": 65.84107,
+            "nasa_total": 71.62574082510936
+          },
+          {
+            "unit": 175,
+            "nasa_late": 12.793007630669452,
+            "nasa_early": 0.1365286019143985,
+            "min_error": -9.561439999999997,
+            "max_error": 43.01284,
+            "nasa_total": 12.92953623258385
+          },
+          {
+            "unit": 17,
+            "nasa_late": 9.483321424517408,
+            "nasa_early": 0.22217066272619768,
+            "min_error": -14.3202343,
+            "max_error": 40.553889999999996,
+            "nasa_total": 9.705492087243606
+          }
+        ]
+      },
+      "learned_trend": {
+        "mean_nasa_overestimates": 2.2707564027208607,
+        "mean_nasa_underestimates": 9.105236782085907,
+        "top_engines": [
+          {
+            "unit": 71,
+            "nasa_late": 2.7051353936592966,
+            "nasa_early": 735.1607681132009,
+            "min_error": -121.185823,
+            "max_error": 39.34604,
+            "nasa_total": 737.8659035068601
+          },
+          {
+            "unit": 185,
+            "nasa_late": 67.01407933678355,
+            "nasa_early": 62.539650515384984,
+            "min_error": -77.12938700000001,
+            "max_error": 71.86769,
+            "nasa_total": 129.55372985216854
+          },
+          {
+            "unit": 30,
+            "nasa_late": 61.36946067944894,
+            "nasa_early": 2.842528963972906,
+            "min_error": -36.792550000000006,
+            "max_error": 76.2344,
+            "nasa_total": 64.21198964342184
+          },
+          {
+            "unit": 104,
+            "nasa_late": 15.39495644734639,
+            "nasa_early": 0.11457025071488848,
+            "min_error": -6.760933000000001,
+            "max_error": 70.21643,
+            "nasa_total": 15.50952669806128
+          },
+          {
+            "unit": 13,
+            "nasa_late": 1.381518851099909,
+            "nasa_early": 9.941604676162354,
+            "min_error": -58.33517500000001,
+            "max_error": 45.993579999999994,
+            "nasa_total": 11.323123527262263
+          }
+        ]
+      }
+    }
+  }
+}

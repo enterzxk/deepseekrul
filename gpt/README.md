@@ -1,10 +1,16 @@
-# GPT 方法实现与 DeepSeek 实验入口
+# GPT 方法实现与实验结果
 
-这里保存 Codex 准备的独立方法实现和实验交接，供 DeepSeek 直接从 GitHub 获取。
+这里保存 Codex 准备的方法实现、实验结果和复算记录。
 
-## 当前入口
+## 2026-11-06 筛选结果
 
-**[先读 DeepSeek 执行交接](codex_condition_contrast_20261106/DEEPSEEK_HANDOFF.md)**
+**[先读 CCT 实验报告](codex_condition_contrast_20261106/results/screen_20261106/FINAL_REPORT_ZH.md)**
+
+真实 C-MAPSS 筛选已完成 20 组。候选相对两子集各自最强窗口对照的平均 RMSE 改善 3.05%，在 FD004 上未超过同信息固定趋势。冻结判定为 `STOP_NO_GAIN`。本轮证据范围为 FD002、FD004 的 fold 0/2、seed 101 训练侧留出，涵盖 204 台发动机和 36,863 个查询。
+
+[完整结果包](codex_condition_contrast_20261106/results/screen_20261106/CCT_20261106_screen_evidence.zip) · [四指标表](codex_condition_contrast_20261106/results/screen_20261106/codex_evidence_20261106/screen_metrics.csv) · [配对误差图](codex_condition_contrast_20261106/results/screen_20261106/codex_evidence_20261106/cct_paired_evidence.pdf) · [文献口径](codex_condition_contrast_20261106/results/screen_20261106/LITERATURE_PROTOCOLS_ZH.md)
+
+## 冻结实现
 
 当前候选是“工况内可学习趋势估计”：在已有 PE / FULL 上加入可微趋势层，检验长历史的收益能否归因于具体模型机制，并单独检查 NASA 尾部高估。
 
@@ -19,19 +25,19 @@
 | 实际验证范围 | [VALIDATION](codex_condition_contrast_20261106/VALIDATION.md) |
 | 文件指纹 | [MANIFEST.sha256](codex_condition_contrast_20261106/MANIFEST.sha256) |
 
-## 当前证据状态
+## 实现验证与实验范围
 
 - 核心模型、严格前缀数据处理、嵌套 OOF 先验、训练、四指标统计、对照、自动判决和官方推断接口已实现。
 - 20 项本地实现验证通过，包含合成数据、前后向计算、因果性、初始化和验收逻辑。
-- **尚未执行这套候选的真实 C-MAPSS 训练；性能增益、新颖性和 TIM 投稿就绪均未确认。**
-- 本目录不包含训练数据、检查点、服务器任务日志或凭据。
+- 20 组真实训练的结果和复核记录见上方报告。三种子确认与官方测试的启动条件未达到。
+- 公开结果包包含汇总、逐发动机统计、图和复算脚本。逐窗口预测、训练数据和检查点保存在实验服务器。
 
-## DeepSeek 获取与运行
+## 获取代码与复算
 
-下载完整的 `gpt/codex_condition_contrast_20261106/` 子目录，保持包结构；仅下载单个模型文件无法运行。若现有服务器研究目录不是 Git 仓库，将这个子目录单独同步到：
+下载完整的 `gpt/codex_condition_contrast_20261106/` 子目录并保持包结构。实验服务器上的运行目录为
 
 `/home/user/rulb/gpt/codex_condition_contrast_20261106/`
 
-然后按照交接文档使用现有环境与 `/home/user/rulb/data/CMAPSS` 数据，一次启动自动流程。沿用原截止时间与预算，按机器生成的继续/停止判决执行，不重新发散设计一批模型，不把实现验证写成性能成功。
+原交接文档记录了筛选启动命令。复算本轮指标使用报告末尾的导出脚本与已有完成记录。
 
 源码上游固定为 `fa8acba70cbb17725fe32a54203b3b1252f158ac`；依赖的 PE 与数据处理源码已随包提供，可核对 [UPSTREAM.json](codex_condition_contrast_20261106/UPSTREAM.json)。
