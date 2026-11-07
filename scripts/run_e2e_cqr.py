@@ -76,6 +76,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="experiments/punet_e2e")
     ap.add_argument("--ablate", default="none", choices=["none", "A4"])
     ap.add_argument("--heads", default="cqr", choices=["cqr", "point"])
+    ap.add_argument("--dump-preds", action="store_true")
     args = ap.parse_args(argv)
 
     R.set_seed(args.seed)
@@ -186,6 +187,14 @@ def main(argv=None) -> int:
                   best_centre_rmse=best, best_epoch=best_epoch)
     out_dir = ROOT / args.out / args.subset / f"f{args.fold}_s{args.seed}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    if args.dump_preds:
+        pd.DataFrame({
+            "unit": units, "cutoff": mva[:, 1].astype(float),
+            "y_true": y_all, "y_lo": lo_all, "y_hi": hi_all,
+            "sigma_T": np.asarray(sg_va, dtype=float),
+            "mu_T": np.asarray(mu_va, dtype=float),
+        }).to_csv(out_dir / "preds.csv", index=False)
+
     (out_dir / f"e2e_{args.heads}_{args.ablate}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({k: v for k, v in result.items() if k != "diagnostics"}, ensure_ascii=False), flush=True)
     return 0
