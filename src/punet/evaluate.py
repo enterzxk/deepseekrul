@@ -10,7 +10,7 @@ from .metrics import engine_coverage, picp, pinaw, winkler
 
 
 def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, delta: float = 0.1,
-                       strata=None, weighted: bool = False):
+                       strata=None, weighted: bool = False, difficulty=None):
     """Calibrate on calib_mask, evaluate on test_mask."""
     units = np.asarray(units).reshape(-1)
     y = np.asarray(y, dtype=np.float64).reshape(-1)
@@ -19,8 +19,11 @@ def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, d
 
     scores = BlockConformalCalibrator.scores(y[calib_mask], y_hat[calib_mask], w[calib_mask])
     if weighted:
-        cal = WeightedCalibrator(delta=delta).fit(scores, y_hat[calib_mask])
-        lo, hi = cal.interval(y_hat[test_mask], w[test_mask], y_hat[test_mask])
+        if difficulty is None:
+            raise ValueError("weighted calibration needs a difficulty covariate")
+        difficulty = np.asarray(difficulty, dtype=np.float64).reshape(-1)
+        cal = WeightedCalibrator(delta=delta).fit(scores, difficulty[calib_mask])
+        lo, hi = cal.interval(y_hat[test_mask], w[test_mask], difficulty[test_mask])
         q_report = float(np.mean(np.abs(hi - lo) / (2 * w[test_mask])))
         calib_mode = "weighted"
     elif strata is not None:

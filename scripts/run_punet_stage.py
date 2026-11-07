@@ -211,6 +211,10 @@ def run_heads(model, data, args, device):
     calib_mask[calib_idx] = True
     test_mask[test_idx] = True
 
+    # engine-level mean sigma as the difficulty covariate (available at test time)
+    eng_sigma = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
+    difficulty = np.array([float(eng_sigma[int(u)]) for u in units])
+
     strata = None
     if args.calib_strata != "none":
         eng_mean = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
@@ -226,7 +230,7 @@ def run_heads(model, data, args, device):
     result = evaluate_intervals(
         units, cut_va, np.asarray(data["mu_va"]), y_va.numpy(),
         y_hat_va.numpy(), w_va.numpy(), calib_mask, test_mask, delta=args.delta,
-        strata=strata, weighted=(args.calib_mode == "weighted"),
+        strata=strata, weighted=(args.calib_mode == "weighted"), difficulty=difficulty,
     )
     result["split"] = split_desc
     result["head_loss"] = fitted["final_loss"]
