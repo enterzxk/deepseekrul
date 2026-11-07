@@ -1,27 +1,29 @@
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\caption{Pooled metrics on the four C-MAPSS subsets. RMSE and MAE in cycles; the asymmetric score is the per-window mean. n is the number of seeds; the interval is an engine-clustered paired bootstrap against the locked reference.}
+\caption{Four metrics on the four C-MAPSS fleets. Gain is relative to the prior arm on the same fleet. Seeds: two on FD002 and FD004, one on FD001 and FD003.}
 \label{tab:main}
 \small
-\begin{tabular}{llcccccr}
+\begin{tabular}{llcrrrrr}
 \toprule
-subset & arm & n & RMSE & MAE & score & bias & $\Delta$ [95\% CI] \\
+Fleet & Arm & Seeds & RMSE & MAE & NASA & Bias & Gain \\
 \midrule
-FD001 & M0 & 1 & 10.27 & 7.24 & 1.86 & +0.80 & 0.04 [-0.32, 0.39] \\
- & \textbf{FULL} & 1 & 10.23 & 7.19 & 1.78 & -0.33 & 0.00 [0.00, 0.00] \\
+FD001 & Plain backbone (PE) & 1 & 10.274 & 7.240 & 1.86 & +0.801 & -0.38\% \\
+FD001 & Prior, additive & 1 & 10.235 & 7.190 & 1.78 & -0.329 & -- \\
+FD001 & Mixup + span + guard & 1 & 10.154 & 7.017 & 1.97 & +2.422 & -0.79\% \\
 \midrule
-FD002 & M0 & 3 & 13.65 & 9.44 & 4.09 & +1.20 & 0.45 [0.07, 0.82] \\
- & OPS & 1 & 13.38 & 9.29 & 3.90 & +0.78 & 0.32 [0.06, 0.58] \\
- & \textbf{FULL} & 3 & 13.19 & 9.15 & 3.58 & +0.17 & 0.00 [0.00, 0.00] \\
- & NORM & 3 & 14.59 & 10.29 & 4.63 & +0.92 & 1.54 [1.07, 1.98] \\
+FD002 & Plain backbone (PE) & 3 & 13.649 & 9.441 & 4.09 & +1.199 & -3.45\% \\
+FD002 & Prior, additive & 3 & 13.189 & 9.151 & 3.58 & +0.169 & -- \\
+FD002 & Prior + span + guard & 2 & 12.240 & 8.312 & 3.18 & -0.077 & -7.20\% \\
+FD002 & Mixup + span + guard & 2 & 11.871 & 8.091 & 2.97 & +0.643 & -10.00\% \\
 \midrule
-FD003 & M0 & 1 & 10.86 & 7.41 & 2.00 & -1.72 & 0.70 [0.33, 1.12] \\
- & \textbf{FULL} & 1 & 10.16 & 6.99 & 1.73 & -1.13 & 0.00 [0.00, 0.00] \\
+FD003 & Plain backbone (PE) & 1 & 10.863 & 7.412 & 2.00 & -1.724 & -6.94\% \\
+FD003 & Prior, additive & 1 & 10.158 & 6.995 & 1.73 & -1.125 & -- \\
+FD003 & Mixup + span + guard & 1 & 9.914 & 6.750 & 1.65 & -0.708 & -2.40\% \\
 \midrule
-FD004 & M0 & 2 & 13.53 & 8.89 & 9.08 & +0.05 & 0.14 [-0.24, 0.52] \\
- & OPS & 1 & 13.68 & 8.72 & 30.64 & -0.11 & 0.42 [0.12, 0.76] \\
- & \textbf{FULL} & 2 & 13.44 & 8.81 & 9.94 & -0.69 & 0.00 [0.00, 0.00] \\
- & NORM & 1 & 14.79 & 9.88 & 9.82 & +0.20 & 1.54 [0.99, 2.12] \\
+FD004 & Plain backbone (PE) & 2 & 13.534 & 8.890 & 9.08 & +0.046 & -1.09\% \\
+FD004 & Prior, additive & 2 & 13.440 & 8.807 & 9.94 & -0.685 & -- \\
+FD004 & Prior + span + guard & 2 & 12.919 & 8.369 & 8.68 & -0.976 & -3.89\% \\
+FD004 & Mixup + span + guard & 2 & 12.173 & 7.812 & 7.40 & -0.264 & -9.44\% \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
