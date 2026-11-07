@@ -75,8 +75,9 @@ def main(argv=None) -> int:
     ap.add_argument("--prior-dir", default="experiments/ida/prior_boot")
     ap.add_argument("--out", default="experiments/punet_e2e")
     ap.add_argument("--ablate", default="none", choices=["none", "A4"])
-    ap.add_argument("--heads", default="cqr", choices=["cqr", "point"])
+    ap.add_argument("--heads", default="cqr", choices=["cqr", "point", "qr_raw"])
     ap.add_argument("--dump-preds", action="store_true")
+    ap.add_argument("--save-ckpt", action="store_true")
     args = ap.parse_args(argv)
 
     R.set_seed(args.seed)
@@ -182,11 +183,15 @@ def main(argv=None) -> int:
     result = evaluate_cqr_intervals(
         units, mva[:, 1].astype(float), np.asarray(mu_va), y_all, lo_all, hi_all,
         calib_mask, test_mask, delta=args.delta,
+        calibrate=(args.heads != "qr_raw"),
     )
     result.update(method=f"e2e_{args.heads}", ablate=args.ablate, subset=args.subset, fold=args.fold,
                   best_centre_rmse=best, best_epoch=best_epoch)
     out_dir = ROOT / args.out / args.subset / f"f{args.fold}_s{args.seed}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    if args.save_ckpt:
+        torch.save(model.state_dict(), out_dir / "model.pt")
+
     if args.dump_preds:
         pd.DataFrame({
             "unit": units, "cutoff": mva[:, 1].astype(float),
