@@ -60,7 +60,20 @@ def build(subset, fold, seed, window, prior_dir):
 
     train_set = R.WindowSet(xtr, ytr, ctr, etr, ptr)
     val_set = R.WindowSet(xva, yva, cva, eva, pva)
+    regime_va = None
+    if subset in ("FD002", "FD004"):
+        from sklearn.cluster import KMeans
+
+        op = ["op_1", "op_2", "op_3"]
+        tr_df = df[df.unit.isin(tr_u)]
+        va_df = df[df.unit.isin(va_u)].sort_values(["unit", "cycle"])
+        km = KMeans(n_clusters=6, random_state=7, n_init=10).fit(tr_df[op].to_numpy(np.float64))
+        lab = km.predict(va_df[op].to_numpy(np.float64))
+        key = {(int(u), int(c)): int(l) for u, c, l in zip(va_df["unit"], va_df["cycle"], lab)}
+        regime_va = np.array([key[(int(u), int(c))] for u, c in mva])
+
     return {
+        "regime_va": regime_va,
         "train_loader": DataLoader(train_set, batch_size=256, shuffle=True, num_workers=0),
         "val_loader": DataLoader(val_set, batch_size=512, shuffle=False, num_workers=0),
         "meta_tr": mtr,
@@ -199,16 +212,21 @@ def run_heads(model, data, args, device):
     test_mask[test_idx] = True
 
     strata = None
-    if args.calib_strata == "sigma":
+    if args.calib_strata != "none":
         eng_mean = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
         labels = pd.qcut(eng_mean, 3, labels=False, duplicates="drop")
         mapping = {int(u): int(v) for u, v in labels.items()}
-        strata = np.array([mapping[int(u)] for u in units], dtype=int)
+        sigma_bin = np.array([mapping[int(u)] for u in units], dtype=int)
+        regime = data.get("regime_va")
+        if args.calib_strata in ("regime", "regime_sigma") and regime is not None:
+            strata = regime.astype(int) * 3 + sigma_bin if args.calib_strata == "regime_sigma" else regime.astype(int)
+        else:
+            strata = sigma_bin
 
     result = evaluate_intervals(
         units, cut_va, np.asarray(data["mu_va"]), y_va.numpy(),
         y_hat_va.numpy(), w_va.numpy(), calib_mask, test_mask, delta=args.delta,
-        strata=strata,
+        strata=strata, weighted=(args.calib_mode == "weighted"),
     )
     result["split"] = split_desc
     result["head_loss"] = fitted["final_loss"]
@@ -232,7 +250,9 @@ def main(argv=None) -> int:
     ap.add_argument("--split", default="engine", choices=["engine", "block"])
     ap.add_argument("--calib-frac", type=float, default=0.3)
     ap.add_argument("--scale-mode", default="power", choices=["power", "mlp"])
-    ap.add_argument("--calib-strata", default="sigma", choices=["none", "sigma"])
+    ap.add_argument("--calib-mode", default="stratified", choices=["stratified", "weighted"])
+    ap.add_argument("--calib-strata", default="regime_sigma",
+                    choices=["none", "sigma", "regime", "regime_sigma"])
     ap.add_argument("--lam", type=float, default=0.5)
     ap.add_argument("--delta", type=float, default=0.1)
     ap.add_argument("--prior-dir", default="experiments/ida/prior")

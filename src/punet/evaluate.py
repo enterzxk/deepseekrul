@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from .conformal import BlockConformalCalibrator, StratifiedCalibrator
+from .conformal import BlockConformalCalibrator, StratifiedCalibrator, WeightedCalibrator
 from .diagnostics import engine_bootstrap_ci, stratified_coverage
 from .metrics import engine_coverage, picp, pinaw, winkler
 
 
 def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, delta: float = 0.1,
-                       strata=None):
+                       strata=None, weighted: bool = False):
     """Calibrate on calib_mask, evaluate on test_mask."""
     units = np.asarray(units).reshape(-1)
     y = np.asarray(y, dtype=np.float64).reshape(-1)
@@ -18,7 +18,12 @@ def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, d
     w = np.asarray(w, dtype=np.float64).reshape(-1)
 
     scores = BlockConformalCalibrator.scores(y[calib_mask], y_hat[calib_mask], w[calib_mask])
-    if strata is not None:
+    if weighted:
+        cal = WeightedCalibrator(delta=delta).fit(scores, y_hat[calib_mask])
+        lo, hi = cal.interval(y_hat[test_mask], w[test_mask], y_hat[test_mask])
+        q_report = float(np.mean(np.abs(hi - lo) / (2 * w[test_mask])))
+        calib_mode = "weighted"
+    elif strata is not None:
         strata = np.asarray(strata).reshape(-1)
         cal = StratifiedCalibrator(delta=delta).fit(scores, strata[calib_mask])
         lo, hi = cal.interval(y_hat[test_mask], w[test_mask], strata[test_mask])

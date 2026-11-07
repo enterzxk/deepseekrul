@@ -194,3 +194,54 @@ class StratifiedCalibrator:
         w = np.asarray(w, dtype=np.float64).reshape(-1)
         half = self.quantiles(strata) * w
         return y_hat - half, y_hat + half
+
+
+class WeightedCalibrator:
+    """Locally weighted split conformal (Barber et al., 2023).
+
+    Engine populations differ in difficulty, so a pool of calibration engines
+    can be easier than the test engines and one global quantile under-covers.
+    Weighting each calibration score by its similarity to the query point
+    replaces marginal exchangeability with a bounded coverage gap under a
+    weighted total-variation condition.
+
+    The weight kernel uses a difficulty covariate available at prediction time
+    (here: the predicted RUL, i.e. the life stage). Bandwidth defaults to the
+    median absolute deviation of the covariate.
+    """
+
+    def __init__(self, delta: float = 0.1, bandwidth: float | None = None) -> None:
+        self.delta = float(delta)
+        self.bandwidth = bandwidth
+        self._scores = None
+        self._difficulty = None
+
+    def fit(self, scores: np.ndarray, difficulty: np.ndarray) -> "WeightedCalibrator":
+        scores = np.asarray(scores, dtype=np.float64).reshape(-1)
+        difficulty = np.asarray(difficulty, dtype=np.float64).reshape(-1)
+        if scores.size != difficulty.size:
+            raise ValueError("scores and difficulty must share a length")
+        order = np.argsort(scores)
+        self._scores = scores[order]
+        self._difficulty = difficulty[order]
+        if self.bandwidth is None:
+            mad = float(np.median(np.abs(difficulty - np.median(difficulty))))
+            self.bandwidth = max(mad, 1e-3)
+        return self
+
+    def _weighted_quantile(self, query: float) -> float:
+        w = np.exp(-np.abs(self._difficulty - query) / self.bandwidth)
+        w = w / w.sum()
+        cum = np.cumsum(w)
+        level = min(1.0, (1.0 - self.delta) * (1.0 + 1.0 / w.size))
+        idx = int(np.searchsorted(cum, level))
+        idx = min(idx, self._scores.size - 1)
+        return float(self._scores[idx])
+
+    def interval(self, y_hat: np.ndarray, w: np.ndarray, difficulty: np.ndarray):
+        y_hat = np.asarray(y_hat, dtype=np.float64).reshape(-1)
+        w = np.asarray(w, dtype=np.float64).reshape(-1)
+        difficulty = np.asarray(difficulty, dtype=np.float64).reshape(-1)
+        q = np.array([self._weighted_quantile(float(d)) for d in difficulty])
+        half = q * w
+        return y_hat - half, y_hat + half
