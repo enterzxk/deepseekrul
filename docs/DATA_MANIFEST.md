@@ -29,3 +29,40 @@ dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f  train_FD002.tx
 - 训练窗口长度 30，步长 1。
 - 测试每台发动机使用最后 30 周期；不足 30 时在左侧复制首帧。
 - 测试真值默认使用 `RUL_FDxxx.txt` 原值；如实验协议显式要求，可设置 `clip_test_rul=True`。
+
+---
+
+## V4 实验产物清单（2026-11-08）
+
+代码（服务器 `/home/user/rulb`）：
+
+| 文件 | 作用 |
+|---|---|
+| `src/candidates/dspt.py` | 跨度监督 Transformer（`long`/`short`/`dual`/`slot`/`repeat` 五种池化模式） |
+| `scripts/run_dspt.py` | 训练入口，`--mode` 选择池化臂 |
+| `scripts/eval_dspt.py` | 官方 test 评估（重建折内 scaler） |
+| `eval_matrix.py` | 全矩阵评估，单模型与集成分列 |
+| `d1_eval.py` | D1 筛选分析 |
+| `d5_abl.py` | D5 消融（四种池化臂） |
+| `d6_stats.py` | D6 引擎聚类 bootstrap + 分箱误差 |
+| `mk_tab4.py` / `mk_figs4.py` | 出表出图 |
+| `q_lanes.sh` / `q_matrix.sh` | GPU 绑定的双 lane 调度 |
+
+产物：
+
+| 路径 | 内容 |
+|---|---|
+| `experiments/M_FD00[1-4]_s{101,202,303}_f{0-4}/` | 60 个训练模型（`.pt` + `.csv` + `.json`） |
+| `experiments/TESTCACHE/FD00x_s*_f*.csv` | 60 份官方 test 逐发动机预测 |
+| `RESULTS_V4.csv` | 四子集单模型与集成指标 |
+| `paper_figures_v4/` | 三张图（PDF + PNG） |
+| `paper_tables_v4/main.tex` | 主结果表 |
+| `tim_20261105/full_20261105/manuscript_v4.{tex,pdf}` | 论文（4 页） |
+| `tim_20261105/full_20261105/DECISION_V4.md` | 决策记录（含 D1–D6 结果） |
+| `tim_20261105/full_20261105/PROTOCOL_V4.md` | 冻结协议 |
+
+训练配置：1 层 Transformer，d=64，78,978 参数，AdamW，80 epoch 上限，patience 20（按折内验证 RMSE 早停），窗口 100，RUL 上限 125。
+
+官方 test 只用于最终评估，未参与任何模型选择。
+
+Git 提交：`eb19ac0`（分支 `punet-interval`）。
