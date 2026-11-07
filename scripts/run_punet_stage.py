@@ -163,28 +163,86 @@ def run_heads(model, data, args, device):
     cut_va = np.asarray(data["meta_va"])[:, 1].astype(float)
     tau_va = torch.tensor(cut_va / np.maximum(np.asarray(data["mu_va"]), 1e-6), dtype=torch.float32)
 
-    def _apply_sigma_mode(sg, units_arr):
-        if args.sigma_mode == "raw":
+    units = np.asarray(data["meta_va"])[:, 0]
+    units_tr = np.asarray(data["meta_tr"])[:, 0]
+
+    # ---- calibration / test split (computed BEFORE any label-dependent choice) ----
+    if args.split == "engine":
+        calib_idx, test_idx = engine_calib_split(units, calib_frac=args.calib_frac, seed=args.seed)
+        split_desc = {"calib": int(len(calib_idx)), "test": int(len(test_idx)), "mode": "engine"}
+    else:
+        split = block_split(units, cut_va, seed=args.seed)
+        calib_idx, test_idx = split.calib, split.test
+        split_desc = dict(split.describe(), mode="block")
+    calib_mask = np.zeros(len(units), dtype=bool)
+    test_mask = np.zeros(len(units), dtype=bool)
+    calib_mask[calib_idx] = True
+    test_mask[test_idx] = True
+
+    # ---- adaptive scaling: rho estimated on CALIBRATION data only (no test labels) ----
+    gamma = 0.0
+    rho_hat = float("nan")
+    if args.sigma_mode == "auto_gamma":
+        # pick gamma on a held-out tuning block, never on the test block
+        rng = np.random.default_rng(args.seed + 7)
+        _cal_units = np.unique(units[calib_mask])
+        rng.shuffle(_cal_units)
+        n_tune = max(1, int(round(0.4 * _cal_units.size)))
+        tune_units = _cal_units[:n_tune]
+        tune_mask = np.isin(units, tune_units)
+        inner_calib_mask = calib_mask & ~tune_mask
+        best = (float("inf"), 0.0)
+        for _g in (0.0, 0.25, 0.5, 0.75, 1.0):
+            _eng = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
+            _s_e = torch.tensor([float(_eng[int(u)]) for u in units], dtype=torch.float32)
+            _sg_va = sg_va / _s_e.clamp_min(1e-6).pow(_g)
+            _f = fit_heads(h_tr, sg_tr, tau_tr, y_tr, y_base_tr, d_model=h_tr.shape[1],
+                           epochs=max(50, args.head_epochs // 2), lr=args.head_lr, lam=args.lam,
+                           delta=args.delta, device=device, seed=args.seed,
+                           use_scale_head=args.ablate != "A1", use_bias_head=args.ablate != "A6",
+                           scale_simple=(args.scale_mode == "power"))
+            with torch.no_grad():
+                _w = _f["scale_head"](h_va.to(device), _sg_va.to(device), tau_va.to(device)).cpu()
+                _yh = y_base_va + _f["bias_head"](h_va.to(device), _sg_va.to(device)).cpu()
+            from src.punet.metrics import winkler as _wink
+            _scores = np.abs(y_va.numpy()[inner_calib_mask] - _yh.numpy()[inner_calib_mask]) / _w.numpy()[inner_calib_mask]
+            _q = float(np.quantile(_scores, 0.9, method="higher"))
+            _lo = _yh.numpy()[tune_mask] - _q * _w.numpy()[tune_mask]
+            _hi = _yh.numpy()[tune_mask] + _q * _w.numpy()[tune_mask]
+            _wk = _wink(y_va.numpy()[tune_mask], _lo, _hi, alpha=args.delta)
+            if _wk < best[0]:
+                best = (_wk, _g)
+        gamma = best[1]
+        calib_mask = inner_calib_mask
+        print(f"[auto_gamma] picked gamma={gamma:.2f} (tune Winkler {best[0]:.2f})", flush=True)
+
+    if args.sigma_mode == "adaptive":
+        from scipy.stats import spearmanr
+        _err = np.abs(y_base_va.numpy() - y_va.numpy())
+        rho_hat = float(spearmanr(np.asarray(sg_va)[calib_mask], _err[calib_mask]).statistic)
+        gamma = 1.0 if rho_hat < 0.0 else 0.0
+        print(f"[adaptive] rho_hat(calib)={rho_hat:+.3f} gamma={gamma:.1f}", flush=True)
+
+    def _apply(sg, units_arr):
+        if args.sigma_mode in ("raw", "adaptive") and gamma == 0.0:
             return sg
         eng = pd.Series(np.asarray(sg, dtype=float)).groupby(units_arr).mean()
         s_e = torch.tensor([float(eng[int(u)]) for u in units_arr], dtype=torch.float32)
+        if args.sigma_mode == "engine_rel" or (args.sigma_mode == "adaptive" and gamma > 0):
+            return sg / s_e.clamp_min(1e-6)
+        if args.sigma_mode == "auto_gamma":
+            return sg / s_e.clamp_min(1e-6).pow(gamma)
         if args.sigma_mode == "blend":
             lam = float(args.sigma_blend)
             return (1.0 - lam) * s_e + lam * sg
-        if args.sigma_mode == "engine_rel":
-            return sg / s_e.clamp_min(1e-6)
         return sg
 
-    units_tr_arr = np.asarray(data["meta_tr"])[:, 0]
-    units_va_arr = np.asarray(data["meta_va"])[:, 0]
-    sg_tr = _apply_sigma_mode(sg_tr, units_tr_arr)
-    sg_va = _apply_sigma_mode(sg_va, units_va_arr)
+    sg_tr = _apply(sg_tr, units_tr)
+    sg_va = _apply(sg_va, units)
 
     if args.sigma_mode == "rel_life":
-        mu_va_t = torch.tensor(np.asarray(data["mu_va"], dtype=float), dtype=torch.float32)
-        mu_tr_t = torch.tensor(np.asarray(data["mu_tr"], dtype=float), dtype=torch.float32)
-        sg_va = sg_va / mu_va_t.clamp_min(1e-3)
-        sg_tr = sg_tr / mu_tr_t.clamp_min(1e-3)
+        sg_va = sg_va / mu_va.clamp_min(1e-3)
+        sg_tr = sg_tr / mu_tr.clamp_min(1e-3)
 
     if args.ablate == "A2":
         sg_tr = torch.ones_like(sg_tr)
@@ -204,45 +262,18 @@ def run_heads(model, data, args, device):
         scale_simple=(args.scale_mode == "power"),
     )
 
-    # apply the fitted heads to the held-out windows
     with torch.no_grad():
-        if fitted["scale_head"] is None:
-            w_va = torch.ones_like(y_va)
-        else:
-            w_va = fitted["scale_head"](h_va.to(device), sg_va.to(device), tau_va.to(device)).cpu()
+        w_va = torch.ones_like(y_va) if fitted["scale_head"] is None else fitted["scale_head"](
+            h_va.to(device), sg_va.to(device), tau_va.to(device)).cpu()
         if fitted["bias_head"] is None:
             y_hat_va = y_base_va
         else:
-            b_va = fitted["bias_head"](h_va.to(device), sg_va.to(device)).cpu()
-            y_hat_va = y_base_va + b_va
-
-    units = np.asarray(data["meta_va"])[:, 0]
-
-    if not (len(units) == len(y_va) == len(w_va) == len(y_hat_va)):
-        raise ValueError(
-            f"length mismatch: units={len(units)} y={len(y_va)} w={len(w_va)} yhat={len(y_hat_va)}"
-        )
-
-    if args.split == "engine":
-        calib_idx, test_idx = engine_calib_split(units, calib_frac=args.calib_frac, seed=args.seed)
-        split_desc = {"calib": int(len(calib_idx)), "test": int(len(test_idx)), "mode": "engine"}
-    else:
-        split = block_split(units, cut_va, seed=args.seed)
-        calib_idx, test_idx = split.calib, split.test
-        split_desc = dict(split.describe(), mode="block")
-    calib_mask = np.zeros(len(units), dtype=bool)
-    test_mask = np.zeros(len(units), dtype=bool)
-    calib_mask[calib_idx] = True
-    test_mask[test_idx] = True
-
-    # engine-level mean sigma as the difficulty covariate (available at test time)
-    eng_sigma = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
-    difficulty = np.array([float(eng_sigma[int(u)]) for u in units])
+            y_hat_va = y_base_va + fitted["bias_head"](h_va.to(device), sg_va.to(device)).cpu()
 
     strata = None
     if args.calib_strata != "none":
-        eng_mean = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
-        labels = pd.qcut(eng_mean, 3, labels=False, duplicates="drop")
+        eng_sigma = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
+        labels = pd.qcut(eng_sigma, 3, labels=False, duplicates="drop")
         mapping = {int(u): int(v) for u, v in labels.items()}
         sigma_bin = np.array([mapping[int(u)] for u in units], dtype=int)
         regime = data.get("regime_va")
@@ -251,15 +282,21 @@ def run_heads(model, data, args, device):
         else:
             strata = sigma_bin
 
+    eng_sigma_d = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
+    difficulty = np.array([float(eng_sigma_d[int(u)]) for u in units])
+
     result = evaluate_intervals(
         units, cut_va, np.asarray(data["mu_va"]), y_va.numpy(),
         y_hat_va.numpy(), w_va.numpy(), calib_mask, test_mask, delta=args.delta,
         strata=strata, weighted=(args.calib_mode == "weighted"), difficulty=difficulty,
+        two_component=(args.calib_mode == "two_component"),
     )
     result["split"] = split_desc
     result["head_loss"] = fitted["final_loss"]
-    result["head_epochs"] = args.head_epochs
     result["ablate"] = args.ablate
+    result["sigma_mode"] = args.sigma_mode
+    result["rho_hat_calib"] = rho_hat
+    result["gamma"] = gamma
     result["n_val"] = int(len(units))
     result["base_rmse"] = float(np.sqrt(np.mean((y_base_va.numpy() - y_va.numpy()) ** 2)))
     return result, fitted
@@ -277,10 +314,11 @@ def main(argv=None) -> int:
     ap.add_argument("--head-lr", type=float, default=1e-3)
     ap.add_argument("--split", default="engine", choices=["engine", "block"])
     ap.add_argument("--calib-frac", type=float, default=0.3)
-    ap.add_argument("--sigma-mode", default="raw", choices=["raw", "engine_rel", "rel_life", "blend"])
+    ap.add_argument("--sigma-mode", default="raw",
+                    choices=["raw", "engine_rel", "rel_life", "blend", "adaptive", "auto_gamma"])
     ap.add_argument("--sigma-blend", type=float, default=1.0)
     ap.add_argument("--scale-mode", default="power", choices=["power", "mlp"])
-    ap.add_argument("--calib-mode", default="stratified", choices=["stratified", "weighted"])
+    ap.add_argument("--calib-mode", default="stratified", choices=["stratified", "weighted", "two_component"])
     ap.add_argument("--calib-strata", default="regime_sigma",
                     choices=["none", "sigma", "regime", "regime_sigma"])
     ap.add_argument("--lam", type=float, default=0.5)

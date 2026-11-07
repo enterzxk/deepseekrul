@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from .conformal import BlockConformalCalibrator, StratifiedCalibrator, WeightedCalibrator
+from .conformal import (BlockConformalCalibrator, StratifiedCalibrator, WeightedCalibrator, TwoComponentCalibrator)
 from .diagnostics import engine_bootstrap_ci, stratified_coverage
 from .metrics import engine_coverage, picp, pinaw, winkler
 
 
 def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, delta: float = 0.1,
-                       strata=None, weighted: bool = False, difficulty=None):
+                       strata=None, weighted: bool = False, difficulty=None,
+                       two_component: bool = False):
     """Calibrate on calib_mask, evaluate on test_mask."""
     units = np.asarray(units).reshape(-1)
     y = np.asarray(y, dtype=np.float64).reshape(-1)
@@ -18,7 +19,13 @@ def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, d
     w = np.asarray(w, dtype=np.float64).reshape(-1)
 
     scores = BlockConformalCalibrator.scores(y[calib_mask], y_hat[calib_mask], w[calib_mask])
-    if weighted:
+    if two_component:
+        cal2 = TwoComponentCalibrator(delta=delta).fit(
+            y[calib_mask], y_hat[calib_mask], w[calib_mask], units[calib_mask])
+        lo, hi = cal2.interval(y_hat[test_mask], w[test_mask], units[test_mask])
+        q_report = float(cal2.q_b)
+        calib_mode = "two_component"
+    elif weighted:
         if difficulty is None:
             raise ValueError("weighted calibration needs a difficulty covariate")
         difficulty = np.asarray(difficulty, dtype=np.float64).reshape(-1)

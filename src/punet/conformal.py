@@ -245,3 +245,67 @@ class WeightedCalibrator:
         q = np.array([self._weighted_quantile(float(d)) for d in difficulty])
         half = q * w
         return y_hat - half, y_hat + half
+
+
+class TwoComponentCalibrator:
+    """Hierarchical conformal with separate between- and within-engine terms.
+
+    Motivation: for clustered prognostics the scale sigma_i decomposes into an
+    engine-level component (how uncertain this engine is overall) and a
+    within-engine component (how uncertainty evolves along its trajectory).
+    Empirically the two behave in opposite directions: within-engine
+    corr(sigma, |err|) > 0 in every subset, between-engine corr < 0. A single
+    global quantile therefore cannot be right for both, which is a Simpson's
+    paradox.
+
+    Construction (Bonferroni split of delta):
+        s_e(i)  = mean sigma over engine of i            (between component)
+        q_b     = Quantile_{1-delta_b}( |y - y_hat| / s_e )
+        r_i     = max( |y - y_hat| - q_b * s_e(i), 0 )   (residual after between)
+        q_w     = Quantile_{1-delta_w}( r_i / sigma_i )
+        half_i  = q_b * s_e(i) + q_w * sigma_i
+
+    Coverage is at least 1 - delta_b - delta_w by a union bound.
+    """
+
+    def __init__(self, delta: float = 0.1, between_share: float = 0.5) -> None:
+        self.delta = float(delta)
+        self.between_share = float(between_share)
+        self.q_b = None
+        self.q_w = None
+
+    @staticmethod
+    def engine_mean(values: np.ndarray, units: np.ndarray) -> np.ndarray:
+        values = np.asarray(values, dtype=np.float64).reshape(-1)
+        units = np.asarray(units).reshape(-1)
+        out = np.zeros_like(values)
+        for u in np.unique(units):
+            mask = units == u
+            out[mask] = values[mask].mean()
+        return out
+
+    def fit(self, y, y_hat, sigma, units) -> "TwoComponentCalibrator":
+        y = np.asarray(y, dtype=np.float64).reshape(-1)
+        y_hat = np.asarray(y_hat, dtype=np.float64).reshape(-1)
+        sigma = np.asarray(sigma, dtype=np.float64).reshape(-1)
+        s_e = self.engine_mean(sigma, units)
+
+        d_b = self.delta * self.between_share
+        d_w = self.delta - d_b
+
+        def quantile(vals, level):
+            n = vals.size
+            lv = min(1.0, (1.0 - level) * (1.0 + 1.0 / n))
+            return float(np.quantile(vals, lv, method="higher"))
+
+        self.q_b = quantile(np.abs(y - y_hat) / np.maximum(s_e, 1e-6), d_b)
+        resid = np.maximum(np.abs(y - y_hat) - self.q_b * s_e, 0.0)
+        self.q_w = quantile(resid / np.maximum(sigma, 1e-6), d_w)
+        return self
+
+    def interval(self, y_hat, sigma, units):
+        y_hat = np.asarray(y_hat, dtype=np.float64).reshape(-1)
+        sigma = np.asarray(sigma, dtype=np.float64).reshape(-1)
+        s_e = self.engine_mean(sigma, units)
+        half = self.q_b * s_e + self.q_w * sigma
+        return y_hat - half, y_hat + half
