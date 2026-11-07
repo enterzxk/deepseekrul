@@ -71,6 +71,7 @@ def main(argv=None) -> int:
     ap.add_argument("--prior-dir", default="experiments/ida/prior_boot")
     ap.add_argument("--out", default="experiments/punet_e2e")
     ap.add_argument("--ablate", default="none", choices=["none", "A4"])
+    ap.add_argument("--heads", default="cqr", choices=["cqr", "point"])
     args = ap.parse_args(argv)
 
     R.set_seed(args.seed)
@@ -120,7 +121,10 @@ def main(argv=None) -> int:
             cond, extras, prior = cond.to(device), extras.to(device), prior.to(device)
             lo, hi, centre = model(x, cond, extras, prior)
             y2 = y.reshape(-1)
-            loss = pinball(lo, y2, 0.05) + pinball(hi, y2, 0.95) + 0.1 * F.mse_loss(centre, y2)
+            if args.heads == "point":
+                loss = F.mse_loss(centre, y2)
+            else:
+                loss = pinball(lo, y2, 0.05) + pinball(hi, y2, 0.95) + 0.1 * F.mse_loss(centre, y2)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -150,6 +154,11 @@ def main(argv=None) -> int:
             lo, hi, _ = model(x.to(device), cond.to(device), extras.to(device), prior.to(device))
             los.append(lo.cpu().numpy()); his.append(hi.cpu().numpy()); ys.append(y.numpy())
     lo_all = np.concatenate(los); hi_all = np.concatenate(his); y_all = np.concatenate(ys)
+    if args.heads == "point":
+        # constant-width baseline: collapse the quantile heads onto the centre,
+        # so CQR calibration reduces to absolute-residual split conformal
+        lo_all = hi_all.copy() if False else (lo_all + hi_all) / 2.0
+        hi_all = lo_all.copy()
     units = mva[:, 0]
 
     calib_idx, test_idx = engine_calib_split(units, calib_frac=0.3, seed=args.seed)
@@ -160,11 +169,11 @@ def main(argv=None) -> int:
         units, mva[:, 1].astype(float), np.asarray(mu_va), y_all, lo_all, hi_all,
         calib_mask, test_mask, delta=args.delta,
     )
-    result.update(method="e2e_cqr", ablate=args.ablate, subset=args.subset, fold=args.fold,
+    result.update(method=f"e2e_{args.heads}", ablate=args.ablate, subset=args.subset, fold=args.fold,
                   best_centre_rmse=best, best_epoch=best_epoch)
     out_dir = ROOT / args.out / args.subset / f"f{args.fold}_s{args.seed}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"e2e_cqr_{args.ablate}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out_dir / f"e2e_{args.heads}_{args.ablate}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({k: v for k, v in result.items() if k != "diagnostics"}, ensure_ascii=False), flush=True)
     return 0
 
