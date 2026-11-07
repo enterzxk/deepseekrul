@@ -447,3 +447,20 @@ EMA 几乎没有改变任何数字。**结论更正**：第 16 节"训练不稳�
 **结论**：在相同覆盖率下，PU-CQR 相对常数宽度基线改善 7.8–16.9%（4/4 子集）；相对 MC-Dropout 为 3/4（FD003 上 MC-Dropout 更优，36.6 vs 39.2）。QR 无法在 0.90 覆盖下工作——它没有覆盖控制能力。
 
 **方法学要点**：区间方法必须在相同覆盖率下比较；单点 Winkler 比较会被欠覆盖的窄区间误导。
+
+## 28. TIM 投稿准备：数据集与实验矩阵（进行中）
+
+**新增数据集**：FEMTO/PRONOSTIA 轴承（IEEE PHM 2012 挑战赛），已上传至远端 `~/femto`（3.1 GB）。
+- Learning_set 6 个全寿命轴承，Test_set/Full_Test_Set 11 个截断轴承
+- 每轴承 230–3269 个快照（0.1 s @ 25.6 kHz，水平+垂直振动）
+- 特征提取完成：每快照 11 维（RMS/kurtosis/skew/peak/crest × 2 通道 + 通道比）→ `data/femto_features/`（17 个文件）
+
+**新增脚本**：
+- `scripts/build_femto_features.py`：振动快照 → 统计特征
+- `scripts/run_femto_cqr.py`：留一轴承交叉验证，同一套 CQR/常数宽度/QR 对比
+- `scripts/run_mcdropout.py`：MC-Dropout 基线
+- `scripts/coverage_frontier.py`：覆盖-宽度前沿
+
+**进行中**：
+- 3 seeds × 5 折 × 4 子集 × 3 方法 = 180 次运行（当前 10/180）
+- FEMTO 跨域实验（16 个轴承，留一验证）
