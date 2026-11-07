@@ -163,6 +163,29 @@ def run_heads(model, data, args, device):
     cut_va = np.asarray(data["meta_va"])[:, 1].astype(float)
     tau_va = torch.tensor(cut_va / np.maximum(np.asarray(data["mu_va"]), 1e-6), dtype=torch.float32)
 
+    def _apply_sigma_mode(sg, units_arr):
+        if args.sigma_mode == "raw":
+            return sg
+        eng = pd.Series(np.asarray(sg, dtype=float)).groupby(units_arr).mean()
+        s_e = torch.tensor([float(eng[int(u)]) for u in units_arr], dtype=torch.float32)
+        if args.sigma_mode == "blend":
+            lam = float(args.sigma_blend)
+            return (1.0 - lam) * s_e + lam * sg
+        if args.sigma_mode == "engine_rel":
+            return sg / s_e.clamp_min(1e-6)
+        return sg
+
+    units_tr_arr = np.asarray(data["meta_tr"])[:, 0]
+    units_va_arr = np.asarray(data["meta_va"])[:, 0]
+    sg_tr = _apply_sigma_mode(sg_tr, units_tr_arr)
+    sg_va = _apply_sigma_mode(sg_va, units_va_arr)
+
+    if args.sigma_mode == "rel_life":
+        mu_va_t = torch.tensor(np.asarray(data["mu_va"], dtype=float), dtype=torch.float32)
+        mu_tr_t = torch.tensor(np.asarray(data["mu_tr"], dtype=float), dtype=torch.float32)
+        sg_va = sg_va / mu_va_t.clamp_min(1e-3)
+        sg_tr = sg_tr / mu_tr_t.clamp_min(1e-3)
+
     if args.ablate == "A2":
         sg_tr = torch.ones_like(sg_tr)
         sg_va = torch.ones_like(sg_va)
@@ -194,10 +217,6 @@ def run_heads(model, data, args, device):
             y_hat_va = y_base_va + b_va
 
     units = np.asarray(data["meta_va"])[:, 0]
-
-    if args.sigma_mode == "engine_rel":
-        eng_mean_raw = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
-        sg_va = sg_va / torch.tensor([float(eng_mean_raw[int(u)]) for u in units], dtype=torch.float32)
 
     if not (len(units) == len(y_va) == len(w_va) == len(y_hat_va)):
         raise ValueError(
@@ -258,7 +277,8 @@ def main(argv=None) -> int:
     ap.add_argument("--head-lr", type=float, default=1e-3)
     ap.add_argument("--split", default="engine", choices=["engine", "block"])
     ap.add_argument("--calib-frac", type=float, default=0.3)
-    ap.add_argument("--sigma-mode", default="raw", choices=["raw", "engine_rel"])
+    ap.add_argument("--sigma-mode", default="raw", choices=["raw", "engine_rel", "rel_life", "blend"])
+    ap.add_argument("--sigma-blend", type=float, default=1.0)
     ap.add_argument("--scale-mode", default="power", choices=["power", "mlp"])
     ap.add_argument("--calib-mode", default="stratified", choices=["stratified", "weighted"])
     ap.add_argument("--calib-strata", default="regime_sigma",
