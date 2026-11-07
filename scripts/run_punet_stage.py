@@ -194,6 +194,11 @@ def run_heads(model, data, args, device):
             y_hat_va = y_base_va + b_va
 
     units = np.asarray(data["meta_va"])[:, 0]
+
+    if args.sigma_mode == "engine_rel":
+        eng_mean_raw = pd.Series(np.asarray(sg_va, dtype=float)).groupby(units).mean()
+        sg_va = sg_va / torch.tensor([float(eng_mean_raw[int(u)]) for u in units], dtype=torch.float32)
+
     if not (len(units) == len(y_va) == len(w_va) == len(y_hat_va)):
         raise ValueError(
             f"length mismatch: units={len(units)} y={len(y_va)} w={len(w_va)} yhat={len(y_hat_va)}"
@@ -253,6 +258,7 @@ def main(argv=None) -> int:
     ap.add_argument("--head-lr", type=float, default=1e-3)
     ap.add_argument("--split", default="engine", choices=["engine", "block"])
     ap.add_argument("--calib-frac", type=float, default=0.3)
+    ap.add_argument("--sigma-mode", default="raw", choices=["raw", "engine_rel"])
     ap.add_argument("--scale-mode", default="power", choices=["power", "mlp"])
     ap.add_argument("--calib-mode", default="stratified", choices=["stratified", "weighted"])
     ap.add_argument("--calib-strata", default="regime_sigma",
