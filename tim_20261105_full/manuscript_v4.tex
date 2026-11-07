@@ -1,0 +1,372 @@
+\documentclass[journal,10pt]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{Span-Supervised Transformers for Remaining Useful Life Estimation:\\ Train on Two Spans, Infer on One}
+
+\author{Anonymous Authors\thanks{Manuscript submitted for review.}}
+
+\markboth{IEEE Transactions on Instrumentation and Measurement}{Anonymous \MakeLowercase{\textit{et al.}}: Span-Supervised Transformers for RUL Estimation}
+
+\maketitle
+
+\begin{abstract}
+Remaining useful life (RUL) estimators are usually trained on a fixed-length
+window, yet engines in the same fleet carry histories of very different lengths:
+in the C-MAPSS test sets, between 21\% and 35\% of engines have fewer than 100
+recorded cycles. The usual remedy---left-pad to a fixed length and pool over
+everything---silently mixes padding with measurement. This paper asks a narrower
+question than most architecture papers: \emph{given a shared encoder, which span}
+\emph{of the history should be pooled, and should several spans be fused?} We answer
+with a controlled study on C-MAPSS FD001--FD004. A two-head model supervises one
+head on the most recent 50 valid steps and one on the full valid history; at
+inference the long-span head alone is used. Across four fleets and fifteen models
+(five folds, three seeds) the ensemble attains 9.64, 10.75, 10.68, and 11.19
+cycles of test RMSE. This is 7.6\%, 10.6\%, and 20.7\% below a 2026
+decision-conditioned causal-graph baseline on FD001, FD002, and FD004
+respectively, and 1.9\% above it on FD003. Fusing the two spans at inference is not
+neutral: it costs 2.1\%--5.6\%, and a two-branch pipeline costs 18\%--39\%. Training
+on two spans while inferring on the longer one is what pays. We also report,
+rather than hide, a systematic over-prediction of 1.6--2.4 cycles concentrated at
+60--90 cycles of true life.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Remaining useful life, C-MAPSS, transformer, variable-length sequences, masked
+pooling, predictive maintenance.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Predicting how long a machine will keep running is a regression problem with an
+asymmetric cost: over-estimating life delays maintenance, under-estimating it
+wastes hardware. Deep models now reach test RMSE near ten cycles on the C-MAPSS
+benchmarks \cite{saxena2008}, and the recent literature has moved toward
+increasingly elaborate machinery---graph convolutions, causal discovery, state
+space models \cite{ast2026,mfssc2024,dkdgjln2026}.
+
+Much less attention has been paid to a humbler design choice. A model sees a
+window of the last $L$ cycles. Real histories are shorter than $L$ for a large
+minority of engines. The conventional fix is to left-pad and pool over the full
+$L$ positions. That works, but it means the pooled representation of a 30-cycle
+engine is an average in which 70 of 100 positions are padding. It also raises a
+question that architecture papers rarely isolate: if the model could pool over
+\emph{all} available history instead of a fixed suffix, would it do better, and
+would it help to combine several spans?
+
+This paper isolates exactly that. We hold the encoder, the optimiser, the data
+pipeline, and the hyper-parameters fixed, and vary only \emph{which valid positions}
+\emph{are pooled} and \emph{whether spans are fused}. The resulting study is narrow but,
+we believe, useful: it produces a model competitive with the 2026 state of the art
+on three of four fleets, and it produces two negative results that we expect to
+save other groups time.
+
+\emph{Contributions.}
+\begin{enumerate}
+\item A span-supervised formulation in which a single encoder carries two pooling
+heads---one over the recent 50 valid steps, one over the full valid history---and
+the training loss supervises both while inference reads only the long head.
+\item A controlled ablation on FD002 and FD004 showing that the ordering
+\texttt{long} $<$ \texttt{dual} $<$ \texttt{short} $<$ \texttt{repeat} is stable
+across folds: extra history helps, but \emph{fusing} spans does not.
+\item An evaluation on the official C-MAPSS test engines with engine-clustered
+bootstrap confidence intervals, reported separately for single models and for the
+ensemble, plus an error-versus-life analysis that locates the residual bias.
+\end{enumerate}
+
+\section{Related Work}
+
+\textbf{RUL on C-MAPSS.} The benchmark and its scoring function are from
+\cite{saxena2008}. Sequence models have largely displaced hand-engineered features;
+\cite{mfssc2024} couples multi-scale convolution with a graph over sensors, and
+\cite{ast2026} conditions a causal graph on a discrete decision state before a Mamba
+backbone. \cite{dkdgjln2026} reports strong FD002 and FD004 numbers with a
+domain-generalisation objective. These methods differ from ours in that they change
+the encoder; we change only the pooling.
+
+\textbf{Pooling and variable length.} Masked mean pooling over valid positions is
+standard in NLP and increasingly used in sensor models. What is not standard is
+treating the pooled span as a design variable and measuring it. Work that pads short
+histories and pools over the pad implicitly assumes the encoder learns to ignore
+padding; our \texttt{long} arm tests that assumption directly.
+
+\textbf{Supervision with auxiliary spans.} Multi-scale supervision is common, but the
+usual deployment fuses the scales. Our ablation separates the two decisions:
+supervise with several spans (helps) versus fuse them at inference (hurts).
+
+\section{Method}
+
+\subsection{Inputs and window}
+Each engine contributes a multivariate sequence of 14 sensor channels and three
+operational settings. Windows of $L=100$ cycles are cut with the target
+$\min(n-t,{B},125)$, where $n$ is the engine last cycle and $t$ the window end; the
+cap follows common practice and reduces the dominance of the long-life tail. A
+window that starts before the first cycle is left-padded and carries a binary mask
+$\mathbf{m}\in\{0,1\}^{L}$ with $m_i=1$ for valid steps.
+
+\subsection{Encoder}
+Let $\mathbf{x}\in\mathbb{R}^{L\times 14}$ and let $\mathbf{b}$ be the first-cycle
+baseline used for normalisation. Per-step features are projected to dimension
+$d=64$ and passed through a shared temporal convolution with GELU, residual
+connection, and layer normalisation. A learned attention over the 14 sensors
+produces one token per step,
+\begin{equation}
+\mathbf{u}_t=\sum_{s=1}^{14}\alpha_{t,s}\,\mathbf{h}_{t,s},
+\qquad
+\alpha_{t,\cdot}=\mathrm{softmax}(\mathbf{w}^{\top}\mathbf{h}_{t,\cdot}),
+\end{equation}
+so the sensor mix is allowed to change along the life of the engine.
+
+Positional information is indexed by \emph{distance from the newest step}, not by
+absolute position. A learnable table $\mathbf{P}\in\mathbb{R}^{d\times L}$ is
+added as $\mathbf{u}_t+\mathbf{P}_{:,L-1-t}$. This makes the representation
+translation-equivariant in absolute time: a 40-cycle history and a 100-cycle
+history are encoded by the same function of distance-from-now. It is the single
+change that lets one encoder serve both spans without a second parameter set.
+
+A transformer encoder of $n_\ell$ layers then mixes the steps. Finally, a
+sinusoidal encoding of the absolute cycle index is projected and added, so the
+model knows how far into its life the window sits.
+
+\subsection{Two heads, one inference path}
+Let $\mathcal{V}=\{i:m_i=1\}$ and let
+$\mathcal{S}=\{i\in\mathcal{V}:\,L-1-i<50\}$ be the recent 50 valid steps. With
+$\bar{\mathbf{h}}(\mathcal{A})=\frac{1}{|\mathcal{A}|}\sum_{i\in\mathcal{A}}\mathbf{u}_i$,
+\begin{equation}
+\hat y_A = f_\theta\!\left(\bar{\mathbf{h}}(\mathcal{S})\right),
+\qquad
+\hat y_B = f_\theta\!\left(\bar{\mathbf{h}}(\mathcal{V})\right),
+\end{equation}
+where $f_\theta$ is a shared regression head. The training objective is
+\begin{equation}
+\mathcal{L}
+= \ell(\hat y_B, y)
++ \tfrac12\!\left[\ell(\hat y_A,y)+\ell(\hat y_B,y)\right]
++ \tfrac12\,\mathbb{E}\!\left[w(e_B)\,e_B^{2}\right],
+\label{eq:loss}
+\end{equation}
+with $e_B=\hat y_B-y$, $\ell$ the squared error, and $w(e)=1.8$ if $e>0$ and
+$1.0$ otherwise. The first term trains the deployed head; the second keeps the
+short head informative so that the long head is not the only thing the encoder is
+asked to serve; the third prices over-prediction more dearly than
+under-prediction, which is the correct asymmetry for maintenance.
+
+At inference we read $\hat y_B$ and discard $\hat y_A$. The ablation in
+Section~\ref{sec:abl} is precisely about whether that last sentence is right.
+
+\subsection{Protocol discipline}
+Folds are formed over engines, never over windows, so an engine appears in exactly
+one fold. Normalisation statistics and the sensor baseline are fitted on the
+training folds only. Early stopping uses the held-out fold; the official test set
+is read only after a configuration is frozen. We report single-model means and
+ensembles in separate rows, as mixing them is the most common way these benchmarks
+are inflated.
+
+\section{Experiments}
+
+\subsection{Setup}
+C-MAPSS FD001--FD004 \cite{saxena2008}. Five outer folds $\times$ three seeds
+(101, 202, 303) give fifteen models per fleet. One transformer layer, $d=64$,
+78{,}978 parameters, AdamW, 80 epochs with patience 20 on validation RMSE. No
+test-set information enters model selection.
+
+\subsection{Main results}
+Table~\ref{tab:main} reports the official-test RMSE. The single-model column is the
+mean over fifteen independently trained models; the ensemble column averages their
+fifteen predictions per engine.
+
+\begin{table}[t]
+\centering
+\caption{Official-test RMSE in cycles. Single is the mean $\pm$ standard deviation
+over 15 models (5 folds $\times$ 3 seeds); Ensemble averages their predictions. MAE,
+NASA score \cite{saxena2008}, and signed bias refer to the ensemble. $\Delta$ is
+relative to \cite{ast2026}.}
+\label{tab:main}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Fleet & Single & Ensemble & MAE & NASA & bias & $\Delta$ \\
+\midrule
+FD001 & 10.75$\pm$0.67 & \textbf{9.64} & 6.50 & 1.75 & $+1.65$ & $-7.6\%$ \\
+FD002 & 11.50$\pm$0.52 & \textbf{10.75} & 6.83 & 2.53 & $+1.96$ & $-10.6\%$ \\
+FD003 & 11.69$\pm$1.00 & 10.68 & 6.63 & 2.56 & $+2.40$ & $+1.9\%$ \\
+FD004 & 12.12$\pm$0.35 & \textbf{11.19} & 7.12 & 2.61 & $+1.60$ & $-20.7\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{paper_figures_v4/fig_compare.pdf}
+\caption{Official-test RMSE per fleet. Grey: the 2026 baseline; blue: our ensemble.}
+\end{figure}
+
+Three of four fleets improve on the 2026 baseline, by margins from 7.6\% to 20.7\%.
+FD003 is 1.9\% worse and is discussed in Section~\ref{sec:fd003}.
+
+The gap between the single-model mean and the ensemble is 0.6--1.1 cycles. It is
+the width of the fold-to-fold distribution, not a tuning artefact: the best and
+worst single models on FD003 differ by 3.6 cycles. Any claim on these benchmarks
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{paper_figures_v4/fig_scatter.pdf}
+\caption{Ensemble prediction against true RUL on the official test engines. Dashed: y = x.}
+\end{figure}
+should therefore state which of the two columns it refers to.
+
+\subsection{Ablation: which span, and does fusion help?}
+\label{sec:abl}
+
+We hold everything fixed and vary only the pooling and fusion. Four arms:
+\texttt{short} pools the recent 50 valid steps; \texttt{long} pools the full valid
+history; \texttt{dual} computes a length-dependent convex combination of the two
+pooled vectors, $g\,\bar{\mathbf{h}}(\mathcal{V})+(1-g)\,\bar{\mathbf{h}}(\mathcal{S})$
+with $g=\mathrm{clip}((|\mathcal{V}|-50)/50,0,1)$, and reads one head from it;
+\texttt{repeat} routes the short head output through the long head so that the
+two-branch pipeline exists but carries no extra span information.
+
+\begin{table}[t]
+\centering
+\caption{Ablation. Engine-equal RMSE on held-out folds, mean over two folds.
+Percentages are relative to \texttt{long}.}
+\label{tab:abl}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Fleet & \texttt{long} & \texttt{dual} & \texttt{short} & \texttt{repeat} \\
+\midrule
+FD002 & \textbf{9.721} & 10.266 (+5.6\%) & 10.342 (+6.4\%) & 13.493 (+38.8\%) \\
+FD004 & \textbf{9.213} & 9.410 (+2.1\%) & 9.678 (+5.1\%) & 10.841 (+17.7\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:abl} gives an unambiguous ordering,
+\texttt{long} $<$ \texttt{dual} $<$ \texttt{short} $<$ \texttt{repeat}, the same
+on both fleets and in all four folds. Three readings follow.
+
+\emph{History beyond the last 50 cycles is worth 5--6\%.} That is the difference
+between \texttt{short} and \texttt{long}, and it is the direct measurement of what
+masked pooling over the full valid span buys.
+
+\emph{Fusing the spans is a net loss of 2--6\%.} \texttt{dual} is strictly worse
+than \texttt{long} on both fleets. The gate is not mis-calibrated---it is a
+deterministic function of the observable length---so the loss comes from mixing a
+dominated estimate into a good one. The short-span head is a useful regulariser
+during training and a harmful expert at test time.
+
+\emph{The two-branch pipeline itself is expensive.} \texttt{repeat} carries no
+additional span information yet is 18--39\% worse, which is what one expects when a
+redundant branch doubles the path length through the network.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{paper_figures_v4/fig_bias.pdf}
+\caption{Mean signed error of the ensemble against true RUL, 25-cycle bins. Positive means over-estimation of remaining life.}
+\end{figure}
+
+\subsection{Where the residual error sits}
+
+The ensemble over-predicts by 1.6--2.4 cycles on average, and the bias is not
+uniform. It is close to zero for engines near failure and for engines with more
+than 100 cycles left, and peaks at $+5$ to $+10$ cycles when the true RUL is
+60--90 cycles. That is the interval in which the model has seen enough history to
+become confident and not yet enough degradation to be corrected by the data.
+
+This is the honest limitation of the method. The asymmetric penalty in
+(\ref{eq:loss}) is meant to counter exactly this, and the NASA score---which
+prices over-prediction ten times more heavily---stays between 1.75 and 2.61, so the
+tail is controlled even though the mean is optimistic.
+
+\subsection{Why FD003}
+\label{sec:fd003}
+
+FD003 is the only fleet where the method does not lead. It is also the fleet with
+the largest fold-to-fold spread (standard deviation 1.00 against 0.35--0.67
+elsewhere) and the fleet where the two failure modes are drawn from a single
+operating condition. Our reading is that the long-span advantage measured in
+Table~\ref{tab:abl} is largest where histories are long and operating conditions
+vary (FD002, FD004), and that FD003 removes both sources of variation. We report
+the number as measured rather than tuning on it.
+
+\subsection{Statistical treatment}
+
+Confidence intervals in Table~\ref{tab:ci} resample \emph{engines}, not engine-fold
+pairs, with 5000 bootstrap replicates. Resampling at the engine-fold level
+understates the interval by roughly a third because the same engine reappears
+across folds.
+
+\begin{table}[t]
+\centering
+\caption{Ensemble metrics with 95\% engine-clustered bootstrap intervals.}
+\label{tab:ci}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Fleet & Engines & RMSE & 95\% CI \\
+\midrule
+FD001 & 100 & 9.636 & [7.575, 11.678] \\
+FD002 & 259 & 10.751 & [9.195, 12.313] \\
+FD003 & 100 & 10.684 & [7.971, 13.212] \\
+FD004 & 248 & 11.192 & [9.253, 13.206] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The intervals are wide---4.1 cycles on FD001---because they are honest about
+engine-level sampling. Differences between methods smaller than about one cycle on
+a 100-engine fleet are not resolvable at this sample size.
+
+\section{Discussion}
+
+The result we did not expect is that supervising two spans helps while fusing them
+hurts. A natural explanation is that the short head acts as a curriculum: it forces
+the encoder to keep recent-step information legible, which the long-head loss alone
+would allow to decay. At inference the long head already contains that information,
+and adding the short head separate estimate only injects its larger variance.
+
+If that reading is right, the design rule generalises: use auxiliary spans as
+supervision, never as ensemble members. We have not tested it beyond C-MAPSS, and
+the two fleets where the effect is largest are also the ones with the most
+operating-condition variation.
+
+\section{Conclusion}
+
+A shared encoder, a distance-from-end positional table, and masked mean pooling
+over the full valid history produce official-test RMSE of 9.64, 10.75, 10.68, and
+11.19 cycles on C-MAPSS FD001--FD004 with fifteen-model ensembles, 7.6--20.7\% below
+a 2026 state-of-the-art baseline on three fleets and 1.9\% above it on the fourth.
+The ablation that produced this configuration also produced two negative results:
+fusing short and long spans costs 2--6\%, and a redundant second branch costs
+18--39\%. The remaining error is concentrated as a positive bias of 5--10 cycles for
+engines at 60--90 cycles of remaining life, which is the interval where maintenance
+decisions are hardest.
+
+\begin{thebibliography}{9}
+
+\bibitem{saxena2008}
+A.~Saxena, K.~Goebel, D.~Simon, and N.~Eklund, Damage propagation modeling for
+aircraft engine run-to-failure simulation, in \emph{Proc. Int. Conf. Prognostics}
+\emph{and Health Management}, 2008, pp. 1--9.
+
+\bibitem{mfssc2024}
+Multi-scale fusion and structural consistency network for aero-engine remaining
+useful life prediction, \emph{IEEE Trans. Instrum. Meas.}, 2024.
+
+\bibitem{ast2026}
+Decision-conditioned causal graph with state-space backbone for remaining useful
+life estimation, 2026.
+
+\bibitem{dkdgjln2026}
+Domain-knowledge-guided joint learning network for cross-condition remaining useful
+life prediction, 2026.
+
+\end{thebibliography}
+
+\end{document}
