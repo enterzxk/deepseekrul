@@ -14,6 +14,8 @@
 | 覆盖-宽度前沿 | 三张图 + `coverage_frontier.py` | ✅ 完成 |
 | 论文正文 | `docs/manuscripts/v1.0-draft.md` | ✅ 18KB，0 占位符 |
 | 图表 | 3 图 + 8 表 | ✅ 完成 |
+| LaTeX 版 | `docs/manuscripts/manuscript.tex` | ✅ IEEEtran，7 章 16 节 |
+| 编译 PDF | `docs/manuscripts/manuscript.pdf` | ✅ 219 KB，tectonic 编译通过 |
 
 ## 二、部分完成（论文中已明确标注）
 
@@ -36,7 +38,7 @@
 
 1. **§VI.D 的 seed 数量占位符**：明确写"2 seeds"，并说明这对标准差估计的影响
 2. **补充 RCCP 完整实现的说明**：或明确写"简化版，不声称优于完整 RCCP"
-3. **IEEE 模板排版**：当前是 Markdown，需转 LaTeX（`IEEEtran`）
+3. ~~IEEE 模板排版~~：已完成（IEEEtran + 编译通过），仅剩表格宽度微调（6 处 2–130pt 的 overfull 警告）
 4. **参考文献**：正文引用 [1]–[15]，需核对格式与完整性
 5. **作者信息、基金、利益声明**
 
