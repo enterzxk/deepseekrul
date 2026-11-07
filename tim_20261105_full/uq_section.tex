@@ -1,0 +1,22 @@
+
+\subsection{Uncertainty quantification}
+
+A point estimate is not enough for maintenance scheduling, so we also measure
+whether the ensemble knows when it is wrong. Two interval constructions are
+compared: raw ensemble sigma, $\hat y\pm z\hat\sigma$ with $\hat\sigma$ the
+sample standard deviation over the fifteen models, and split conformal
+calibration (CQR) whose half-width is the $(1-\alpha)$ quantile of absolute
+residuals on the held-out folds.
+
+Raw ensemble intervals under-cover badly: a nominal 90\% interval covers
+61--74\% of engines, and a nominal 95\% interval covers 69--80\%. Fifteen
+models that share an architecture, a dataset, and a training protocol make
+highly correlated errors, so their spread systematically understates the true
+error. CQR restores coverage to 0.82--0.88 at the 90\% level and 0.90--0.94 at
+95\%, but the intervals are 25--31 cycles wide at 90\% and 34--45 at 95\%,
+against a target range of 0--125. The cause is the heavy tail already visible
+in the bias analysis: the largest single error exceeds 60 cycles.
+
+The honest reading is that this model is strong on point accuracy and weak on
+uncertainty. A 25-cycle interval does not support a maintenance decision. We
+report the numbers rather than a calibration trick that hides them.
