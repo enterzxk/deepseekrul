@@ -193,7 +193,9 @@ RUL 不确定性建模的主流做法是让网络直接输出分布或分位数�
 
 保形预测以分布无关的覆盖保证著称，其标准形式要求校准样本与测试样本可交换 [1]。当该假设不成立时，Barber 等给出了加权分位数下的覆盖差距上界——覆盖差距不超过加权总变差距离的归一化求和——使保证在分布偏移下仍可成立 [1]。面向时序，[3] 用相邻块校准替代混合性条件，为分位数回归与中位数回归给出有效构造；[2] 进一步研究实际覆盖率本身的推断，给出非渐近界、中心极限定理与块自助检验；[4] 比较了条件分位数回归、条件分位数函数估计与局部化保形三种构造；[5] 则通过检索相似历史残差并对检索引入的偏差做二次校正来改进局部校准。
 
-> 归纳：这条路线保证了"覆盖"，但把"宽度"交给残差经验分布，尺度信号与设备状态无关。
+面向 RUL 的保形工作近期开始出现。[13] 提出 Similarity-Calibrated Conformal（SCC），把保形分位数校准在由 Buckingham Π 定理导出的无量纲坐标中，使覆盖可以在工况迁移下转移且不需要目标域失效数据；[14] 用查询式学习构造与测试样本相似度加权的保形集；[15] 则在涡扇发动机上把分位数回归与保形校准串联。这些工作与本研究的差别在于：SCC 的无量纲坐标是确定性物理量，不携带"模型自身有多不确定"的信息；而本文的尺度 σ_T 是逐样本的预测不确定性，并且可以通过置换 σ_T 做证伪检验（A4），这是物理坐标做不到的。
+
+> 归纳：这条路线保证了"覆盖"，但把"宽度"交给残差经验分布或确定性物理坐标，尺度信号与设备状态无关。
 
 #### 2.3 研究空白
 
@@ -540,3 +542,7 @@ $$
 10. Yubo Hou, Mohamed Ragab, Yucheng Wang, Min Wu, Abdulla Alseiari, Chee-Keong Kwoh, Xiaoli Li, Zhenghua Chen. Evidential Domain Adaptation for Remaining Useful Life Prediction with Incomplete Degradation. *IEEE Transactions on Instrumentation and Measurement*, 2025. arXiv:2603.15687.
 11. Jostein Barry-Straume, Changmin Son, Adrian Sandu, Gavan Burke, Rekha Sundararajan, Andrew Rimell, James G. Steinrock. Scientific Machine Learning for Engine Health Management and Remaining Useful Life Prediction. arXiv:2605.30593, 2026.
 12. Abhishek Srinivasan, Juan Carlos Andresen, Sepideh Pashami, Anders Holst. Integrating Survival-Based Aging Models with Data-Driven RUL Prognostics. *PHME Conference*, 9(1), 2026. arXiv:2610.06128.
+
+13. Bien Busico. Similarity-calibrated conformal prediction: data-free coverage guarantees for remaining-useful-life intervals under operating-regime transfer. *Reliability Engineering & System Safety*, 2026. doi:10.1016/j.ress.2026.111436.
+14. Hao Wu, Yifei Wang, Zhigang Tian, Mingjian Zuo. Query based learning via conformal uncertainty for RUL prediction. *IEEE*, 2025.
+15. Turbofan Engine Remaining Useful Life Prediction with Reliable Prediction Intervals via LSTM-Based Quantile Regression and Conformal Calibration. *Sensors*, 26(7):249, 2026. doi:10.3390/s26072249.
