@@ -179,6 +179,37 @@ def run_heads(model, data, args, device):
     calib_mask[calib_idx] = True
     test_mask[test_idx] = True
 
+    # ---- PU-CQR: conditional quantile heads + conformal calibration ----
+    if args.method == "cqr":
+        from src.punet.cqr import QuantileHeads, train_quantile_heads
+        from src.punet.evaluate import evaluate_cqr_intervals
+
+        _sg_tr, _sg_va = sg_tr, sg_va
+        if args.ablate == "A2":
+            _sg_tr = torch.ones_like(sg_tr)
+            _sg_va = torch.ones_like(sg_va)
+        elif args.ablate == "A4":
+            _g = torch.Generator().manual_seed(args.seed)
+            _sg_tr = _sg_tr[torch.randperm(_sg_tr.numel(), generator=_g)]
+            _g2 = torch.Generator().manual_seed(args.seed + 1)
+            _sg_va = _sg_va[torch.randperm(_sg_va.numel(), generator=_g2)]
+
+        heads = QuantileHeads(h_tr.shape[1])
+        heads, _lo_tr, _hi_tr, _loss = train_quantile_heads(
+            heads, h_tr, _sg_tr, tau_tr, y_tr,
+            epochs=args.head_epochs, lr=args.head_lr, device=device, seed=args.seed,
+        )
+        with torch.no_grad():
+            _lo_va, _hi_va = heads(h_va.to(device), _sg_va.to(device), tau_va.to(device))
+        result = evaluate_cqr_intervals(
+            units, cut_va, np.asarray(data["mu_va"]), y_va.numpy(),
+            _lo_va.cpu().numpy(), _hi_va.cpu().numpy(), calib_mask, test_mask, delta=args.delta,
+        )
+        result.update(split=split_desc, method="cqr", ablate=args.ablate,
+                      n_val=int(len(units)), head_loss=float(_loss),
+                      sigma_mode=args.sigma_mode)
+        return result, None
+
     # ---- adaptive scaling: rho estimated on CALIBRATION data only (no test labels) ----
     gamma = 0.0
     rho_hat = float("nan")
@@ -314,6 +345,7 @@ def main(argv=None) -> int:
     ap.add_argument("--head-lr", type=float, default=1e-3)
     ap.add_argument("--split", default="engine", choices=["engine", "block"])
     ap.add_argument("--calib-frac", type=float, default=0.3)
+    ap.add_argument("--method", default="scale", choices=["scale", "cqr"])
     ap.add_argument("--sigma-mode", default="raw",
                     choices=["raw", "engine_rel", "rel_life", "blend", "adaptive", "auto_gamma"])
     ap.add_argument("--sigma-blend", type=float, default=1.0)
