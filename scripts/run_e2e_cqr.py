@@ -66,6 +66,10 @@ def main(argv=None) -> int:
     ap.add_argument("--window", type=int, default=50)
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--patience", type=int, default=20)
+    ap.add_argument("--use-ema", action="store_true",
+                    help="evaluate with EMA weights (default: best validation state)")
+    ap.add_argument("--ema-decay", type=float, default=0.999)
+    ap.add_argument("--clip", type=float, default=1.0)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--delta", type=float, default=0.1)
     ap.add_argument("--prior-dir", default="experiments/ida/prior_boot")
@@ -113,6 +117,9 @@ def main(argv=None) -> int:
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=1e-5)
 
+    ema = {k: v.detach().clone().float() for k, v in model.state_dict().items()}
+    ema_decay = float(args.ema_decay)
+
     best, best_epoch, best_state = float("inf"), -1, None
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -127,8 +134,12 @@ def main(argv=None) -> int:
                 loss = pinball(lo, y2, 0.05) + pinball(hi, y2, 0.95) + 0.1 * F.mse_loss(centre, y2)
             opt.zero_grad(set_to_none=True)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
             opt.step()
+            with torch.no_grad():
+                for k, v in model.state_dict().items():
+                    if v.dtype.is_floating_point:
+                        ema[k].mul_(ema_decay).add_(v.detach().float(), alpha=1.0 - ema_decay)
         sched.step()
         model.eval()
         errs = []
@@ -144,7 +155,9 @@ def main(argv=None) -> int:
             break
         if epoch % 10 == 0:
             print(f"[{args.subset} e2e] ep{epoch:03d} val_centre_rmse={val:.4f}", flush=True)
-    if best_state is not None:
+    if args.use_ema:
+        model.load_state_dict({k: v.to(dtype=model.state_dict()[k].dtype) for k, v in ema.items()})
+    elif best_state is not None:
         model.load_state_dict(best_state)
 
     model.eval()
