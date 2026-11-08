@@ -35,8 +35,8 @@
 | # | 验证项 | 状态 | 证据 |
 |---|---|---|---|
 | 1 | DSH 能调用 Codex | ✅ | `subagent_codex` 返回 `{"kind":"activation","subagentId":"ea4b7283..."}` |
-| 2 | Codex 能返回清晰决策 | ⏳ 等待中 | 异步；返回后写入 `decision_log.md` D001 |
-| 3 | DSH 能消费决策并继续 | ⏳ 待 2 完成 | 决策到达后立即执行 |
+| 2 | Codex 能返回清晰决策 | ✅ | `subagent_codex` 两次 product-error；改用 CLI `codex exec` 成功，返回 DECISION/REASONING/COUNTER-EVIDENCE/RISKS/NEXT ACTIONS 五段式 |
+| 3 | DSH 能消费决策并继续 | ✅ | 已执行 D001 决策 C（宽度缩放扫描），结果写回 `decision_log.md` |
 | 4 | ARIS 不因普通路线选择暂停 | ✅ | §10 + §0.5：技能无检查点参数，推进由 L1/L2 决定 |
 | 5 | L3 操作仍受控 | ✅ | §0.5 L3 清单；Codex 无权授予新权限 |
 
@@ -44,7 +44,9 @@
 
 1. **`reasoningEffort` 是 `high` 而非 `max`**：修改桌面 profile 属于配置变更，按 §6 不擅自改，需用户决定。
 2. **没有 `mcp__codex__codex`**：用户提到的 ARIS MCP Reviewer 未安装；当前用官方 `subagent_codex` 替代。
-3. **Codex 决策是异步的**：一次调用返回 activation，结果在后续轮次到达；无法在同一轮内同步消费。
+3. **`subagent_codex` 在本机不可用**：两次调用均 product-error（turn 阶段）。已改用官方 Codex CLI
+   （`codex.exe exec --sandbox read-only`）作为 L2 通道，可同步返回结果。CLI 版本 0.167.0-alpha.3.2，
+   ChatGPT 认证；日志显示 WebSocket 重连 5 次后回退 HTTPS，网络不稳可能是包装层失败原因。
 4. **ARIS 无 AUTO_PROCEED**：用户要求的参数名在现有技能里不存在，已改为流程层实现，未虚构配置。
 
 ## 五、如何验证端到端
