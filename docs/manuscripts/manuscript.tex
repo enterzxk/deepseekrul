@@ -36,6 +36,7 @@
 
 
 
+
 \title{Coverage-Validated Remaining Useful Life Intervals via End-to-End Quantile Learning}
 
 \author{Author names withheld for review%
@@ -161,9 +162,9 @@ FD004 & 0.876 \(\pm\) 0.046 & 60.3 \(\pm\) 15.9 & 0.243 & 0.501 \\
 
 Paired against a constant-width conformal baseline trained identically (same backbone, same split, same calibration, only the quantile head removed), the method wins \textbf{19 of 20 folds (95\%)} with a median improvement of \textbf{−8.7\%} and a mean of −9.3\%. The single loss is FD001 fold 2 (+2.8\%).
 
-\subsection{B. Matched-coverage comparison (all methods, 40 cells)}\label{b.-matched-coverage-comparison-all-methods-40-cells}
+\subsection{B. Matched-coverage comparison (all methods, 80 cells)}\label{b.-matched-coverage-comparison-all-methods-80-cells}
 
-Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 40 cells (4 subsets × 5 folds × 2 seeds) are included.
+Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 80 cells (4 subsets × 5 folds × 4 seeds) are included; the MC-dropout baseline was run on 10 of them, so its entry is a partial observation.
 
 {\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
@@ -175,10 +176,10 @@ Subset & Constant width & MC-dropout & \textbf{Standard CQR (ours)} \\
 
 
 
-FD001 & 48.3 \(\pm\) 25.5 & 46.9 \(\pm\) 15.3 & \textbf{42.6 \(\pm\) 17.8} \\
-FD002 & 62.5 \(\pm\) 9.1 & 74.4 & \textbf{53.4 \(\pm\) 7.4} \\
-FD003 & 36.4 \(\pm\) 5.3 & 87.3 \(\pm\) 51.6 & \textbf{35.8 \(\pm\) 6.2} \\
-FD004 & 84.2 \(\pm\) 40.2 & 49.7 & 83.5 \(\pm\) 45.7 \\
+FD001 & 47.8 ± 24.5 & 46.9 ± 15.3 & \textbf{42.7 ± 16.2} \\
+FD002 & 61.8 ± 7.9 & 74.4 & \textbf{54.1 ± 6.9} \\
+FD003 & 36.5 ± 4.9 & 87.3 ± 51.6 & \textbf{35.7 ± 6.3} \\
+FD004 & 82.3 ± 35.6 & 49.7 & 82.9 ± 43.5 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -190,15 +191,30 @@ Paired comparisons at matched coverage:
 {\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\scriptsize
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
 \toprule
-Comparison & Wins & Mean & Median \\
+\begin{minipage}[b]{\linewidth}\raggedright
+Comparison
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Wins
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Mean
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Median
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+95\% CI (mean)
+\end{minipage} \\
 \midrule
 
 
 
-\textbf{CQR vs constant width} & \textbf{29/40 (72\%)} & \textbf{−7.2\%} & \textbf{−8.4\%} \\
-CQR vs MC-dropout & 10/10 & −24.2\% & −18.4\% \\
+\textbf{CQR vs constant width} & \textbf{59/80 (74\%)} & \textbf{−5.8\%} & \textbf{−8.4\%} & \textbf{{[}−8.3\%, −2.8\%{]}} \\
+CQR vs MC-dropout & 10/10 & −24.2\% & −18.4\% & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -211,7 +227,7 @@ CQR vs MC-dropout & 10/10 & −24.2\% & −18.4\% \\
 \caption{Coverage--Winkler frontiers. Each curve traces one method's Winkler score against its realised coverage as the nominal level varies; the dotted vertical line marks 0.90.}
 \end{figure}
 
-Two observations carry the argument. First, the end-to-end quantile head is consistently better than a constant width, and the gain is largest on the two single-regime subsets (FD001 −8.7\%, FD002 −14.4\%) and smallest on FD004 (−3.9\%), where the engine-to-engine spread dominates. Second, a scale built from model-parameter uncertainty is worse than no conditioning at all: MC-dropout loses to the constant width on FD002 (74.4 versus 62.5) and is catastrophic on FD003 (87.3 versus 36.4). Propagating the network's own doubt does not tell the interval how hard a particular window is.
+Two observations carry the argument. First, the end-to-end quantile head is consistently better than a constant width, and the gain is largest on FD002 (−12.2\%) and FD001 (−6.5\%), smallest on FD004 (−2.8\%) where the engine-to-engine spread dominates. Second, a scale built from model-parameter uncertainty is worse than no conditioning at all: MC-dropout loses to the constant width on FD002 (74.4 versus 62.5) and is catastrophic on FD003 (87.3 versus 36.4). Propagating the network's own doubt does not tell the interval how hard a particular window is.
 
 \subsection{C. Coverage diagnostics}\label{c.-coverage-diagnostics}
 
@@ -361,9 +377,9 @@ Winkler score at 0.90 realised coverage, on the normalised {[}0, 1{]} life scale
 \emph{Scope.} Six full-life bearings from the learning set are used; the remaining eleven are truncated run-to-failure records without complete RUL labels, and are therefore excluded.
 \#\# B. What the learned width contributes
 
-The gain in this paper comes from training the width rather than post-processing it. Against a constant-width baseline the end-to-end quantile head wins 29 of 40 matched-coverage comparisons (median −8.4\%) and 19 of 20 at the nominal level (median −8.7\%). The mechanism is visible in Section V-D: a scale derived from model-parameter uncertainty is worse than no conditioning at all on FD002 and FD003, whereas the half-width produced by the same network that predicts the centre tracks local difficulty.
+The gain in this paper comes from training the width rather than post-processing it. Against a constant-width baseline the end-to-end quantile head wins 59 of 80 matched-coverage comparisons (median −8.4\%, mean −5.8\%) and 19 of 20 at the nominal level (median −8.7\%). The mechanism is visible in Section V-D: a scale derived from model-parameter uncertainty is worse than no conditioning at all on FD002 and FD003, whereas the half-width produced by the same network that predicts the centre tracks local difficulty.
 
-The gain is not uniform across subsets. It is largest on the two single-fault subsets (FD001 −8.7\%, FD002 −14.4\%) and close to zero on FD004 (−0.8\%), where the engine-to-engine spread dominates the residual. We report the per-subset numbers rather than a single aggregate so that this scope is visible.
+The gain is not uniform across subsets. It is largest on FD002 (−12.2\%) and FD001 (−6.5\%), and close to zero on FD003 (−1.5\%) and FD004 (−2.8\%), where the engine-to-engine spread dominates the residual. We report the per-subset numbers rather than a single aggregate so that this scope is visible.
 
 \section{VI. Discussion}\label{vi.-discussion}
 
@@ -373,9 +389,9 @@ Interval methods are usually compared at one nominal level. That comparison is n
 
 \subsection{B. What the learned width contributes}\label{b.-what-the-learned-width-contributes}
 
-The gain in this paper comes from training the width rather than post-processing it. Against a constant-width baseline the end-to-end quantile head wins 29 of 40 matched-coverage comparisons (median −8.4\%) and 19 of 20 at the nominal level (median −8.7\%). The mechanism is visible in Section V-D: a scale derived from model-parameter uncertainty is worse than no conditioning at all on FD002 and FD003, whereas the half-width produced by the same network that predicts the centre tracks local difficulty.
+The gain in this paper comes from training the width rather than post-processing it. Against a constant-width baseline the end-to-end quantile head wins 59 of 80 matched-coverage comparisons (median −8.4\%, mean −5.8\%) and 19 of 20 at the nominal level (median −8.7\%). The mechanism is visible in Section V-D: a scale derived from model-parameter uncertainty is worse than no conditioning at all on FD002 and FD003, whereas the half-width produced by the same network that predicts the centre tracks local difficulty.
 
-The gain is not uniform across subsets. It is largest on the two single-fault subsets (FD001 −8.7\%, FD002 −14.4\%) and close to zero on FD004 (−0.8\%), where the engine-to-engine spread dominates the residual. We report the per-subset numbers rather than a single aggregate so that this scope is visible.
+The gain is not uniform across subsets. It is largest on FD002 (−12.2\%) and FD001 (−6.5\%), and close to zero on FD003 (−1.5\%) and FD004 (−2.8\%), where the engine-to-engine spread dominates the residual. We report the per-subset numbers rather than a single aggregate so that this scope is visible.
 
 \subsection{C. Marginal coverage is the wrong summary for maintenance}\label{c.-marginal-coverage-is-the-wrong-summary-for-maintenance}
 
@@ -397,7 +413,7 @@ We therefore recommend that RUL interval papers report, at minimum, the per-asse
 
 This paper asked whether the width of a conformally calibrated remaining-useful-life interval can track an asset's degradation state. For post-processing on a frozen predictor the answer is no: ten state-dependent scaling schemes failed to beat a constant width, and a scale built from model-parameter uncertainty is worse than no conditioning at all on two of four subsets.
 
-The answer changes when the width is trained rather than fitted. Training the backbone under a dual-quantile loss, so that the same network that predicts the centre also predicts a non-negative half-width, and then calibrating with conformal quantile regression, gives a method that wins 19 of 20 paired comparisons at the nominal level (median 8.7\% lower Winkler score) and 29 of 40 at matched coverage of 0.90 (median 8.4\%), and that beats the constant width on five of six bearing recordings by 12.2\%.
+The answer changes when the width is trained rather than fitted. Training the backbone under a dual-quantile loss, so that the same network that predicts the centre also predicts a non-negative half-width, and then calibrating with conformal quantile regression, gives a method that wins 59 of 80 paired comparisons at matched coverage of 0.90 (median 8.4\% lower Winkler score, mean 5.8\%, bootstrap 95\% CI {[}2.8\%, 8.3\%{]}) and 19 of 20 at the nominal level (median 8.7\%), and that beats the constant width on five of six bearing recordings by 12.2\%.
 
 The paper's second message is about reporting practice. On our own runs the marginal coverage sat near nominal while the worst engine fell below 0.80 in 80--100\% of folds. A maintenance decision consumes one asset's interval, not a dataset average; interval papers that report only marginal PICP hide exactly the failure that matters. We therefore recommend per-asset minimum coverage and a stage-wise breakdown as standard reporting for RUL intervals.
 

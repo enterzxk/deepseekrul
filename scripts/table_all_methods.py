@@ -79,7 +79,7 @@ def at(pts, target=0.90):
 root = Path("experiments/punet_matrix")
 rows = []
 for sub in ["FD001", "FD002", "FD003", "FD004"]:
-    for seed in [42, 7, 2024]:
+    for seed in [42, 7, 2024, 13]:
         for fold in range(5):
             d = root / sub / f"f{fold}_s{seed}"
             pq, pp, pm = d / "preds_cqr.csv", d / "preds_point.csv", d / "preds_mcd.csv"
