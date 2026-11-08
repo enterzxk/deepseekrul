@@ -25,6 +25,11 @@
 
 | 方向 | 结论 | 证据文件 |
 |---|---|---|
+| 上下文中心修正（D002） | 不可跨引擎迁移，覆盖被破坏 | `docs/tables/d002_centre.csv` |
+| 宽度放大（D001） | a=1 已最优 | `docs/tables/width_scaling.csv` |
+
+| 方向 | 结论 | 证据文件 |
+|---|---|---|
 | 非对称校准 | 最优=对称，无收益 | `docs/tables/asymmetric.csv` |
 | 分层校准（mu / sigma 分箱） | 全部更差 | `docs/tables/mondrian.csv` |
 | 引擎级校准 | 等价于放宽区间 | `docs/tables/engine_vs_inflation.csv` |
