@@ -36,6 +36,17 @@
 | seed 集成 | n=2 有效、n=4 退化 | `docs/tables/ensemble_scaling.csv` |
 | 局部化 CQR | 40 格上无收益，FD003 更差 | `docs/tables/cells_all.csv` |
 
+## 3.5 论文主张（D003 后冻结）
+
+正面、限定范围的效率主张：
+- 名义水平 19/20 胜、中位 −8.7%
+- 覆盖对齐 29/40 胜、中位 −8.4%
+- 增益集中于 FD001/FD002；FD003/FD004 接近打平（作为**适用范围**陈述，不作为负结果）
+- 跨域 FEMTO 5/6、−12.2%
+- 不主张"均匀改善"，不主张"方法学新颖性"
+
+构建命令：`powershell -NoProfile -File scripts/build_manuscript.ps1`（含 7 章结构断言）
+
 ## 4. 待执行
 
 1. 等待 Codex 对 D001 的决策，按其结论执行
