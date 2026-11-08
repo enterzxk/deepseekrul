@@ -5,7 +5,14 @@
 
 ## 1. 当前目标
 
-把 C-MAPSS RUL 保形区间方法做到可投 IEEE TIM：方法成立、证据完整、论文成稿。
+**当前版本已放弃 TIM 投稿目标**（D016，branch）。现目标：
+1. 冻结现有 CQR 方法为基线，形成可追溯清单；
+2. 用现有预测建立条件失效清单，围绕「平均覆盖掩盖的对象失效能否被识别」重新立项；
+3. 新立项须过六件套 + L2 立项门后才实现。
+
+**新问题候选（D018）**：平均覆盖 0.87–0.93 掩盖引擎级失效（最低 0.281，18/20 折 engine_min<0.80）；
+失效与模型误差强度强相关（ρ(rmse, engine_min)=−0.78，但需改用校准集可观测替代量以免循环）。
+待答：能否只用校准集信息识别将失效对象？允许结论是识别边界。
 
 ## 2. 已完成（可验证）
 
@@ -103,9 +110,8 @@ python scripts/make_tim_tables.py
 ## 7. 未验证/待确认
 
 - 桌面 profile 的 `reasoningEffort` 是 `high` 而非约定的 `max`（见 AGENTS.md §2）
-- **论文正文 0 处 `\cite`**（实测：`\cite`=0、`\bibitem`=0、无 `thebibliography`、无 References 章节），但 `references.bib` 存在（5401 B）且 `manuscript.tex` 有 `\bibliography{}` 命令。
-  BibTeX 因此产出空参考文献表。**这是投稿硬阻塞**（IEEE TIM 零引用不可投）。
-  旧记录「无 BibTeX」不准确；`SUBMISSION_CHECKLIST.md` 的「18 条、11 处引用、0 undefined」为**错误**。
+- 参考文献：正文 `\cite|\citep|\citet` 共 **11 处**、18 个唯一 key，与 `references.bib` 的 18 条一一对应；`git 7548e31` 已逐条核实存在（修了 3 处元数据错误）。**无 G10 阻塞。**
+  仍缺：**CRULP（IEEE TIM 2024/2025, DOI 10.1109/TIM.2024.3522678）未收录**，它是同刊直接竞争工作，投稿前必须补引并做差异表（见 decision_log 投稿就绪度裁决）。
 
 ## 8. 长期自主科研配置（2026-11-08 第二轮）
 
@@ -141,7 +147,7 @@ python scripts/make_tim_tables.py
 | G4 | **80 格被当作独立证据**（seed 方差占 46.8%） | 统计 | ❌ 需 L2 | 主表改折级 n=20 |
 | G5 | `SUBMISSION_CHECKLIST.md` 过期：写「2 seeds / 40 格」，实际 4 seeds / 80 格 | 文档 | ✅ | 与 `cells_all.csv` 行数一致 |
 | G6 | **已查清**：`manuscript.tex` 实测 `\cite`=0、`\bibitem`=0、无 References 章节；`references.bib` 存在但从未被引用。清单「18 条、11 处引用」为**错误** | 证据 | ✅ 已查清 | 以实测计数为准 |
-| **G10** | **正文零引用**——BibTeX 产出空参考文献表 | **硬阻塞** | ❌ 需 L2（补哪些文献、如何引用） | ≥20 条已核实引用且逐条与正文主张对应 |
+| ~~G10~~ | **假阴性，已撤回**：实测 `\cite|\citep|\citet` 共 **11 处**、18 个唯一 key、`references.bib` 18 条、`git 7548e31` 已核实 18 条全部存在 | 证据 | ✅ 已查清 | — |
 | G7 | **29/40 原始数据本地不存在**，无法复算 | 证据 | ✅（标记） | 论文标注「未复现」或不作为主口径 |
 | G8 | 未跑 `/citation-audit` 与 `/paper-claim-audit` | 审计 | ✅ | 两份报告写入 `docs/` |
 | G9 | `docs/tables/` 只有 2 个 csv，缺 D004 的对齐明细 | 证据 | ⚠️ 部分 | 能从 80 格 e2e 重算的补上 |
