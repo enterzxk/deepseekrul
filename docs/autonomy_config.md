@@ -54,3 +54,47 @@
 1. 本轮已发出 D001 决策请求（建模路线 A/B）
 2. Codex 返回后，DSH 直接把决定写进 `decision_log.md` 并执行
 3. 下一轮检查 `decision_log.md` 的 D001 是否有完整的"决定/理由/反对证据/风险/执行结果"
+
+---
+
+## 六、2026-11-08 第二轮：长期自主科研配置
+
+### 1. AGENTS.md 新增章节（合并，未覆盖 §0–§10）
+
+| 节 | 作用 |
+|---|---|
+| **§11** | 科研使命与 Q1 质量标准：假设六件套、方法创新为唯一主线、硬性禁止 |
+| **§12** | AUTO_PROCEED 默认开启：默认不停、仅 L3 暂停、负结果三步处理、反空转 |
+| **§13** | 子代理编队：文献 / 新颖性审查 / 方法设计 / 实验审计，并发与只读规则 |
+| **§14** | GPU 政策：允许充分使用，但每个任务必须有判定门与预算，拒绝仪式性小测试 |
+| **§15** | 证据留存与 Research Wiki：权威源顺序、登记义务、跨会话恢复 |
+| **§16** | 不可改动边界：ARIS Skill 只读、模型配置不动、历史不可重写、外部动作受控 |
+| **§17** | AGENT_GUIDE.md 实测缺失记录（不引用不存在的官方文档） |
+
+### 2. 新建 ARIS Research Wiki（docs/wiki/）
+
+| 文件 | 内容 |
+|---|---|
+| index.md | 索引、使用规则、权威源映射 |
+| literature.md | 文献登记表 + 最近邻差异矩阵 + 待读队列 |
+| hypotheses.md | H001–H004 假设登记（含已证伪者与判定门） |
+| experiments.md | E001–E005 实验登记（配置/判定门/结果/证据路径） |
+| failures.md | 6 条已关闭路线与机制解释 + 失败模板 |
+| progress.md | A–G 阶段视图、下一步、阻塞项 |
+
+Wiki 设计为**登记层**：数字仍以 docs/results_summary.md 为准，状态以 docs/research_state.md 为准，
+避免双份真相。
+
+### 3. 本轮实测（非推测）
+
+- ARIS 官方 AGENT_GUIDE.md：**不存在**。已递归搜索 .dsh / Desktop / AppData\Roaming，仓库内亦无。
+  本机 ARIS 为 17 个 research-* 技能（SKILL.md + references），无运行时参数。
+- 现有 AGENTS.md 已有 §0.5 L1/L2/L3 路由与 §9 状态持久化（上一轮），本轮**合并**而非覆盖。
+- 未修改任何 ARIS Skill、未修改桌面 profile、未启动实验。
+
+### 4. 仍存在的缺口
+
+1. reasoningEffort = high（约定 max），属用户决定，未改。
+2. subagent_codex 在本机 product-error，L2 通道改用 codex.exe CLI（见 §四.3）。
+3. 参考文献仍为占位 [1]–[15]，Wiki literature.md 已建登记表待回填。
+

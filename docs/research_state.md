@@ -56,3 +56,14 @@ python scripts/make_tim_tables.py
 
 - 桌面 profile 的 `reasoningEffort` 是 `high` 而非约定的 `max`（见 AGENTS.md §2）
 - 论文参考文献仍是占位 [1]–[15]，无 BibTeX
+
+## 8. 长期自主科研配置（2026-11-08 第二轮）
+
+- AGENTS.md 新增 §11–§17：科研使命与 Q1 标准、AUTO_PROCEED、子代理编队、GPU 政策、
+  证据与 Wiki、不可改动边界、AGENT_GUIDE 缺失记录。
+- 新建 ARIS Research Wiki：docs/wiki/{index,literature,hypotheses,experiments,failures,progress}.md
+- 实测：ARIS 官方 AGENT_GUIDE.md 本机不存在；未虚构引用，见 AGENTS.md §17。
+- 本轮未启动任何实验。
+
+**恢复入口更新**：新会话读 research_state.md → decision_log.md → results_summary.md → docs/wiki/index.md。
+
