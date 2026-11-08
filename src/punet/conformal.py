@@ -309,3 +309,54 @@ class TwoComponentCalibrator:
         s_e = self.engine_mean(sigma, units)
         half = self.q_b * s_e + self.q_w * sigma
         return y_hat - half, y_hat + half
+
+
+class LocalizedCQRCalibrator:
+    """Kernel-weighted CQR calibration.
+
+    The quantile heads already output a per-sample half-width s_i. Using s_i as
+    the similarity key lets the conformal quantile adapt locally without any
+    retrieval structure:
+
+        q_hat(x) = WQuantile_{1-delta}({E_i}, {exp(-|s_i - s(x)| / h)})
+
+    with E_i the usual CQR score and h the median absolute deviation of s.
+    """
+
+    def __init__(self, delta: float = 0.1, bandwidth_scale: float = 1.0) -> None:
+        self.delta = float(delta)
+        self.bandwidth_scale = float(bandwidth_scale)
+        self._scores = None
+        self._half = None
+        self._bw = None
+
+    def fit(self, scores, half_widths) -> "LocalizedCQRCalibrator":
+        scores = np.asarray(scores, dtype=np.float64).reshape(-1)
+        half = np.asarray(half_widths, dtype=np.float64).reshape(-1)
+        if scores.size != half.size:
+            raise ValueError("scores and half_widths must share a length")
+        order = np.argsort(scores)
+        self._scores = scores[order]
+        self._half = half[order]
+        mad = float(np.median(np.abs(half - np.median(half))))
+        self._bw = max(mad * self.bandwidth_scale, 1e-3)
+        return self
+
+    def quantiles(self, half_widths) -> np.ndarray:
+        half = np.asarray(half_widths, dtype=np.float64).reshape(-1)
+        level = min(1.0, (1.0 - self.delta) * (1.0 + 1.0 / self._scores.size))
+        out = np.empty(half.size)
+        for i, q in enumerate(half):
+            w = np.exp(-np.abs(self._half - q) / self._bw)
+            order = np.argsort(self._scores)
+            v, ww = self._scores[order], w[order]
+            cw = np.cumsum(ww) / ww.sum()
+            idx = min(int(np.searchsorted(cw, level)), v.size - 1)
+            out[i] = v[idx]
+        return out
+
+    def interval(self, lo, hi, half_widths):
+        lo = np.asarray(lo, dtype=np.float64).reshape(-1)
+        hi = np.asarray(hi, dtype=np.float64).reshape(-1)
+        q = self.quantiles(half_widths)
+        return lo - q, hi + q

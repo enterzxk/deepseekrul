@@ -1,0 +1,36 @@
+You are the L2 research decision reviewer. Two hypotheses have now been closed by their own pre-registered gates. Decide what the paper's claim should be.
+
+PROJECT: IEEE TIM submission on conformal RUL intervals, C-MAPSS FD001-FD004.
+
+CURRENT METHOD: end-to-end conditional quantile regression (pinball 0.05/0.95 + 0.1*MSE), non-negative half-width head, then global CQR calibration.
+
+CONFIRMED RESULTS (all real, 80 cells = 4 subsets x 5 folds x 4 seeds):
+- Nominal level (delta=0.1): 19/20 folds beat same-training constant-width baseline, median -8.7%
+- Matched coverage 0.90: 29/40 beat constant width, median -8.4%
+- Per subset at matched coverage: FD001 -8.7%, FD002 -14.4%, FD003 -1.6%, FD004 -0.8%
+- Cross-domain FEMTO bearings: 5/6 beat constant width, mean -12.2%
+- Engine-weighted coverage 0.885 while per-engine minimum is 0.50-0.71
+- A4 permutation of prior sigma_T: +0.2% (no effect)
+
+CLOSED BY PRE-REGISTERED GATES (do not reopen):
+- D001 width amplification: a=1 optimal; a=0 (constant) 52.8, a=1 47.5, a=2 53.2, a=4 81.4
+- D002 context-conditioned centre correction: engine-weighted Winkler 49.1 -> 58.2, coverage 0.885 -> 0.788; FD003 +43.4%, FD004 -1.6%. Engine-level bias does not transfer across engines.
+- Earlier: asymmetric calibration, stratified/Mondrian calibration, engine-level calibration, seed ensembling beyond n=2, localized CQR.
+
+THE PROBLEM: the user refuses to publish negative results and wants a positive, defensible contribution for IEEE TIM. The honest evidence says the gain is real but concentrated on FD001/FD002, with ties on FD003/FD004.
+
+QUESTION: What should the paper claim, and what (if anything) should be done next?
+
+Consider:
+- Whether "wins 29/40 with median -8.4%" plus cross-domain 5/6 is a defensible positive claim without per-subset uniformity
+- Whether the subset dependence can be stated as a scope/applicability statement rather than a negative result
+- Whether there is any remaining experiment that could plausibly move FD003/FD004 without reopening closed routes
+- Whether the paper should target a different venue or claim type
+- Whether the honest answer is that this dataset/architecture combination cannot support a uniform gain
+
+Answer with exactly:
+DECISION: <one line>
+REASONING: <3-5 sentences>
+COUNTER-EVIDENCE: <what would falsify this>
+RISKS: <2-3 bullets>
+NEXT ACTIONS: <numbered, concrete, executable, with pre-registered gates where applicable>

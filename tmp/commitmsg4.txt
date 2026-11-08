@@ -1,0 +1,22 @@
+results: mixup + span + guard reaches -9.72% over two seeds, without the prior
+
+The final candidate drops the lifetime prior and replaces it with engine-level mixup
+(zero parameters, alpha 0.2), then applies the observation-span schedule and the
+pre-registered tail guard.
+
+Two seeds, five folds, both fleets:
+  FD002  11.871 vs 13.190  -10.00%  MAE 8.091/9.158  NASA 2.97/3.65  (520 engines)
+  FD004  12.173 vs 13.442   -9.44%  MAE 7.812/8.807  NASA 7.40/9.94  (498 engines)
+  stratified -9.72%, 95% CI [-1.524, -1.069]
+
+This supersedes the v2 candidate (prior + span + guard at -5.53%) by 4.2 points and
+removes the dependence on a lifetime prior. All four metrics improve on both fleets.
+
+Mixup alone is worth 1.4% on FD002 and 3.8% on FD004 on average, but the gain is
+seed-dependent: it is 0.3/1.7% for the seed whose initialisation is good and 3.1/6.0%
+for the other, which is what a variance-reducing regulariser should look like.
+
+Also in this commit: the nine model-side interventions recorded as a negative study
+(capacity, monotonicity, pinball, lifetime reparameterisation, partial mixup, cross-sensor),
+the expanded discussion with the dual-baseline framing and the single-fold screening caveat,
+and the manuscript compiled with tectonic (4 figures, 372 KB).

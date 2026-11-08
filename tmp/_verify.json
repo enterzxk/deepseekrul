@@ -1,0 +1,18 @@
+{
+ "weighted": [
+  "p1: s, we might want to use a nonsymmetric algorithm that treats recent observations as more relevant. This paper generalizes conformal prediction to deal with both aspects: we employ weighted quantiles to introduce robustness against distribution drift, and design a new randomization technique to allow for algorithms that do not treat data points symmetrically. Our new methods are provably robust, wi",
+  "p4: e able to select ﬁxed (non-data-dependent) weightswi such that this upper bound is likely to be small. In particular, if we use these methods, we are implicitly assuming that this weighted sum of total variation terms is small. In contrast, past work on conformal prediction in a model-free setting has relied on the assumption that the data are exactly exchangeable, since no prior results oﬀered an",
+  "p4: onstationarity or dependence over time then Z is likely to be far from exchangeable. Several further remarks are in order. First, for wi≡ 1 and a symmetric algorithm, the proposed weighted methods will reduce to the usual conformal (or jackknife+) methods. Thus, the result (3) also quantiﬁes the degradation in coverage of standard methods in nonexchangeable settings. Second, this result has new im"
+ ],
+ "coverage gap": [
+  "p3: identical to existing guarantees if the data points are in fact exchangeable, and only slightly lower if the deviation from exchangeability is mild. To elaborate, let us deﬁne the coverage gap as the loss in coverage compared to what is achieved under exchangeability. For example, in split conformal prediction run with a desired coverage level 1−α, we have Coverage gap = (1−α)− P { Yn+1∈ ˆCn(Xn+1)",
+  "p3: coverage gap as the loss in coverage compared to what is achieved under exchangeability. For example, in split conformal prediction run with a desired coverage level 1−α, we have Coverage gap = (1−α)− P { Yn+1∈ ˆCn(Xn+1) } , since, under exchangeability, the method guarantees coverage with probability 1−α. To give an informal preview of our results, we write Zi = (Xi,Yi) to denote the ith data po",
+  "p4: ,Z i−1,Zn+1,Zi+1,...,Z n,Zi). (2) To enable robustness, our methods will allow for weights: let wi∈ [0, 1] denote a prespeciﬁed weight placed on data point i. We will see that the coverage gap can be bounded as Coverage gap≤ ∑n i=1wi· dTV(Z,Z i) 1 +∑n i=1wi , (3) where dTV denotes the total variation distance between distributions. Notably, we do not make any assumption on the joint distribution o"
+ ],
+ "distribution shift": [
+  "p4: . Finally, the result provides insights on why one might prefer to use our new weighted procedures in (possibly) nonexchangeable settings: it can provide robustness in the case of distribution shift. To elaborate, consider a setting where the data points Zi are independent, but are not identically distributed due to distribution drift. The following result relates dTV(Z,Z i) to the distributions o"
+ ],
+ "clt": [
+  "overage er- ror without mixing assumptions, which can be difficult to verify and may fail even for simple short-memory models. We establish a Bahadur representation to de- rive, to our knowledge, the first central limit theorem for realized coverage of split conformal prediction under temporal dependence. A consistent block-based es- timator of the standard error yields an asymptotically justified"
+ ]
+}

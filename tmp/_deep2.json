@@ -1,0 +1,81 @@
+{
+ "scc": {
+  "pages": 10,
+  "hits": [
+   [
+    1,
+    "method",
+    " method declines to certify rather than miscover silently. The contributions are practical capabilities for reliable prognostics under operating-regime transfer: 1. a calibration step in dimensionless (Π) coordinates that restores conformal coverage across operating regimes without target-regime failure data (Section 3); 2. an a-priori coverage bound computable from physical parameters alone: the cross-regime coverage shortfall is at most 2L‖ Δψ‖ in a similitude-departure quantity ψ, so the worst-case loss can be checked before an asset is deployed (Sect"
+   ],
+   [
+    8,
+    "method",
+    " method’s envelope, demonstrating the intended fault-tolerant behaviour; the design map of Section 5.8 shows that ver- dict was predictable from six bearings per condition and a sevenfold life spread rather than peculiar to the dataset. The decisive test remains validation on adequately powered run-to-failure field data from an operating process, which is the focus of continuing work. Data and code availability The SCC implementation, the catalyst-deactivation testbed, the diagnostic, and scripts reproducing every figure and table are archived at https:/"
+   ]
+  ]
+ },
+ "rccp": {
+  "pages": 11,
+  "hits": []
+ },
+ "query": {
+  "pages": 8,
+  "hits": [
+   [
+    1,
+    "proposed",
+    " proposed method selectively updates the RUL model with the most in- formative samples, thereby reducing training overhead while maintaining high predictive accuracy. This approach not only ensures adaptability to non-stationary environments, but also incorporates principled uncertainty estimates to enhance model reliability [4], [16], [17]. The main contributions of this work are as follows. • We propose a conformal uncertainty-guided adaptive modeling framework tailored for Remaining Useful Life (RUL) estimation in Prognostics and Health Manage- ment ("
+   ],
+   [
+    2,
+    "approach",
+    " approach, conformal prediction presents several compelling advantages. Firstly, it serves as a model-agnostic and non-parametric framework, which makes it adaptable to a broad spectrum of machine learning models without the need for the definition of a prior distribution or model-specific likelihood [20]. Secondly, it guarantees valid uncertainty bounds even with limited data, making it particularly useful for data-scarce engineering problems, compared to tradi- tional methods that often rely on asymptotic approximations [10]. Thirdly, conformal inferen"
+   ],
+   [
+    4,
+    "proposed",
+    " proposed weighted acquisition strategy. The uncertainty-weighted sampling strategy assigns a sampling probability to each candidate proportional to its average prediction interval width. Let ui denote the average uncertainty for unit i; then the sampling probability is given by: P (i) = uiP j uj (9) This approach introduces randomness into the selection pro- cess while still favoring samples associated with greater model uncertainty. The , the random sampling strategy selects units uniformly from the pool without reference to uncer- tainty or diversity."
+   ],
+   [
+    6,
+    "method",
+    " method consistently outperforms random and uncertainty- only baselines across all subsets. In particular, the proposed strategy achieves lower RMSE and improved robustness, especially in scenarios with limited labeled data. The framework has limitations. First, we do not apply com- mon data preprocessing techniques such as feature selection or RUL capping (e.g., at 125 cycles). Capping better reflects realistic maintenance policies—where preventive actions are taken before catastrophic failure—and helps reduce label imbalance, stabilize training, and im"
+   ]
+  ]
+ },
+ "turbofan": {
+  "pages": 22,
+  "hits": [
+   [
+    2,
+    "method",
+    " method for online machinery fault diagnosis, and a multi-source domain adaptation network based on transferable domain attributes and features for cross-domain fault diagnosis [ 25–27]. These studies collectively indicate that reliability, uncertainty awareness, and robustness to domain shift are becoming central concerns in PHM-related data-driven modeling. However, existing studies differ in task scope and application focus. The above battery-oriented work emphasizes downstream maintenance optimization based on prob- abilistic RUL outputs, whereas the"
+   ],
+   [
+    4,
+    "method",
+    " method for regression tasks. Rather than estimating only the conditional mean, it estimates the conditional quantiles of the response variable given the input. Let Y denote the remaining useful life, and let X denote the input feature vector. The conditional quantile of Y given X = x at quantile level τ ∈ (0, 1) is defined as follows [31]: Qτ(Y | X = x) = inf{y : FY|X(y | x) ≥ τ} (7) where FY|X(y | x) denotes the conditional distribution function. According to Equation (7), when the input is x, qτ(x) satisfies P(Y ≤ qτ(x)|X = x) = τ, meaning that the pr"
+   ],
+   [
+    6,
+    "proposed",
+    " proposed framework jointly considers point prediction accuracy and interval reliability, where the former reflects life estimation error and the latter reflects interval coverage and sharpness. In this way, the model can provide more informative risk cues for maintenance-oriented decision-making. In terms of task settings, both same-condition and cross-condition scenarios are con- sidered. The same-condition scenario is used to evaluate the baseline performance of the model when the data distribution is relatively consistent, whereas the cross-condition"
+   ],
+   [
+    7,
+    "proposed",
+    " proposed method. The pipeline includes source-domain training, target-domain fine-tuning, and inference-time CQR calibration. The model first outputs raw quantile predictions, where the median quantile is used as the point prediction and the lower and upper quan- tiles form the raw prediction interval. CQR then expands the raw interval based on the calibration set to improve empirical coverage consistency. Figure 3. Internal architecture of the proposed LSTM-QR model and illustration of raw prediction interval construction. The LSTM encoder extracts tem"
+   ],
+   [
+    9,
+    "Method",
+    " Method Although quantile regression can directly produce a nominal prediction interval, the empirical coverage of the raw interval may deviate from the target level under finite-sample conditions and, more importantly, under cross-condition distribution shift. Recent studies have also attempted to improve conditional coverage in quantile-based uncertainty esti- mation through more structured quantile-learning strategies [ 37]. Therefore, this study employs Conformalized Quantile Regression (CQR) as a post hoc calibration step at infer- ence time to impr"
+   ],
+   [
+    10,
+    "4. Experiments",
+    " 4. Experiments and Results 4.1. Dataset and Implementation Details The proposed method is validated using the NASA C-MAPSS dataset generated by the C-MAPSS simulation tool developed at NASA Ames Research Center, Moffett Field, CA, USA. All experiments were implemented in Python (version 3.10.19), and the model was developed using PyTorch (version 2.11.0+cu128). Data processing and visualization were performed using NumPy (version 2.2.6), pandas (version 2.3.3), and Matplotlib (version 3.10.8). FD001 and FD002 are selected for both same-condition and cro"
+   ]
+  ]
+ }
+}

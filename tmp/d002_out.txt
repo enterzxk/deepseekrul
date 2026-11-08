@@ -1,0 +1,961 @@
+﻿codex.exe : Reading prompt from stdin...
+所在位置 行:1 字符: 266
++ ... ding UTF8 | & $exe exec --skip-git-repo-check --sandbox read-only 2>& ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Reading prompt from stdin...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+OpenAI Codex v0.167.0-alpha.3.2
+--------
+workdir: C:\Users\20562\Desktop\deepseek-rul
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a1bab0-6530-7bb1-b4a2-9b858b255537
+--------
+user
+You are the L2 research decision reviewer. A previous decision (D001) has been executed. Decide the next step.
+
+CONTEXT
+Project: IEEE TIM paper on conformal RUL intervals, C-MAPSS turbofan (FD001-FD004).
+Method: end-to-end conditional quantile regression (pinball 0.05/0.95 + 0.1*MSE), half-width head s=softplus(g(z)), the
+n CQR calibration with a global quantile q_hat.
+
+D001 OUTCOME (your own decision C, executed)
+You asked to test width rescaling a*s(x)+q_a, a in {0,0.5,1,2,4}, selected on engine-disjoint inner validation.
+Result: mean test Winkler a=0: 52.8, a=0.5: 49.4, a=1.0: 47.5 (best), a=2.0: 53.2, a=4.0: 81.4.
+Selection by inner validation gave 48.9, WORSE than fixing a=1.
+Per-subset selected a*: FD001 1.50, FD002 1.12, FD003 1.75, FD004 1.00.
+Conclusion: a=1 is optimal; the "insufficient width contrast" hypothesis is REJECTED; width-amplification route CLOSED.
+
+CURRENT EVIDENCE (all real)
+- 40 cells (4 subsets x 5 folds x 2 seeds), plus seeds 2024/13 (79/80 runs done)
+- Nominal level: CQR vs same-training constant-width, 19/20 folds won, median -8.7%
+- Matched coverage 0.90: 29/40 won (72%), median -8.4%
+- Per subset at matched coverage: FD001 -8.7%, FD002 -14.4%, FD003 -1.6%, FD004 -0.8%
+- Cross-domain FEMTO bearings: 5/6 won, mean -12.2%
+- Per-engine minimum coverage 0.50-0.71 while marginal is 0.90
+- A4 permuting prior sigma_T: +0.2% (no effect)
+
+ALREADY CLOSED (real experiments, do not re-propose)
+- Asymmetric calibration: optimum is exactly symmetric
+- Stratified/Mondrian by predicted RUL or sigma_T: all worse
+- Engine-level calibration: equivalent to widening at matched marginal coverage
+- Seed ensembling: n=2 helps, n=4 degrades
+- Localized CQR (kernel on half-width): no gain, -11.7% on FD003
+- Width amplification (D001): a=1 optimal
+
+DIAGNOSTIC FACTS
+- Width head works: CV 0.33-0.44, corr with |error| 0.25-0.42 on all subsets
+- FD003 has higher corr (0.352) than FD001 (0.253) yet almost no gain
+- FD004 has the largest engine-to-engine spread (std 45 on matched-coverage Winkler)
+- The centre itself is weak on FD004 (RMSE 10-14)
+
+CONSTRAINT
+The user refuses to publish negative results and wants a positive, defensible contribution for IEEE TIM. Do not propose
+ "reframe as an analysis paper".
+
+DECISION NEEDED
+What is the single most promising remaining hypothesis that could produce a genuine improvement on FD003/FD004 (current
+ly ties) without overfitting to the same folds?
+
+Consider specifically:
+- whether the problem is the centre, not the width (interval efficiency is dominated by |y-c| when c is bad)
+- training a width head conditioned on engine-level context that the current features lack
+- a different conformal target (e.g., calibrating the conditional coverage directly)
+- whether the honest answer is that this dataset simply does not support a stronger claim
+
+Answer with exactly:
+DECISION: <one line>
+REASONING: <3-5 sentences>
+COUNTER-EVIDENCE: <what would falsify this>
+RISKS: <2-3 bullets>
+NEXT ACTIONS: <numbered, concrete, with a pre-registered promotion gate>
+
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+warning: Falling back from WebSockets to HTTPS transport. request timed out
+codex
+我会先核对项目的研究状态、既有决策和冻结协议，再给出一个可证伪的假设及预注册晋级门槛。
+exec
+"C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files -g AGENTS.md -g research_state.md
+ -g decision_log.md -g results_summary.md -g SUBMISSION_CHECKLIST.md -g FINAL_PROTOCOL.md' in C:\Users\20562\Desktop\de
+epseek-rul
+ exited 1 in 2387ms:
+rg : �޷�����rg����ʶ��Ϊ cmdlet���������ű��ļ�������г�������ơ��������Ƶ�ƴд���������·������ȷ��·����ȷ��Ȼ������
+һ�Ρ�
+����λ�� ��:2 �ַ�: 1
++ rg --files -g AGENTS.md -g research_state.md -g decision_log.md -g re ...
++ ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+exec
+"C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$paths = @('"'AGENTS.md','docs/research_stat
+e.md','docs/decision_log.md','docs/results_summary.md','docs/manuscripts/SUBMISSION_CHECKLIST.md','docs/FINAL_PROTOCOL.
+md'); foreach ("'$p in $paths) { if (Test-Path -LiteralPath $p) { Write-Output "FILE: $p"; Get-Content -LiteralPath $p 
+-Encoding UTF8 -TotalCount 190 } else { Write-Output "MISSING: $p" } }' in C:\Users\20562\Desktop\deepseek-rul
+ succeeded in 353ms:
+FILE: AGENTS.md
+# ��ĿЭ��Լ����Codex ������ DeepSeek Harness ִ��
+
+## 0. ִ��Ч��ӲԼ�������� agent ��Ч��DSH worker ���ȣ�
+
+> �������ȼ����ں�������ϸ�ڣ���� 3 �ڽ�ɫ�ֹ����� 7 ��������ʵ�Գ�ͻʱ����������Ϊ׼���û��ȴ�ʱ�� �� ���ߵ��ô��� �� ���κ�ʱ��ÿ��һ�ε��ö�
+�Ǿ���ʧ��
+
+### 0.1 Ԥ��
+
+| �������� | ���ֹ��ߵ������� |
+|---|---|
+| ���ļ�С�ġ����������ѯ | 6 |
+| ����Ķ� + ��֤ | 20 |
+| ���ļ� / ʵ���� | ��д 3 ���ƻ��ٶ��֣��ӽ���������ͣ�»㱨���� |
+
+����Ԥ�㲻����ʧ�ܣ�������˵�����������ֹ������ˢ����Ӳ�ԡ�
+
+### 0.2 ����������
+
+1. **����졢����**������ǰ�� 1 �� grep/glob ��λ�ļ�����ţ�1 ��������ȡ��ȫ�����ģ���ֹ����һ�С���һ�Ρ��ٶ�һ�С�����̽ʽѭ����
+2. **������д**��һ�� `run_code` ���� `Promise.all` ����������ļ����ܶ��ֻ�����ֻ��ӡ���ۣ���Ҫ�������ļ�������־ԭ�����ԡ�
+3. **������һ��**����Ҫ ��3 ������ʱ��д��һ�� pwsh ��һ�� `run_code` ����һ��ִ�У�������һ�������á�
+4. **��֤�ϲ�**������һ���ܡ����� + ���� + lint��������ֻ��ʧ��ʱ�����ʧ�ܵ㵥�����ܡ�
+5. **���ظ���**�����Ự�������ļ������ض����Ķ�����һ�� diff / �ֲ�ȷ����β����ֹ���ļ��ض���
+6. **�������̨��**��ѵ����ȫ�����ԡ����ص��� `run_in_background`���ڼ�������£��� `job_output(wait:true)` �տڣ���ֹ��ת��ѯ��
+7. **�������ü�**������ӹ��ˣ�`Select-Object -First`��`rg`��`head`�������������ű������ġ��շ�������á�
+8. **ʧ�ܼ�ֹ��**��ͬһ����������� 2 �Σ���ÿ�α��뻻�����򻻼��裻ԭ��������ΪΥ�档
+9. **������ʽ��ȷ��**��ͬһ��ʵһ��������ֻ��֤һ�Σ���Ҫ���� `git status`����Ŀ¼��������ͨ���Ĳ��ԡ�
+10. **�Ӵ���Ҫ����**��ֻ�������ɶ������С���������ʱ��ſ� `subagent`��С�����Ӵ���ֻ�������
+
+### 0.3 ��ֹ�嵥
+
+- Ϊ��������ʲô���� `ls` / `find` ����Ŀ¼����
+- ÿ���ļ����� read һ�Σ�Ӧ�ϲ�Ϊһ������������
+- ��һ�о���һ��ȫ�����ԣ���һ������һ�Σ�
+- ��ͬһ����־�������������ģ�
+- �� `web_search` �鱾�ش���/�ĵ����ܻش�����⣻
+- �������ʱ���м������������һ�顣
+
+### 0.4 ��β�Լ죨�ύǰĬ��
+
+- ��û�����ε��ÿ��Ժϲ���һ�Σ�
+- ��û��һ�ε��ÿ���ɾ������Ӱ����ۣ�
+- �Ƿ��� 0.1 ��Ԥ���ڣ������Ƿ���˵�����㣿
+
+
+## 0.5 ���о���·�ɣ�L1 / L2 / L3��
+
+> ���ڶ���"˭���İ�"��Ŀ�꣺�ѷ���Ȩ���ʵĿ��о��ߴ��û�����ж���������� Codex �������жϣ����ٵ����жϡ�
+
+### L1��DSH ��������������ѯ��
+
+�������ʵ�����ع���ʵ����������мƻ���GPU ������ȡ�����ɸѡ�뾫�����ɻָ���ʵ��ʧ�ܡ�
+���߸��������ݷ�����ʵ�鱨������м�¼������ֱ��ִ�У�Ҳ����Ҫÿ�ζ����� Codex��
+
+### L2��Codex ������DSH ִ��
+
+��������������Ƚ��� Codex�������� DSH �����İ壬Ҳ����ת���û���
+
+- ������� Idea ֮�����ȡ��
+- �Ƿ������ǰ����·��
+- �·����Ƿ��������д�����
+- ��Ҫ����ѧ��ģ��ܹ����ѡ��
+- �Ƿ���Ҫ�������ڻ�ʵ��
+- �����໥ì�ܵ�ʵ����
+- ��Ҫ�����ķ���ѧ����
+- �Ƿ������һ�����н׶�
+
+���÷�ʽ���ٷ� `subagent_codex`�����������ģ�һ���ԣ�������׷�ʣ�����������Ҫ���֣�
+�� `subagent` + ���ģ���� Codex �ľ�����ι��һ���µ� `subagent_codex`��
+
+����ʱ�����ṩ����������ġ���ѡ����������֤�ݡ�ʵ�������жϱ�׼��
+����Ҫ�� Codex �������ȷ���������ɡ�����֤�ݡ�Ǳ�ڷ��ա���һ���ж���
+Codex ������ DSH ����ִ�У��������û�����ȷ�ϡ�
+
+�߷��ջ�֤�ݲ���ʱ������ DSH �� Codex ���������������Ա��ۣ����޹�ʶ��Ԥ�ȶ����
+֤�ݱ�׼ѡ��**����֤**��·�ߣ��������ޱ��ۡ�
+
+### L3�������˹���Ȩ��Codex ��Ȩ����
+
+- ������ɾ��������Ҫ����
+- ����δ����Ȩ���ⲿ��Դ
+- �����µĸ�������
+- �޸���Ҫ��ȫ�����Ȩ��
+- �����ύ���ġ������ɹ���ִ�в������ⲿ����
+
+��Щ�����ڿ��о��ߣ������� Codex �� DSH ���豾��û�е�Ȩ�ޡ�
+
+### ���߼�¼
+
+ÿ�� L2 ����д�� `docs/decision_log.md`����ʽ������ / ���� / ��ѡ���� / Codex ���� /
+���� / ����֤�� / ���� / ִ�н�����»Ự�ȶ����ļ����������������Ѿ����
+
+## 1. ���÷�Χ�����ȼ�
+
+���ļ������ڱ���Ŀ��Ŀ¼����ȫ����Ŀ¼�����в����߶��������ظ������ȼ���ϵͳ/��֯������Ŀ���ж���Э�飬�Լ��û����¡���ȷ��ָ������ļ�����������
+�ͻ���Ը������ȼ�������û�����ָ��Ϊ׼��
+
+���ļ�ֻԼ����ɫ�ֹ�����÷�ʽ�������Զ��л���ǰ�Ự������ģ�͡�ʵ��������������������ʵ����ģ����˼��ǿ�ȣ����������л�����Լ��������Ӧ��ʵ˵���
+����ü�װ�Ѿ����㡣
+
+## 2. �̶���ɫ��ģ��
+
+| ��ɫ | �������� | ģ�� | ˼��ǿ�� | ����Ȩ |
+|---|---|---|---|---|
+| ���о����ߣ�L2�� | Codex��`subagent_codex`�� | `gpt-6.1-sol` | `high` | ·��ȡ�ᡢ�����ԡ�����ѧ���� |
+| ִ�������������ˣ�L1�� | DeepSeek Harness | `deepseek-v4.1-flash` | `reasoningEffort: max` | ʵ�֡����ȡ���������¼ |
+
+�������и���ģ�͡��滻��������򽵵�˼��ǿ�ȡ�ģ������provider��profile ��ǿ�ȶ�������ʵ���������ü�������־Ϊ׼���к˶ԡ�
+
+> **ʵ����죨2026-11-08��**������ profile `~/.dsh/profiles/desktop/cordis.patch.yml` ��
+> `agent-default-model` Ϊ `fuwuqi/deepseek-v4.1-flash`��`reasoningEffort: high`��
+> ���ϱ�Ҫ��� `max` ��һ�¡����ļ��������޸����� profile��������û�������
+
+## 3. Codex ��ְ��߽�
+
+�� ��0.5 �� L1/L2/L3 ·���£�Codex �� **L2 ������**����·��ȡ�ᡢ�������жϡ���ģѡ��
+ì�ܽ���þ����Ƿ������һ�׶θ�����ȷ������
+
+Codex ��ִ�о��幤�������롢�ű������á��ĵ�������ִ�С�ʵ��������� DeepSeek Harness ��ɡ�
+Codex �Ĳ�����**���� + ���� + ����֤�� + ���� + ��һ��**���� DSH ����ִ�С�
+
+> ������˵������ʷԼ����"Codex �����ɹ� DSH"��ģʽ�Կ��ã����û��� Codex Ϊ�����������ֿ�ʱ����
+> ���û��� DSH Ϊ���Ựʱ���� ��0.5 �� L2 ·�ɵ��� Codex������ģʽ������ͬһ�����ڻ��á�
+
+## 4. �ɹ������չ淶
+
+ÿ���ɹ�˵�����ٰ�����Ŀ�ꡢ���޸ķ�Χ�����롢�������������ձ�׼��worker ����Ŀ��ǰ����Ŀ¼ִ�У�ֻ�ܸĶ�����Ȩ���ļ�����������ɲ��У�������ͬʱдͬһ�
+ļ�������д��ͻ��������봮�С�
+
+worker �ر�Ӧ�������޸ĵ��ļ���ʵ�ʽ����ִ�й��ļ���������ʵ������������⡣Codex ��ֻ����ʽ���֤�ݣ����ϸ���˵��ԭ�򲢷����������� worker ֱ�
+��޸ġ�
+
+## 5. ��������·��
+
+- �������`C:\Users\20562\AppData\Local\Programs\DeepSeek Harness\DeepSeek Harness.exe`
+- CLI ��ڣ�`C:\Users\20562\AppData\Local\Programs\DeepSeek Harness\resources\app.asar\dsh\node_modules\@deepseek-ai\dsh\
+lib\bin.js`
+
+�����ӽ��̴��� `ELECTRON_RUN_AS_NODE=1`����Ҫ��Ⱦ��ǰ���ؽ��̻��������� CLI ʱʹ�ã�
+
+```text
+--profile headless --patch <worker overlay ·��> --json <�����ı�>
+```
+
+ʹ�� `subprocess` �ȿɿ���ʽ�ֱ𲶻� stdout/stderr������������˳��롢JSON �е� `final` �ʹ����¼�������ֻ���Ƿ񷵻������֡���¼ `sessionId
+`����Ҫ����ʱʹ�� `--session-id`��
+
+## 6. worker overlay ����֤
+
+��ǰ��֤ͨ���� worker overlay��`C:\Users\20562\.codex\tmp\deepseek-workers\worker.patch.yml`��ÿ�ε���ǰ��Ҫȷ������ provider��
+ģ�ͺ�˼��ǿ����� 2 ��һ�¡�
+
+����ʱ�ļ���ʧʱ���� `C:\Users\20562\.dsh\profiles\desktop\cordis.patch.yml` �� `agent-default-model` �� `llm-pi-ai` ������
+**������** headless overlay������ `reasoningEffort` ����Ϊ `max`����Ҫ���ñ����ѱ�����֤ʱ������ headless overlay ������ `cre
+dentials`��`authorization`��`deepseek-account`��`disabled: false`����
+
+����ֱ���޸����� profile�����ð� API key��token ������ƾ��д����Ŀ�ļ����ĵ�����־�����մ𸴡�����·��ʧЧʱ�����·��ֱ��� DeepSeek Harne
+ss ��װλ�ã�����ƾ�²���á�
+
+## 7. ������������������
+
+�������ݺͽ��������ʵ���ϸ�������Ŀ����Э�飨�� `docs/FINAL_PROTOCOL.md` �ͼ�����������Ϊ׼���Լ��������ݷ���Լ����
+
+��ֹ����ʵ������ָ�ꡢ��־�򡰲���ͨ��������ֹΪ���ý���ÿ�����ѡ�Ա��棻��ֹΪģ��ѡ���ȡ�ٷ����Լ�����Ҫ��֤�� worker ʵ�����У�Codex �˶�����˳��
+롢��־�Ͳ���֤�ݡ�
+
+## 8. ��ͽ���Ҫ��
+
+�κ��������ǰ��ȷ����Ȩ��Χ�ڵĸĶ����������������ɸ��֡�ʵ������ѱ�����δ��Ȩ�ļ�δ���Ķ���������δ��������գ�������ȷ��עΪ�������⣬������ģ�
+������ڸǡ�
+
+## 9. �о�״̬�־û���ָ�
+
+������ѹ�����Ự�жϡ�Ŀ���ִ��л��󣬱����ܴӴ��ָ̻��������ظ�����ɵ��о���
+
+**�ָ���ڣ���˳���ȡ��**
+
+1. `docs/research_state.md` ���� ��ǰĿ�ꡢ����ɲ��衢��ִ�����񡢻ָ���
+2. `docs/decision_log.md` ���� �������� L2 ���ߣ������������ۣ�
+3. `docs/results_summary.md` ���� Ȩ��ʵ���¼�����ѳ��صĽ��ۼ�ԭ��
+4. `docs/manuscripts/SUBMISSION_CHECKLIST.md` ���� ������ɶ���ȱ��
+
+**��������**
+
+- ÿ���һ������֤�׶Σ�һ��ʵ�顢һ�ξ��ߡ�һ�θ�ģ������� `docs/research_state.md`
+- ÿ�� L2 ���ߺ�׷�� `docs/decision_log.md`
+- ���۱��Ʒ�ʱ����ɾ���ɼ�¼��׷��"�ѳ���"˵����ԭ��
+
+**��ֹ**
+
+- ����״̬�ļ������¹滮����ɵĹ���
+- ��"�Ҽǵ�"������ļ�
+- �� `research_state.md` ��дδ����֤���Ʋ⣨�Ʋ�����עΪ�Ʋ⣩
+
+## 10. �� ARIS �����������
+
+����Ŀʹ�� `research-a-exploration` �� `research-g8-translate` ��������ʵ��ȷ�ϣ�
+��Щ������**��ʾ�������̶���**�����ṩ `AUTO_PROCEED`��`human checkpoint`��
+`effort`��`reviewer`��`difficulty` ֮�������ʱ�����������鹹��Щ�����
+
+���"ȡ���Ǳ�Ҫ�˹�����"ͨ�����·�ʽʵ�֣�
+
+FILE: docs/research_state.md
+# �о�״̬���ָ���ڣ�
+
+> ������ 2026-11-08���κ��»Ự/ѹ���ָ���**�ȶ����ļ�**���ٶ� `decision_log.md`��
+> ����� `AGENTS.md` ��9��
+
+## 1. ��ǰĿ��
+
+�� C-MAPSS RUL �������䷽��������Ͷ IEEE TIM������������֤�����������ĳɸ塣
+
+## 2. ����ɣ�����֤��
+
+| �� | ���� | ״̬ |
+|---|---|---|
+| ��ʵ�� 4 �Ӽ� �� 5 �� �� 2 seeds | `experiments/punet_matrix/` 40 �� | ? |
+| ׷�� seeds 2024 / 13 | `experiments/punet_matrix/*/f*_s{2024,13}/` | ? 79/80 |
+| ����ˮƽ��� | 19/20 ʤ����λ ?8.7% | ? |
+| ���Ƕ������ | 29/40 ʤ����λ ?8.4% | ? |
+| ���� FEMTO 6 ��� | `experiments/femto/` | ? 5/6��?12.2% |
+| A4 �û����� 20 �� | ��ֵ +0.2% | ? |
+| ������� 20 �� | ���漶��С 0.50�C0.71 | ? |
+| ���� Markdown / LaTeX / PDF | `docs/manuscripts/` | ? ����ͨ�� |
+| ͼ 3 �� | `docs/figures/` | ? |
+
+## 3. ���ų��ķ��򣨲�Ҫ�ظ���
+
+| ���� | ���� | ֤���ļ� |
+|---|---|---|
+| �ǶԳ�У׼ | ����=�Գƣ������� | `docs/tables/asymmetric.csv` |
+| �ֲ�У׼��mu / sigma ���䣩 | ȫ������ | `docs/tables/mondrian.csv` |
+| ���漶У׼ | �ȼ��ڷſ����� | `docs/tables/engine_vs_inflation.csv` |
+| seed ���� | n=2 ��Ч��n=4 �˻� | `docs/tables/ensemble_scaling.csv` |
+| �ֲ��� CQR | 40 ���������棬FD003 ���� | `docs/tables/cells_all.csv` |
+
+## 4. ��ִ��
+
+1. �ȴ� Codex �� D001 �ľ��ߣ��������ִ��
+2. ����� 1 ��FD004 f4 s13��
+3. ����������ʧ����ѵ 40 �� �� 1 seed
+4. ���İ����ս�����²��ر���
+
+## 5. �ָ�����
+
+```bash
+ssh a40 'cd ~/deepseek-rul && ls experiments/punet_matrix/*/f*_s*/preds_point.csv | wc -l'
+python scripts/table_all_methods.py
+python scripts/make_tim_tables.py
+```
+
+## 6. ������ʵ
+
+- Զ�� `a40`������������ git��Python `/home/yndx/miniconda3/envs/a40_env/bin/python`
+- ���أ��� torch��ֻ�� Windows + pandoc + tectonic��LaTeX ���룩
+- ���ݼ���C-MAPSS �� `data/`��FEMTO ��Զ�� `~/femto`��3.1 GB��
+
+## 7. δ��֤/��ȷ��
+
+- ���� profile �� `reasoningEffort` �� `high` ����Լ���� `max`���� AGENTS.md ��2��
+- ���Ĳο���������ռλ [1]�C[15]���� BibTeX
+FILE: docs/decision_log.md
+# ���о��߼�¼��L2��
+
+> ����� `AGENTS.md` ��0.5���»Ự�ȶ����ļ���**�������������Ѿ�����**��
+> ÿ�� Codex ����׷��һ�������������⡢��ѡ�����������ɡ�����֤�ݡ����ա�ִ�н����
+
+---
+
+## D001 �� 2026-11-08 �� ��ģ·�ߣ���һ�� pinball ��ʧ vs ���ܵ�ǰ��Χ
+
+**״̬**���Ѿ�����Codex CLI��2026-11-08��
+
+**����**
+����Ŀ�� IEEE TIM����ǰ�������˵���������λ���ع� + CQR���ڸ��Ƕ����
+FD001 ?8.7%��FD002 ?14.4%��FD003 ?1.6%��FD004 ?0.8%������ 29/40 ʤ����λ ?8.4%��
+���� FEMTO 5/6��?12.2%���û�Ҫ�����Ĳ�д������������Ż���
+
+**��ѡ**
+- A����ѵ����ʧΪ��һ�� pinball��������˹ NLL ��ʽ����ǿ�ƿ�����в�߶ȳɱ�������ѵ 40 �� �� 1 seed �� 2 Сʱ��
+- B�����ܵ�ǰ��Χ����"���漯���ڵ������Ӽ�"д�����÷�Χ��
+
+**���ų��ķ�����ʵʵ�飩**
+�ǶԳ�У׼������=�Գƣ����ֲ�У׼��ȫ����������漶У׼���ȼ��ڷſ����䣩��
+seed ���ɣ�n=2 ��Ч��n=4 �˻�����
+
+**����**��**C �� �ڸ�ѵ����ʧ֮ǰ���������� checkpoint ����һ���н�ġ�������֤���Ŀ�������ʵ�顣**
+
+**����**
+����У׼��İ���� `s(x) + q?`��q? ��ϡ�� s ��**���**�仯�������Ա仯�����򲻱䡣
+ֱ�Ӳ� `a��s(x) + q?_a`��a �� {0, 0.5, 1, 2, 4}�������ж�"���ȶԱȶȲ���"�ǲ��� FD003/FD004 ��ƽ��ԭ��
+��������ѵ��a=0 ���������ȣ�a=1 ����ǰ CQR��
+
+**��� A �ļ�������**
+��һ�� pinball ��ͬһ�� s ͬʱ���˵�ͷ�ĸ��չ����Ϊ
+`0.1 + (|y?c|/s ? 1)? + �� log s`���ı��˷�λ������Ŀ�꣬��������������õ������Ϸ����߶�������
+
+**����֤��**
+����֤��ѡ���Ŀ��ȷŴ��ܸ��ֵظ��� FD003/FD004����"���ȶԱȶȲ���"���ǿɲ�����ƿ����
+
+**����**
+- ������ͬһ�����������Ż������ѡ��ƫ��� seed �������µĶ���������
+- ��������������ֶΣ����������ɷ���ѧ��ӱ��
+- �߼ʸ����޷�����ѹ۲⵽�����漶Ƿ����
+
+**ִ�н����DSH ʵ�ܣ�40+ ��**
+
+��������ɨ�� `a��s(x) + q?_a`��a �� {0, 0.5, 1, 2, 4}��ѡ����У׼���������ڲ����֣����Լ�������ѡ��
+
+| a | ƽ������ Winkler |
+|---|---|
+| 0.0���������ȣ� | 52.8 |
+| 0.5 | 49.4 |
+| **1.0����ǰ CQR��** | **47.5** |
+| 2.0 | 53.2 |
+| 4.0 | 81.4 |
+
+**�ڲ���֤ѡ���� a\* ��������**��48.9 > 47.5����˵�����ѡ����������
+
+���Ӽ��� a\*��FD001 1.50��FD002 1.12��FD003 1.75��FD004 1.00��
+FD003 ƫ�÷Ŵ�1.75������������Ϊ����
+
+**����**��a=1 �������ţ�"���ȶԱȶȲ���"���豻�񶨡��� Codex Ԥ����ж��ţ�
+**���ȷŴ�·�߹ر�**�������� A �� 40 ����ѵ����һ����ص� L2 ���ߣ�����ѵ�����衣
+
+֤���ļ���`docs/tables/width_scaling.csv`
+
+---
+
+## D001 �� ִ�м�¼��DSH��
+
+**ͨ��**��`subagent_codex` ���ξ� product-error��turn �׶Σ������ùٷ� Codex CLI
+`codex.exe exec --sandbox read-only` �ɹ���CLI �汾 0.167.0-alpha.3.2��ChatGPT ��֤��
+��־��ʾ WebSocket ���� 5 �κ���� HTTPS�����粻�ȿ����� subagent ��װ��ʧ�ܵ�ԭ��
+
+---
+
+## ģ��
+
+```
+## Dxxx �� YYYY-MM-DD �� <����һ�仰>
+
+**״̬**���Ѿ��� / ִ���� / ����� / �ѳ���
+
+**����**��<���� + ΪʲôҪ����>
+
+**��ѡ**��<A / B / C�����ԵĴ�����Ԥ��>
+
+**����**��<Codex ����ȷѡ��>
+
+**����**��<Ϊʲô>
+
+**����֤��**��<ʲô���������������>
+
+**����**��<ִ�з���>
+
+**ִ�н��**��<DSH ִ�к����ʵ�������ʧ��>
+```
+FILE: docs/results_summary.md
+# ʵ�������ܣ��׶� E/F��
+
+> ���ɣ�2026-11-07 | ������Դ��Զ�� a40 ʵ�����У���־ `~/deepseek-rul/logs/`
+
+## 1. ������4 �Ӽ� �� 5 �ۣ�seed 42��
+
+| �Ӽ� | PU-Net PICP / PINAW / Winkler | A1 �����߶� | A4 �û� �� |
+|---|---|---|---|
+| FD001 | 0.869 / 0.253 / **46.7** | 0.904 / 0.275 / 48.4 | 0.886 / 0.390 / 65.3 |
+| FD002 | 0.879 / 0.310 / **53.6** | 0.886 / 0.316 / 58.0 | 0.885 / 0.461 / 76.4 |
+| FD003 | 0.921 / 0.324 / 47.9 | 0.894 / 0.245 / **43.5** | 0.913 / 0.491 / 71.8 |
+| FD004 | 0.873 / 0.321 / 68.4 | 0.872 / 0.281 / **66.5** | 0.872 / 0.365 / 75.0 |
+
+- **A4 �� 20 ����ȫ���˻�**��Winkler ��� PU-Net +40%/+43%/+50%/+10%���� �� Я����Ϣ�����Ƴ���
+- **PU-Net vs A1��2 ʤ 2 ��** �� ���治���ձ���
+
+## 2. �ؼ���ϣ��� �����������
+
+| �Ӽ� | ���� Spearman(��, |err|) | ��ֵ | PU-Net vs A1 |
+|---|---|---|---|---|
+| FD001 | 0.235 / 0.244 / 0.152 / 0.321 / 0.376 | **+0.266** | Ӯ |
+| FD002 | 0.256 / 0.257 / 0.262 / 0.232 / 0.194 | **+0.240** | Ӯ |
+| FD003 | 0.151 / ?0.073 / ?0.007 / ?0.027 / 0.049 | **+0.019** | �� |
+| FD004 | ?0.084 / ?0.082 / ?0.213 / ?0.177 / ?0.140 | **?0.139** | �� |
+
+**������ʤ����ȫ��Ӧ��4/4��**���� ֻ�е�������������ʱ������Ч�߶ȡ�
+
+## 3. ���Ʒֽ⣺�������� vs ��������
+
+| �Ӽ� | ���� �� | �������� �� | �������� �� |
+|---|---|---|---|
+| FD001 f0 | +0.235 | +0.322 | ?0.355 |
+| FD002 f0 | +0.256 | +0.400 | ?0.420 |
+| FD003 f1 | ?0.073 | +0.218 | ?0.358 |
+| FD004 f0 | ?0.084 | +0.129 | ?0.546 |
+
+- **�������ں�Ϊ��**���˻������� �� ����ʱ���Ҳ���� �� �߶��ڹ켣�ڲ���Ч
+- **���������Ϊ��**��ƽ�� �� ��ķ�����ƽ������С �� �緢�����Ƚ�ʱ�����෴
+- ���� �� �����߻�ϣ�������Ӽ��ϸ������ɷ�ռ��
+
+## 4. �����޸����Ծ�ʧ�ܣ���ʵ��¼��
+
+| ���� | ��� |
+|---|---|
+| ������ regime �� Mondrian �ֲ� | FD002 PICP 0.816 �� 0.798����� |
+| ��Ȩ CP��Э����=Ԥ�� RUL�� | FD001 ������ 0.986��Winkler 63.3 |
+| ��Ȩ CP��Э����=�������� �ң� | FD003/FD004 Winkler ������δ��� |
+| �� ���Է�������ֵ����Թ�һ���� | FD001 39.2 �� 61.9��������� |
+
+**����**�����/���ڷֽ���������󣬵��򵥹�һ�������޸�������Ϊ�������Գ߶Ⱥ�У׼���޷��ж������ĺ������ȡ�
+
+## 5. ���۶�λ
+
+���Ÿ�Ϊ**������**����_T ��Ϊ conformal �߶ȵ���Ч�Կ��� �� = Spearman(��_T, |���|) Ԥ����ϣ���>0 ʱ��Ч��FD001/FD002�����ѡ�0 ʱ��Ч
+�����к���FD003/FD004����A4 �û�ʵ��Ϊ�����ṩ 20 ��һ�µ�֤�ݡ�
+
+## 6. ����׷�飺������������为��ص��н�
+
+���������ۺϺ�fold 0����
+
+| �Ӽ� | ��(����, ��) | ��(����, ���) | ��(��, ���) |
+|---|---|---|---|
+| FD001 | +0.113 | ?0.418 | ?0.355 |
+| FD002 | +0.216 | ?0.208 | ?0.420 |
+| FD003 | **+0.650** | ?0.084 | ?0.168 |
+| FD004 | **+0.610** | **?0.623** | ?0.546 |
+
+**��_T ʵ����"��������"�Ĵ���**�������������� �� ��������Գ�������û���գ��������������С����˿緢�����Ƚ�ʱ �� ������Ȼ����ء������
+���� FD003/FD004 ��ʧЧ��
+
+## 7. ����γ��ԣ�˫�ɷֲ�ֵ���� ��ϣ�������Ȼʧ��
+
+������"�� �任������ѵ��֮��"��ʵ�� bug �����ܣ�fold 0����
+
+| �Ӽ� | ��=0�������������߶ȣ� | ��=1��ԭʼ �ң� |
+|---|---|---|
+| FD001 | Winkler 43.6 | **39.3** |
+| FD003 | 47.0 | **44.9** |
+| FD004 | 56.8 | **55.5** |
+
+- ֻ�������ɷ֣���=0���������Ӽ��϶����� �� ���ڱ仯ȷʵ�м�ֵ
+- ������ԭʼ �ң������ɷ֣�Ҳ������䷴��Ӱ��
+
+**����**����������������ֲ�ͬ���ʵ���Ϣ���κε������ĵ����任�����Ի�϶��޷�ͬʱ���㡣��ȷ�Ľⷨ��**˫�ɷֲַ㱣��**�������������ֱ�У׼��λ������ ��
+֣����ٺϳ����䡪�����ѳ�����ǰ������Χ����Ϊ����������
+
+## 8. ��γ��Ի���
+
+| # | ���� | ��� |
+|---|---|---|
+| 1 | ���� regime �ֲ� | ���� |
+| 2 | ��Ȩ CP��Ԥ�� RUL�� | ���� |
+| 3 | ��Ȩ CP���������� �ң� | ���� |
+| 4 | �� ���Է�������ֵ | ���� |
+| 5 | ˫�ɷ� �� ��� | ��=0 �����=1 ά��ԭ״ |
+
+## 9. ����������¼��Ŀ��ģʽ���� 1-8 �Σ�
+
+| # | ���� | �ؼ���� | �ж� |
+|---|---|---|---|
+| 1 | ���� regime �ֲ� | FD002 PICP 0.816��0.798 | ʧ�� |
+| 2 | ��Ȩ CP��Ԥ�� RUL�� | FD001 ������ 0.986 | ʧ�� |
+| 3 | ��Ȩ CP���������� �ң� | 3/4 �Բ� | ʧ�� |
+| 4 | ��/��������ֵ��engine_rel�� | FD004 55.4��49.1��FD001 39.3��49.5 | ����ʤ�� |
+| 5 | ��/Ԥ��������rel_life�� | FD001 39.3��54.7 | ʧ�� |
+| 6 | ˫�ɷ� Bonferroni | FD001 39.3��80.1�������ظ����㣩 | ʧ�� |
+| 7 | �� ��ϣ�0 vs 1�� | ��=0 ȫ����� | ʧ�� |
+| 8 | �� ����Ӧ����? ���ţ� | **��? �ڲ��Լ�Ϊ ?0.084��У׼��Ϊ +0.064�����ŷ�ת** | **��й©������** |
+| 9 | �� �� tuning ������ѡ�� | FD001 ��ѡ ��=1��39.3��55.1�� | ʧ�� |
+
+**�ؼ���ѵ������д�����ĵķ���ѧ���ۣ�**��
+- ����"�� ���� 4/4 Ԥ��ʤ��"��**�ò��Ա�ǩ������º����**�����ǿ����оݣ�����У׼���� FD004 ���ŷ�ת��
+- ���"��ȷ���Գ߶ȵ���Ч�Կ��� �� ��ǰ�ж�"��һ����**������**���Ѵӽ����г��ء�
+- ���� ��>0����� ��<0 �ķֽ���Ȼ�����������ɷ��޷���У׼������ʶ��
+
+## 10. ��ǰ���ۣ������� 9 �ε�����
+
+�� C-MAPSS FD001�CFD004 �ϣ�**�κ� ��_T �ĵ����任���ֲ���Ȩ�������޷��� PU-Net �ȶ����ڳ����߶ȱ��λ���**�����ƣ��� Я��������Ϣ����ʵ�
+��ڣ�A4 �� 20 ��ȫ���˻��������ڻ���У׼���治�����á�
+
+## 11. �� 10 �ε�����PU-CQR��������λ��ͷ + ����У׼��
+
+| �Ӽ� | PICP | PINAW | Winkler | q? | ���գ�raw �� �߶ȣ� |
+|---|---|---|---|---|---|
+| FD001 | 0.957 | 0.811 | 106.4 | 4.3 | 39.3 |
+| FD002 | 0.851 | 0.725 | 112.1 | �� | 57.7 |
+| FD003 | 0.911 | 0.899 | 124.1 | �� | 44.8 |
+| FD004 | 0.936 | 0.964 | 128.6 | 2.2 | 55.4 |
+
+��ѧϰ����ѵ��lr 1e-3, 150 epoch����FD001 Winkler 92.7��q?=4.3����FD004 113.2��q?=2.2��������Զ���ڻ��ߡ�
+
+**���**��q? ��С�� PINAW �ܴ�˵����������**��λ��ͷ����**������������Ϊ�㾫���Ż��ģ��������"��������"�������ṩ��Ϣ����λ��ͷ�˻�ΪԤ���
+Ե��λ�����ӽ� [20,110] ��ȫ�����䣩������У׼�޷����ȡ�����ֻ�����ѹ������������ټ� q?��
+
+**����**�����÷�λ��ͷ�ڶ��������ϲ����С���Ҫ�� CQR ·�ߣ����������ɲ����λ��ѵ�����˵��ˣ������Ƿ�������ĸĶ���������һ�֡�
+
+## 12. �� 11 �ε������˵��� CQR��ͻ�ƣ�
+
+�ⶳ���ɣ��� `pinball(0.05) + pinball(0.95) + 0.1��MSE(centre)` ����ѵ�������� CQR ����У׼��fold 0 �����
+
+| �Ӽ� | PICP | PINAW | Winkler | �����߶� A1 | ԭʼ �� �߶� |
+|---|---|---|---|---|---|
+| FD001 | 0.954 | 0.305 | 42.7 | 48.4 | **39.3** |
+| FD002 | 0.844 | 0.254 | **54.0** | 58.0 | 57.7 |
+| FD003 | 0.863 | 0.159 | **34.4** | 43.5 | 44.8 |
+| FD004 | 0.944 | 0.280 | **43.6** | 66.5 | 55.4 |
+
+**4/4 ʤ�����߶�**����Խ��� 12%/7%/21%/34%�������ԭʼ �� �߶�Ϊ 3/4��FD001 ���䣩��
+
+**����**���� 10 �ֵ���ϳ�����������������Ϣ����ѧ��ֻ�Ƕ��������û�С��������������ɲ����λ��ѵ����
+
+**����֤**����������̨���� PID 2408133����
+1. 4 �Ӽ� �� 5 ���ȶ��ԣ�20 �����У�
+2. A4 �û� �� �Ƿ��Ե����˻���4 �����У����������˻���˵�����治���������鲻ȷ���ԣ���������ʧЧ
+
+## 13. ��ƽ�����������ؼ���
+
+�� 12 �ڵĶ����õ���**��������**�ĳ����߶Ȼ��ߣ��� e2e-CQR �����ɱ�����ѵ���������Ƚϲ���ƽ������"ͬ���˵���ѵ������ֻ�����Ԥ�⣨�������ȣ�
+"�Ļ��ߺ�
+
+| �Ӽ� | e2e-CQR Winkler | ��ƽ���ߣ�e2e point + �������ȣ� | ��Ը��� | ���� A1���ο��� |
+|---|---|---|---|---|
+| FD001 | 42.7 | 47.0 | **?9.1%** | 48.4 |
+| FD002 | 54.0 | 64.6 | **?16.4%** | 58.0 |
+| FD003 | 34.4 | 41.3 | **?16.7%** | 43.5 |
+| FD004 | 43.6 | 50.4 | **?13.5%** | 66.5 |
+
+**4/4 ȫʤ��ƽ����**��Ψһ������������λ��ͷ vs �������ȣ����ɡ����֡�У׼Э����ȫ��ͬ��
+
+ͬʱע�⣺��ƽ���߱�����47.0/64.6/41.3/50.4��**�����ȶ�����߸���**����˵�����治����"��ѵ��������"�������Է�λ��ͷ���������ų��������ױ��
+�������ɵĻ������ء�
+
+**��������״**��FD001 0.954��FD002 0.844��FD003 0.863��FD004 0.944��FD002/FD003 �������� 0.90����Ҫ�� Part 3 ���ۣ��������
+�����һ�£���
+
+## 14. e2e-CQR �� 5 �۽�չ����Ʊ仯���� 4 �֣�
+
+**FD001 �������**��
+
+| ָ�� | ��ֵ��5 �ۣ� |
+|---|---|
+| PICP | 0.908����꣩ |
+| PINAW | 0.260 |
+| Winkler | 41.2 |
+| ���漶��С���� | 0.690 |
+
+**A4 �û� �ң�FD001, fold 0��**��Winkler 42.7 �� 45.0��**+5.4%**����
+
+?? **��Ҫ�仯**���� e2e-CQR �У��û� �� ֻ��� 5% ���˻�����������"�� ����"�������� 40�C50%����˵����
+- �������Ҫ��Դ��**������λ��ͷ**��������ѧϰ�������ȣ������� �� ����
+- �� �˻�Ϊ"��������֮һ"��������Ψһ�߶���Դ
+- ���Ĺ��׵������Ӧ����������������"�� ��_T Ϊ�߶�"����Ӧд"���鲻ȷ������������ CQR"
+
+**���Ŷ�**����ƽ���ߣ�e2e point + �������ȣ��� 5 �� 20 �����У���������������Զ�������PID �ȴ�����ȷ�����ܣ���
+
+## 15. e2e-CQR ���۽������ 6 �֣������� 15/24��
+
+| �Ӽ� | ���� | PICP | Winkler | PINAW | ���漶��С���� | A4���û� �ң� |
+FILE: docs/manuscripts/SUBMISSION_CHECKLIST.md
+# IEEE TIM Ͷ�����嵥
+
+> ������ 2026-11-08������������ͨ�� `tmp/verify2.py` �ز�ԭʼ���11 ��ȫ��ͨ������
+
+## һ������ɲ�������֤��
+
+| �� | ֤�� | ״̬ |
+|---|---|---|
+| ��ʵ�飨4 �Ӽ� �� 5 �� �� 2 seeds�� | `experiments/punet_matrix/` 40 �� | ? **���� 40/40** |
+| ��ԱȽϣ�CQR vs �������ȣ� | ���� 19/20�����Ƕ��� 29/40 | ? ���� |
+| A4 �û����ڣ�20 �ۣ� | ��ֵ +0.2%��11/20 �۱�� | ? ���� |
+| ���漶 / �ֽ׶���� | 20 �� JSON | ? ���� |
+| ������֤��FEMTO 6 ��У� | `experiments/femto/` | ? 6/6 |
+| �巽�����Ƕ��� | `docs/tables/cells_all.csv` | ? 40 �� |
+| �������� + PDF | `manuscript.tex` / `.pdf` | ? ����ͨ�� |
+
+## ����������ɣ�����������ȷ��ע��
+
+| �� | ʵ�ʷ�Χ | ���ı�עλ�� |
+|---|---|---|
+| seed ���� | 2 ����42��7������ 3 �� | ��VI.D ��д�� |
+| MC-Dropout ���� | 10 ��FD001 5 �� + ���� 5 �� | ��V.B ���в���Ϊ��ֵ |
+
+## ����δ���
+
+| �� | ԭ�� | Ӱ�� |
+|---|---|---|
+| 3 seeds ȫ������ | GPU �������ƣ����� 5�C12 ���ӣ�120 ���� 8 Сʱ�� | ��VI.D ��˵��������ƻ��� 2 seeds |
+| FD002�CFD004 �����۸��Ƕ��� | ͬ�� | Table 2 �������ѱ�ע |
+| RCCP ����ʵ�� | ��ʵ�ּ򻯰棨����Ԥ�� RUL����У��� | ��VI.D ����Ϊ threat |
+| ͼ 4����������������ӻ��� | δ�� | ��ѡ |
+
+## �ġ�Ͷ��ǰ���봦��
+
+1. **��VI.D �� seed ����ռλ��**����ȷд"2 seeds"����˵����Ա�׼����Ƶ�Ӱ��
+2. **���� RCCP ����ʵ�ֵ�˵��**������ȷд"�򻯰棬�������������� RCCP"
+3. ~~IEEE ģ���Ű�~~������ɣ�IEEEtran + ����ͨ��������ʣ�������΢����6 �� 2�C130pt �� overfull ���棩
+4. **�ο�����**���������� [1]�C[15]����˶Ը�ʽ��������
+5. **������Ϣ��������������**
+
+## �塢�ɱ绤�ĺ�������
+
+| ���� | ֧��ǿ�� |
+|---|---|
+| �˵����������� + �ֲ���У׼�� C-MAPSS ���ȶ����ڳ������� | **ǿ**��19/20 ��ԣ�91% ���Ƕ��룩 |
+| �����ƿ������ | **ǿ**��6/6 ��У� |
+| ģ�Ͳ�����ȷ���ԣ�MC-Dropout��������Ч�������߶� | **��**��4/4 �񣬵��� FD001 ���������ݣ� |
+| ƽ�������ڸǵ���ʧЧ | **ǿ**��80�C100% ������������ <0.80�� |
+| ���鲻ȷ���� ��_T ���� | **ǿ**��20 �� A4��+0.2%�� |
+| ĩ�ڸ����ձ��½� | **��**���� FD003/FD004 �������Ѹ�Ϊխ���ţ� |
+
+## ����һ�仰�ܽ�
+
+���������֤������֧��Ͷ�壻**��Ҫȱ���� seed �����벿���Ӽ������۸���**��������������������ʵ��ע��������ѧ���������⣬����Ӱ������˶�ͳ��
+�Ƚ��Ե����ۡ�
+FILE: docs/FINAL_PROTOCOL.md
+# STG-MambaNet Final Protocol
+
+Status: P0 draft, frozen after P2  
+Date: 2026-10-20  
+Owner: Methodologist (Gemini decision), implementation by DeepSeek
+
+This document is the single source of truth for data, model selection, loss
+selection, ablation, and final test reporting. If code and this document
+disagree, this document wins and the code must be changed.
+
+## 1. Label protocol
+
+- Main protocol: clip125 = True.
+- Training targets: min(125, last_cycle - cycle).
+- Validation targets: same piecewise-linear cap of 125.
+- Official test targets: min(125, RUL_FDxxx.txt).
+- Appendix only: raw (unclipped) test metrics must also be stored under
+  appendix_raw in metrics.json and in the final appendix table.
+- Main tables use clip125 only. Raw numbers must never be mixed into the main
+  table or used for model selection.
+
+## 2. Single production codebase
+
+- The only legal production code is src/dataset.py, src/model.py, src/loss.py,
+  scripts/run_ablation.py, scripts/summarize_ablations.py.
+- The former root-level duplicates model.py, loss.py, dataset.py,
+  sanity_check.py are archived under archive_root_v0/ and must not be imported.
+- The archived root implementation is a reference for trajectory/monotonic
+  logic only; all future changes happen in src/.
+
+## 3. Test hold-out policy
+
+- The 12 runs with seeds 42, 67, 123 are archived as Development Pilot.
+- During P1 and P2, the official test set must not be read, printed, scored, or
+  referenced. Model selection, early stopping, and hyperparameter search use
+  only engine-level validation splits (20% of training engines) and the
+  validation metrics val_rmse_clip125 / val_nasa_clip125.
+- P1/P2 scripts must not instantiate a test DataLoader.
+- After P1/P2 freeze, P3 uses exactly five pre-registered seeds:
+  101, 202, 303, 404, 505.
+- The official test set is evaluated once per final run, after loading the
+  validation-selected checkpoint. No further model changes are allowed after
+  the first P3 test result.
+
+## 4. Fair ablation design
+
+### 4.1 Parameter matching
+
+- The w/o SSM LSTM control must be within +/-3% of the Full Model parameter
+  count. The matched hidden width and any output projection must be recorded
+  in config.json.
+- Parameter counts are checked automatically before training.
+
+### 4.2 Graph topology controls
+
+AdaptiveSpatialBranch supports graph_mode:
+
+- learnable: A = (1 - alpha) I + alpha * softmax(ReLU(E1 E2^T)),
+  alpha initialized to 0.1 and learned.
+- identity: A = I.
+- random_fixed: a fixed, row-stochastic random matrix stored as a buffer.
+
+The identity-graph control distinguishes graph propagation from extra
+parameters. The random-fixed control checks whether any fixed mixing is
+sufficient.
+
+### 4.3 Final P3 variants
+
+1. Full Model: learnable graph + SSM + full physics loss.
+2. w/o A-GCN: independent per-sensor branch + SSM + full physics loss.
+3. Identity-Graph: A = I + SSM + full physics loss.
+4. w/o SSM: learnable graph + parameter-matched LSTM + full physics loss.
+5. w/o Physics Loss: learnable graph + SSM + pure MSE.
+6. w/o Mono Loss: learnable graph + SSM + MSE + asymmetric term only.
+
+## 5. Metrics and gates
+
+Main metrics:
+
+- RMSE (clip125)
+- NASA asymmetric score (clip125)
+- MAE
+- Mean signed error (positive = late prediction)
+- Late_Fraction: fraction of samples with y_pred > y_true
+- Severe_Late_Count: number of samples with y_pred - y_true > 10
+- Mono_Violation_Rate: fraction of valid adjacent trajectory pairs with
+  y_hat_t > y_hat_{t-1}
+
+Appendix metrics:
+
+- RMSE and NASA on raw (unclipped) test targets.
+
+No hard-coded target such as "force test RMSE <= 13.0" is allowed. The
+validation objective is to minimize mean val_rmse_clip125 and reduce seed
+variance. Final results must report all five seeds, mean, standard deviation,
+and paired deltas versus Full. No seed may be dropped after seeing test.
+
+## 6. Physics loss protocol
+
+The production loss supports four pre-registered variants:
+
+1. Loss-MSE: pure MSE.
+2. Loss-Asym: MSE + asymmetric late-penalty.
+3. Loss-Mono: MSE + trajectory monotonic penalty.
+4. Loss-Full: MSE + asymmetric + monotonic.
+
+The total objective is:
+
+L = MSE + lambda_asym * L_Asym + lambda_mono * L_Mono
+
+with L_Asym using weight 2.0 for late errors and 1.0 for early errors.
+gamma/late_weight, lambda_asym, and lambda_mono are selected on validation
+only. The trajectory for L_Mono is the per-cycle RUL trajectory returned by
+return_trajectory=True. If no trajectory is supplied, L_Mono is exactly zero
+and monotonic_available is recorded as 0.
+
+## 7. Multi-condition extension
+
+FD001 remains the primary development set. After FD001 is frozen and if
+compute allows, FD002 is an external validity check only. FD002 preprocessing
+must use condition-aware normalization (K-Means operating-condition clusters,
+per-cluster sensor statistics fitted on training engines only). FD002 must not
+be used to retroactively change the frozen FD001 design.
+
+## 8. Reproducibility and audit
+
+Every run stores:
+
+- config.json (all hyperparameters, graph_mode, loss flags, seed)
+- split_seed_<seed>.json (train/validation/test engine ids)
+- scaler_stats.json (training-only statistics)
+- history.csv (per-epoch validation metrics)
+- best_model.pt (validation-selected checkpoint)
+- test_predictions.csv (per-engine y_true, y_pred, signed error)
+- metrics.json (main clip125, appendix_raw, safety diagnostics)
+
+Every final table must be generated from metrics.json / predictions.csv by
+scripts/summarize_ablations.py. Manual numbers are forbidden.
+
+## 9. Freeze record
+
+P1 (validation-only) selected:
+
+- window_size = 50
+- dropout = 0.2
+- weight_decay = 1e-4
+- d_model = 64, batch_size = 256, lr = 1e-3, grad_clip = 1.0
+- epochs = 80, patience = 20
+- graph_mode = learnable, identity_prior_alpha = 0.1
+- temporal = SSM, kernels = 3/5/7
+- validation split = 80/20 engine-level, seeds 42/67/123
+- Compute-limited execution: P1/P2 were completed as a seed-42 screen; the
+  five-seed P3 is the confirmatory evidence. Recorded as a limitation.
+
+P2 (validation-only) selected:
+
+- Loss-Asym weight = 1.0, gamma (late_weight) = 2.0
+- Loss-Full uses asymmetric weight 1.0 and lambda_mono = 0.05
+- Loss-MSE for w/o Physics; Loss-Asym for w/o Mono
+- No test score was used for this selection.
+
+P3 freeze hashes (SHA256, first 16 hex chars):
+
+- src/model.py: B5EF67DF7C440FDF
+- src/loss.py: 94A3B8E293CD925E
+- src/dataset.py: F7D84E4E10DEE333
+- scripts/run_ablation.py: 8C61EC632BEB0F67
+- scripts/summarize_ablations.py: 4BBB919F2C04A2A0
+
+P3 seeds: 101 202 303 404 505
+P3 variants: full, wo_agcn, identity_graph, wo_ssm, wo_physics, wo_mono
+
+web search: 
+web search: site.nasa.gov C-MAPSS FD003 FD004 two fault modes ...
+codex
+DECISION: Test one hypothesis: missing causal engine-history context causes systematic centre errors on FD003/FD004; ad
+d a context-conditioned centre correction while freezing the existing width predictor and retaining global CQR.
+
+REASONING: D001 rejects width amplification within the tested family, but does not establish that the learned widths ar
+e conditionally optimal. The combination of useful width–error correlations, weak FD003/FD004 gains, and substantial en
+gine heterogeneity makes unmodelled centre bias the most promising remaining hypothesis, although RMSE alone cannot est
+ablish it. For symmetric intervals, Winkler loss is \(2h+20(|y-c|-h)_+\) at 90% coverage, so predictable centre errors 
+can create large penalties that width rescaling cannot efficiently remove. Test engine-history information through the 
+centre first; conditioning the width would mix two mechanisms, while directly targeting conditional coverage adds assum
+ptions and cannot provide unrestricted distribution-free conditional guarantees ([Barber et al.](https://arxiv.org/abs/
+1903.04684)). Existing evidence supports this experiment, not a promise of improvement or TIM-level novelty.
+
+COUNTER-EVIDENCE: The hypothesis fails if history cannot predict signed residuals on held-out engines, or if correcting
+ those residuals fails to improve independently calibrated Winkler scores. If the constant-width comparator improves eq
+ually and adaptive intervals remain tied, the result supports better point prediction—not a stronger adaptive-interval 
+contribution.
+
+RISKS:
+
+- Context may encode trajectory length or future degradation information; use only observations available at prediction
+ time, never engine identity, eventual lifetime, or future samples.
+- Previously inspected engines remain development data; new seeds or reshuffled folds cannot create genuinely untouched
+ confirmation.
+- Centre correction may improve accuracy without establishing methodological novelty; publication ambition cannot subst
+itute for that evidence.
+
+NEXT ACTIONS:
+
+1. **DSH records D002 before execution:** append this decision and its gates to the decision log, update research state
+, and version a separate exploratory protocol without changing frozen production artifacts. Audit which engines or exte
+rnal cohorts, if any, remain genuinely untouched.
+2. **Freeze one implementation:** \(c'(x)=c(x)+b(z,H_{\le t})\), where \(H_{\le t}\) contains a fixed, compact set of o
+perating-condition-adjusted sensor levels and degradation slopes from the observed prefix. Fit a regularized correction
+ using engine-disjoint, out-of-fold signed residuals; freeze the original backbone and width head. Select regularizatio
+n inside development data only.
+3. **Run one paired experiment:** original/corrected centre × learned/constant width, with identical engine partitions,
+ training budgets, and separate calibration data. Recompute global calibration for each arm. Keep official test labels 
+inaccessible; retain the existing coverage-alignment procedure only as a secondary diagnostic.
+4. **Pre-register promotion:** on **each** of FD003 and FD004, require corrected-centre CQR to reduce engine-weighted W
+inkler by **at least 5%** against both original CQR and constant-width intervals using the corrected centre. Require si
+multaneous 95% confidence bounds to favour improvement, with engines—not windows, seeds, or overlapping folds—as the sa
+mpling units; require a predeclared coverage noninferiority margin of one percentage point.
+5. **Stop after this test:** promote only provisionally if evaluation reuses previously inspected engines; reserve conf
+irmation for genuinely untouched data. If the gate fails, close this hypothesis and conclude that current evidence does
+ not support the stronger FD003/FD004 claim. Do not reopen closed calibration routes or relabel a tie as improvement.
+DECISION: Test one hypothesis: missing causal engine-history context causes systematic centre errors on FD003/FD004; add a context-conditioned centre correction while freezing the existing width predictor and retaining global CQR.
+
+REASONING: D001 rejects width amplification within the tested family, but does not establish that the learned widths are conditionally optimal. The combination of useful width–error correlations, weak FD003/FD004 gains, and substantial engine heterogeneity makes unmodelled centre bias the most promising remaining hypothesis, although RMSE alone cannot establish it. For symmetric intervals, Winkler loss is \(2h+20(|y-c|-h)_+\) at 90% coverage, so predictable centre errors can create large penalties that width rescaling cannot efficiently remove. Test engine-history information through the centre first; conditioning the width would mix two mechanisms, while directly targeting conditional coverage adds assumptions and cannot provide unrestricted distribution-free conditional guarantees ([Barber et al.](https://arxiv.org/abs/1903.04684)). Existing evidence supports this experiment, not a promise of improvement or TIM-level novelty.
+
+COUNTER-EVIDENCE: The hypothesis fails if history cannot predict signed residuals on held-out engines, or if correcting those residuals fails to improve independently calibrated Winkler scores. If the constant-width comparator improves equally and adaptive intervals remain tied, the result supports better point prediction—not a stronger adaptive-interval contribution.
+
+RISKS:
+
+- Context may encode trajectory length or future degradation information; use only observations available at prediction time, never engine identity, eventual lifetime, or future samples.
+- Previously inspected engines remain development data; new seeds or reshuffled folds cannot create genuinely untouched confirmation.
+- Centre correction may improve accuracy without establishing methodological novelty; publication ambition cannot substitute for that evidence.
+
+NEXT ACTIONS:
+
+1. **DSH records D002 before execution:** append this decision and its gates to the decision log, update research state, and version a separate exploratory protocol without changing frozen production artifacts. Audit which engines or external cohorts, if any, remain genuinely untouched.
+2. **Freeze one implementation:** \(c'(x)=c(x)+b(z,H_{\le t})\), where \(H_{\le t}\) contains a fixed, compact set of operating-condition-adjusted sensor levels and degradation slopes from the observed prefix. Fit a regularized correction using engine-disjoint, out-of-fold signed residuals; freeze the original backbone and width head. Select regularization inside development data only.
+3. **Run one paired experiment:** original/corrected centre × learned/constant width, with identical engine partitions, training budgets, and separate calibration data. Recompute global calibration for each arm. Keep official test labels inaccessible; retain the existing coverage-alignment procedure only as a secondary diagnostic.
+4. **Pre-register promotion:** on **each** of FD003 and FD004, require corrected-centre CQR to reduce engine-weighted Winkler by **at least 5%** against both original CQR and constant-width intervals using the corrected centre. Require simultaneous 95% confidence bounds to favour improvement, with engines—not windows, seeds, or overlapping folds—as the sampling units; require a predeclared coverage noninferiority margin of one percentage point.
+5. **Stop after this test:** promote only provisionally if evaluation reuses previously inspected engines; reserve confirmation for genuinely untouched data. If the gate fails, close this hypothesis and conclude that current evidence does not support the stronger FD003/FD004 claim. Do not reopen closed calibration routes or relabel a tie as improvement.
+tokens used
+26,737

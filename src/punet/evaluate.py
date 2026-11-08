@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from .conformal import (BlockConformalCalibrator, StratifiedCalibrator, WeightedCalibrator, TwoComponentCalibrator)
+from .conformal import (BlockConformalCalibrator, StratifiedCalibrator, WeightedCalibrator,
+                        TwoComponentCalibrator, LocalizedCQRCalibrator)
 from .diagnostics import engine_bootstrap_ci, stratified_coverage
 from .metrics import engine_coverage, picp, pinaw, winkler
 
@@ -71,7 +72,8 @@ def evaluate_intervals(units, cutoffs, mu, y, y_hat, w, calib_mask, test_mask, d
     return result
 
 
-def evaluate_cqr_intervals(units, cutoffs, mu, y, q_lo, q_hi, calib_mask, test_mask, delta: float = 0.1):
+def evaluate_cqr_intervals(units, cutoffs, mu, y, q_lo, q_hi, calib_mask, test_mask, delta: float = 0.1,
+                           calibrate: bool = True, localized: bool = False):
     """Calibrate CQR on calib_mask and evaluate on test_mask."""
     from .cqr import CQRCalibrator
 
@@ -80,17 +82,32 @@ def evaluate_cqr_intervals(units, cutoffs, mu, y, q_lo, q_hi, calib_mask, test_m
     q_hi = np.asarray(q_hi, dtype=np.float64).reshape(-1)
     units = np.asarray(units).reshape(-1)
 
-    scores = CQRCalibrator.scores(y[calib_mask], q_lo[calib_mask], q_hi[calib_mask])
-    cal = CQRCalibrator(delta=delta).fit(scores)
-    lo, hi = cal.interval(q_lo[test_mask], q_hi[test_mask])
+    if calibrate and localized:
+        half_cal = (q_hi[calib_mask] - q_lo[calib_mask]) / 2.0
+        cal_l = LocalizedCQRCalibrator(delta=delta).fit(
+            CQRCalibrator.scores(y[calib_mask], q_lo[calib_mask], q_hi[calib_mask]), half_cal)
+        half_t = (q_hi[test_mask] - q_lo[test_mask]) / 2.0
+        lo, hi = cal_l.interval(q_lo[test_mask], q_hi[test_mask], half_t)
+        q_report = float(np.mean(cal_l.quantiles(half_t)))
+        mode = "localized_cqr"
+    elif calibrate:
+        scores = CQRCalibrator.scores(y[calib_mask], q_lo[calib_mask], q_hi[calib_mask])
+        cal = CQRCalibrator(delta=delta).fit(scores)
+        lo, hi = cal.interval(q_lo[test_mask], q_hi[test_mask])
+        q_report = cal.q_hat
+        mode = "cqr"
+    else:
+        lo, hi = q_lo[test_mask], q_hi[test_mask]
+        q_report = 0.0
+        mode = "qr_raw"
 
     y_t = y[test_mask]
     covered = ((y_t >= lo) & (y_t <= hi)).astype(float)
     cov = engine_coverage(units[test_mask], y_t, lo, hi)
     ci = engine_bootstrap_ci(units[test_mask], covered)
     out = {
-        "q_hat": cal.q_hat,
-        "calib": "cqr",
+        "q_hat": q_report,
+        "calib": mode,
         "n_calib": int(np.sum(calib_mask)),
         "n_test": int(np.sum(test_mask)),
         "picp": picp(y_t, lo, hi),

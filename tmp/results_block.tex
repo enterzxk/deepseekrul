@@ -1,0 +1,44 @@
+\section{Results}\label{sec:results}
+\input{paper_tables/main_table.tex}
+
+Table~\ref{tab:main} reports the four metrics on the four subsets. On FD002 the additive prior is the best single arm on all four metrics and is better than the plain backbone on five of five folds. On FD004 it wins RMSE and MAE but loses the asymmetric score to the plain backbone, and the paired interval crosses zero. Replacing the cycle coordinate by the estimated lifetime costs 1.09 cycles on FD002 and 1.39 on FD004, and rescaling the target costs 3.91 cycles on FD002.
+
+\subsection{Observation span as a first-order variable}
+
+The protocol fixes the window at 50 cycles. On the windows where a longer history exists, a 100-cycle window lowers the pooled error from 11.03 to 7.50 cycles on FD002 fold 2, and a 150-cycle window reaches 4.97 where it applies. Because a long window is only available once the engine has been observed long enough, we schedule the span to the available history: 50 cycles below 100 observed cycles, 100 cycles above. Both models are trained with the frozen budget.
+
+Across two seeds and five folds, the schedule reduces the pooled RMSE by 7.20 percent on FD002 (MAE 8.312 against 9.158, asymmetric score 3.179 against 3.649) and by 3.89 percent on FD004 (MAE 8.369 against 8.807, asymmetric score 8.682 against 9.943). The stratified interval is 5.53 percent with bounds [0.881, 0.589] cycles, and both subsets are negative for both seeds.
+
+Three controls attribute the gain to the span rather than to specialisation, parameter count or model count. A late-window specialist trained at the same 50-cycle window on the same late windows is worth 3.5 percent. A span control with identical parameter count, which samples 50 positions every second cycle over 100 cycles, is worth 12.8 percent. A three-seed ensemble of the 50-cycle reference, which has the same model count as the schedule, leaves the schedule ahead by 5.8 percent on the fold where both are measured.
+
+\subsection{A pre-registered tail guard}
+
+The schedule is not stable on the asymmetric score. In one seed and one fold a single engine is over-estimated by about 96 cycles; because the score grows exponentially on the over-estimation side, that engine alone contributes 14695 to a fleet mean of 313, against 23 for the reference. The maximum absolute error on that fold is the same for both arms, 124.6 against 124.5; only the sign differs.
+
+We therefore pre-registered a guard before computing any guarded result: when the two models disagree by more than 50 cycles, keep the short-window prediction. The value is about 3.7 times the typical FD004 error, and we report 30, 50 and 75 cycles as a sensitivity check. With the guard the asymmetric score on FD004 falls from 37.76 to 8.68, below the reference value of 9.94, while the RMSE improves from 2.92 to 3.89 percent. The gain is positive for every value in the sensitivity set.
+
+\subsection{What does not work}
+
+The span schedule changes how the measurement is taken. We tested nine model-side interventions with the same recipe, folds and metrics. Table~\ref{tab:neg} reports the single-fold screen against the 42k baseline on the same fold.
+
+\begin{table}[t]
+\centering
+\caption{Model-side interventions, single-fold screen. Only one cell is clearly positive, and it is on the arm that does not carry the prior.}
+\label{tab:neg}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Intervention & FD002 M0 & FD002 FULL & FD004 M0 & FD004 FULL \\
+\midrule
+Modules (+74k to +677k params) & +7.4\% & +24.9\% & -- & -- \\
+A monotonicity loss & +4.3\% & not run & -- & -- \\
+B pinball loss & $-$3.9\% & +0.1\% & +5.3\% & +5.8\% \\
+C lifetime reparameterisation & +13.8\% & +9.9\% & -- & -- \\
+D engine-level mixup & $-$9.1\% & +0.8\% & -- & -- \\
+DX mixup, inputs only & +3.5\% & +4.5\% & -- & -- \\
+E cross-sensor attention & +6.4\% & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three structural conclusions follow. First, the prior arm is saturated: every intervention that helps the no-prior arm returns to zero or reverses on the prior arm, because the zero-initialised injection of the lifetime statistics is itself a strong regulariser. Second, reducing degrees of freedom works on the no-prior arm while adding expressiveness never works, which is consistent with an effective sample size of 208 engines rather than 33k windows. Third, mixup only works when every input channel is mixed consistently: mixing the window and the label but keeping the original prior turns a 9.1 percent gain into a 3.5 percent loss.

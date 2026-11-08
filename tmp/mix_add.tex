@@ -1,0 +1,10 @@
+
+\subsection{Replacing the prior with mixup}
+
+The prior arm is not the strongest baseline on every fleet. On FD004 the plain backbone reaches an asymmetric score of 8.98 against 11.25 for the prior arm, so injecting the lifetime statistics helps the pooled error and hurts the tail. This suggests replacing the prior with a regulariser that acts on the model rather than on its input.
+
+Engine-level mixup does exactly that, with no additional parameters. Two windows from different engines are combined as $\lambda x_i+(1-\lambda)x_j$ with $\lambda\sim\mathrm{Beta}(0.2,0.2)$, and the label, the auxiliary inputs and the prior vector are combined the same way. On its own, mixup brings the plain backbone to parity with the prior arm on FD002 (+0.3 percent) and ahead of it on FD004 (1.7 percent), with the asymmetric score falling from 11.25 to 7.00.
+
+Combined with the span schedule and the guard, the same model reaches 11.998 on FD002 and 12.170 on FD004, against 13.054 and 13.253 for the prior arm: 8.09 and 8.18 percent, with the stratified interval at 8.13 percent and bounds [1.366, 0.768] cycles. All four metrics improve on both fleets, and the FD004 asymmetric score falls from 11.25 to 7.38.
+
+The three devices act on different parts of the problem and the gains do not simply add. Mixup alone is worth 0.3 percent, the span schedule with the guard is worth 6.2 percent, and together they are worth 8.1 percent. Mixup reduces the variance of both the short and the long-window models, the schedule exploits the longer history where it exists, and the guard removes the residual tail.

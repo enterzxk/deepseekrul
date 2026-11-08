@@ -1,0 +1,25 @@
+results: observation-span schedule — two-seed C-MAPSS evidence and open NASA-tail issue
+
+New mechanism (protocol amendment 8.6): the 50-cycle observation window is a convention,
+not a data requirement. On windows where a longer history exists, a 100-cycle window lowers
+the pooled error from 11.03 to 7.50 cycles. The schedule selects the model by available
+history: 50 cycles below 100 observed cycles, 100 cycles above.
+
+FULL arm, five engine-disjoint folds per seed:
+  seed 101  FD002 -6.63%  FD004 -4.10%
+  seed 202  FD002 -7.89%  FD004 -1.81%
+  two-seed pooled FD002 -7.27%  FD004 -2.92%
+  stratified bootstrap -5.08% [-0.897, -0.392]
+
+Three controls attribute the gain to the span: late-window specialisation -3.5%,
+equal-parameter span control -12.8%, equal-compute three-seed ensemble -5.8%.
+A non-causal isotonic smoother (-12.5%) was identified as leakage and excluded; the
+causal version is worth -2.5%.
+
+Open issue: the asymmetric (NASA) score on FD004 degrades from 9.94 to 37.76 in the
+two-seed pool, driven by three engines (96% of the total) on seed 202. This is the only
+A-gate clause that fails; RMSE, MAE and bias all improve on both subsets for both seeds.
+
+tim_20261105_full/ is the analysis package: protocol, decision, results, schedule,
+ablations, measurement conditions, per-engine predictions, paper tables and figures,
+manuscript skeleton, and a README written for an external reviewer.

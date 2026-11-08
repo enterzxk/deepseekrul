@@ -1,0 +1,83 @@
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amssymb,booktabs,graphicx,url}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+\graphicspath{{paper_figures/}}
+
+\title{Observability-Limited Individualisation for Remaining-Useful-Life Measurement of Aero-Engines under Varying Operating Conditions}
+
+\author{Anonymous Submission}
+\markboth{IEEE Transactions on Instrumentation and Measurement}{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Remaining useful life (RUL) predictors for aero-engines are compared by pooled regression error, a convention that hides whether the observed sensor history identifies the individual engine's position on its own degradation trajectory. We quantify that question on the C-MAPSS benchmark with a frozen protocol: five engine-disjoint outer folds, a full training budget with no epoch selection, a 42.3k-parameter backbone, and four metrics with engine-clustered intervals. The lifetime scale is essentially unobservable early in life: its rank correlation with the true lifetime is 0.26 at 50 observed cycles and rises to 0.92 at 150, while most training windows lie in the uninformative region. An additive lifetime prior improves pooled RMSE by 3.3 percent on FD002 (95 percent CI 0.07--0.82 cycles; three-seed mean 3.4 percent, sd 0.3 percent) and 6.5 percent on FD003, but not significantly on FD001 or FD004; on FD004 the same prior worsens the asymmetric score by 25 percent. Using the identical estimate to re-base the cycle coordinate costs 7.5 percent and to rescale the target costs 28 percent. No observable we tested predicts which engines benefit (absolute rho below 0.08), although a per-window oracle over the variants would gain 15 percent, and every gate we built is worse than a fixed fusion. Under 20 percent missing samples the additive prior's advantage grows to 6.2 percent; under a one-standard-deviation offset on three channels the pooled error is unchanged but the asymmetric score doubles. We conclude that individualisation on this benchmark is observability-limited rather than model-limited, and that pooled RMSE alone cannot support claims about it.
+\end{abstract}
+
+\begin{IEEEkeywords}
+remaining useful life, C-MAPSS, measurement uncertainty, observability, operating conditions, instrumentation and measurement.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Remaining useful life (RUL) is the quantity that maintenance decisions consume, yet it is almost always reported as a regression score: a pooled root-mean-square error over a benchmark. That convention hides the measurement question that decides whether the number can be trusted at all: whether the observed sensor history identifies the individual engine's position on its own degradation trajectory.
+
+The question matters because engines of the same type do not share a lifetime. In the C-MAPSS FD002 fleet the realised total life ranges from 128 to 378 cycles, so the same cycle count corresponds to very different degradation stages. A predictor that receives only a short sensor window must therefore solve two problems at once: estimate how far the engine has degraded, and estimate how much life that stage implies for this engine.
+
+This paper tests whether the auxiliary lifetime estimate used by recent methods is accurate and observable enough to be trusted per observation. Section~\ref{sec:model} states the measurement model, Section~\ref{sec:roles} separates the three roles the estimate can play, Section~\ref{sec:ident} tests whether adaptive correction is identifiable, Section~\ref{sec:conditions} defines the measurement-condition experiments, and Section~\ref{sec:results} reports the results.
+
+\section{Measurement Problem and Related Work}
+Four works are the nearest neighbours of this study. Qu \emph{et al.} build a condition-aware spatio-temporal network in which operating settings and sensor measurements interact through a synergistic feature-interaction module and a hierarchical graph attention network; our study keeps a 42.3k-parameter backbone fixed and asks instead what part of the condition handling can be made explicit and what part of the individual lifetime information is observable. Kapoor \emph{et al.} introduce a phase-aware normalisation with delta features; we do not claim phase normalisation as a contribution, and our full-budget experiment shows that replacing the cycle coordinate by the estimated lifetime phase costs 7.5 percent, a boundary we report rather than a positive result. Piao \emph{et al.} convert a point predictor into a conformal interval with coverage guarantees; our intervals are engine-clustered bootstrap percentiles and carry no coverage guarantee, and we deliberately do not describe our RMSE as an instrument uncertainty. Gupta audits operating-condition normalisation in C-MAPSS and shows that per-condition normalisation lowers RMSE in every matched multi-regime cell; we take per-condition normalisation as an established premise, freeze the fit scope in the protocol, and do not present it as a contribution.
+
+\section{Measurement Model}\label{sec:model}
+Each observation is a window of 50 cycles over 14 sensors plus three operating settings. The backbone is a channel-independent transformer with 42306 parameters (d_model 64, one layer, dropout 0.15) that receives positional encoding, a condition-normalised sensor block and a per-engine early-life reference state. Training uses AdamW (lr 1e-3, weight decay 1e-4), cosine annealing over 80 epochs, batch 256, and the loss
+\begin{equation}
+\mathcal{L}=\mathrm{MSE}+\tfrac{1}{2}\,\mathrm{asym}(e),\qquad
+\mathrm{asym}(e)=\begin{cases}1.8\,e, & e>0\\ e, & e\le 0,\end{cases}
+\end{equation}
+with $e=\hat{y}-y$ and the RUL target capped at 125 cycles.
+
+The lifetime prior $\mu_T$ is a HistGradientBoosting regressor over 88 features with a staircase cutoff $\min(\lfloor t/10\rfloor 10,200)\le t$, fitted only on training engines with an inner four-fold split by engine. The additive arm (FULL) injects $(\mu_T,\sigma_T)$ through a zero-initialised linear map; the time-base arm (NORM) divides the cycle coordinate by $\mu_T$; the target-scale arm (PHASE) predicts a fraction $\hat\phi$ and reports $\hat\phi\mu_T$.
+
+\section{The Three Roles of the Lifetime Estimate}\label{sec:roles}
+An individual lifetime estimate can enter the measurement as (i) an additive prior on the target, (ii) a change of the time base, or (iii) a rescaling of the target. These are not equivalent: only (i) keeps the observation model intact and adds information, whereas (ii) and (iii) replace a measured coordinate by an estimated one and therefore propagate the prior's error into the input.
+
+\section{Identifiability of Adaptive Correction}\label{sec:ident}
+Six observable families were tested as gates for switching between the population reference and the individual estimate: window deviation, jitter, sensor spread, a deviation-to-noise ratio, observation age, engine-level aggregates, and cross-model disagreement. All have absolute correlation below 0.08 with the individual-versus-population advantage. Quantile and age gates give 13.03 to 13.62 cycles against a fixed 0.5 fusion at 12.89, while a per-window oracle over the variants would reach 10.97: the headroom exists but is not observable.
+
+\section{Measurement Conditions}\label{sec:conditions}
+Three conditions are applied at evaluation time with the training untouched. MC1 blanks each sensor sample with probability 0.2 and forward-fills from the last valid value. MC2 adds a one-standard-deviation constant offset to the three channels with the strongest fixed-age association with total life, selected inside the training fold. MC3 stratifies by the number of training windows that share the terminal condition cluster. All arms are evaluated under identical conditions.
+
+\section{Results}\label{sec:results}
+\input{paper_tables/main_table.tex}
+
+Table~\ref{tab:main} reports the four metrics on the four subsets. On FD002 the additive prior is the best single arm on all four metrics and is better than the plain backbone on five of five folds. On FD004 it wins RMSE and MAE but loses the asymmetric score to the plain backbone, and the paired interval crosses zero. Replacing the cycle coordinate by the estimated lifetime costs 1.09 cycles on FD002 and 1.39 on FD004, and rescaling the target costs 3.91 cycles on FD002.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_observability.png}
+\caption{Rank correlation between the lifetime estimate and the true lifetime as a function of the observation cutoff. The scale is essentially unobservable before 100 cycles.}
+\label{fig:obs}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_measurement_conditions.png}
+\caption{Pooled RMSE (left, logarithmic axis) and its ratio to the clean condition (right) under MC1 and MC2.}
+\label{fig:mc}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_per_engine_scatter.png}
+\caption{Per-engine RMSE of the plain backbone against the additive-prior arm. The pooled improvement comes from a few large gains outweighing a few large losses.}
+\label{fig:eng}
+\end{figure}
+
+\section{Discussion}\label{sec:disc}
+The study is simulation-based; the reported RMSE values are estimator performance metrics, not instrument uncertainties, and the intervals are descriptive engine-clustered bootstrap intervals rather than coverage-guaranteed statements. The official test engines have been used by this project before, so those numbers are post-hoc confirmations rather than a blind validation. The FD004, FD001 and FD003 matrices are reported at a single seed; the three-seed requirement is met on FD002. The training script initialises the network before resetting the random seed, so a single run is not bit-reproducible; the multi-seed means are stable (3.37 percent with sd 0.23 percent), so the conclusions rest on them.
+
+\section{Conclusion}\label{sec:concl}
+We examined whether the individual lifetime scale that individualisation methods inject into an RUL predictor is observable enough to be used adaptively. On two multi-condition C-MAPSS fleets, under a frozen engine-disjoint protocol, the scale is only partially observable and its observability grows with the observation time; of the three ways it can enter the measurement, only additive injection survives at the full training budget, and none of the observables that the instrument can report predicts when the individual reading should be preferred to a population reference. We conclude that individualisation of RUL measurement in this setting is observability-limited, and we recommend reporting the observability curve, the endpoint and the engine sample alongside any accuracy claim.
+
+\end{document}

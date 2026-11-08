@@ -1,0 +1,18 @@
+manuscript: rewrite for the current method after a strict TIM review
+
+A reviewer subagent was run against the old draft and returned Reject. The findings were
+verified one by one and most held: zero citations, the span-schedule paragraph quoting the
+final-candidate number (9.44 instead of 3.89), the main table missing the headline arm,
+the conclusion not mentioning the main result, and a bootstrap that clustered by
+engine-times-seed instead of by engine.
+
+The bootstrap was recomputed with the engine as the resampling unit, carrying all seeds of
+a resampled engine together. FD002 has 260 clusters rather than 520 and FD004 has 249
+rather than 498; the stratified interval moves from [-1.524, -1.069] to [-1.550, -1.043],
+so the correction is real but the effect size survives it.
+
+The manuscript is now written for this method rather than patched onto the previous
+skeleton: new title, introduction built on the observation-span question, six references
+with DOIs taken from the verified novelty matrix, a main table with all four arms and the
+headline row, three figures, a scope subsection, and a conclusion that states the result.
+Multiplicity is now discussed explicitly.

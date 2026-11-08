@@ -1,0 +1,37 @@
+You are the L2 research decision reviewer for this project. Give a clear decision, not a hedge.
+
+PROJECT: IEEE TIM paper on conformal RUL intervals for C-MAPSS turbofan engines.
+
+METHOD: end-to-end conditional quantile regression + CQR calibration. Backbone trained on pinball(0.05)+pinball(0.95)+0.1*MSE. Half-width head s=softplus(g(z))>=0, interval [c-s, c+s]. Then CQR: q_hat = Quantile(E_i), interval [q_lo-q_hat, q_hi+q_hat].
+
+REAL RESULTS (all actually run):
+- 4 subsets (FD001-FD004) x 5 folds x 2 seeds = 40 cells, plus 2 more seeds (79/80 done)
+- Nominal level (delta=0.1): CQR vs same-training constant-width baseline, 19/20 folds won, median -8.7%
+- Matched coverage 0.90: CQR vs constant width 29/40 (72%) won, median -8.4%
+- Per subset at matched coverage: FD001 -8.7%, FD002 -14.4%, FD003 -1.6%, FD004 -0.8%
+- Cross-domain FEMTO bearings (6 bearings): CQR vs constant width 5/6 won, mean -12.2%
+- Per-engine minimum coverage 0.50-0.71 while marginal coverage is 0.90
+- A4 ablation permuting prior sigma_T: +0.2% mean over 20 folds (no effect)
+
+ALREADY TRIED AND FAILED (real experiments):
+- Asymmetric calibration (separate lower/upper quantiles): 9 ratios swept, optimum is exactly symmetric, no gain
+- Stratified/Mondrian calibration by predicted RUL and by sigma_T (3/5/10 bins): all worse than global (+2% to +18%)
+- Engine-level calibration (guarantee 90% of engines reach target): equivalent to simply widening the interval at matched marginal coverage (0.768 vs 0.770)
+- Seed ensembling: n=2 helps (-6.0% -> -8.3%), n=4 degrades (-6.4%)
+- Localized CQR (kernel on learned half-width): no gain on 40 cells, 11.7% worse on FD003
+
+DIAGNOSTIC: the width head is working (coefficient of variation 0.33-0.44, correlation with |error| 0.25-0.42 on all subsets). FD003 has HIGHER correlation (0.352) than FD001 (0.253) yet almost no gain. Hypothesis: width variation is too small relative to the conformal quantile q_hat, which washes it out.
+
+CONSTRAINT: the user refuses to publish negative results and wants continued optimization for a positive contribution.
+
+DECISION NEEDED:
+A. Change the training loss to a normalized pinball (Laplace NLL form): L = rho_0.05(q_lo,y)/s + rho_0.95(q_hi,y)/s + lambda*log(s). Mechanism: force s to be proportional to residual scale. Cost: retrain 40 cells x 1 seed ~2 hours. Uncertain payoff on FD003/FD004.
+B. Accept the current scope: FD001/FD002 clear gains, FD003/FD004 ties; overall 29/40, median -8.4%, cross-domain 5/6. Write the subset dependence as scope of applicability.
+C. Something else you think is better.
+
+Answer with exactly these sections:
+DECISION: <A, B, or C with one-line description>
+REASONING: <3-5 sentences>
+COUNTER-EVIDENCE: <what would make this decision wrong>
+RISKS: <2-3 bullets>
+NEXT ACTIONS: <numbered, concrete, executable>
