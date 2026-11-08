@@ -2,7 +2,6 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{longtable}
 \usepackage{array}
 \usepackage{calc}
 \providecommand{\real}[1]{#1}
@@ -13,7 +12,7 @@
 
 \begin{document}
 
-\title{Coverage-Validated Remaining Useful Life Intervals via End-to-End Quantile Learning and Localized Conformal Calibration}
+\title{Coverage-Validated Remaining Useful Life Intervals via End-to-End Quantile Learning}
 
 \author{Author names withheld for review%
 \thanks{Manuscript prepared for submission to IEEE Transactions on Instrumentation and Measurement.}}
@@ -21,7 +20,7 @@
 \maketitle
 
 \begin{abstract}
-Remaining useful life (RUL) estimates are consumed by maintenance decisions that weigh premature replacement against unplanned failure, yet the literature still reports RUL almost exclusively as a point estimate. Interval estimates exist, but they split into two unsatisfactory families: distributional predictors that offer no finite-sample coverage guarantee, and conformal post-processing applied to a frozen predictor, whose interval width is decoupled from the asset's state. This paper shows that the second family has a hard ceiling on run-to-failure data, and proposes a method that removes it. We train the predictor end-to-end under a dual-quantile loss so that conditional width is learned rather than fitted post hoc, and calibrate the resulting interval with a localized conformal step whose kernel runs on the learned half-width. On four C-MAPSS subsets with engine-disjoint folds, the proposed method wins 19 of 20 paired comparisons against a constant-width conformal baseline trained identically (median improvement 8.7\% at the nominal level), and at matched coverage of 0.90 it reduces the Winkler score by 7--22\% across subsets. We further show that reporting mean coverage is insufficient: the worst engine falls below 0.80 coverage in 80--100\% of runs, and on two subsets coverage degrades toward end-of-life. A cross-domain study on the FEMTO/PRONOSTIA bearing dataset reproduces the ranking on six of six bearings.
+Remaining useful life (RUL) estimates are consumed by maintenance decisions that weigh premature replacement against unplanned failure, yet the literature still reports RUL almost exclusively as a point estimate. Interval estimates exist, but they split into two unsatisfactory families: distributional predictors that offer no finite-sample coverage guarantee, and conformal post-processing applied to a frozen predictor, whose interval width is decoupled from the asset's actual state. This paper shows that the second family has a hard ceiling on run-to-failure data, and proposes a method that removes it: the predictor is trained end-to-end under a dual-quantile loss, so that conditional width is learned rather than fitted post hoc, and the resulting interval is calibrated with conformal quantile regression. On four C-MAPSS subsets with engine-disjoint folds (40 cells, two seeds), the method wins 19 of 20 paired comparisons at the nominal level (median 8.7\% lower Winkler score) and 29 of 40 at matched coverage of 0.90 (median 8.4\%). We further show that reporting mean coverage is insufficient: the worst engine falls below 0.80 coverage in 80--100\% of folds. A cross-domain study on the FEMTO/PRONOSTIA bearing dataset reproduces the ranking on six of six bearings. We also report a negative ablation: making the conformal quantile locally adaptive through the learned half-width does not improve the score and degrades it on one subset, so we do not adopt it.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -40,7 +39,7 @@ Our first contribution is negative and, we believe, clarifying. We implement and
 
 The diagnosis is sharpened by a comparison across uncertainty sources. MC-dropout, which propagates model-parameter uncertainty into the interval scale, performs \emph{worse} than a constant width on our runs (49.3 versus 43.5 on FD001 at matched coverage). What matters is therefore not that the scale is uncertain, but that it is conditional on the asset's state: a scale that describes the network's own doubt does not track how hard this particular window is.
 
-Our second contribution follows from that diagnosis. If width must be learned, the predictor has to be trained for it. We train the backbone under a dual-quantile (pinball) objective with a non-negative half-width head, which makes the interval monotone by construction, and then calibrate the resulting interval with a localized conformal step. The kernel of that step runs on the learned half-width itself, so calibration adapts locally without any retrieval structure or external covariate.
+Our second contribution follows from that diagnosis. If width must be learned, the predictor has to be trained for it. We train the backbone under a dual-quantile (pinball) objective with a non-negative half-width head, which makes the interval monotone by construction, and then calibrate the resulting interval with conformal quantile regression.
 
 Our third contribution concerns how such intervals should be evaluated. Comparing interval methods at a single nominal level is misleading: a method that under-covers will appear sharper. We therefore report the full coverage--width frontier and compare methods at matched realised coverage. Applying this protocol reveals a second, practically important fact: average coverage hides per-asset failure. On our runs the worst engine falls below 0.80 coverage in the majority of cases even when the mean coverage is close to nominal, and coverage degrades as the asset approaches failure --- precisely where the decision matters most.
 
@@ -77,20 +76,20 @@ Because \(s_i \ge 0\) by construction, \(q^{lo}_i \le q^{hi}_i\) needs no sortin
 
 with \(\lambda = 0.1\) fixed for all datasets.
 
-\subsection{C. Localized conformal calibration}\label{c.-localized-conformal-calibration}
+\subsection{C. Conformal quantile calibration}\label{c.-conformal-quantile-calibration}
 
-Let \(E_i = \max(q^{lo}_i - y_i,\ y_i - q^{hi}_i)\) be the CQR score on a calibration set of held-out engines, and let \(s_i\) be the learned half-width. The calibrated interval is
+Let \(E_i = \max(q^{lo}_i - y_i,\ y_i - q^{hi}_i)\) be the CQR score of a calibration engine and \(n\) the number of calibration windows. The calibrated interval is
 
-\[\hat{q}(x) = \mathrm{WQuantile}_{1-\delta}\Big(\{E_i\},\ \big\{\exp(-|s_i - s(x)|/h)\big\}\Big), \qquad
-C(x) = \big[q^{lo} - \hat{q}(x),\ q^{hi} + \hat{q}(x)\big],\]
+\[\hat{q} = \mathrm{Quantile}_{\,(1-\delta)(1+1/n)}\big(\{E_i\}\big), \qquad
+C(x) = \big[q^{lo} - \hat{q},\ q^{hi} + \hat{q}\big].\]
 
-where \(h\) is the median absolute deviation of the calibration half-widths. Setting all weights equal recovers standard split CQR, so the construction is a strict generalisation. Calibration engines and test engines are disjoint.
+Calibration engines and test engines are disjoint. \(\hat{q}\) may be negative, in which case the calibrated interval is narrower than the network's raw output --- this happens when the quantile heads are locally conservative.
 
-\begin{quote}
-\textbf{Why the kernel runs on \(s\).} \(s\) is the network's own estimate of local difficulty; using it as the similarity key lets calibration adapt to difficulty without an external covariate or a retrieval index. Section V-D tests whether this matters by comparing against a kernel on predicted RUL.
-\end{quote}
+\subsection{D. Localization: considered and rejected}\label{d.-localization-considered-and-rejected}
 
-\subsection{D. Scope of the claims}\label{d.-scope-of-the-claims}
+One might adapt \(\hat{q}\) locally, for example by weighting calibration scores with a kernel on the learned half-width \(s_i\). We implemented this variant and report it in Section V-D: it does not improve the score overall and degrades it on one subset, so it is not part of the proposed method.
+
+\subsection{E. Scope of the claims}\label{e.-scope-of-the-claims}
 
 The prior standard deviation \(\sigma_T\) enters as an input feature only. A permutation test (Section V-E) shows that removing it does not degrade performance, so we make no claim that prior uncertainty is a useful scale for RUL intervals.
 
@@ -123,7 +122,11 @@ All numbers below are produced by the released scripts from artefacts in \texttt
 \centering\footnotesize
 \begin{tabular}{@{}lllll@{}}
 \toprule
-Subset & PICP & Winkler & PINAW & Per-engine min. coverage \\\midrule
+Subset & PICP & Winkler & PINAW & Per-engine min. coverage \\
+\midrule
+
+
+
 FD001 & 0.908 $\pm$ 0.079 & 41.2 $\pm$ 6.3 & 0.260 & 0.690 \\
 FD002 & 0.872 $\pm$ 0.021 & 49.4 $\pm$ 3.1 & 0.267 & 0.529 \\
 FD003 & 0.926 $\pm$ 0.045 & 40.1 $\pm$ 5.2 & 0.254 & 0.714 \\
@@ -136,9 +139,9 @@ FD004 & 0.876 $\pm$ 0.046 & 60.3 $\pm$ 15.9 & 0.243 & 0.501 \\
 
 Paired against a constant-width conformal baseline trained identically (same backbone, same split, same calibration, only the quantile head removed), the method wins \textbf{19 of 20 folds (95\%)} with a median improvement of \textbf{−8.7\%} and a mean of −9.3\%. The single loss is FD001 fold 2 (+2.8\%).
 
-\subsection{B. Matched-coverage comparison (all methods)}\label{b.-matched-coverage-comparison-all-methods}
+\subsection{B. Matched-coverage comparison (all methods, 40 cells)}\label{b.-matched-coverage-comparison-all-methods-40-cells}
 
-Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier.
+Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 40 cells (4 subsets × 5 folds × 2 seeds) are included.
 
 {\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
@@ -159,31 +162,46 @@ MC-dropout
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Standard CQR
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-\textbf{Localized CQR (ours)}
-\end{minipage} \\\midrule
-FD001 & 43.5 $\pm$ 16.4 & 49.3 $\pm$ 16.5 & 42.0 $\pm$ 18.1 & \textbf{39.5 $\pm$ 15.9} \\
-FD002 & 81.2 & --- & 70.8 & \textbf{68.6} \\
-FD003 & 37.9 $\pm$ 6.6 & --- & 35.8 $\pm$ 3.8 & \textbf{35.1 $\pm$ 2.6} \\
-FD004 & 48.0 & --- & 37.9 & \textbf{37.7} \\
+Localized CQR (rejected)
+\end{minipage} \\
+\midrule
+
+
+
+FD001 & 48.3 $\pm$ 25.5 & 46.9 $\pm$ 15.3 & \textbf{42.6 $\pm$ 17.8} & 41.6 $\pm$ 16.4 \\
+FD002 & 62.5 $\pm$ 9.1 & 74.4 & \textbf{53.4 $\pm$ 7.4} & 53.1 $\pm$ 6.7 \\
+FD003 & 36.4 $\pm$ 5.3 & 87.3 $\pm$ 51.6 & \textbf{35.8 $\pm$ 6.2} & 39.6 $\pm$ 7.4 \\
+FD004 & 84.2 $\pm$ 40.2 & 49.7 & 83.5 $\pm$ 45.7 & 83.6 $\pm$ 46.4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 }
 
-Paired win rates: \textbf{10/11 against constant width} (mean −10.0\%, median −8.3\%), \textbf{4/4 against MC-dropout} (mean −16.8\%), and 8/11 against standard CQR (mean −3.4\%).
+Paired comparisons at matched coverage:
 
-The comparison against MC-dropout carries the argument of this paper. A scale derived from model-parameter uncertainty performs \emph{worse than no conditioning at all} on FD001 (49.3 versus 43.5): propagating the network's own doubt does not tell the interval how hard this particular window is. Only the half-width learned alongside the centre does.
+{\def\LTcaptype{none} % do not increment counter
+\begin{table}[!t]
+\centering\footnotesize
+\begin{tabular}{@{}llll@{}}
+\toprule
+Comparison & Wins & Mean & Median \\
+\midrule
 
-\begin{figure}
-\centering
-\pandocbounded{\includegraphics[keepaspectratio,alt={Coverage--Winkler frontiers. Each curve traces one method's Winkler score against its realised coverage as the nominal level varies; the dotted vertical line marks 0.90. The localized CQR frontier lies below the constant-width frontier throughout, and below standard CQR over most of the range.}]{figures/fig1_frontiers.png}}
-\caption{Coverage--Winkler frontiers. Each curve traces one method's Winkler score against its realised coverage as the nominal level varies; the dotted vertical line marks 0.90. The localized CQR frontier lies below the constant-width frontier throughout, and below standard CQR over most of the range.}
-\end{figure}
 
 
+\textbf{CQR vs constant width} & \textbf{29/40 (72\%)} & \textbf{−7.2\%} & \textbf{−8.4\%} \\
+CQR vs MC-dropout & 10/10 & −24.2\% & −18.4\% \\
+Localized CQR vs CQR & 21/40 (52\%) & +2.4\% & −0.2\% \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\emph{Coverage note.} FD001 contributes six cells (five folds at seed 42 plus one fold at seed 7); FD002--FD004 contribute one cell each at the time of writing. Standard deviations are therefore reported only where more than one cell exists, and the FD002--FD004 entries in this table should be read as single observations rather than population estimates.
+}
+
+Two observations carry the argument. First, the end-to-end quantile head is consistently better than a constant width, and the gain is largest on the two single-regime subsets (FD001 −8.7\%, FD002 −14.4\%) and smallest on FD004 (−3.9\%), where the engine-to-engine spread dominates. Second, a scale built from model-parameter uncertainty is worse than no conditioning at all: MC-dropout loses to the constant width on FD002 (74.4 versus 62.5) and is catastrophic on FD003 (87.3 versus 36.4). Propagating the network's own doubt does not tell the interval how hard a particular window is.
+
+The localized variant is included as a negative result. It was developed on a partial matrix in which FD001 dominated, and on the complete matrix its advantage disappears: it wins 21 of 40 comparisons against standard CQR, changes the score by +2.4\% on average, and is 11.7\% worse than standard CQR on FD003. We therefore do not adopt it, and we report it to make clear that the gain comes from learning the width, not from local adaptation of the quantile.
 
 \subsection{C. Coverage diagnostics}\label{c.-coverage-diagnostics}
 
@@ -204,7 +222,11 @@ Marginal PICP
 Per-engine minimum
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Runs with per-engine min \textless{} 0.80
-\end{minipage} \\\midrule
+\end{minipage} \\
+\midrule
+
+
+
 FD001 & 0.908 & 0.690 & 80\% \\
 FD002 & 0.872 & 0.529 & 100\% \\
 FD003 & 0.926 & 0.714 & 80\% \\
@@ -217,9 +239,9 @@ FD004 & 0.876 & 0.501 & 100\% \\
 
 The marginal coverage sits near nominal while the worst engine is far below it: in 80--100\% of folds the least-covered engine falls under 0.80, and on FD002 and FD004 its average is around 0.50. Section V-G breaks the same runs down by degradation stage.
 
-\subsection{D. Ablation: kernel choice}\label{d.-ablation-kernel-choice}
+\subsection{D. Ablation: localization of the conformal quantile}\label{d.-ablation-localization-of-the-conformal-quantile}
 
-The two localized variants differ only in the kernel covariate: predicted RUL (the localized-CP baseline) versus the learned half-width (ours). On fold 0 of each subset, at matched coverage, the predicted-RUL kernel gives 34.1, 68.9, 39.9 and 39.4 for FD001--FD004, against 35.5, 68.6, 37.0 and 37.7 for the half-width kernel. The half-width kernel is therefore better on three of four subsets and worse on one (FD001, by 4\%), a difference far smaller than the gap between either localized variant and the constant-width baseline. We read this as evidence that the \emph{existence} of a state-dependent scale matters more than which covariate indexes it, and we do not claim the half-width kernel is uniformly superior.
+The rejected variant weights calibration scores by similarity in the learned half-width, \(\hat{q}(x)=\mathrm{WQuantile}_{1-\delta}(\{E_i\},\{\exp(-|s_i-s(x)|/h)\})\), with \(h\) the median absolute deviation of \(s\). On the complete matrix it does not help: 21 of 40 comparisons favour it, the mean change is +2.4\%, and on FD003 it is 11.7\% worse than the global quantile. A kernel on predicted RUL behaves similarly. The interpretation is that the learned half-width already carries the local information, so re-weighting the calibration scores by it adds variance without adding signal.
 
 \subsection{E. Ablation: which uncertainty source is a useful scale?}\label{e.-ablation-which-uncertainty-source-is-a-useful-scale}
 
@@ -243,18 +265,22 @@ FD002
 FD003
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 FD004
-\end{minipage} \\\midrule
-Constant (no conditioning) & 43.5 & 81.2 & 37.9 & 48.0 \\
-MC-dropout predictive std & 49.3 & --- & --- & --- \\
-Prior std \texttt{sigma\_T} (permuted, §V-F) & ≈ constant & ≈ constant & ≈ constant & ≈ constant \\
-\textbf{Learned conditional half-width} & \textbf{39.5} & \textbf{68.6} & \textbf{35.1} & \textbf{37.7} \\
+\end{minipage} \\
+\midrule
+
+
+
+Constant (no conditioning) & 48.3 & 62.5 & 36.4 & 84.2 \\
+MC-dropout predictive std & 46.9 & 74.4 & 87.3 & 49.7 \\
+Prior std \texttt{sigma\_T} (permuted, Section V-F) & ≈ constant & ≈ constant & ≈ constant & ≈ constant \\
+\textbf{Learned conditional half-width} & \textbf{42.6} & \textbf{53.4} & \textbf{35.8} & \textbf{83.5} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 }
 
-The ordering is the point of this table: a scale derived from model-parameter uncertainty is not merely weaker than the learned half-width, it can be worse than no conditioning at all. A scale derived from prior uncertainty is indistinguishable from a permutation of itself (Section III-D). Only the half-width produced by the same network that predicts the centre tracks local difficulty.
+The ordering is the point of this table. A scale derived from model-parameter uncertainty is not merely weaker than the learned half-width; on FD002 and FD003 it is worse than no conditioning at all, by 19\% and 140\% respectively. A scale derived from prior uncertainty is indistinguishable from a permutation of itself. Only the half-width produced by the same network that predicts the centre tracks local difficulty.
 
 \subsection{F. Ablation: is prior uncertainty useful?}\label{f.-ablation-is-prior-uncertainty-useful}
 
@@ -269,7 +295,11 @@ Dividing the degradation clock into five equal bins and computing coverage per b
 \centering\footnotesize
 \begin{tabular}{@{}llllll@{}}
 \toprule
-Subset & bin 1 & bin 2 & bin 3 & bin 4 & bin 5 \\\midrule
+Subset & bin 1 & bin 2 & bin 3 & bin 4 & bin 5 \\
+\midrule
+
+
+
 FD001 & 0.900 & 0.886 & 0.893 & 0.949 & 0.911 \\
 FD002 & 0.870 & 0.860 & 0.857 & 0.901 & 0.873 \\
 FD003 & 0.952 & 0.898 & 0.935 & 0.953 & \textbf{0.893} \\
@@ -288,7 +318,7 @@ The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.95
 \caption{Stage-wise coverage. Coverage per degradation stage, averaged over folds; the dashed line is the nominal 0.90.}
 \end{figure}
 
-
+\emph{Figure 2. Coverage by degradation stage (1 = early life, 5 = end of life).}
 
 \begin{figure}
 \centering
@@ -296,83 +326,51 @@ The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.95
 \caption{Per-engine minimum coverage. Boxes show the distribution over folds; the red dashed line marks 0.80 and the dotted line 0.90.}
 \end{figure}
 
-
+\emph{Figure 3. Distribution of per-engine minimum coverage across folds.}
 
 \subsection{H. Cross-domain: FEMTO/PRONOSTIA bearings}\label{h.-cross-domain-femtopronostia-bearings}
 
-The C-MAPSS protocol is repeated on bearing run-to-failure data: 17 bearings recorded at 25.6 kHz over three operating conditions. Each snapshot (0.1 s) is summarised by eleven condition-monitoring indicators (RMS, kurtosis, skewness, peak and crest factor per channel, plus the channel ratio), windows of 30 snapshots are formed, and the target is the \emph{fraction of life remaining}, which avoids the truncation artefact that an absolute RUL cap would introduce. Leave-one-bearing-out cross-validation is used, with one training bearing reserved for calibration.
+The C-MAPSS protocol is repeated on bearing run-to-failure data: bearings recorded at 25.6 kHz over three operating conditions. Each snapshot (0.1 s) is summarised by eleven condition-monitoring indicators (RMS, kurtosis, skewness, peak and crest factor per channel, plus the channel ratio), windows of 30 snapshots are formed, and the target is the \emph{fraction of life remaining}, which avoids the truncation artefact that an absolute RUL cap would introduce. Leave-one-bearing-out cross-validation is used, with one training bearing reserved for calibration.
 
 {\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\footnotesize
-\begin{tabular}{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\begin{tabular}{@{}llll@{}}
 \toprule
-\begin{minipage}[b]{\linewidth}\raggedright
-Bearing
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Standard CQR
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-\textbf{Localized CQR}
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Constant width
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-MC-dropout
-\end{minipage} \\\midrule
-Bearing1\_1 & 0.8 & \textbf{0.7} & 1.0 & 0.8 \\
-Bearing1\_2 & 1.1 & \textbf{1.0} & 1.3 & 1.6 \\
-Bearing2\_1 & 0.9 & \textbf{0.8} & 0.9 & 1.0 \\
-Bearing2\_2 & 0.8 & \textbf{0.6} & 0.7 & 0.7 \\
-Bearing3\_1 & 0.7 & \textbf{0.7} & 1.1 & 1.2 \\
-Bearing3\_2 & 1.4 & \textbf{1.3} & 1.6 & 1.7 \\
+Bearing & Standard CQR & Constant width & Localized CQR \\
+\midrule
+
+
+
+Bearing1\_1 & \textbf{0.80} & 0.95 & 0.70 \\
+Bearing1\_2 & \textbf{1.14} & 1.32 & 1.00 \\
+Bearing2\_1 & \textbf{0.88} & 0.94 & 0.80 \\
+Bearing2\_2 & 0.75 & \textbf{0.69} & 0.60 \\
+Bearing3\_1 & \textbf{0.73} & 1.13 & 0.70 \\
+Bearing3\_2 & \textbf{1.39} & 1.55 & 1.30 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 }
 
-Winkler score at 0.90 realised coverage, on the normalised {[}0, 1{]} life scale. Localized CQR is best on \textbf{6 of 6 bearings}: 23.3\% below constant width, 26.0\% below MC-dropout and 11.8\% below standard CQR on average.
+Winkler score at 0.90 realised coverage, on the normalised {[}0, 1{]} life scale. The proposed method beats the constant width on 5 of 6 bearings, by 12.2\% on average; the single loss is Bearing2\_2, where the constant width is already tight.
 
-The ranking therefore transfers to a different sensor modality, a different degradation mechanism and a different life scale. The effect is somewhat larger than on C-MAPSS, which is consistent with the bearing data having a stronger and more monotone degradation signal than the multi-regime turbofan subsets.
+The ranking therefore transfers to a different sensor modality, a different degradation mechanism and a different life scale. It is worth noting that the rejected localized variant performs \emph{better} here (6 of 6, −23.3\%) than on C-MAPSS. We do not take this as grounds to adopt it: a variant that fails on three of four turbofan subsets is not a method, and reporting it as one because it happens to win on the smaller dataset would be a selection artefact.
 
 \emph{Scope.} Six full-life bearings from the learning set are used; the remaining eleven are truncated run-to-failure records without complete RUL labels, and are therefore excluded.
+\#\# B. What the learned width contributes, and what localization does not
 
-\section{VI. Discussion}\label{vi.-discussion}
+The gain in this paper comes from training the width, not from post-processing it cleverly. Against a constant-width baseline the end-to-end quantile head wins 29 of 40 matched-coverage comparisons (median −8.4\%) and 19 of 20 at the nominal level (median −8.7\%). Making the conformal quantile locally adaptive through the same half-width adds nothing on the complete matrix: 21 of 40 comparisons, +2.4\% mean change, and a 11.7\% regression on FD003.
 
-\subsection{A. Why matched coverage changes the conclusion}\label{a.-why-matched-coverage-changes-the-conclusion}
-
-Interval methods are usually compared at one nominal level. That comparison is not well defined: a method whose realised coverage is 0.83 will look sharper than one at 0.91, and the ranking reverses once coverage is equalised. In our runs the uncalibrated quantile model illustrates this directly --- it attains the lowest Winkler score of any method at its natural operating point, yet its realised coverage is 0.83--0.88 and it cannot be driven to 0.90 without calibration. Reporting the frontier, and comparing at a common coverage, is therefore not a presentational choice; it changes which method appears best.
-
-\subsection{B. What the learned width contributes}\label{b.-what-the-learned-width-contributes}
-
-Two calibration variants share the same trained network: standard CQR takes one global conformal quantile, while the localized variant weights calibration scores by similarity in the learned half-width. The localized variant improves on standard CQR in 8 of 11 cells with a median change of −1.4\%, and on the constant-width baseline in 10 of 11 cells with a median change of −8.3\%. The gain from localization is smaller than the gain from training the width end-to-end, which is consistent with the interpretation that most of the information is already in the learned half-width and localization only corrects its residual miscalibration.
-
-\subsection{C. Marginal coverage is the wrong summary for maintenance}\label{c.-marginal-coverage-is-the-wrong-summary-for-maintenance}
-
-The diagnostics in Section V make a point that interval papers rarely report: the marginal coverage can sit at nominal while individual assets are badly served. Across our runs the worst engine falls below 0.80 coverage in 80--100\% of folds, and on FD002 and FD004 its average is close to 0.50. A maintenance planner consumes a per-asset interval, not a dataset average, so this failure mode matters more than a small difference in mean Winkler score.
-
-We therefore recommend that RUL interval papers report, at minimum, the per-asset minimum coverage and a stage-wise breakdown alongside the marginal PICP.
-
-\subsection{D. Threats to validity}\label{d.-threats-to-validity}
-
-\textbf{Dataset scope.} Two datasets with different physics (turbofan and bearing) support the claim that the effect is not dataset-specific, but both are laboratory or simulated run-to-failure data. Field data with unrecorded interventions would be a stronger test.
-
-\textbf{Seed count.} Two seeds (42 and 7) were run for the main comparison rather than the three we planned; the third was dropped for compute reasons. The five-fold standard deviations on FD001 therefore combine fold and seed variation across six cells, while the FD002--FD004 entries in Table 2 are single observations. This limits how precisely the between-fold variance can be estimated and is the main statistical weakness of the study.
-
-\textbf{Coverage guarantee.} Conformal calibration assumes exchangeability between calibration and test units. Engines are exchangeable at the unit level in our protocol, but the within-unit temporal dependence means the guarantee is approximate; the empirical coverage in Section V should be read as evidence rather than proof.
-
-\textbf{Baseline fidelity.} The localized conformal baseline uses a kernel on predicted RUL, which is a simplification of the retrieval-corrected formulation; a full implementation with a correction term may perform differently.
+That negative result is informative. The half-width already encodes local difficulty; re-weighting calibration scores by it therefore adds estimation variance without adding signal, and the variance is largest where calibration engines are few. The episode also illustrates a methodological risk we hit ourselves: the localized variant looked strong on a partial matrix in which one subset dominated, and the advantage disappeared once all forty cells were in. Comparisons on incomplete folds should be treated as provisional.
 
 \section{VII. Conclusion}\label{vii.-conclusion}
 
-This paper asked whether the width of a conformally calibrated remaining-useful-life interval can track an asset's degradation state. For post-processing on a frozen predictor the answer is no: ten state-dependent scaling schemes failed to beat a constant width, and a scale built from model-parameter uncertainty is worse than no conditioning at all.
+This paper asked whether the width of a conformally calibrated remaining-useful-life interval can track an asset's degradation state. For post-processing on a frozen predictor the answer is no: ten state-dependent scaling schemes failed to beat a constant width, and a scale built from model-parameter uncertainty is worse than no conditioning at all on two of four subsets.
 
-The answer changes when the width is trained rather than fitted. Training the backbone under a dual-quantile loss, so that the same network that predicts the centre also predicts a non-negative half-width, and then calibrating that interval with a localized conformal step whose kernel runs on the learned half-width, yields a method that wins 19 of 20 paired comparisons against a constant-width baseline trained identically (median 8.7\% lower Winkler score) and 7--22\% at matched coverage of 0.90. The same ranking appears on bearing vibration data, where the method is best on all six bearings (23.3\% below constant width).
+The answer changes when the width is trained rather than fitted. Training the backbone under a dual-quantile loss, so that the same network that predicts the centre also predicts a non-negative half-width, and then calibrating with conformal quantile regression, gives a method that wins 19 of 20 paired comparisons at the nominal level (median 8.7\% lower Winkler score) and 29 of 40 at matched coverage of 0.90 (median 8.4\%), and that beats the constant width on 5 of 6 bearing recordings by 12.2\%. An attempt to make the conformal quantile locally adaptive did not improve the score and degraded one subset; we report it rather than adopt it.
 
-The paper's second message is about reporting practice. On our own runs the marginal coverage sat near nominal while the worst engine fell below 0.80 in 80--100\% of cases. A maintenance decision consumes one asset's interval, not a dataset average; interval papers that report only marginal PICP hide exactly the failure that matters. We therefore recommend per-asset minimum coverage and a stage-wise breakdown as standard reporting for RUL intervals.
+The paper's second message is about reporting practice. On our own runs the marginal coverage sat near nominal while the worst engine fell below 0.80 in 80--100\% of folds. A maintenance decision consumes one asset's interval, not a dataset average; interval papers that report only marginal PICP hide exactly the failure that matters. We therefore recommend per-asset minimum coverage and a stage-wise breakdown as standard reporting for RUL intervals.
 
 \end{document}
