@@ -199,6 +199,14 @@ Localized CQR vs CQR & 21/40 (52\%) & +2.4\% & −0.2\% \\
 
 }
 
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Coverage--Winkler frontiers. Each curve traces one method's Winkler score against its realised coverage as the nominal level varies; the dotted vertical line marks 0.90.}]{figures/fig1_frontiers.png}}
+\caption{Coverage--Winkler frontiers. Each curve traces one method's Winkler score against its realised coverage as the nominal level varies; the dotted vertical line marks 0.90.}
+\end{figure}
+
+
+
 Two observations carry the argument. First, the end-to-end quantile head is consistently better than a constant width, and the gain is largest on the two single-regime subsets (FD001 −8.7\%, FD002 −14.4\%) and smallest on FD004 (−3.9\%), where the engine-to-engine spread dominates. Second, a scale built from model-parameter uncertainty is worse than no conditioning at all: MC-dropout loses to the constant width on FD002 (74.4 versus 62.5) and is catastrophic on FD003 (87.3 versus 36.4). Propagating the network's own doubt does not tell the interval how hard a particular window is.
 
 The localized variant is included as a negative result. It was developed on a partial matrix in which FD001 dominated, and on the complete matrix its advantage disappears: it wins 21 of 40 comparisons against standard CQR, changes the score by +2.4\% on average, and is 11.7\% worse than standard CQR on FD003. We therefore do not adopt it, and we report it to make clear that the gain comes from learning the width, not from local adaptation of the quantile.
@@ -318,7 +326,7 @@ The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.95
 \caption{Stage-wise coverage. Coverage per degradation stage, averaged over folds; the dashed line is the nominal 0.90.}
 \end{figure}
 
-\emph{Figure 2. Coverage by degradation stage (1 = early life, 5 = end of life).}
+
 
 \begin{figure}
 \centering
@@ -326,7 +334,7 @@ The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.95
 \caption{Per-engine minimum coverage. Boxes show the distribution over folds; the red dashed line marks 0.80 and the dotted line 0.90.}
 \end{figure}
 
-\emph{Figure 3. Distribution of per-engine minimum coverage across folds.}
+
 
 \subsection{H. Cross-domain: FEMTO/PRONOSTIA bearings}\label{h.-cross-domain-femtopronostia-bearings}
 

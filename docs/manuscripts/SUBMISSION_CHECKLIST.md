@@ -6,24 +6,20 @@
 
 | 项 | 证据 | 状态 |
 |---|---|---|
-| 主实验（4 子集 × 5 折） | `experiments/punet_e2e/` 20 个 JSON | ✅ 完整 |
-| 配对比较（vs 常数宽度） | 19/20 胜，中位 −8.7% | ✅ 完整 |
+| 主实验（4 子集 × 5 折 × 2 seeds） | `experiments/punet_matrix/` 40 格 | ✅ **完整 40/40** |
+| 配对比较（CQR vs 常数宽度） | 名义 19/20；覆盖对齐 29/40 | ✅ 完整 |
 | A4 置换消融（20 折） | 均值 +0.2%，11/20 折变差 | ✅ 完整 |
-| 引擎级 / 分阶段诊断 | 20 折 JSON 的 diagnostics | ✅ 完整 |
-| 跨域验证（FEMTO 6 轴承） | `experiments/femto/` | ✅ 6/6 完成 |
-| 覆盖-宽度前沿 | 三张图 + `coverage_frontier.py` | ✅ 完成 |
-| 论文正文 | `docs/manuscripts/v1.0-draft.md` | ✅ 18KB，0 占位符 |
-| 图表 | 3 图 + 8 表 | ✅ 完成 |
-| LaTeX 版 | `docs/manuscripts/manuscript.tex` | ✅ IEEEtran，7 章 16 节 |
-| 编译 PDF | `docs/manuscripts/manuscript.pdf` | ✅ 219 KB，tectonic 编译通过 |
+| 引擎级 / 分阶段诊断 | 20 折 JSON | ✅ 完整 |
+| 跨域验证（FEMTO 6 轴承） | `experiments/femto/` | ✅ 6/6 |
+| 五方法覆盖对齐 | `docs/tables/cells_all.csv` | ✅ 40 格 |
+| 论文正文 + PDF | `manuscript.tex` / `.pdf` | ✅ 编译通过 |
 
 ## 二、部分完成（论文中已明确标注）
 
 | 项 | 实际范围 | 论文标注位置 |
 |---|---|---|
-| 覆盖对齐对比 | FD001 六格；FD002–004 各一格 | §V.B "Coverage note" |
-| seed 数量 | 2 个（42、7），非 3 个 | 待补 §VI.D |
-| 引擎级覆盖的逐折分布 | 20 折（完整） | §V.C |
+| seed 数量 | 2 个（42、7），非 3 个 | §VI.D 已写明 |
+| MC-Dropout 基线 | 10 格（FD001 5 折 + 其余 5 格） | §V.B 表中部分为单值 |
 
 ## 三、未完成
 
