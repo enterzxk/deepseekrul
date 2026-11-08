@@ -1,5 +1,8 @@
 # IEEE TIM 投稿检查清单
 
+> 更新于 2026-11-08。自动核对：`python scripts/verify_paper_numbers.py` → **16/16 通过**。
+> 编译：`node scripts/build_manuscript.mjs` → **6 页，7 表，3 图，0 错误**。
+
 > 生成于 2026-11-08。所有数字已通过 `tmp/verify2.py` 回查原始产物（11 项全部通过）。
 
 ## 一、已完成并有完整证据

@@ -47,6 +47,14 @@
 
 构建命令：`powershell -NoProfile -File scripts/build_manuscript.ps1`（含 7 章结构断言）
 
+## 3.6 论文状态（2026-11-08 冻结）
+
+- 编译产物：6 页、7 表、3 图、230 KB PDF，LaTeX 无错误
+- 数字核对：16/16 断言通过（`scripts/verify_paper_numbers.py`）
+- 文献：18 条 BibTeX、11 处引用、0 undefined
+- 构建：`node scripts/build_manuscript.mjs`（结构断言 + 摘要同步 + 表题提升）
+- 主张：按 D003 冻结为"限定范围的效率收益"
+
 ## 4. 待执行
 
 1. 等待 Codex 对 D001 的决策，按其结论执行
