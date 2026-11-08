@@ -37,7 +37,7 @@ def pts_scaled(y, mu, w, cal, tst):
         q = float(np.quantile(np.abs(y[cal] - mu[cal]) / np.maximum(w[cal], 1e-9),
                               min(1.0, (1 - dl) * (1 + 1 / cal.sum())), method="higher"))
         L, H = mu[tst] - q * w[tst], mu[tst] + q * w[tst]
-        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, dl)))
+        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, 0.1)))
     return sorted(out)
 
 
@@ -47,7 +47,7 @@ def pts_cqr(y, lo, hi, cal, tst):
         s = np.maximum(lo[cal] - y[cal], y[cal] - hi[cal])
         q = float(np.quantile(s, min(1.0, (1 - dl) * (1 + 1 / s.size)), method="higher"))
         L, H = lo[tst] - q, hi[tst] + q
-        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, dl)))
+        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, 0.1)))
     return sorted(out)
 
 
@@ -63,7 +63,7 @@ def pts_loc(y, lo, hi, cal, tst):
         for i, q in enumerate(s_tst):
             z = wquant(E, np.exp(-np.abs(s_cal - q) / bw), lv)
             L[i], H[i] = lo[tst][i] - z, hi[tst][i] + z
-        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, dl)))
+        out.append((float(np.mean((y[tst] >= L) & (y[tst] <= H))), winkler(y[tst], L, H, 0.1)))
     return sorted(out)
 
 
