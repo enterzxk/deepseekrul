@@ -46,14 +46,14 @@ check("four seeds", len(seeds) == 4, str(seeds))
 df = cells()
 rel = (df["cqr"] - df["const"]) / df["const"] * 100
 wins, n = int((rel < 0).sum()), len(rel)
-check("CQR wins 59/80", (wins, n) == (59, 80), f"{wins}/{n}")
-check("mean -5.8%", abs(rel.mean() + 5.8) < 0.2, f"{rel.mean():+.2f}%")
-check("median -8.4%", abs(rel.median() + 8.4) < 0.3, f"{rel.median():+.2f}%")
+check("CQR wins 75/80", (wins, n) == (75, 80), f"{wins}/{n}")
+check("mean -9.1%", abs(rel.mean() + 9.1) < 0.3, f"{rel.mean():+.2f}%")
+check("median -10.8%", abs(rel.median() + 10.8) < 0.4, f"{rel.median():+.2f}%")
 if text:
-    check("manuscript states 59 of 80", "59 of 80" in text)
+    check("manuscript states 75 of 80", "75 of 80" in text)
 
 # ---- claim 3: per-subset numbers ----
-want = {"FD001": -6.5, "FD002": -12.2, "FD003": -1.5, "FD004": -2.8}
+want = {"FD001": -7.6, "FD002": -14.1, "FD003": -6.5, "FD004": -8.2}
 for sub, val in want.items():
     d = df[df.subset == sub]
     r = (d["cqr"] - d["const"]) / d["const"] * 100
