@@ -103,7 +103,9 @@ python scripts/make_tim_tables.py
 ## 7. 未验证/待确认
 
 - 桌面 profile 的 `reasoningEffort` 是 `high` 而非约定的 `max`（见 AGENTS.md §2）
-- 论文参考文献仍是占位 [1]–[15]，无 BibTeX
+- **论文正文 0 处 `\cite`**（实测：`\cite`=0、`\bibitem`=0、无 `thebibliography`、无 References 章节），但 `references.bib` 存在（5401 B）且 `manuscript.tex` 有 `\bibliography{}` 命令。
+  BibTeX 因此产出空参考文献表。**这是投稿硬阻塞**（IEEE TIM 零引用不可投）。
+  旧记录「无 BibTeX」不准确；`SUBMISSION_CHECKLIST.md` 的「18 条、11 处引用、0 undefined」为**错误**。
 
 ## 8. 长期自主科研配置（2026-11-08 第二轮）
 
@@ -114,4 +116,47 @@ python scripts/make_tim_tables.py
 - 本轮未启动任何实验。
 
 **恢复入口更新**：新会话读 research_state.md → decision_log.md → results_summary.md → docs/wiki/index.md。
+## 9. 投稿前缺口清单（2026-11-08 23:50，主控线第一轮）
 
+> 依据：`docs/research_state.md`、`docs/decision_log.md`（D009/D010）、`docs/results_summary.md`、
+> `docs/manuscripts/SUBMISSION_CHECKLIST.md`、`docs/audit_closeout.md`。只核对磁盘产物，不重跑实验。
+
+### 9.1 已确认存在（不需要重做）
+
+| 产物 | 证据 | 状态 |
+|---|---|---|
+| 80 格预测（4 子集 × 5 折 × 4 seed） | `docs/tables/cells_all.csv` 80 行；`experiments/punet_matrix/` | ✅ |
+| 80 格 e2e JSON（含 picp/pinaw/winkler/engine_min） | `experiments/punet_e2e/*/*/*.json` 80 个 | ✅ |
+| 数值核对脚本 | `scripts/verify_paper_numbers.py`（127 行，17 项断言） | ✅ 脚本在 |
+| 稿件 | `docs/manuscripts/manuscript.tex` / `.pdf` | ✅ 编译通过 |
+| 收口审计 | `docs/audit_closeout.md` | ✅ 本轮新建 |
+
+### 9.2 缺口（按优先级）
+
+| # | 缺口 | 性质 | 可否 L1 直接做 | 判定门 |
+|---|---|---|---|---|
+| G1 | **`verify_paper_numbers.py` 本地跑不通**：它要 `docs/manuscripts/v1.0-draft.md` 与 `experiments/punet_matrix/*/f*_s*/preds_point.csv`，本地 preds 为 0 | 环境 | ✅（改路径/改源） | 17/17 PASS 或逐项说明失败原因 |
+| G2 | **三个口径未在正文分开**：75/80（未对齐）、19/20（e2e，覆盖匹配）、29/40（覆盖对齐） | 主张 | ❌ 需 L2（D010 待复核） | 正文每处数字标明口径与 n |
+| G3 | **「FD003/FD004 接近打平」与 75/80 表格矛盾** | 主张 | ❌ 需 L2 | 该句限定为覆盖对齐口径 |
+| G4 | **80 格被当作独立证据**（seed 方差占 46.8%） | 统计 | ❌ 需 L2 | 主表改折级 n=20 |
+| G5 | `SUBMISSION_CHECKLIST.md` 过期：写「2 seeds / 40 格」，实际 4 seeds / 80 格 | 文档 | ✅ | 与 `cells_all.csv` 行数一致 |
+| G6 | **已查清**：`manuscript.tex` 实测 `\cite`=0、`\bibitem`=0、无 References 章节；`references.bib` 存在但从未被引用。清单「18 条、11 处引用」为**错误** | 证据 | ✅ 已查清 | 以实测计数为准 |
+| **G10** | **正文零引用**——BibTeX 产出空参考文献表 | **硬阻塞** | ❌ 需 L2（补哪些文献、如何引用） | ≥20 条已核实引用且逐条与正文主张对应 |
+| G7 | **29/40 原始数据本地不存在**，无法复算 | 证据 | ✅（标记） | 论文标注「未复现」或不作为主口径 |
+| G8 | 未跑 `/citation-audit` 与 `/paper-claim-audit` | 审计 | ✅ | 两份报告写入 `docs/` |
+| G9 | `docs/tables/` 只有 2 个 csv，缺 D004 的对齐明细 | 证据 | ⚠️ 部分 | 能从 80 格 e2e 重算的补上 |
+
+### 9.3 可独立执行、可进实验队列
+
+| 任务 | 判定门 | 预算 |
+|---|---|---|
+| T1 修 `verify_paper_numbers.py` 使其本地可跑（改用 `docs/tables/cells_all.csv` + `experiments/punet_e2e`） | 17 项断言全部可执行，PASS 或明确 FAIL 原因 | 本地 ≤15 min |
+| T2 从 80 个 e2e JSON 重算覆盖对齐口径，补 `docs/tables/aligned_all.csv` | 行数 = 80；FD003/FD004 数值与 D004 记载同号 | 本地 ≤15 min |
+| T3 校准 `SUBMISSION_CHECKLIST.md` 与 `research_state.md` §7 的过期陈述 | 与实际产物计数一致 | 本地 ≤10 min |
+| T4 跑 `/citation-audit` | 0 条编造引用 | 本地 |
+| T5 跑 `/paper-claim-audit` | 每个数字能回溯到产物 | 本地 |
+
+### 9.4 必须 L2 的（已挂 PENDING-L2）
+
+- G2/G3/G4 三处主张改动（已向 Codex 提出，见 `tmp/l2_audit.txt`）
+- 是否进入 G.7 → 依赖上述改动定稿
