@@ -1,4 +1,4 @@
-# Build the IEEEtran manuscript from the Markdown draft.
+﻿# Build the IEEEtran manuscript from the Markdown draft.
 # Fails loudly on missing sections or LaTeX errors (both happened during development).
 
 $ErrorActionPreference = "Stop"
@@ -46,12 +46,6 @@ $old = Get-Content $tex -Raw -Encoding UTF8
 $docStart = $old.IndexOf("\begin{document}") + "\begin{document}".Length
 $hdr = $old.Substring(0, $docStart)
 $pre = $old.Substring($docStart, $old.IndexOf("\section{I. Introduction}") - $docStart)
-# single source of truth for the abstract
-$absFile = "docs\manuscripts\abstract.tex"
-if (Test-Path $absFile) {
-    $absText = (Get-Content $absFile -Raw -Encoding UTF8).Trim()
-    $hdr = [regex]::Replace($hdr, '(?s)\\begin\{abstract\}.*?\\end\{abstract\}', ("\\begin{abstract}" + $absText + "\\end{abstract}"))
-}
 Set-Content -Path $tex -Value ($hdr + "`n" + $pre + $out + "`n\bibliography{references}`n\end{document}`n") -Encoding UTF8
 
 Push-Location "docs\manuscripts"

@@ -78,6 +78,7 @@ def main(argv=None) -> int:
     ap.add_argument("--heads", default="cqr", choices=["cqr", "point", "qr_raw"])
     ap.add_argument("--dump-preds", action="store_true")
     ap.add_argument("--save-ckpt", action="store_true")
+    ap.add_argument("--calib", default="cqr", choices=["cqr", "localized"])
     args = ap.parse_args(argv)
 
     R.set_seed(args.seed)
@@ -183,7 +184,7 @@ def main(argv=None) -> int:
     result = evaluate_cqr_intervals(
         units, mva[:, 1].astype(float), np.asarray(mu_va), y_all, lo_all, hi_all,
         calib_mask, test_mask, delta=args.delta,
-        calibrate=(args.heads != "qr_raw"),
+        calibrate=(args.heads != "qr_raw"), localized=(args.calib == "localized"),
     )
     result.update(method=f"e2e_{args.heads}", ablate=args.ablate, subset=args.subset, fold=args.fold,
                   best_centre_rmse=best, best_epoch=best_epoch)
@@ -198,7 +199,7 @@ def main(argv=None) -> int:
             "y_true": y_all, "y_lo": lo_all, "y_hi": hi_all,
             "sigma_T": np.asarray(sg_va, dtype=float),
             "mu_T": np.asarray(mu_va, dtype=float),
-        }).to_csv(out_dir / "preds.csv", index=False)
+        }).to_csv(out_dir / f"preds_{args.heads}.csv", index=False)
 
     (out_dir / f"e2e_{args.heads}_{args.ablate}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({k: v for k, v in result.items() if k != "diagnostics"}, ensure_ascii=False), flush=True)
