@@ -40,6 +40,11 @@
 
 
 
+
+
+
+
+
 \title{Coverage-Validated Remaining Useful Life Intervals via End-to-End Quantile Learning}
 
 \author{Author names withheld for review%
@@ -143,16 +148,15 @@ All numbers below are produced by the released scripts from artefacts in \texttt
 
 \subsection{A. Main results at the nominal level (20 folds)}\label{a.-main-results-at-the-nominal-level-20-folds}
 
-{\def\LTcaptype{none} % do not increment counter
+Table 1 reports the nominal-level results.
+
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Main results at the nominal level over twenty engine-disjoint folds.}
 \begin{tabular}{@{}lllll@{}}
-\toprule
-Subset & PICP & Winkler & PINAW & Per-engine min. coverage \\
-\midrule
-
-
-
+\toprule\noalign{}
+Subset & PICP & Winkler & PINAW & Engine min. \\
+\midrule\noalign{}
 FD001 & 0.908 \(\pm\) 0.079 & 41.2 \(\pm\) 6.3 & 0.260 & 0.690 \\
 FD002 & 0.872 \(\pm\) 0.021 & 49.4 \(\pm\) 3.1 & 0.267 & 0.529 \\
 FD003 & 0.926 \(\pm\) 0.045 & 40.1 \(\pm\) 5.2 & 0.254 & 0.714 \\
@@ -161,24 +165,21 @@ FD004 & 0.876 \(\pm\) 0.046 & 60.3 \(\pm\) 15.9 & 0.243 & 0.501 \\
 \end{tabular}
 \end{table}
 
-}
-
 Paired against a constant-width conformal baseline trained identically (same backbone, same split, same calibration, only the quantile head removed), the method wins \textbf{19 of 20 folds (95\%)} with a median improvement of \textbf{−8.7\%} and a mean of −9.3\%. The single loss is FD001 fold 2 (+2.8\%).
 
 \subsection{B. Matched-coverage comparison (all methods, 80 cells)}\label{b.-matched-coverage-comparison-all-methods-80-cells}
 
+Table 2 reports each method at matched coverage and Table 3 gives the paired comparisons; Fig. 1 shows the underlying frontiers.
+
 Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 80 cells (4 subsets × 5 folds × 4 seeds) are included; the MC-dropout baseline was run on 10 of them, so its entry is a partial observation.
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Winkler score at matched coverage of 0.90 for every method, over all eighty training cells.}
 \begin{tabular}{@{}llll@{}}
-\toprule
+\toprule\noalign{}
 Subset & Constant width & MC-dropout & \textbf{Standard CQR (ours)} \\
-\midrule
-
-
-
+\midrule\noalign{}
 FD001 & 47.8 ± 24.5 & 46.9 ± 15.3 & \textbf{42.7 ± 16.2} \\
 FD002 & 61.8 ± 7.9 & 74.4 & \textbf{54.1 ± 6.9} \\
 FD003 & 36.5 ± 4.9 & 87.3 ± 51.6 & \textbf{35.7 ± 6.3} \\
@@ -187,20 +188,18 @@ FD004 & 82.3 ± 35.6 & 49.7 & 82.9 ± 43.5 \\
 \end{tabular}
 \end{table}
 
-}
-
 Paired comparisons at matched coverage:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Paired comparisons at matched coverage; the confidence interval is a cell-level bootstrap over the eighty cells.}
 \begin{tabular}{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
-\toprule
+\toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Comparison
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
@@ -212,17 +211,12 @@ Median
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 95\% CI (mean)
 \end{minipage} \\
-\midrule
-
-
-
+\midrule\noalign{}
 \textbf{CQR vs constant width} & \textbf{59/80 (74\%)} & \textbf{−5.8\%} & \textbf{−8.4\%} & \textbf{{[}−8.3\%, −2.8\%{]}} \\
 CQR vs MC-dropout & 10/10 & −24.2\% & −18.4\% & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-}
 
 \begin{figure}
 \centering
@@ -234,15 +228,17 @@ Two observations carry the argument. First, the end-to-end quantile head is cons
 
 \subsection{C. Coverage diagnostics}\label{c.-coverage-diagnostics}
 
-{\def\LTcaptype{none} % do not increment counter
+Table 4 reports the marginal and per-engine coverage.
+
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Coverage diagnostics: marginal coverage against the per-engine minimum.}
 \begin{tabular}{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
-\toprule
+\toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Subset
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
@@ -252,10 +248,7 @@ Per-engine minimum
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Runs with per-engine min \textless{} 0.80
 \end{minipage} \\
-\midrule
-
-
-
+\midrule\noalign{}
 FD001 & 0.908 & 0.690 & 80\% \\
 FD002 & 0.872 & 0.529 & 100\% \\
 FD003 & 0.926 & 0.714 & 80\% \\
@@ -264,22 +257,22 @@ FD004 & 0.876 & 0.501 & 100\% \\
 \end{tabular}
 \end{table}
 
-}
-
 The marginal coverage sits near nominal while the worst engine is far below it: in 80--100\% of folds the least-covered engine falls under 0.80, and on FD002 and FD004 its average is around 0.50. Section V-G breaks the same runs down by degradation stage.
 
 \subsection{D. Which uncertainty source is a useful scale?}\label{d.-which-uncertainty-source-is-a-useful-scale}
 
-{\def\LTcaptype{none} % do not increment counter
+Table 5 contrasts the candidate scale sources.
+
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Which uncertainty source is a useful interval scale.}
 \begin{tabular}{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
-\toprule
+\toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Scale source
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
@@ -291,10 +284,7 @@ FD003
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 FD004
 \end{minipage} \\
-\midrule
-
-
-
+\midrule\noalign{}
 Constant (no conditioning) & 48.3 & 62.5 & 36.4 & 84.2 \\
 MC-dropout predictive std & 46.9 & 74.4 & 87.3 & 49.7 \\
 Prior std \texttt{sigma\_T} (permuted, Section V-F) & \(\approx\) constant & \(\approx\) constant & \(\approx\) constant & \(\approx\) constant \\
@@ -302,8 +292,6 @@ Prior std \texttt{sigma\_T} (permuted, Section V-F) & \(\approx\) constant & \(\
 \bottomrule
 \end{tabular}
 \end{table}
-
-}
 
 The ordering is the point of this table. A scale derived from model-parameter uncertainty is not merely weaker than the learned half-width; on FD002 and FD003 it is worse than no conditioning at all, by 19\% and 140\% respectively. A scale derived from prior uncertainty is indistinguishable from a permutation of itself. Only the half-width produced by the same network that predicts the centre tracks local difficulty.
 
@@ -313,18 +301,17 @@ Permuting \(\sigma_T\) across windows leaves the Winkler score essentially uncha
 
 \subsection{F. End-of-life coverage}\label{f.-end-of-life-coverage}
 
+Table 6 breaks coverage down by degradation stage; Fig. 2 shows the same data graphically, and Fig. 3 the per-engine distribution.
+
 Dividing the degradation clock into five equal bins and computing coverage per bin shows the same asymmetry in the time dimension:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Coverage by degradation stage, averaged over folds.}
 \begin{tabular}{@{}llllll@{}}
-\toprule
+\toprule\noalign{}
 Subset & bin 1 & bin 2 & bin 3 & bin 4 & bin 5 \\
-\midrule
-
-
-
+\midrule\noalign{}
 FD001 & 0.900 & 0.886 & 0.893 & 0.949 & 0.911 \\
 FD002 & 0.870 & 0.860 & 0.857 & 0.901 & 0.873 \\
 FD003 & 0.952 & 0.898 & 0.935 & 0.953 & \textbf{0.893} \\
@@ -332,8 +319,6 @@ FD004 & 0.899 & 0.869 & 0.865 & 0.884 & \textbf{0.864} \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-}
 
 The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.952 at the start) and FD004 (0.864 against 0.899); FD001 and FD002 do not decline monotonically, and we do not claim a universal trend. What holds across all four subsets is the per-engine result: the marginal coverage is close to nominal while individual engines fall far below it.
 
@@ -351,18 +336,17 @@ The end-of-life decline is clear on FD003 (0.893 in the final stage against 0.95
 
 \subsection{G. Cross-domain: FEMTO/PRONOSTIA bearings}\label{g.-cross-domain-femtopronostia-bearings}
 
+Table 7 reports the cross-domain comparison.
+
 The C-MAPSS protocol is repeated on bearing run-to-failure data: bearings recorded at 25.6 kHz over three operating conditions. Each snapshot (0.1 s) is summarised by eleven condition-monitoring indicators (RMS, kurtosis, skewness, peak and crest factor per channel, plus the channel ratio), windows of 30 snapshots are formed, and the target is the \emph{fraction of life remaining}, which avoids the truncation artefact that an absolute RUL cap would introduce. Leave-one-bearing-out cross-validation is used, with one training bearing reserved for calibration.
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{table}[!t]
 \centering\scriptsize
+\caption{Cross-domain results on the FEMTO/PRONOSTIA bearings, normalised life scale.}
 \begin{tabular}{@{}lll@{}}
-\toprule
+\toprule\noalign{}
 Bearing & \textbf{Standard CQR (ours)} & Constant width \\
-\midrule
-
-
-
+\midrule\noalign{}
 Bearing1\_1 & \textbf{0.80} & 0.95 \\
 Bearing1\_2 & \textbf{1.14} & 1.32 \\
 Bearing2\_1 & \textbf{0.88} & 0.94 \\
@@ -372,8 +356,6 @@ Bearing3\_2 & \textbf{1.39} & 1.55 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-}
 
 Winkler score at 0.90 realised coverage, on the normalised {[}0, 1{]} life scale. The proposed method beats the constant width on 5 of 6 bearings, by 12.2\% on average; the single loss is Bearing2\_2, where the constant width is already tight.
 
@@ -422,4 +404,3 @@ The paper's second message is about reporting practice. On our own runs the marg
 
 \bibliography{references}
 \end{document}
-

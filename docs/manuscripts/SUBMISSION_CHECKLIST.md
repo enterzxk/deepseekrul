@@ -34,11 +34,13 @@
 
 | 项 | 状态 |
 |---|---|
-| BibTeX 文献库 | ✅ `references.bib`（18 条），正文 11 处引用，IEEEtran.bst 编译无 undefined |
-| 全文口径统一 | ⏳ 待核（80 训练格 / 40 覆盖对齐 / 4 seeds） |
-| 排版 | ✅ 7 章 7 表 3 图，编译无错；仅剩 1 处 21pt 表格溢出 |
-| 可复现包 | ⏳ 待建 |
-| 负结果表述 | ✅ 已按 D003 移除，保留 §V.D 的正面论证 |
+| BibTeX 文献库 | ✅ 18 条，11 处引用，IEEEtran.bst，0 undefined |
+| 全文口径统一 | ✅ 80 格 / 4 seeds，16/16 断言通过 |
+| 表题与图表引用 | ✅ 7 张表全部有 caption，正文逐表引用（Table 1–7、Fig. 1–3） |
+| 排版 | ✅ 7 章 7 表 3 图；仅剩 1 处 0.8pt 溢出（可忽略） |
+| 可复现包 | ✅ `docs/reproduce.md` + `verify_paper_numbers.py` |
+| 构建 | ✅ `node scripts/build_manuscript.mjs`（含结构断言与摘要同步） |
+| 负结果表述 | ✅ 已移除 |
 
 ## 五、可辩护的核心主张
 

@@ -36,8 +36,7 @@ python scripts/verify_paper_numbers.py
 本地编译：
 
 ```powershell
-node scripts/sync_abstract.mjs                  # abstract.tex -> manuscript.tex
-powershell -NoProfile -File scripts/build_manuscript.ps1
+node scripts/build_manuscript.mjs               # markdown -> LaTeX -> PDF (includes abstract sync)
 ```
 
 ## 3. 论文元素 → 脚本 → 产物
