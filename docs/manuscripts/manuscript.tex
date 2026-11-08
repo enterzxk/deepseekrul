@@ -49,6 +49,7 @@
 
 
 
+
 \title{Coverage-Validated Remaining Useful Life Intervals via End-to-End Quantile Learning}
 
 \author{Author names withheld for review%
@@ -74,7 +75,7 @@ This paper asks a narrower and, we argue, more useful question: \textbf{can the 
 
 Our first contribution is a design principle: the width of a conformal RUL interval must be trained, not post-processed. We establish this by comparing more than ten ways of making the conformal scale state-dependent on a frozen predictor --- power-law scaling by the prior standard deviation, stratification by operating regime and by prior uncertainty, weighted conformal prediction, two-component hierarchical calibration, and adaptive exponents selected on held-out tuning data. Across these variants the scale that is learned jointly with the centre is the one that carries usable information, while a scale built from model-parameter uncertainty (MC-dropout) performs worse than no conditioning at all. The principle is what motivates the method in Section III. The reason is not that the scale is a poor design; it is that a frozen representation does not carry the information the width needs.
 
-The diagnosis is sharpened by a comparison across uncertainty sources. MC-dropout, which propagates model-parameter uncertainty into the interval scale, performs \emph{worse} than a constant width on our runs (49.3 versus 43.5 on FD001 at matched coverage). What matters is therefore not that the scale is uncertain, but that it is conditional on the asset's state: a scale that describes the network's own doubt does not track how hard this particular window is.
+The diagnosis is sharpened by a comparison across uncertainty sources. MC-dropout, which propagates model-parameter uncertainty into the interval scale, performs \emph{worse} than a constant width on our runs (44.4 versus 42.0 on FD001 at matched coverage). What matters is therefore not that the scale is uncertain, but that it is conditional on the asset's state: a scale that describes the network's own doubt does not track how hard this particular window is.
 
 Our second contribution follows from that diagnosis. If width must be learned, the predictor has to be trained for it. We train the backbone under a dual-quantile (pinball) objective with a non-negative half-width head, which makes the interval monotone by construction, and then calibrate the resulting interval with conformal quantile regression.
 
@@ -175,7 +176,7 @@ Paired against a constant-width conformal baseline trained identically (same bac
 
 Table 2 reports each method at matched coverage and Table 3 gives the paired comparisons; Fig. 1 shows the underlying frontiers.
 
-Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 80 cells (4 subsets × 5 folds × 4 seeds) are included; the MC-dropout baseline was run on 10 of them, so its entry is a partial observation.
+Comparing at a single nominal level is misleading because the methods realise different coverage. Table 2 therefore reports each method's Winkler score at 0.90 realised coverage, obtained by interpolating its own coverage--width frontier. All 80 cells (4 subsets × 5 folds × 4 seeds) are included. MC-dropout was run on only ten of those cells, so it is compared separately in Section V-D rather than in this table.
 
 \begin{table}[!t]
 \centering\scriptsize
@@ -294,7 +295,7 @@ Prior std \texttt{sigma\_T} (permuted, Section V-E) & ≈ constant & ≈ constan
 \end{tabular}
 \end{table}
 
-The ordering is the point of this table. All three columns are computed on the same ten cells, because MC-dropout was run on a subset. Model-parameter uncertainty loses to no conditioning on FD001 and FD003, ties it on FD004, and wins only on the single FD002 cell; the FD003 gap alone (83.0 versus 40.9) is decisive. A scale derived from prior uncertainty is indistinguishable from a permutation of itself. Only the half-width produced by the same network that predicts the centre tracks local difficulty.
+The ordering is the point of this table. All three methods are computed on the same ten cells, because MC-dropout was run on a subset. Model-parameter uncertainty loses to no conditioning on FD001 and FD003, ties it on FD004, and wins only on the single FD002 cell; the FD003 gap alone (83.0 versus 40.9) is decisive. A scale derived from prior uncertainty is indistinguishable from a permutation of itself. Only the half-width produced by the same network that predicts the centre tracks local difficulty.
 
 \subsection{E. Is prior uncertainty useful?}\label{e.-is-prior-uncertainty-useful}
 

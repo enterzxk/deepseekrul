@@ -556,3 +556,37 @@ DSH 的 `subagent-codex` 插件把首次 `error` 通知当作终局失败（`run
 - [ ] 29/40 移出证据体系，内部记录加注
 - [ ] 摘要/结论改用 E 的措辞
 
+
+
+---
+
+## D009 · 2026-11-08 · 投稿就绪度裁决（Codex `mcp__codex__codex`，L2）
+
+**问题**：现在能否进入投稿阶段？(A) 补机械缺口后即投 (B) 再花 2–3 周救 H004
+
+**Codex 决定：revise —— 选项 C：做一次有界的投稿就绪修订，然后重新评估。**
+
+**理由（Codex 原文要点）**
+1. 75/80 与四子集一致改善支持"相对常数宽度的经验收益"，**但不构成方法新颖性或对强自适应区间方法的优越性**；94% 胜率本身不足以投 TIM
+2. TIM 允许"应用与测量实践"类贡献，但要求原创 I&M 贡献 + 与 I&M 文献充分比较
+3. **最近邻不是 Romano 2019，而是 CRULP（IEEE TIM 2024/2025）**：已把深度学习 RUL 预测器与 UACQR（不确定性感知保形分位数回归）结合
+4. 2026 年 IJPHM 也有把 CQR 用于全部四个 C-MAPSS 子集的工作 → "CQR 用于 RUL"不能承载贡献
+5. 独立审计是**科学阻塞项**，不是机械缺口：有 bug 的脚本与其断言同源，能证明一致性但保留同一错误
+6. MC-Dropout 10/80 若透明限定在这 10 格则非致命，但不能据此声称普遍优于 MC-Dropout
+7. H004 未过注册的效能门，且"新颖"的分组惩罚项无增量贡献 → 应关闭该表述，不升级为机制主张
+
+**已核实的前人工作（我用 CrossRef/OpenAlex 独立查证，非采信 Codex）**
+- **CRULP: Reliable RUL Estimation Inspired by Conformal Prediction**，IEEE TIM，Piao/Huang/Tsung，DOI `10.1109/TIM.2024.3522678`，OpenAlex 引用 79 次
+  - 摘要：DL RUL 预测器 + UACQR（集成 CQR + cross-conformal），基于**认知不确定性**构造区间，两个航发数据集
+  - **本仓库 references.bib 未收录此条**——投稿前必须补引并做差异表
+
+**风险**
+- 最强反对意见："这只是复现了 CQR 相对常数宽度比较子的预期自适应能力"
+- 若不引用 CRULP，审稿人几乎必然指出漏引同刊直接竞争工作
+
+**下一步（有界修订）**
+1. 补引 CRULP 与 IJPHM 2026，在 Related Work 做逐条差异表
+2. 把"MC-Dropout 尺度无效"重新定位为**对认知不确定性路线（CRULP 的机制）的实证反例**——这是可辩护的差异化角度
+3. 独立 paper-claim-audit（非自证）
+4. MC-Dropout 补到 80 格
+5. 关闭 H004 当前表述，写进 failures.md
