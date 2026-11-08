@@ -1,6 +1,6 @@
 # 研究状态（恢复入口）
 
-> 更新于 2026-11-08。任何新会话/压缩恢复后，**先读本文件**，再读 `decision_log.md`。
+> 更新于 2026-11-08 23:35。任何新会话/压缩恢复后，**先读本文件**，再读 `decision_log.md`。
 > 规则见 `AGENTS.md` §9。
 
 ## 1. 当前目标
@@ -38,6 +38,10 @@
 
 ## 3.5 论文主张（D003 后冻结）
 
+> ✅ 2026-11-08 已用 `verify_paper_numbers.py` 对重建后的工件核对：**17/17 断言通过**。
+> 论文口径 = CQR vs 常数宽度：75/80、均值 −9.1%、中位 −10.8%；名义水平 19/20、中位 −8.7%。
+> 另注：`table_all_methods.py` 打印的 "Loc-CQR vs const 71/80、−8.4%、−11.7%" 是 **Loc-CQR** 对常数宽度，与论文头部主张（CQR 对常数宽度）不是同一比较，勿混用。
+
 正面、限定范围的效率主张：
 - 名义水平 19/20 胜、中位 −8.7%
 - 覆盖对齐 29/40 胜、中位 −8.4%
@@ -45,7 +49,7 @@
 - 跨域 FEMTO 5/6、−12.2%
 - 不主张"均匀改善"，不主张"方法学新颖性"
 
-构建命令：`powershell -NoProfile -File scripts/build_manuscript.ps1`（含 7 章结构断言）
+构建命令：`node scripts/build_manuscript.mjs`（含 7 章结构断言）
 
 ## 3.6 论文状态（2026-11-08 冻结）
 
@@ -55,12 +59,31 @@
 - 构建：`node scripts/build_manuscript.mjs`（结构断言 + 摘要同步 + 表题提升）
 - 主张：按 D003 冻结为"限定范围的效率收益"
 
+## 3.7 S9 缺口清单（2026-11-08 重建）
+
+权威版本见 `docs/manuscripts/SUBMISSION_CHECKLIST.md`。摘要：
+
+- 未完成且可独立执行：① citation-audit ② paper-claim-audit ③ H004 覆盖对齐重做
+  ④ MC-Dropout 补到 80 格 ⑤ 图 4
+- 必须用户处理：作者信息、页数确认、最终通读
+- 过期记录已作废：旧的"40 格 / 2 seeds / 29-40 / 16-16"口径全部更新为 80 格 / 4 seeds / 75-80
+
 ## 4. 待执行
 
-1. 等待 Codex 对 D001 的决策，按其结论执行
-2. 补最后 1 格（FD004 f4 s13）
-3. 若决定改损失：重训 40 格 × 1 seed
-4. 论文按最终结果更新并重编译
+> 执行顺序、判定门与出口断言见 `docs/autopilot_contract.md`；按队列连续执行，不再逐项请示用户。
+
+| 队列 | 状态 | 证据 |
+|---|---|---|
+| 0 从 a40 取回 preds | ✅ 完成 | 本地 80 个 `preds_point.csv` |
+| 1 补 FD004 f4 s13 | ✅ 无需执行 | 80/80 格已齐（4 子集 × 5 折 × 4 seed），原"79/80"记录已过期 |
+| 2 重建 `docs/tables/` | ✅ 完成 | `docs/tables/cells_all.csv`，80 行 |
+| 3 核对论文数字 | ✅ 完成 | `verify_paper_numbers.py` **17/17 PASS** |
+| 4 H004 训练侧假设取舍 | ✅ 完成（D009） | Codex（level 2）裁决 **关闭 H004**，0 格新增预算；登记为「未立项，证据不足而关闭」，非「已证伪」 |
+| 5 重训 | ❌ 取消 | H004 关闭，无重训 |
+| 6 收口审计 | ✅ 完成 | `docs/audit_closeout.md`（三个口径分清、80 格非独立、覆盖匹配已验证） |
+| 7 文献去占位 | ⏳ 待做 | 见 `docs/manuscripts/SUBMISSION_CHECKLIST.md` |
+| 8 G.7 整稿审阅 | ⏳ 待做 | 依赖 6、7 |
+| 9 重编译 + 清单收口 | ⏳ 待做 | 依赖 8 |
 
 ## 5. 恢复命令
 
@@ -73,7 +96,8 @@ python scripts/make_tim_tables.py
 ## 6. 环境事实
 
 - 远端 `a40`：无外网、无 git；Python `/home/yndx/miniconda3/envs/a40_env/bin/python`
-- 本地：无 torch，只有 Windows + pandoc + tectonic（LaTeX 编译）
+- 本地：无 torch。Python 必须用绝对路径 `C:\Users\20562\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe`（PATH 上的 `python` 是 Store 占位符，静默失败）；Node 同理见 `docs/autopilot_contract.md` §7.1
+- `docs/tables/` 目录已不存在，`verify_paper_numbers.py` 无法运行（2026-11-08 实测）
 - 数据集：C-MAPSS 在 `data/`；FEMTO 在远端 `~/femto`（3.1 GB）
 
 ## 7. 未验证/待确认
