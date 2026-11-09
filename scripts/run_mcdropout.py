@@ -65,7 +65,15 @@ def main(argv=None) -> int:
     ap.add_argument("--delta", type=float, default=0.1)
     ap.add_argument("--prior-dir", default="experiments/ida/prior_boot")
     ap.add_argument("--root", default="experiments/punet_e2e")
+    ap.add_argument("--out", default=None,
+                    help="output root for mcdropout.json / preds_mcd.csv (default: same as --root)")
     args = ap.parse_args(argv)
+
+    # MC-Dropout draws stochastic dropout masks. Without a seed the resulting
+    # intervals are not reproducible: rerunning the same checkpoint changed
+    # picp by up to 7.6e-3 and Winkler by up to 3.0 on the 10 frozen cells.
+    # Seed with the cell seed, matching run_e2e_cqr.py's convention.
+    R.set_seed(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     folds, df = R.outer_folds(args.subset)
@@ -110,7 +118,8 @@ def main(argv=None) -> int:
         calib_mask, test_mask, delta=args.delta,
     )
     result.update(method="mcdropout", subset=args.subset, fold=args.fold, passes=args.passes)
-    out = ROOT / args.root / args.subset / f"f{args.fold}_s{args.seed}"
+    out = ROOT / (args.out if args.out else args.root) / args.subset / f"f{args.fold}_s{args.seed}"
+    out.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"unit": units, "y_true": y, "mu": mu, "sd": sd}).to_csv(
         out / "preds_mcd.csv", index=False)
     (out / "mcdropout.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

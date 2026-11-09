@@ -1,0 +1,709 @@
+What conformal RUL intervals deliver: an 80-cell audit of coverage,
+per-engine failure, and a conditional epistemic scale
+First Author 1
+1 Aﬀiliation, City, Country
+author@example.edu
+Abstract
+Remaining-useful-life (RUL) intervals are used to sched-
+ule maintenance, yet they are usually evaluated by marginal
+coverage on a single training run. We audit a frozen con-
+formalized quantile regression pipeline on C-MAPSS at
+the resolution at which it is used: four subsets x five
+folds x four seeds = 80 cells, with an engine-disjoint cal-
+ibration split. CQR lowers the Winkler score against
+a constant-width conformal baseline in 75/80 cells and
+20/20 folds (mean -10.22%) at matched marginal cov-
+erage (-0.42 pp). The same cells contain engines whose
+intervals cover 12-49% of their windows, and 18/20 folds
+contain an engine below 0.80; the failure is repeatable
+across seeds (ICC 0.780). We then test whether a per-
+sample epistemic scale (MC-Dropout) repairs this. Against
+a same-centre constant-width control, the scale improves
+19/20 cells on FD002 but only 1/20 on FD003; at the fold
+level, 9/10 multi-operating-condition folds improve ver-
+sus 2/10 single-condition folds. A pre-registered calibration-
+side diagnostic fails its support criteria (-0.039 [-0.431,
+0.317]), because with six calibration engines its own boot-
+strap standard deviation is 0.41-0.49. For practice, the
+results argue for reporting per-engine coverage and repli-
+cating across seeds before an interval is used in a main-
+tenance decision.
+1. Introduction
+Remaining-useful-life (RUL) prognostics is one of the
+places where a prediction interval matters more than a
+point estimate: maintenance decisions are made against
+a bound, not against a mean. Conformal prediction
+has therefore become a natural tool for RUL, because
+it turns any point or quantile predictor into an interval
+with a distribution-free finite-sample guarantee (Vovk,
+Gammerman, et al., 2005; Lei, G’Sell, et al., 2018). Con-
+First Author et al. This is an open-access article distributed under
+the terms of the Creative Commons Attribution 3.0 United States
+License, which permits unrestricted use, distribution, and repro-
+duction in any medium, provided the original author and source
+are credited.
+formalized quantile regression (CQR) (Romano, Patter-
+son, et al., 2019) is the variant most often used, since it
+lets the interval width follow the local diﬀiculty of the
+prediction instead of being constant.
+The guarantee, however, is marginal: it holds on average
+over calibration and test points. It says nothing about
+a single engine, and it says nothing about whether the
+interval is eﬀicient. Both gaps matter in prognostics,
+where the unit of a maintenance decision is one engine.
+Recent work has begun to map these gaps — condi-
+tional coverage is impossible to guarantee distribution-
+free (Barber, Candès, et al., 2021), group-conditional
+guarantees require group structure and enough per-group
+samples (Gibbs, Cherian, et al., 2025), calibration-set-
+conditional coverage is itself a random quantity (Bian &
+Barber, 2023), and label-free auditing of coverage under
+shift has a detectability boundary (Moussa, 2026). Yet
+the studies we reviewed for this paper typically report
+marginal coverage from a single training run.
+This paper asks three questions about a frozen, published-
+style CQR pipeline for C-MAPSS RUL:
+• Q1. Is the reported eﬀiciency gain — lower inter-
+val score than a constant-width conformal baseline
+— stable across training seeds and folds, and is it
+obtained at matched coverage?
+• Q2. When marginal coverage is close to nominal,
+what does the per-engine coverage distribution look
+like, and is the failure repeatable or is it training
+noise?
+• Q3. If we replace the learned half-width with a per-
+sample epistemic-uncertainty scale (MC-Dropout),
+when does it help, and can a calibration-side diag-
+nostic tell us in advance?
+The answers are organised as four contributions.
+C1 — A controlled, multi-seed comparison. We eval-
+uate 4 subsets × 5 folds × 4 seeds = 80 cells against
+a constant-width conformal baseline trained identically,
+International Journal of Prognostics and Health Management, ISSN2153-2648, 2026 000 1
+International Journal of Prognostics and Health Management
+at the nominal level. CQR lowers the Winkler score in
+75/80 cells and in 20/20 folds (mean −10.22%), while
+realised coverage differs by −0.42 pp on average. We re-
+port the per-cell coverage spread (up to 8.84 pp) rather
+than hiding it.
+C2 — The unit-level view. Per-engine coverage is heavy-
+tailed: the worst engine reaches 0.1217 (FD004) across
+the 80 cells, and 18/20 folds contain an engine below
+0.80. Treating seeds as replicates, the intraclass corre-
+lation of per-engine coverage is 0.780, so the failure is a
+repeatable property of the engine under this partition,
+not sampling noise.
+C3 — A controlled test of an epistemic scale. Compar-
+ing MC-Dropout against a constant-width interval built
+on the same MC mean isolates the scale from the centre
+shift. The effect is strongly heterogeneous: 19/20 cells
+improve on FD002 (mean −7.09%) while 1/20 improve
+on FD003 (mean +28.06%); at the fold level, 9/10 multi-
+condition folds improve versus 2/10 single-condition folds
+(Fisher exact p = 0.0055, descriptive).
+C4 — A pre-registered diagnostic that fails, and why.
+We registered the natural hypothesis that the scale is
+useful exactly when it ranks calibration engines by dif-
+ficulty. The hypothesis does not reach its pre-registered
+support criteria: the rank correlation between the diag-
+nostic and the outcome is −0.039 [−0.431, +0.317]. The
+reason is measurable — with six calibration engines the
+diagnostic’s own bootstrap standard deviation is 0.41–
+0.49, so its 95% interval spans most of its range.
+The common thread is a measurement point rather than
+a methodological one: marginal coverage and a single
+training seed are weak summaries of what a conformal
+RUL interval delivers. We do not propose a new interval
+method; we quantify what the current one gives, at the
+resolution at which it is used.
+2. Related work
+2.1. Conditional validity and its limits
+Split conformal prediction guarantees marginal cover-
+age under exchangeability (Vovk, Gammerman, et al.,
+2005; Lei, G’Sell, et al., 2018). Exact distribution-free
+conditional coverage is impossible without further as-
+sumptions (Barber, Candès, et al., 2021), and coverage
+guarantees are conditional on the calibration set, hence
+random (Bian & Barber, 2023). Practical relaxations
+impose structure: group-conditional guarantees over a
+user-specified collection of subgroups (Gibbs, Cherian,
+et al., 2025), or weighting by an estimated density ratio
+under covariate shift (Tibshirani, Barber, et al., 2019).
+Our work does not add to this theory; it measures how
+far a standard pipeline is from the conditional ideal, and
+it keeps the counting object explicit — calibration scores
+per cell, not calibration engines.
+2.2. Conformal RUL
+CQR (Romano, Patterson, et al., 2019) is the base of
+most recent conformal RUL work. CRULP (Piao, Huang,
+et al., 2025) integrates a deep RUL predictor with an
+uncertainty-aware CQR variant built on epistemic un-
+certainty, using ensemble CQR and cross-conformal pre-
+diction. Robinson (Robinson, 2026) applies gradient-
+boosted point predictors with CQR to all four C-MAPSS
+subsets and adds a risk-aware decision layer; it reports
+empirical coverage of 88–92% at a 90% nominal level and
+per-engine degradation curves, but no per-engine cover-
+age distribution. We use the same family of predictors
+and intervals, and we report the per-engine distribution.
+2.3. Audits, conditional coverage diagnostics, and bound-
+aries
+Several 2026 works are close in spirit. Yan (Yan, 2026)
+audits conformal RUL intervals on C-MAPSS and N-
+CMAPSS along operating regimes and predicted-RUL
+bands, with ACI and Mondrian variants, and explains
+mid-band failures by band misassignment. Domingues
+and Ather (Domingues & Ather, 2026) document con-
+ditional collapse near end of life (61–90 cycles remain-
+ing; 37–50% near failure) on C-MAPSS. Zhou et al.
+(Zhou, Zhang, et al., 2026) reframe conditional-coverage
+assessment as a supervised learning problem: a reliabil-
+ity estimator predicts instance-level coverage, with con-
+vergence rates, but it requires a labeled evaluation set.
+Moussa (Moussa, 2026) establishes detectability bounds
+and a sharp identified set for marginal target coverage
+under shift, and states explicitly that the approach re-
+pairs marginal rather than conditional coverage. For
+sparse cells, HACC (Zou, Feng, et al., 2026) gives an
+arithmetic threshold below which the empirical quantile
+does not exist, and repairs it by shrinkage.
+2.4. What this paper adds
+The difference is a controlled comparison, not a new es-
+timator:
+1. Same-centre control. MC-Dropout changes the cen-
+tre as well as the scale. Holding the centre fixed
+at the MC mean isolates the scale, which is what
+the question “is an epistemic scale useful?” actually
+asks.
+2. Multi-seed replication. Four seeds on a shared parti-
+tion let us separate engine-level failure from training
+noise (ICC 0.780) and attach a sampling-noise floor
+(median 0.63 pp, p90 3.20 pp, 0/80 direction flips)
+to every subset-level statement.
+2
+International Journal of Prognostics and Health Management
+3. A pre-registered diagnostic test. The calibration-
+side diagnostic is specified, thresholded, and regis-
+tered before it is evaluated, and its estimation vari-
+ance is measured rather than assumed.
+4. Explicit counting objects. Calibration engines (6/16/6/15),
+calibration scores per cell, and per-engine windows
+are kept distinct throughout; conflating these three
+may make claims about “unit-level validity” harder
+to compare across papers.
+We make no claim of theoretical novelty, and we do not
+claim to be the first to observe conditional coverage fail-
+ure in RUL; that observation is due to (Domingues &
+Ather, 2026) and (Yan, 2026).
+3. Experimental protocol
+3.1. Data
+We use the four C-MAPSS turbofan subsets FD001–
+FD004 (Saxena, Goebel, et al., 2008). They differ in the
+number of operating conditions (one for FD001/FD003,
+six for FD002/FD004) and in the number of fault modes
+(one for FD001/FD002, two for FD003/FD004). Train-
+ing targets are the piecewise-linear remaining useful life
+clipped at 125 cycles. Windows of 50 cycles are built
+per engine; FD002/FD004 are condition-normalised with
+six operating-condition clusters fitted on training engines
+only.
+The oﬀicial C-MAPSS test files are not used anywhere
+in this paper. All results come from held-out engines
+inside the training data. This is a deliberate protocol
+choice: the question is how a conformal interval behaves
+on unseen engines drawn from the same population, not
+how it scores on a fixed test file.
+3.2. Splits and seeds
+Engines are partitioned into five folds by KFold(n_splits=5,
+shuffle=True, random_state=20261104). Within each
+fold, 30% of the validation engines are reserved for con-
+formal calibration and the rest form the test set; the
+split is engine-disjoint and fixed at seed 42 for every cell.
+The number of calibration engines is therefore 6 (FD001,
+FD003) and 16 / 15 (FD002, FD004); the corresponding
+test sets contain 14 / 36 / 14 / 35 engines.
+Each fold is trained with four seeds (42, 7, 2024, 13),
+giving 4 subsets × 5 folds × 4 seeds = 80 cells. Seeds
+change only the initialisation and training trajectory; the
+engine partition is shared by all four seeds.
+3.3. Frozen predictor and interval
+The predictor is an IDA-PE backbone with a zero-initialised
+projection of two prior features and two output heads
+producing a centre ci and a non-negative half-width si =
+softplus(gϕ(zi)):
+qlo i = ci − si, q hi i = ci + si.
+It is trained end-to-end with the pinball loss at 0.05/0.95
+plus 0.1 (ci − yi)2. Calibration is split conformal on the
+CQR score Ei = max(qlo i − yi, y i − qhi i ):
+ˆq = Quantile(1−δ)(1+1/n)
+(
+{Ei}
+)
+, C (x) =
+[
+qlo−ˆq, q hi+ˆq ] ,
+with δ = 0 .1 and n the number of calibration windows.
+The method is frozen before any of the analyses below;
+it is treated as a baseline, not as a contribution.
+3.4. Four arms
+The fourth arm is the key design element. MC-Dropout
+changes both the centre (to the MC mean) and the scale;
+comparing it with the deterministic-centre constant width
+confounds the two. Comparing it with the same-centre
+constant width attributes the difference to the scale alone.
+3.5. Metrics
+The primary metric is the Winkler interval score at a
+fixed α = 0 .1, mean
+[
+(u − l) + 2 α ((l − y)+ + (y − u)+) ] ,
+which penalises width and miscoverage jointly. We also
+report PICP (marginal coverage), PINA W, and the per-
+engine coverage distribution (minimum, 5th percentile,
+median). The engine, not the window, is the unit for all
+coverage statements: thousands of windows from a few
+engines are not independent samples.
+3.6. Statistical discipline
+The reporting unit is the fold (4 subsets × 5 folds =
+20), with seeds averaged inside a fold. Three caveats are
+stated rather than corrected away:
+1. The 80 cells share one five-fold partition, so they are
+not 80 independent observations.
+2. The 20 folds share training data through cross-validation
+overlap, so we report descriptive statistics and boot-
+strap intervals, not independent-sample significance
+tests.
+3. Coverage-aligned comparisons interpolate each method’s
+frontier using test labels and therefore cannot rep-
+resent a deployable selection rule; they appear in
+Appendix A as a post-hoc diagnostic only, clearly
+separated from the nominal-level results.
+3
+International Journal of Prognostics and Health Management
+Arm Centre Half-width Purpose
+Constant width deterministic ci ˆq (absolute-residual
+conformal)
+the frozen baseline the
+literature compares
+against
+CQR ci si + ˆq the method under audit
+MC-Dropout scale mean of 30 stochastic
+forward passes
+ˆq · sdi a per-sample
+epistemic-uncertainty scale
+Same-centre constant same MC mean ˆq control: isolates the scale
+from the centre shift
+3.7. Reproducibility and integrity gates
+Three executable gates precede every number in this pa-
+per:
+• Frozen baseline (scripts/freeze_audit.py, 50 asser-
+tions): re-derives the 80-cell table, the fold-level sum-
+maries, the seed-variance decomposition, the per-
+engine coverage tails, the permutation ablation and
+the cross-domain results from the stored predictions.
+• MC-Dropout integrity (scripts/verify_mcd80.py): the
+40 cells that required retraining were re-run from
+scratch, and their point predictions reproduce the
+frozen ones bit-for-bit (max |∆ylo| = 0.0).
+• Sampling noise floor (scripts/compare_mcd_draws.py):
+two independent MC-Dropout draws on the same
+checkpoints give a median absolute change of 0.63
+pp, a 90th percentile of 3.20 pp, and a maximum of
+14.70 pp on the primary metric, with 0/80 direction
+flips. Subset-level differences smaller than 3.20 pp
+are therefore reported as within noise.
+The protocol is frozen before the analyses in Section 4;
+the pre-registered diagnostic test of Section 4.4 is regis-
+tered in the project’s hypothesis log with its thresholds
+fixed in advance.
+4. Results
+4.1. The eﬀiciency gain is reproducible, and it is not
+bought with coverage
+At the nominal level ( δ = 0.1), CQR lowers the Winkler
+score relative to the constant-width conformal baseline
+in 75 of 80 cells and in 20 of 20 folds; the cell-level mean
+change is −10.22% (median −11.30%).
+The two arms do not trade coverage for sharpness. A v-
+eraged over the 80 cells, realised coverage is 0.8952 for
+CQR and 0.8994 for the constant-width arm, a differ-
+ence of −0.42 pp; per subset the differences are −0.08,
+−0.43, −1.36 and +0.19 pp. The match is a property of
+the subset means, not of every cell: the largest per-cell
+coverage difference is 8.84 pp. We state this explicitly
+because a reader who checks individual cells will find it.
+We also verified that the comparison is not an artefact
+of a single training run: the four seeds share the engine
+partition, and 16 of 20 folds have all four seeds agreeing
+in sign, with a within-fold seed spread whose median is
+6.13 pp and whose maximum is 36.63 pp (46.82% of the
+descriptive variance is within-fold).
+4.2. Marginal coverage does not imply engine-level reli-
+ability
+The per-engine coverage distribution is heavy-tailed down-
+wards. Across the 80 cells, the lowest single-engine cov-
+erage is 0.4214 (FD001), 0.2375 (FD002), 0.4933 (FD003)
+and 0.1217 (FD004). 73 of the 80 cells contain at least
+one engine below 0.80, and in 18 of 20 folds the seed-
+averaged per-engine coverage falls below 0.80 for at least
+one engine.
+The extremes are not isolated failures of one cell. Tak-
+ing, for each cell, the minimum over its test engines and
+then the median of those minima across the 20 cells of
+a subset gives 0.6950 (FD001), 0.5438 (FD002), 0.7110
+(FD003) and 0.5181 (FD004); the typical cell’s worst
+engine is itself well below nominal. All per-engine num-
+bers in this section come from the 80-cell matrix and
+are recomputed under the same seed-42 calibration/test
+split for every cell, so they are directly comparable across
+seeds. The 20-fold count in the previous paragraph is the
+seed-averaged version of the same 80-cell computation,
+not a separate single-seed run.
+This is not training noise. Treating the four seeds as
+replicates of the same engine under the same partition,
+the intraclass correlation of per-engine coverage is ICC(1,1)
+= 0.780, the mean pairwise Spearman correlation across
+seeds is +0.762 (99% of 120 seed pairs positive), the
+bottom-quartile engine sets overlap with a mean Jac-
+card of 0.599, and the within-engine standard deviation
+across seeds is 0.032 (population SD; the sample SD with
+4 seeds is 0.0372). An engine that is under-covered by
+one training run tends to be under-covered by the others.
+We stress what this does and does not show. It shows
+that, under this frozen partition and training configura-
+tion, the failure is a repeatable property of the engine. It
+does not show that the failure is intrinsic to the engine,
+that it transfers across partitions, or that it is identifi-
+able at deployment time.
+4
+International Journal of Prognostics and Health Management
+4.3. The epistemic scale helps or hurts depending on
+operating-condition structure
+Replacing the learned half-width with a per-sample MC-
+Dropout scale changes the Winkler score by +9.49% on
+average over the 80 cells, with a median of −0.97%. The
+mean and the median point in opposite directions, so nei-
+ther “better” nor “worse” is an accurate one-line sum-
+mary. Two facts constrain the reading: the median is
+the same order as the sampling noise (median absolute
+change 0.63 pp), and the mean is dominated by a small
+number of catastrophic cells.
+The split is by subset (same-centre control, so only the
+scale differs):
+FD002 and FD003 are both far outside the noise floor
+(p90 = 3.20 pp); FD004’s −1.78% is not, and we do not
+treat it as evidence of an improvement.
+Aggregating to the fold level makes the structure sharper.
+Of the ten folds from multi-operating- condition subsets,
+9 are improved (mean −4.44%); of the ten folds from
+single-condition subsets, 2 are improved (mean +23.41%);
+Fisher’s exact two-sided test on this 2×2 table gives p =
+0.0055. The test is descriptive: the 20 folds share train-
+ing data and are not independent draws, so the p-value
+quantifies the strength of the separation in this design,
+not a population-level effect.
+4.4. A natural calibration-side diagnostic does not sur-
+vive its own pre-registered test
+Before looking at any of the above as a mechanism, we
+registered a hypothesis: that the scale is useful exactly
+when it ranks calibration engines by diﬀiculty, measured
+by ρcal = Spearman {(¯si, ¯ai)}i∈calib, the rank correlation
+between an engine’s mean dropout scale and its mean
+absolute centre error, computed on calibration engines
+only. Four gates were fixed in advance; three fail.
+The failure has a measurable cause. Bootstrapping en-
+gines within each cell (post-hoc; not part of the pre-
+registered gates), the sampling standard deviation of ρcal
+is 0.490 (FD001) and 0.414 (FD003), where only 6 en-
+gines are available for calibration, against 0.249 (FD002)
+and 0.171 (FD004) with 15–16. The corresponding per-
+cell 95% half-widths are 0.898, 0.479, 0.747 and 0.324.
+With six calibration engines the diagnostic’s own uncer-
+tainty spans most of its range, so a rule built on it cannot
+be reliably calibrated at this sample size — which is what
+G-A and G-D show.
+We read this as an estimation result, not an impossibility
+result. It does not show that no calibration-side diagnos-
+tic can work; it shows that this one, at this calibration
+size, cannot. The distinction matters for practice: the
+usual way to justify a conditional scale is to check that it
+correlates with residuals on the calibration set, and that
+check is uninformative here.
+4.5. The other candidate scales are not better
+Two further comparisons place the dropout scale in con-
+text.
+Against the learned conditional width. On the same 80
+cells, the MC-Dropout arm is worse than CQR in 72
+of 80 cells and in 20 of 20 folds, with a mean change of
++21.42% and a median of +15.31%. On this comparison
+the learned half-width is better; we do not claim that it
+captures “more” of any particular quantity.
+Against the prior-uncertainty scale. Permuting the prior
+standard deviation σT across windows — which destroys
+any association between the scale and the sample while
+keeping its marginal distribution — changes the Win-
+kler score by +0.246% on average, with 11 of 20 folds
+becoming worse and FD004 improving by 3.02%. The
+permutation is within noise, so we do not treat σT as a
+useful conditional scale.
+Cross-domain. On six run-to-full-failure FEMTO bear-
+ings (Nectoux, Gouriveau, et al., 2012), with the con-
+formal quantile calibrated on 300 held-out windows per
+bearing and evaluated on 300 disjoint test windows, CQR
+improves on the constant-width baseline in 6 of 6 bear-
+ings with a mean change of −16.30%. For the record, an
+earlier internal evaluation of the same dumps calibrated
+and evaluated on the same windows and scored each
+frontier point at its own α; it gave 5/6 and −12.21%.
+It is noted only to explain the difference from earlier
+project records and is not used as evidence here. The
+split protocol above supports the eﬀiciency result of Sec-
+tion 4.1 only; it is too small a sample to say anything
+about the scale or the per-engine findings.
+5. Discussion
+5.1. What the three results say together
+Read separately, each result is unremarkable: confor-
+mal intervals can be sharper than constant-width ones;
+marginal coverage does not imply conditional coverage;
+an uncertainty scale can be unstable. Read together,
+they describe a specific gap between what is reported
+and what is used.
+The eﬀiciency result (Section 4.1) is robust — 20/20
+folds, −10.22% — and it is obtained at matched cover-
+age. That is a genuine and reproducible property of the
+pipeline. But the same 80 cells contain engines whose
+intervals cover 12–49% of their windows (Section 4.2).
+A practitioner reading only the marginal number would
+5
+International Journal of Prognostics and Health Management
+Subset Cells better Mean change Median change
+FD001 (single OC) 8/20 +18.77% +10.65%
+FD002 (multi OC) 19/20 −7.09% −7.29%
+FD003 (single OC) 1/20 +28.06% +24.99%
+FD004 (multi OC) 15/20 −1.78% −2.58%
+Gate Statistic Threshold Result
+G-A Spearman(ρcal, r scale)
+over 20 folds
+￿ −0.35, CI upper < 0 −0.039 [−0.431, +0.317]
+— fail
+G-B ρcal multi-OC minus
+single-OC
+￿ 0.20, ￿4/5 folds +0.216, 4/5 — pass
+G-C Spearman(scale shift , coverage gap)￿ −0.30, CI upper < 0 −0.221 [−0.712, +0.300]
+— fail
+G-D go/no-go rule at τ = 0.5
+(fixed)
+mean ￿ −2%, FD003 ￿
++2%
++2.79%, FD003 +13.77%
+— fail
+conclude that the interval is usable on a new engine; the
+per-engine distribution says that for some engines it is
+not, and that this is not a fluke of one training run.
+The scale experiment (Section 4.3) then shows that the
+natural remedy — condition the width on an epistemic-
+uncertainty estimate — does not have a uniform effect.
+It is not that the scale is useless; on the multi-operating-
+condition subsets it improves 19/20 cells of FD002. It is
+that the sign of the effect depends on the subset, and the
+subset structure that separates the signs is operating-
+condition heterogeneity, not fault-mode count: FD002
+and FD004 are multi-condition, FD001 and FD003 single-
+condition, and the fold-level split is 9/10 versus 2/10.
+We state this as an observed association; the experiment
+does not identify the mechanism, and we do not claim it
+does.
+The pre-registered diagnostic (Section 4.4) closes the
+loop in a way that is useful precisely because it fails.
+The obvious way to justify a conditional scale is to check,
+on calibration engines, that it ranks them by diﬀiculty.
+That check is not informative here: its correlation with
+the outcome is −0.039, and its own sampling standard
+deviation at six calibration engines is 0.41–0.49. The
+practical lesson is narrow: for this statistic ( ρcal), at
+the calibration sizes of this five-fold C-MAPSS protocol
+(6–16 engines), the estimate is too noisy to support a
+go/no-go decision, even though the underlying idea is
+reasonable.
+5.2. Implications for reporting practice
+Three reporting choices would have changed the picture
+in this paper, and each is cheap:
+1. Report the per-engine coverage distribution, not only
+the mean. The marginal number is 0.895; the 1st
+percentile of per-engine coverage is 0.41–0.54 de-
+pending on subset, and the minimum is 0.12.
+2. Report at least two training seeds. With one seed, a
+3.2 pp difference is inside the sampling noise of the
+scale experiment; with four seeds on a shared par-
+tition, the sign split is consistent across folds (9/10
+versus 2/10), and two independent MC-Dropout draws
+change the sign in 0 of 80 cells, so the comparison
+itself is reproducible even though the seed spread is
+large.
+3. Use a same-centre control when the scale arm also
+changes the centre. Otherwise the comparison at-
+tributes a centre shift to the scale.
+None of these requires new theory or additional data
+collection.
+5.3. Relation to prior audits
+Our per-engine finding is consistent with the conditional-
+collapse results of (Domingues & Ather, 2026) and the
+band-failure analysis of (Yan, 2026); we cite them as
+the source of the phenomenon and do not claim to have
+discovered it. What we add is the controlled scale com-
+parison and the replication structure. Relative to (Zhou,
+Zhang, et al., 2026), the object differs: CPA estimates
+instance-level coverage from a labeled evaluation set,
+whereas we ask whether a calibration-side diagnostic is
+estimable at all before deployment. Relative to (Moussa,
+2026), the claim is weaker by design: we offer no de-
+tectability bound, only a measured estimation variance
+for one named diagnostic under one frozen protocol.
+6. Limitations
+• Dependence. The 80 cells share one five-fold parti-
+tion, and the 20 folds share training data through
+cross-validation overlap. All intervals reported here
+are descriptive; no independent-sample significance
+test is claimed, including the Fisher exact test in
+Section 4.3, which quantifies the separation within
+this design only.
+• Single backbone, four subsets. The predictor is one
+6
+International Journal of Prognostics and Health Management
+IDA-PE configuration; the conclusions about the scale’s
+heterogeneity are established for this configuration
+and these four subsets, not for conformal RUL in
+general.
+• Cross-domain evidence is limited. The FEMTO com-
+parison covers six run-to-full-failure bearings and
+supports only the eﬀiciency claim, not the scale or
+unit-level findings.
+• Oﬀicial test data are unused. This is a protocol
+choice: the question concerns unseen engines from
+the training population. It also means the numbers
+are not comparable to papers that report oﬀicial-test
+scores.
+• The diagnostic’s variance is measured at three cal-
+ibration sizes (6, 15, 16). We do not extrapolate a
+sample-size requirement from them.
+• No deployment claim. Nothing here shows that a
+failing engine can be identified before its labels ar-
+rive; Section 4.4 is evidence against one specific at-
+tempt, not a general impossibility result.
+7. Conclusion
+A frozen CQR pipeline for C-MAPSS RUL delivers a re-
+producible eﬀiciency gain over a constant-width confor-
+mal baseline — 20/20 folds, −10.22% Winkler at matched
+marginal coverage — and at the same time leaves some
+engines covered as little as 12% of the time, a failure that
+is stable across training seeds. Replacing the learned
+half-width with an MC-Dropout scale does not fix this
+uniformly: its effect changes sign with operating-condition
+structure, and the natural calibration-side diagnostic for
+deciding when to use it does not survive a pre-registered
+test, because at six calibration engines the diagnostic is
+noisier than the signal it is meant to carry. The prac-
+tical recommendation is measurement-oriented: report
+per-engine coverage, replicate across seeds, and control
+the centre when evaluating a scale.
+8. Appendix A. Coverage-aligned comparison (post-hoc
+diagnostic)
+This appendix is deliberately separated from the
+main results. The aligned comparison interpo-
+lates each method’s coverage–width frontier us-
+ing test labels; it therefore cannot represent a
+deployable selection rule and is not used to sup-
+port any claim in Sections 4–7.
+For completeness we report the comparison at matched
+realised coverage (target 0.90, Winkler evaluated at a
+fixed α = 0 .1). CQR improves on the constant-width
+baseline in 75/80 cells and 19/20 folds, with a cell-level
+mean change of −9.09% and a fold-level median of −9.69%.
+The per-subset means are −7.57%, −14.07%, −6.49%
+and −8.22%.
+The same diagnostic applied to the MC-Dropout arm
+gives 31/80 cells, +18.9% mean and +4.5% median —
+the opposite sign to the nominal-level result of Section
+4.3. The reversal is expected: an arm that under-covers
+at the nominal level is widened to reach 0.90, and widen-
+ing is penalised. We report it so that the two protocols
+are not confused, and we draw no conclusion from it.
+References
+Barber, R. F., Candès, E. J., Ramdas, A., & Tibshirani,
+R. J. (2021). The limits of distribution-free con-
+ditional predictive inference. Information and In-
+ference: A Journal of the IMA. doi: 10.1093/ima-
+iai/iaaa017
+Bian, M., & Barber, R. F. (2023). Training-conditional
+coverage for distribution-free predictive inference.
+Electronic Journal of Statistics. doi: 10.1214/23-
+EJS2145
+Domingues, N. A. S., & Ather, D. (2026). Calibrated but
+not safe: Conformal prediction intervals for turbo-
+fan remaining useful life near end of life and under
+operating shift. Journal of Artificial Intelligence,
+Machine Learning and Neural Network, 6(2), 106–
+119. doi: 10.55529/jaimlnn.62.106.119
+Gibbs, I., Cherian, J. J., & Candès, E. J. (2025).
+Conformal prediction with conditional guaran-
+tees. Journal of the Royal Statistical Soci-
+ety: Series B (Statistical Methodology). doi:
+10.1093/jrsssb/qkaf008
+Lei, J., G’Sell, M., Rinaldo, A., Tibshirani, R. J.,
+& Wasserman, L. (2018). Distribution-free
+predictive inference for regression. Journal
+of the American Statistical Association. doi:
+10.1080/01621459.2017.1307116
+Moussa, M. (2026). Auditing conformal prediction under
+distribution shift: A detectability boundary, exact
+label-budget design, and repair. (Research Square
+preprint; posted 2026-08-07) doi: 10.21203/rs.3.rs-
+10396495/v1
+Nectoux, P., Gouriveau, R., Medjaher, K., Ramasso,
+E., Chebel-Morello, B., Zerhouni, N., & Varnier,
+C. (2012). PRONOSTIA: An experimental plat-
+form for bearings accelerated degradation tests. In
+Ieee international conference on prognostics and
+health management (phm’12) (pp. 1–8). (HAL:
+hal-00719503)
+Piao, S., Huang, R., & Tsung, F. (2025). CRULP: Reli-
+able RUL estimation inspired by conformal predic-
+tion. IEEE Transactions on Instrumentation and
+7
+International Journal of Prognostics and Health Management
+Measurement, 74, 1–11. (Art. no. 3505411) doi:
+10.1109/TIM.2024.3522678
+Robinson, C. (2026). Remaining useful life esti-
+mation for aircraft engines with risk-aware pre-
+diction intervals via conformalized quantile re-
+gression. International Journal of Prognos-
+tics and Health Management, 17(1). doi:
+10.36001/ijphm.2026.v17i1.4724
+Romano, Y., Patterson, E., & Candès, E. J. (2019).
+Conformalized quantile regression. In Advances in
+neural information processing systems (neurips).
+(arXiv:1905.03222)
+Saxena, A., Goebel, K., Simon, D., & Eklund, N. H. W.
+(2008). Damage propagation modeling for aircraft
+engine run-to-failure simulation. In 2008 interna-
+tional conference on prognostics and health man-
+agement. doi: 10.1109/PHM.2008.4711414
+Tibshirani, R. J., Barber, R. F., Candès, E. J., & Ram-
+das, A. (2019). Conformal prediction under co-
+variate shift. In Advances in neural information
+processing systems (neurips). (arXiv:1904.06019)
+Vovk, V., Gammerman, A., & Shafer, G. (2005). Algo-
+rithmic learning in a random world. Springer. doi:
+10.1007/b106715
+Yan, H. (2026). Conformal prediction intervals for tur-
+bofan remaining useful life: an audit across oper-
+ating regimes (code and run artifacts). (Software
+deposit, PHM Society / University of Arizona) doi:
+10.5281/zenodo.21330745
+Zhou, Z., Zhang, X., Tao, C., & Yang, Y. (2026). Confor-
+mal prediction assessment: A framework for con-
+ditional coverage evaluation and selection.
+Zou, J., Feng, E., Li, P., & Wang, G. (2026).
+Horizon-aware group-conditional conformal pre-
+diction: Post-hoc shrinkage for sparse multi-
+horizon coverage auditing. Machine Learning with
+Applications. doi: 10.1016/j.mlwa.2026.101038
+8

@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.13" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Author name(s) 鈥?placeholder, to be completed before submission" />
+  <meta name="keywords" content="conformal prediction; remaining useful
+life; conditional coverage; C-MAPSS; uncertainty quantification;
+maintenance decision making" />
+  <title>What conformal RUL intervals deliver: an 80-cell audit of coverage, per-engine failure, and a conditional epistemic scale</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      color: light-dark(#1a1a1a, #fdfdfd);
+      background-color: #fdfdfd;
+      background-color: light-dark(#fdfdfd, #1a1a1a);
+      color-scheme: light dark;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        color-scheme: light only;
+      }
+      html, body, pre, code {
+        background-color: transparent;
+      }
+      body, a, a:visited, blockquote {
+        color: black;
+      }
+      pre, code {
+        padding: 0;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a, a:visited {
+      color: inherit;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid;
+      border-color: #e6e6e6;
+      border-color: light-dark(#e6e6e6, #4c4c4c);
+      color: #606060;
+      color: light-dark(#606060, #b6b6b6);
+    }
+    div.abstract {
+      margin: 2em 2em 2em 2em;
+      text-align: left;
+      font-size: 85%;
+    }
+    div.abstract-title {
+      font-weight: bold;
+      text-align: center;
+      padding: 0;
+      margin-bottom: 0.5em;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid currentColor;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid currentColor;
+      border-bottom: 1px solid currentColor;
+    }
+    th {
+      border-top: 1px solid currentColor;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">What conformal RUL intervals deliver: an 80-cell audit
+of coverage, per-engine failure, and a conditional epistemic scale</h1>
+<p class="author">Author name(s) 鈥?placeholder, to be completed before
+submission</p>
+<p class="date">Draft, 2026-11-09</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>Remaining-useful-life (RUL) intervals are used to schedule
+maintenance, yet they are usually evaluated by marginal coverage on a
+single training run. We audit a frozen conformalized quantile regression
+pipeline on C-MAPSS at the resolution at which it is used: four subsets
+x five folds x four seeds = 80 cells, with an engine-disjoint
+calibration split. CQR lowers the Winkler score against a constant-width
+conformal baseline in 75/80 cells and 20/20 folds (mean -10.22%) at
+matched marginal coverage (-0.42 pp). The same cells contain engines
+whose intervals cover 12-49% of their windows, and 18/20 folds contain
+an engine below 0.80; the failure is repeatable across seeds (ICC
+0.780). We then test whether a per-sample epistemic scale (MC-Dropout)
+repairs this. Against a same-centre constant-width control, the scale
+improves 19/20 cells on FD002 but only 1/20 on FD003; at the fold level,
+9/10 multi-operating-condition folds improve versus 2/10
+single-condition folds. A pre-registered calibration-side diagnostic
+fails its support criteria (-0.039 [-0.431, 0.317]), because with six
+calibration engines its own bootstrap standard deviation is 0.41-0.49.
+For practice, the results argue for reporting per-engine coverage and
+replicating across seeds before an interval is used in a maintenance
+decision.</p>
+</div>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#introduction" id="toc-introduction">1.
+Introduction</a></li>
+<li><a href="#related-work" id="toc-related-work">2. Related work</a>
+<ul>
+<li><a href="#conditional-validity-and-its-limits"
+id="toc-conditional-validity-and-its-limits">2.1 Conditional validity
+and its limits</a></li>
+<li><a href="#conformal-rul" id="toc-conformal-rul">2.2 Conformal
+RUL</a></li>
+<li><a href="#audits-conditional-coverage-diagnostics-and-boundaries"
+id="toc-audits-conditional-coverage-diagnostics-and-boundaries">2.3
+Audits, conditional coverage diagnostics, and boundaries</a></li>
+<li><a href="#what-this-paper-adds" id="toc-what-this-paper-adds">2.4
+What this paper adds</a></li>
+</ul></li>
+<li><a href="#experimental-protocol" id="toc-experimental-protocol">3.
+Experimental protocol</a>
+<ul>
+<li><a href="#data" id="toc-data">3.1 Data</a></li>
+<li><a href="#splits-and-seeds" id="toc-splits-and-seeds">3.2 Splits and
+seeds</a></li>
+<li><a href="#frozen-predictor-and-interval"
+id="toc-frozen-predictor-and-interval">3.3 Frozen predictor and
+interval</a></li>
+<li><a href="#four-arms" id="toc-four-arms">3.4 Four arms</a></li>
+<li><a href="#metrics" id="toc-metrics">3.5 Metrics</a></li>
+<li><a href="#statistical-discipline"
+id="toc-statistical-discipline">3.6 Statistical discipline</a></li>
+<li><a href="#reproducibility-and-integrity-gates"
+id="toc-reproducibility-and-integrity-gates">3.7 Reproducibility and
+integrity gates</a></li>
+</ul></li>
+<li><a href="#results" id="toc-results">4. Results</a>
+<ul>
+<li><a
+href="#the-efficiency-gain-is-reproducible-and-it-is-not-bought-with-coverage"
+id="toc-the-efficiency-gain-is-reproducible-and-it-is-not-bought-with-coverage">4.1
+The efficiency gain is reproducible, and it is not bought with
+coverage</a></li>
+<li><a href="#marginal-coverage-does-not-imply-engine-level-reliability"
+id="toc-marginal-coverage-does-not-imply-engine-level-reliability">4.2
+Marginal coverage does not imply engine-level reliability</a></li>
+<li><a
+href="#the-epistemic-scale-helps-or-hurts-depending-on-operating-condition-structure"
+id="toc-the-epistemic-scale-helps-or-hurts-depending-on-operating-condition-structure">4.3
+The epistemic scale helps or hurts depending on operating-condition
+structure</a></li>
+<li><a
+href="#a-natural-calibration-side-diagnostic-does-not-survive-its-own-pre-registered-test"
+id="toc-a-natural-calibration-side-diagnostic-does-not-survive-its-own-pre-registered-test">4.4
+A natural calibration-side diagnostic does not survive its own
+pre-registered test</a></li>
+<li><a href="#the-other-candidate-scales-are-not-better"
+id="toc-the-other-candidate-scales-are-not-better">4.5 The other
+candidate scales are not better</a></li>
+</ul></li>
+<li><a href="#discussion" id="toc-discussion">5. Discussion</a>
+<ul>
+<li><a href="#what-the-three-results-say-together"
+id="toc-what-the-three-results-say-together">5.1 What the three results
+say together</a></li>
+<li><a href="#implications-for-reporting-practice"
+id="toc-implications-for-reporting-practice">5.2 Implications for
+reporting practice</a></li>
+<li><a href="#relation-to-prior-audits"
+id="toc-relation-to-prior-audits">5.3 Relation to prior audits</a></li>
+</ul></li>
+<li><a href="#limitations" id="toc-limitations">6. Limitations</a></li>
+<li><a href="#conclusion" id="toc-conclusion">7. Conclusion</a></li>
+<li><a href="#acknowledgment"
+id="toc-acknowledgment">Acknowledgment</a></li>
+<li><a href="#biographies" id="toc-biographies">Biographies</a></li>
+<li><a
+href="#appendix-a.-coverage-aligned-comparison-post-hoc-diagnostic"
+id="toc-appendix-a.-coverage-aligned-comparison-post-hoc-diagnostic">Appendix
+A. Coverage-aligned comparison (post-hoc diagnostic)</a></li>
+</ul>
+</nav>
+<h1 id="introduction">1. Introduction</h1>
+<!-- draft note: citation keys are pandoc author-year syntax and are resolved against
+     references_v2.bib at build time; this note is an HTML comment so it never reaches the PDF. -->
+<p>Remaining-useful-life (RUL) prognostics is one of the places where a
+prediction interval matters more than a point estimate: maintenance
+decisions are made against a bound, not against a mean. Conformal
+prediction has therefore become a natural tool for RUL, because it turns
+any point or quantile predictor into an interval with a
+distribution-free finite-sample guarantee <span class="citation"
+data-cites="vovk2005 lei2018">(Lei et al., 2018; Vovk et al.,
+2005)</span>. Conformalized quantile regression (CQR) <span
+class="citation" data-cites="romano2019">(Romano et al., 2019)</span> is
+the variant most often used, since it lets the interval width follow the
+local difficulty of the prediction instead of being constant.</p>
+<p>The guarantee, however, is <strong>marginal</strong>: it holds on
+average over calibration and test points. It says nothing about a single
+engine, and it says nothing about whether the interval is efficient.
+Both gaps matter in prognostics, where the unit of a maintenance
+decision is one engine. Recent work has begun to map these gaps —
+conditional coverage is impossible to guarantee distribution-free <span
+class="citation" data-cites="barber2021limits">(Barber et al.,
+2021)</span>, group-conditional guarantees require group structure and
+enough per-group samples <span class="citation"
+data-cites="gibbs2025">(Gibbs et al., 2025)</span>,
+calibration-set-conditional coverage is itself a random quantity <span
+class="citation" data-cites="bian2023">(Bian &amp; Barber, 2023)</span>,
+and label-free auditing of coverage under shift has a detectability
+boundary <span class="citation"
+data-cites="moussa2026driftguard">(Moussa, 2026)</span>. Yet the studies
+we reviewed for this paper typically report marginal coverage from a
+single training run.</p>
+<p>This paper asks three questions about a frozen, published-style CQR
+pipeline for C-MAPSS RUL:</p>
+<ul>
+<li><strong>Q1.</strong> Is the reported efficiency gain — lower
+interval score than a constant-width conformal baseline — stable across
+training seeds and folds, and is it obtained at matched coverage?</li>
+<li><strong>Q2.</strong> When marginal coverage is close to nominal,
+what does the <em>per-engine</em> coverage distribution look like, and
+is the failure repeatable or is it training noise?</li>
+<li><strong>Q3.</strong> If we replace the learned half-width with a
+per-sample epistemic-uncertainty scale (MC-Dropout), when does it help,
+and can a calibration-side diagnostic tell us in advance?</li>
+</ul>
+<p>The answers are organised as four contributions.</p>
+<p><strong>C1 — A controlled, multi-seed comparison.</strong> We
+evaluate 4 subsets × 5 folds × 4 seeds = 80 cells against a
+constant-width conformal baseline trained identically, at the nominal
+level. CQR lowers the Winkler score in 75/80 cells and in 20/20 folds
+(mean −10.22%), while realised coverage differs by −0.42 pp on average.
+We report the per-cell coverage spread (up to 8.84 pp) rather than
+hiding it. <!-- C1 --> <!-- C3 --></p>
+<p><strong>C2 — The unit-level view.</strong> <!-- C4 --> <!-- C5 -->
+Per-engine coverage is heavy-tailed: the worst engine reaches 0.1217
+(FD004) across the 80 cells, and 18/20 folds contain an engine below
+0.80. Treating seeds as replicates, the intraclass correlation of
+per-engine coverage is 0.780, so the failure is a repeatable property of
+the engine under this partition, not sampling noise.</p>
+<p><strong>C3 — A controlled test of an epistemic scale.</strong>
+Comparing MC-Dropout against a constant-width interval built on the
+<em>same</em> MC mean isolates the scale from the centre shift. The
+effect is strongly heterogeneous: 19/20 cells improve on FD002 (mean
+−7.09%) while 1/20 improve on FD003 (mean +28.06%); at the fold level,
+9/10 multi-condition folds improve versus 2/10 single-condition folds
+(Fisher exact p = 0.0055, descriptive). <!-- C6 --> <!-- C7 -->
+<!-- C8 --></p>
+<p><strong>C4 — A pre-registered diagnostic that fails, and
+why.</strong> We registered the natural hypothesis that the scale is
+useful exactly when it ranks calibration engines by difficulty. The
+hypothesis does not reach its pre-registered support criteria: the rank
+correlation between the diagnostic and the outcome is −0.039 [−0.431,
++0.317]. The reason is measurable — with six calibration engines the
+diagnostic’s own bootstrap standard deviation is 0.41–0.49, so its 95%
+interval spans most of its range. <!-- C9 --> <!-- C10 --></p>
+<p>The common thread is a measurement point rather than a methodological
+one: marginal coverage and a single training seed are weak summaries of
+what a conformal RUL interval delivers. We do not propose a new interval
+method; we quantify what the current one gives, at the resolution at
+which it is used.</p>
+<h1 id="related-work">2. Related work</h1>
+<h2 id="conditional-validity-and-its-limits">2.1 Conditional validity
+and its limits</h2>
+<p>Split conformal prediction guarantees marginal coverage under
+exchangeability <span class="citation"
+data-cites="vovk2005 lei2018">(Lei et al., 2018; Vovk et al.,
+2005)</span>. Exact distribution-free conditional coverage is impossible
+without further assumptions <span class="citation"
+data-cites="barber2021limits">(Barber et al., 2021)</span>, and coverage
+guarantees are conditional on the calibration set, hence random <span
+class="citation" data-cites="bian2023">(Bian &amp; Barber, 2023)</span>.
+Practical relaxations impose structure: group-conditional guarantees
+over a user-specified collection of subgroups <span class="citation"
+data-cites="gibbs2025">(Gibbs et al., 2025)</span>, or weighting by an
+estimated density ratio under covariate shift <span class="citation"
+data-cites="tibshirani2019">(Tibshirani et al., 2019)</span>. Our work
+does not add to this theory; it measures how far a standard pipeline is
+from the conditional ideal, and it keeps the counting object explicit —
+calibration <em>scores</em> per cell, not calibration
+<em>engines</em>.</p>
+<h2 id="conformal-rul">2.2 Conformal RUL</h2>
+<p>CQR <span class="citation" data-cites="romano2019">(Romano et al.,
+2019)</span> is the base of most recent conformal RUL work. CRULP <span
+class="citation" data-cites="piao2025crulp">(Piao et al., 2025)</span>
+integrates a deep RUL predictor with an uncertainty-aware CQR variant
+built on epistemic uncertainty, using ensemble CQR and cross-conformal
+prediction. Robinson <span class="citation"
+data-cites="robinson2026ijphm">(Robinson, 2026)</span> applies
+gradient-boosted point predictors with CQR to all four C-MAPSS subsets
+and adds a risk-aware decision layer; it reports empirical coverage of
+88–92% at a 90% nominal level and per-engine degradation curves, but no
+per-engine coverage distribution. We use the same family of predictors
+and intervals, and we report the per-engine distribution.</p>
+<h2 id="audits-conditional-coverage-diagnostics-and-boundaries">2.3
+Audits, conditional coverage diagnostics, and boundaries</h2>
+<p>Several 2026 works are close in spirit. Yan <span class="citation"
+data-cites="yan2026audit">(Yan, 2026)</span> audits conformal RUL
+intervals on C-MAPSS and N-CMAPSS along operating regimes and
+predicted-RUL bands, with ACI and Mondrian variants, and explains
+mid-band failures by band misassignment. Domingues and Ather <span
+class="citation" data-cites="domingues2026">(Domingues &amp; Ather,
+2026)</span> document conditional collapse near end of life (61–90
+cycles remaining; 37–50% near failure) on C-MAPSS. Zhou et al. <span
+class="citation" data-cites="zhou2026cpa">(Zhou et al., 2026)</span>
+reframe conditional-coverage assessment as a supervised learning
+problem: a reliability estimator predicts instance-level coverage, with
+convergence rates, but it requires a labeled evaluation set. Moussa
+<span class="citation" data-cites="moussa2026driftguard">(Moussa,
+2026)</span> establishes detectability bounds and a sharp identified set
+for <em>marginal</em> target coverage under shift, and states explicitly
+that the approach repairs marginal rather than conditional coverage. For
+sparse cells, HACC <span class="citation" data-cites="hacc2026">(Zou et
+al., 2026)</span> gives an arithmetic threshold below which the
+empirical quantile does not exist, and repairs it by shrinkage.</p>
+<h2 id="what-this-paper-adds">2.4 What this paper adds</h2>
+<p>The difference is a controlled comparison, not a new estimator:</p>
+<ol type="1">
+<li><strong>Same-centre control.</strong> MC-Dropout changes the centre
+as well as the scale. Holding the centre fixed at the MC mean isolates
+the scale, which is what the question “is an epistemic scale useful?”
+actually asks.</li>
+<li><strong>Multi-seed replication.</strong> Four seeds on a shared
+partition let us separate engine-level failure from training noise (ICC
+0.780) and attach a sampling-noise floor (median 0.63 pp, p90 3.20 pp,
+0/80 direction flips) to every subset-level statement.</li>
+<li><strong>A pre-registered diagnostic test.</strong> The
+calibration-side diagnostic is specified, thresholded, and registered
+before it is evaluated, and its estimation variance is measured rather
+than assumed.</li>
+<li><strong>Explicit counting objects.</strong> Calibration engines
+(6/16/6/15), calibration scores per cell, and per-engine windows are
+kept distinct throughout; conflating these three may make claims about
+“unit-level validity” harder to compare across papers.</li>
+</ol>
+<p>We make no claim of theoretical novelty, and we do not claim to be
+the first to observe conditional coverage failure in RUL; that
+observation is due to <span class="citation"
+data-cites="domingues2026">(Domingues &amp; Ather, 2026)</span> and
+<span class="citation" data-cites="yan2026audit">(Yan, 2026)</span>.</p>
+<h1 id="experimental-protocol">3. Experimental protocol</h1>
+<!-- draft note: numbers must match CLAIM_LEDGER.md (C-ids are stripped at typesetting);
+     all values are recomputed by scripts/freeze_audit.py (50/50) and paper_evidence.py (17/17). -->
+<h2 id="data">3.1 Data</h2>
+<p>We use the four C-MAPSS turbofan subsets FD001–FD004 <span
+class="citation" data-cites="saxena2008">(Saxena et al., 2008)</span>.
+They differ in the number of operating conditions (one for FD001/FD003,
+six for FD002/FD004) and in the number of fault modes (one for
+FD001/FD002, two for FD003/FD004). Training targets are the
+piecewise-linear remaining useful life clipped at 125 cycles. Windows of
+50 cycles are built per engine; FD002/FD004 are condition-normalised
+with six operating-condition clusters fitted on training engines
+only.</p>
+<p>The official C-MAPSS test files are <strong>not</strong> used
+anywhere in this paper. All results come from held-out engines inside
+the training data. This is a deliberate protocol choice: the question is
+how a conformal interval behaves on unseen engines drawn from the same
+population, not how it scores on a fixed test file.
+<!-- C-ledger: protocol note --></p>
+<h2 id="splits-and-seeds">3.2 Splits and seeds</h2>
+<p>Engines are partitioned into five folds by
+<code>KFold(n_splits=5, shuffle=True, random_state=20261104)</code>.
+Within each fold, 30% of the validation engines are reserved for
+conformal calibration and the rest form the test set; the split is
+engine-disjoint and fixed at seed 42 for every cell. The number of
+calibration engines is therefore 6 (FD001, FD003) and 16 / 15 (FD002,
+FD004); the corresponding test sets contain 14 / 36 / 14 / 35 engines.
+<!-- C-ledger: 6/16/6/15 --></p>
+<p>Each fold is trained with four seeds (42, 7, 2024, 13), giving 4
+subsets × 5 folds × 4 seeds = <strong>80 cells</strong>. Seeds change
+only the initialisation and training trajectory; the engine partition is
+shared by all four seeds.</p>
+<h2 id="frozen-predictor-and-interval">3.3 Frozen predictor and
+interval</h2>
+<p>The predictor is an IDA-PE backbone with a zero-initialised
+projection of two prior features and two output heads producing a centre
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>i</mi></msub><annotation encoding="application/x-tex">c_i</annotation></semantics></math>
+and a non-negative half-width
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>g</mi><mi>ϕ</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>z</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">s_i=\mathrm{softplus}(g_\phi(z_i))</annotation></semantics></math>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>q</mi><mi>i</mi><mrow><mi>l</mi><mi>o</mi></mrow></msubsup><mo>=</mo><msub><mi>c</mi><mi>i</mi></msub><mo>−</mo><msub><mi>s</mi><mi>i</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msubsup><mi>q</mi><mi>i</mi><mrow><mi>h</mi><mi>i</mi></mrow></msubsup><mo>=</mo><msub><mi>c</mi><mi>i</mi></msub><mo>+</mo><msub><mi>s</mi><mi>i</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">q^{lo}_i = c_i - s_i, \qquad q^{hi}_i = c_i + s_i .</annotation></semantics></math></p>
+<p>It is trained end-to-end with the pinball loss at 0.05/0.95 plus
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.1</mn><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><msub><mi>c</mi><mi>i</mi></msub><mo>−</mo><msub><mi>y</mi><mi>i</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">0.1\,(c_i-y_i)^2</annotation></semantics></math>.
+Calibration is split conformal on the CQR score
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>i</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mi>l</mi><mi>o</mi></mrow></msubsup><mo>−</mo><msub><mi>y</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.222em"></mspace><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mi>h</mi><mi>i</mi></mrow></msubsup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">E_i=\max(q^{lo}_i-y_i,\ y_i-q^{hi}_i)</annotation></semantics></math>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>q</mi><mo accent="true">̂</mo></mover><mo>=</mo><msub><mrow><mi mathvariant="normal">Q</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>δ</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi>/</mi><mi>n</mi><mo stretchy="false" form="postfix">)</mo></mrow></msub><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mo stretchy="false" form="prefix">{</mo><msub><mi>E</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">}</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><mi>C</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">[</mo><msup><mi>q</mi><mrow><mi>l</mi><mi>o</mi></mrow></msup><mo>−</mo><mover><mi>q</mi><mo accent="true">̂</mo></mover><mo>,</mo><mspace width="0.222em"></mspace><msup><mi>q</mi><mrow><mi>h</mi><mi>i</mi></mrow></msup><mo>+</mo><mover><mi>q</mi><mo accent="true">̂</mo></mover><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">]</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">\hat q = \mathrm{Quantile}_{(1-\delta)(1+1/n)}\big(\{E_i\}\big), \qquad
+C(x) = \big[q^{lo}-\hat q,\ q^{hi}+\hat q\big],</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\delta=0.1</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+the number of calibration windows. The method is frozen before any of
+the analyses below; it is treated as a baseline, not as a contribution.
+<!-- C-ledger: frozen baseline --></p>
+<h2 id="four-arms">3.4 Four arms</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Arm</th>
+<th>Centre</th>
+<th>Half-width</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Constant width</strong></td>
+<td>deterministic
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>i</mi></msub><annotation encoding="application/x-tex">c_i</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>q</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat q</annotation></semantics></math>
+(absolute-residual conformal)</td>
+<td>the frozen baseline the literature compares against</td>
+</tr>
+<tr>
+<td><strong>CQR</strong></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>c</mi><mi>i</mi></msub><annotation encoding="application/x-tex">c_i</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>i</mi></msub><mo>+</mo><mover><mi>q</mi><mo accent="true">̂</mo></mover></mrow><annotation encoding="application/x-tex">s_i+\hat q</annotation></semantics></math></td>
+<td>the method under audit</td>
+</tr>
+<tr>
+<td><strong>MC-Dropout scale</strong></td>
+<td>mean of 30 stochastic forward passes</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>q</mi><mo accent="true">̂</mo></mover><mo>⋅</mo><msub><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">d</mi></mrow><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\hat q\cdot \mathrm{sd}_i</annotation></semantics></math></td>
+<td>a per-sample epistemic-uncertainty scale</td>
+</tr>
+<tr>
+<td><strong>Same-centre constant</strong></td>
+<td><em>same</em> MC mean</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>q</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat q</annotation></semantics></math></td>
+<td><strong>control</strong>: isolates the scale from the centre
+shift</td>
+</tr>
+</tbody>
+</table>
+<p>The fourth arm is the key design element. MC-Dropout changes both the
+centre (to the MC mean) and the scale; comparing it with the
+deterministic-centre constant width confounds the two. Comparing it with
+the same-centre constant width attributes the difference to the scale
+alone. <!-- C6 same-centre control --></p>
+<h2 id="metrics">3.5 Metrics</h2>
+<p>The primary metric is the Winkler interval score at a fixed
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\alpha=0.1</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">[</mo><mo stretchy="false" form="prefix">(</mo><mi>u</mi><mo>−</mo><mi>l</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mstyle displaystyle="false"><mfrac><mn>2</mn><mi>α</mi></mfrac></mstyle><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">(</mo><mi>l</mi><mo>−</mo><mi>y</mi><msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msub><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>−</mo><mi>u</mi><msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo></msub><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{mean}\big[(u-l)+\tfrac{2}{\alpha}((l-y)_+ + (y-u)_+)\big]</annotation></semantics></math>,
+which penalises width and miscoverage jointly. We also report PICP
+(marginal coverage), PINAW, and the <strong>per-engine coverage
+distribution</strong> (minimum, 5th percentile, median). The engine, not
+the window, is the unit for all coverage statements: thousands of
+windows from a few engines are not independent samples.</p>
+<h2 id="statistical-discipline">3.6 Statistical discipline</h2>
+<p>The reporting unit is the <strong>fold</strong> (4 subsets × 5 folds
+= 20), with seeds averaged inside a fold. Three caveats are stated
+rather than corrected away:</p>
+<ol type="1">
+<li>The 80 cells share one five-fold partition, so they are not 80
+independent observations.</li>
+<li>The 20 folds share training data through cross-validation overlap,
+so we report descriptive statistics and bootstrap intervals, not
+independent-sample significance tests.</li>
+<li>Coverage-aligned comparisons interpolate each method’s frontier
+using test labels and therefore cannot represent a deployable selection
+rule; they appear in Appendix A as a post-hoc diagnostic only, clearly
+separated from the nominal-level results.</li>
+</ol>
+<h2 id="reproducibility-and-integrity-gates">3.7 Reproducibility and
+integrity gates</h2>
+<p>Three executable gates precede every number in this paper:</p>
+<ul>
+<li><strong>Frozen baseline</strong>
+(<code>scripts/freeze_audit.py</code>, 50 assertions): re-derives the
+80-cell table, the fold-level summaries, the seed-variance
+decomposition, the per-engine coverage tails, the permutation ablation
+and the cross-domain results from the stored predictions.</li>
+<li><strong>MC-Dropout integrity</strong>
+(<code>scripts/verify_mcd80.py</code>): the 40 cells that required
+retraining were re-run from scratch, and their point predictions
+reproduce the frozen ones <strong>bit-for-bit</strong> (max
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mi mathvariant="normal">Δ</mi><msub><mi>y</mi><mrow><mi>l</mi><mi>o</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo><mo>=</mo><mn>0.0</mn></mrow><annotation encoding="application/x-tex">|\Delta y_{lo}| = 0.0</annotation></semantics></math>).</li>
+<li><strong>Sampling noise floor</strong>
+(<code>scripts/compare_mcd_draws.py</code>): two independent MC-Dropout
+draws on the same checkpoints give a median absolute change of 0.63 pp,
+a 90th percentile of 3.20 pp, and a maximum of 14.70 pp on the primary
+metric, with <strong>0/80 direction flips</strong>. Subset-level
+differences smaller than 3.20 pp are therefore reported as within
+noise.</li>
+</ul>
+<p>The protocol is frozen before the analyses in Section 4; the
+pre-registered diagnostic test of Section 4.4 is registered in the
+project’s hypothesis log with its thresholds fixed in advance.
+<!-- C9 --></p>
+<h1 id="results">4. Results</h1>
+<!-- draft note: every number is bound to CLAIM_LEDGER.md (C-ids are stripped at typesetting)
+     and asserted by scripts/paper_evidence.py (17/17) or freeze_audit.py (50/50).
+     Data source: docs/tables/mcd80_cells_seeded.csv (seeded, authoritative). -->
+<h2
+id="the-efficiency-gain-is-reproducible-and-it-is-not-bought-with-coverage">4.1
+The efficiency gain is reproducible, and it is not bought with
+coverage</h2>
+<p>At the nominal level
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\delta=0.1</annotation></semantics></math>),
+CQR lowers the Winkler score relative to the constant-width conformal
+baseline in <strong>75 of 80 cells</strong> and in <strong>20 of 20
+folds</strong>; the cell-level mean change is <strong>−10.22%</strong>
+(median −11.30%). <!-- C1 --></p>
+<p>The two arms do not trade coverage for sharpness. Averaged over the
+80 cells, realised coverage is <strong>0.8952 for CQR and 0.8994 for the
+constant-width arm</strong>, a difference of <strong>−0.42 pp</strong>;
+per subset the differences are −0.08, −0.43, −1.36 and +0.19
+pp. <!-- C3 --> The match is a property of the subset means, not of
+every cell: the largest per-cell coverage difference is <strong>8.84
+pp</strong>. We state this explicitly because a reader who checks
+individual cells will find it.</p>
+<p>We also verified that the comparison is not an artefact of a single
+training run: the four seeds share the engine partition, and 16 of 20
+folds have all four seeds agreeing in sign, with a within-fold seed
+spread whose median is 6.13 pp and whose maximum is 36.63 pp (46.82% of
+the descriptive variance is within-fold). <!-- C13 --></p>
+<figure id="fig:effect">
+<embed src="docs/figures/ijphm_v2/fig1_effect_distribution.pdf"
+style="width:100.0%" />
+<figcaption aria-hidden="true">Per-cell relative Winkler change at the
+nominal level: CQR versus constant width (left) and the MC-Dropout scale
+versus the same-centre constant-width control (right), over the 80
+cells. Negative is better.</figcaption>
+</figure>
+<h2 id="marginal-coverage-does-not-imply-engine-level-reliability">4.2
+Marginal coverage does not imply engine-level reliability</h2>
+<p>The per-engine coverage distribution is heavy-tailed downwards.
+Across the 80 cells, the <strong>lowest single-engine coverage is 0.4214
+(FD001), 0.2375 (FD002), 0.4933 (FD003) and 0.1217 (FD004)</strong>.
+<!-- C4 --> <strong>73 of the 80 cells</strong> contain at least one
+engine below 0.80, and in <strong>18 of 20 folds</strong> the
+seed-averaged per-engine coverage falls below 0.80 for at least one
+engine. <!-- C4 --> <!-- C16 --></p>
+<p>The extremes are not isolated failures of one cell. Taking, for each
+cell, the minimum over its test engines and then the median of those
+minima across the 20 cells of a subset gives <strong>0.6950 (FD001),
+0.5438 (FD002), 0.7110 (FD003) and 0.5181 (FD004)</strong>; the typical
+cell’s worst engine is itself well below nominal. All per-engine numbers
+in this section come from the 80-cell matrix and are recomputed under
+the same seed-42 calibration/test split for every cell, so they are
+directly comparable across seeds. The 20-fold count in the previous
+paragraph is the seed-averaged version of the same 80-cell computation,
+not a separate single-seed run. <!-- C17 --></p>
+<figure id="fig:engine">
+<embed src="docs/figures/ijphm_v2/fig3_engine_coverage.pdf"
+style="width:70.0%" />
+<figcaption aria-hidden="true">Per-engine coverage of the frozen CQR
+across the 80 cells, by subset. Dashed line: nominal 0.90.</figcaption>
+</figure>
+<p>This is not training noise. Treating the four seeds as replicates of
+the same engine under the same partition, the intraclass correlation of
+per-engine coverage is <strong>ICC(1,1) = 0.780</strong>, the mean
+pairwise Spearman correlation across seeds is <strong>+0.762</strong>
+(99% of 120 seed pairs positive), the bottom-quartile engine sets
+overlap with a mean Jaccard of <strong>0.599</strong>, and the
+within-engine standard deviation across seeds is <strong>0.032</strong>
+(population SD; the sample SD with 4 seeds is 0.0372). <!-- C5 --> An
+engine that is under-covered by one training run tends to be
+under-covered by the others.</p>
+<p>We stress what this does and does not show. It shows that, under this
+frozen partition and training configuration, the failure is a repeatable
+property of the engine. It does not show that the failure is intrinsic
+to the engine, that it transfers across partitions, or that it is
+identifiable at deployment time.</p>
+<h2
+id="the-epistemic-scale-helps-or-hurts-depending-on-operating-condition-structure">4.3
+The epistemic scale helps or hurts depending on operating-condition
+structure</h2>
+<p>Replacing the learned half-width with a per-sample MC-Dropout scale
+changes the Winkler score by <strong>+9.49% on average</strong> over the
+80 cells, with a <strong>median of −0.97%</strong>. <!-- C6 --> The mean
+and the median point in opposite directions, so neither “better” nor
+“worse” is an accurate one-line summary. Two facts constrain the
+reading: the median is the same order as the sampling noise (median
+absolute change 0.63 pp), and the mean is dominated by a small number of
+catastrophic cells.</p>
+<p>The split is by subset (same-centre control, so only the scale
+differs):</p>
+<table>
+<thead>
+<tr>
+<th>Subset</th>
+<th>Cells better</th>
+<th>Mean change</th>
+<th>Median change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FD001 (single OC)</td>
+<td>8/20</td>
+<td>+18.77%</td>
+<td>+10.65%</td>
+</tr>
+<tr>
+<td>FD002 (multi OC)</td>
+<td><strong>19/20</strong></td>
+<td><strong>−7.09%</strong></td>
+<td>−7.29%</td>
+</tr>
+<tr>
+<td>FD003 (single OC)</td>
+<td><strong>1/20</strong></td>
+<td><strong>+28.06%</strong></td>
+<td>+24.99%</td>
+</tr>
+<tr>
+<td>FD004 (multi OC)</td>
+<td>15/20</td>
+<td>−1.78%</td>
+<td>−2.58%</td>
+</tr>
+</tbody>
+</table>
+<!-- C7 -->
+<!-- C22 -->
+<p>FD002 and FD003 are both far outside the noise floor (p90 = 3.20 pp);
+FD004’s −1.78% is not, and we do not treat it as evidence of an
+improvement.</p>
+<p>Aggregating to the fold level makes the structure sharper. Of the ten
+folds from multi-operating- condition subsets, <strong>9 are
+improved</strong> (mean −4.44%); of the ten folds from single-condition
+subsets, <strong>2 are improved</strong> (mean
+<strong>+23.41%</strong>); Fisher’s exact two-sided test on this 2×2
+table gives <strong>p = 0.0055</strong>. <!-- C8 --> The test is
+descriptive: the 20 folds share training data and are not independent
+draws, so the p-value quantifies the strength of the separation in this
+design, not a population-level effect.</p>
+<figure id="fig:fold">
+<embed src="docs/figures/ijphm_v2/fig2_fold_separation.pdf"
+style="width:70.0%" />
+<figcaption aria-hidden="true">Fold-level relative Winkler change of the
+dropout scale against the same-centre constant-width control, grouped by
+operating-condition structure. Horizontal bars are means; each dot is
+one fold.</figcaption>
+</figure>
+<h2
+id="a-natural-calibration-side-diagnostic-does-not-survive-its-own-pre-registered-test">4.4
+A natural calibration-side diagnostic does not survive its own
+pre-registered test</h2>
+<p>Before looking at any of the above as a mechanism, we registered a
+hypothesis: that the scale is useful exactly when it ranks calibration
+engines by difficulty, measured by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ρ</mi><mrow><mi>c</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>=</mo><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>s</mi><mo accent="true">‾</mo></mover><mi>i</mi></msub><mo>,</mo><mspace width="0.222em"></mspace><msub><mover><mi>a</mi><mo accent="true">‾</mo></mover><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><msub><mo stretchy="false" form="postfix">}</mo><mrow><mi>i</mi><mo>∈</mo><mtext mathvariant="normal">calib</mtext></mrow></msub></mrow><annotation encoding="application/x-tex">\rho_{cal}=\mathrm{Spearman}\{(\bar s_i,\ \bar a_i)\}_{i\in\text{calib}}</annotation></semantics></math>,
+the rank correlation between an engine’s mean dropout scale and its mean
+absolute centre error, computed on calibration engines only. Four gates
+were fixed in advance; three fail. <!-- C9 --></p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Statistic</th>
+<th>Threshold</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-A</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>ρ</mi><mrow><mi>c</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>,</mo><mspace width="0.222em"></mspace><msub><mi>r</mi><mrow><mi>s</mi><mi>c</mi><mi>a</mi><mi>l</mi><mi>e</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Spearman}(\rho_{cal},\ r_{scale})</annotation></semantics></math>
+over 20 folds</td>
+<td>≤ −0.35, CI upper &lt; 0</td>
+<td><strong>−0.039</strong> [−0.431, +0.317] — fail</td>
+</tr>
+<tr>
+<td>G-B</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ρ</mi><mrow><mi>c</mi><mi>a</mi><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">\rho_{cal}</annotation></semantics></math>
+multi-OC minus single-OC</td>
+<td>≥ 0.20, ≥4/5 folds</td>
+<td>+0.216, 4/5 — pass</td>
+</tr>
+<tr>
+<td>G-C</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false" form="prefix">(</mo><mtext mathvariant="normal">scale shift</mtext><mo>,</mo><mspace width="0.222em"></mspace><mtext mathvariant="normal">coverage gap</mtext><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Spearman}(\text{scale shift},\ \text{coverage gap})</annotation></semantics></math></td>
+<td>≤ −0.30, CI upper &lt; 0</td>
+<td>−0.221 [−0.712, +0.300] — fail</td>
+</tr>
+<tr>
+<td>G-D</td>
+<td>go/no-go rule at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\tau=0.5</annotation></semantics></math>
+(fixed)</td>
+<td>mean ≤ −2%, FD003 ≤ +2%</td>
+<td>+2.79%, FD003 +13.77% — fail</td>
+</tr>
+</tbody>
+</table>
+<!-- C19 -->
+<p>The failure has a measurable cause. Bootstrapping engines
+<em>within</em> each cell (post-hoc; not part of the pre-registered
+gates), the sampling standard deviation of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ρ</mi><mrow><mi>c</mi><mi>a</mi><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">\rho_{cal}</annotation></semantics></math>
+is <strong>0.490 (FD001) and 0.414 (FD003)</strong>, where only 6
+engines are available for calibration, against 0.249 (FD002) and 0.171
+(FD004) with 15–16. The corresponding per-cell 95% half-widths are
+<strong>0.898, 0.479, 0.747 and 0.324</strong>. <!-- C10 -->
+<!-- C20 --> With six calibration engines the diagnostic’s own
+uncertainty spans most of its range, so a rule built on it cannot be
+reliably calibrated at this sample size — which is what G-A and G-D
+show.</p>
+<p>We read this as an estimation result, not an impossibility result. It
+does not show that no calibration-side diagnostic can work; it shows
+that this one, at this calibration size, cannot. The distinction matters
+for practice: the usual way to justify a conditional scale is to check
+that it correlates with residuals on the calibration set, and that check
+is uninformative here.</p>
+<h2 id="the-other-candidate-scales-are-not-better">4.5 The other
+candidate scales are not better</h2>
+<p>Two further comparisons place the dropout scale in context.</p>
+<p><strong>Against the learned conditional width.</strong> On the same
+80 cells, the MC-Dropout arm is worse than CQR in <strong>72 of 80 cells
+and in 20 of 20 folds</strong>, with a mean change of
+<strong>+21.42%</strong> and a median of +15.31%. <!-- C2 --> On this
+comparison the learned half-width is better; we do not claim that it
+captures “more” of any particular quantity.</p>
+<p><strong>Against the prior-uncertainty scale.</strong> Permuting the
+prior standard deviation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>T</mi></msub><annotation encoding="application/x-tex">\sigma_T</annotation></semantics></math>
+across windows — which destroys any association between the scale and
+the sample while keeping its marginal distribution — changes the Winkler
+score by <strong>+0.246% on average</strong>, with <strong>11 of 20
+folds</strong> becoming worse and FD004 improving by 3.02%. <!-- C12 -->
+The permutation is within noise, so we do not treat
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>T</mi></msub><annotation encoding="application/x-tex">\sigma_T</annotation></semantics></math>
+as a useful conditional scale.</p>
+<p><strong>Cross-domain.</strong> On six run-to-full-failure FEMTO
+bearings <span class="citation" data-cites="nectoux2012">(Nectoux et
+al., 2012)</span>, with the conformal quantile calibrated on 300
+held-out windows per bearing and evaluated on 300 disjoint test windows,
+CQR improves on the constant-width baseline in <strong>6 of 6</strong>
+bearings with a mean change of <strong>−16.30%</strong>. <!-- C11 -->
+For the record, an earlier <strong>internal</strong> evaluation of the
+same dumps calibrated and evaluated on the same windows and scored each
+frontier point at its own
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math>;
+it gave 5/6 and −12.21%. It is noted only to explain the difference from
+earlier project records and is not used as evidence here. The split
+protocol above supports the efficiency result of Section 4.1 only; it is
+too small a sample to say anything about the scale or the per-engine
+findings.</p>
+<h1 id="discussion">5. Discussion</h1>
+<!-- draft note -->
+<h2 id="what-the-three-results-say-together">5.1 What the three results
+say together</h2>
+<p>Read separately, each result is unremarkable: conformal intervals can
+be sharper than constant-width ones; marginal coverage does not imply
+conditional coverage; an uncertainty scale can be unstable. Read
+together, they describe a specific gap between what is reported and what
+is used.</p>
+<p>The efficiency result (Section 4.1) is robust — 20/20 folds, −10.22%
+— and it is obtained at matched coverage. That is a genuine and
+reproducible property of the pipeline. But the same 80 cells contain
+engines whose intervals cover 12–49% of their windows (Section 4.2). A
+practitioner reading only the marginal number would conclude that the
+interval is usable on a new engine; the per-engine distribution says
+that for some engines it is not, and that this is not a fluke of one
+training run.</p>
+<p>The scale experiment (Section 4.3) then shows that the natural remedy
+— condition the width on an epistemic-uncertainty estimate — does not
+have a uniform effect. It is not that the scale is useless; on the
+multi-operating-condition subsets it improves 19/20 cells of FD002. It
+is that the sign of the effect depends on the subset, and the subset
+structure that separates the signs is operating-condition heterogeneity,
+not fault-mode count: FD002 and FD004 are multi-condition, FD001 and
+FD003 single-condition, and the fold-level split is 9/10 versus 2/10. We
+state this as an observed association; the experiment does not identify
+the mechanism, and we do not claim it does.</p>
+<p>The pre-registered diagnostic (Section 4.4) closes the loop in a way
+that is useful precisely because it fails. The obvious way to justify a
+conditional scale is to check, on calibration engines, that it ranks
+them by difficulty. That check is not informative here: its correlation
+with the outcome is −0.039, and its own sampling standard deviation at
+six calibration engines is 0.41–0.49. The practical lesson is narrow:
+for this statistic
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ρ</mi><mrow><mi>c</mi><mi>a</mi><mi>l</mi></mrow></msub><annotation encoding="application/x-tex">\rho_{cal}</annotation></semantics></math>),
+at the calibration sizes of this five-fold C-MAPSS protocol (6–16
+engines), the estimate is too noisy to support a go/no-go decision, even
+though the underlying idea is reasonable.</p>
+<h2 id="implications-for-reporting-practice">5.2 Implications for
+reporting practice</h2>
+<p>Three reporting choices would have changed the picture in this paper,
+and each is cheap:</p>
+<ol type="1">
+<li><strong>Report the per-engine coverage distribution, not only the
+mean.</strong> The marginal number is 0.895; the 1st percentile of
+per-engine coverage is 0.41–0.54 depending on subset, and the minimum is
+0.12. <!-- C18 --></li>
+<li><strong>Report at least two training seeds.</strong> With one seed,
+a 3.2 pp difference is inside the sampling noise of the scale
+experiment; with four seeds on a shared partition, the sign split is
+consistent across folds (9/10 versus 2/10), and two independent
+MC-Dropout draws change the sign in 0 of 80 cells, so the comparison
+itself is reproducible even though the seed spread is large.</li>
+<li><strong>Use a same-centre control when the scale arm also changes
+the centre.</strong> Otherwise the comparison attributes a centre shift
+to the scale.</li>
+</ol>
+<p>None of these requires new theory or additional data collection.</p>
+<h2 id="relation-to-prior-audits">5.3 Relation to prior audits</h2>
+<p>Our per-engine finding is consistent with the conditional-collapse
+results of <span class="citation" data-cites="domingues2026">(Domingues
+&amp; Ather, 2026)</span> and the band-failure analysis of <span
+class="citation" data-cites="yan2026audit">(Yan, 2026)</span>; we cite
+them as the source of the phenomenon and do not claim to have discovered
+it. What we add is the controlled scale comparison and the replication
+structure. Relative to <span class="citation"
+data-cites="zhou2026cpa">(Zhou et al., 2026)</span>, the object differs:
+CPA estimates instance-level coverage from a labeled evaluation set,
+whereas we ask whether a calibration-side diagnostic is estimable at all
+before deployment. Relative to <span class="citation"
+data-cites="moussa2026driftguard">(Moussa, 2026)</span>, the claim is
+weaker by design: we offer no detectability bound, only a measured
+estimation variance for one named diagnostic under one frozen
+protocol.</p>
+<h1 id="limitations">6. Limitations</h1>
+<ul>
+<li><strong>Dependence.</strong> The 80 cells share one five-fold
+partition, and the 20 folds share training data through cross-validation
+overlap. All intervals reported here are descriptive; no
+independent-sample significance test is claimed, including the Fisher
+exact test in Section 4.3, which quantifies the separation within this
+design only.</li>
+<li><strong>Single backbone, four subsets.</strong> The predictor is one
+IDA-PE configuration; the conclusions about the scale’s heterogeneity
+are established for this configuration and these four subsets, not for
+conformal RUL in general.</li>
+<li><strong>Cross-domain evidence is limited.</strong> The FEMTO
+comparison covers six run-to-full-failure bearings and supports only the
+efficiency claim, not the scale or unit-level findings.</li>
+<li><strong>Official test data are unused.</strong> This is a protocol
+choice: the question concerns unseen engines from the training
+population. It also means the numbers are not comparable to papers that
+report official-test scores.</li>
+<li><strong>The diagnostic’s variance is measured at three calibration
+sizes</strong> (6, 15, 16). We do not extrapolate a sample-size
+requirement from them.</li>
+<li><strong>No deployment claim.</strong> Nothing here shows that a
+failing engine can be identified before its labels arrive; Section 4.4
+is evidence against one specific attempt, not a general impossibility
+result.</li>
+</ul>
+<h1 id="conclusion">7. Conclusion</h1>
+<p>A frozen CQR pipeline for C-MAPSS RUL delivers a reproducible
+efficiency gain over a constant-width conformal baseline — 20/20 folds,
+−10.22% Winkler at matched marginal coverage — and at the same time
+leaves some engines covered as little as 12% of the time, a failure that
+is stable across training seeds. Replacing the learned half-width with
+an MC-Dropout scale does not fix this uniformly: its effect changes sign
+with operating-condition structure, and the natural calibration-side
+diagnostic for deciding when to use it does not survive a pre-registered
+test, because at six calibration engines the diagnostic is noisier than
+the signal it is meant to carry. The practical recommendation is
+measurement-oriented: report per-engine coverage, replicate across
+seeds, and control the centre when evaluating a scale.</p>
+<hr />
+<hr />
+<h1 id="acknowledgment">Acknowledgment</h1>
+<p>The authors thank the maintainers of the C-MAPSS and FEMTO/PRONOSTIA
+datasets. [Funding and conflict-of-interest statements to be completed
+before submission.]</p>
+<h1 id="biographies">Biographies</h1>
+<p>[Author biographies to be completed before submission. The IJPHM
+template places biographies after the references and before the
+appendix.]</p>
+<h1
+id="appendix-a.-coverage-aligned-comparison-post-hoc-diagnostic">Appendix
+A. Coverage-aligned comparison (post-hoc diagnostic)</h1>
+<blockquote>
+<p>This appendix is deliberately separated from the main results. The
+aligned comparison interpolates each method’s coverage–width frontier
+using test labels; it therefore cannot represent a deployable selection
+rule and is not used to support any claim in Sections 4–7.</p>
+</blockquote>
+<p>For completeness we report the comparison at matched realised
+coverage (target 0.90, Winkler evaluated at a fixed
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\alpha=0.1</annotation></semantics></math>).
+CQR improves on the constant-width baseline in 75/80 cells and 19/20
+folds, with a cell-level mean change of −9.09% and a fold-level median
+of −9.69%. The per-subset means are −7.57%, −14.07%, −6.49% and −8.22%.
+<!-- C14 --> <!-- C21 --></p>
+<p>The same diagnostic applied to the MC-Dropout arm gives 31/80 cells,
++18.9% mean and +4.5% median — the opposite sign to the nominal-level
+result of Section 4.3. The reversal is expected: an arm that
+under-covers at the nominal level is widened to reach 0.90, and widening
+is penalised. We report it so that the two protocols are not confused,
+and we draw no conclusion from it. <!-- C15 --></p>
+<div id="refs" class="references csl-bib-body hanging-indent"
+data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-barber2021limits" class="csl-entry" role="listitem">
+Barber, R. F., Candès, E. J., Ramdas, A., &amp; Tibshirani, R. J.
+(2021). The limits of distribution-free conditional predictive
+inference. <em>Information and Inference: A Journal of the IMA</em>. <a
+href="https://doi.org/10.1093/imaiai/iaaa017">https://doi.org/10.1093/imaiai/iaaa017</a>
+</div>
+<div id="ref-bian2023" class="csl-entry" role="listitem">
+Bian, M., &amp; Barber, R. F. (2023). Training-conditional coverage for
+distribution-free predictive inference. <em>Electronic Journal of
+Statistics</em>. <a
+href="https://doi.org/10.1214/23-EJS2145">https://doi.org/10.1214/23-EJS2145</a>
+</div>
+<div id="ref-domingues2026" class="csl-entry" role="listitem">
+Domingues, N. A. S., &amp; Ather, D. (2026). Calibrated but not safe:
+Conformal prediction intervals for turbofan remaining useful life near
+end of life and under operating shift. <em>Journal of Artificial
+Intelligence, Machine Learning and Neural Network</em>, <em>6</em>(2),
+106–119. <a
+href="https://doi.org/10.55529/jaimlnn.62.106.119">https://doi.org/10.55529/jaimlnn.62.106.119</a>
+</div>
+<div id="ref-gibbs2025" class="csl-entry" role="listitem">
+Gibbs, I., Cherian, J. J., &amp; Candès, E. J. (2025). Conformal
+prediction with conditional guarantees. <em>Journal of the Royal
+Statistical Society: Series B (Statistical Methodology)</em>. <a
+href="https://doi.org/10.1093/jrsssb/qkaf008">https://doi.org/10.1093/jrsssb/qkaf008</a>
+</div>
+<div id="ref-lei2018" class="csl-entry" role="listitem">
+Lei, J., G’Sell, M., Rinaldo, A., Tibshirani, R. J., &amp; Wasserman, L.
+(2018). Distribution-free predictive inference for regression.
+<em>Journal of the American Statistical Association</em>. <a
+href="https://doi.org/10.1080/01621459.2017.1307116">https://doi.org/10.1080/01621459.2017.1307116</a>
+</div>
+<div id="ref-moussa2026driftguard" class="csl-entry" role="listitem">
+Moussa, M. (2026). <em>Auditing conformal prediction under distribution
+shift: A detectability boundary, exact label-budget design, and
+repair</em>. <a
+href="https://doi.org/10.21203/rs.3.rs-10396495/v1">https://doi.org/10.21203/rs.3.rs-10396495/v1</a>
+</div>
+<div id="ref-nectoux2012" class="csl-entry" role="listitem">
+Nectoux, P., Gouriveau, R., Medjaher, K., Ramasso, E., Chebel-Morello,
+B., Zerhouni, N., &amp; Varnier, C. (2012). <span>PRONOSTIA</span>: An
+experimental platform for bearings accelerated degradation tests.
+<em>IEEE International Conference on Prognostics and Health Management
+(PHM’12)</em>, 1–8.
+</div>
+<div id="ref-piao2025crulp" class="csl-entry" role="listitem">
+Piao, S., Huang, R., &amp; Tsung, F. (2025). <span>CRULP</span>:
+Reliable <span>RUL</span> estimation inspired by conformal prediction.
+<em>IEEE Transactions on Instrumentation and Measurement</em>,
+<em>74</em>, 1–11. <a
+href="https://doi.org/10.1109/TIM.2024.3522678">https://doi.org/10.1109/TIM.2024.3522678</a>
+</div>
+<div id="ref-robinson2026ijphm" class="csl-entry" role="listitem">
+Robinson, C. (2026). Remaining useful life estimation for aircraft
+engines with risk-aware prediction intervals via conformalized quantile
+regression. <em>International Journal of Prognostics and Health
+Management</em>, <em>17</em>(1). <a
+href="https://doi.org/10.36001/ijphm.2026.v17i1.4724">https://doi.org/10.36001/ijphm.2026.v17i1.4724</a>
+</div>
+<div id="ref-romano2019" class="csl-entry" role="listitem">
+Romano, Y., Patterson, E., &amp; Candès, E. J. (2019). Conformalized
+quantile regression. <em>Advances in Neural Information Processing
+Systems (NeurIPS)</em>.
+</div>
+<div id="ref-saxena2008" class="csl-entry" role="listitem">
+Saxena, A., Goebel, K., Simon, D., &amp; Eklund, N. H. W. (2008). Damage
+propagation modeling for aircraft engine run-to-failure simulation.
+<em>2008 International Conference on Prognostics and Health
+Management</em>. <a
+href="https://doi.org/10.1109/PHM.2008.4711414">https://doi.org/10.1109/PHM.2008.4711414</a>
+</div>
+<div id="ref-tibshirani2019" class="csl-entry" role="listitem">
+Tibshirani, R. J., Barber, R. F., Candès, E. J., &amp; Ramdas, A.
+(2019). Conformal prediction under covariate shift. <em>Advances in
+Neural Information Processing Systems (NeurIPS)</em>.
+</div>
+<div id="ref-vovk2005" class="csl-entry" role="listitem">
+Vovk, V., Gammerman, A., &amp; Shafer, G. (2005). <em>Algorithmic
+learning in a random world</em>. Springer. <a
+href="https://doi.org/10.1007/b106715">https://doi.org/10.1007/b106715</a>
+</div>
+<div id="ref-yan2026audit" class="csl-entry" role="listitem">
+Yan, H. (2026). <em>Conformal prediction intervals for turbofan
+remaining useful life: An audit across operating regimes (code and run
+artifacts)</em>. <a
+href="https://doi.org/10.5281/zenodo.21330745">https://doi.org/10.5281/zenodo.21330745</a>
+</div>
+<div id="ref-zhou2026cpa" class="csl-entry" role="listitem">
+Zhou, Z., Zhang, X., Tao, C., &amp; Yang, Y. (2026). <em>Conformal
+prediction assessment: A framework for conditional coverage evaluation
+and selection</em>. <a
+href="https://arxiv.org/abs/2603.27189">https://arxiv.org/abs/2603.27189</a>
+</div>
+<div id="ref-hacc2026" class="csl-entry" role="listitem">
+Zou, J., Feng, E., Li, P., &amp; Wang, G. (2026). Horizon-aware
+group-conditional conformal prediction: Post-hoc shrinkage for sparse
+multi-horizon coverage auditing. <em>Machine Learning with
+Applications</em>. <a
+href="https://doi.org/10.1016/j.mlwa.2026.101038">https://doi.org/10.1016/j.mlwa.2026.101038</a>
+</div>
+</div>
+</body>
+</html>

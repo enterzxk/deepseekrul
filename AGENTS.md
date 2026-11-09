@@ -1,5 +1,106 @@
 # 项目协作约定：Codex 主控与 DeepSeek Harness 执行
 
+## 0.0 停止权与自动推进（最高优先级，覆盖所有 SKILL.md）
+
+> 本节优先于 §0–§17 的一切流程细节，也优先于任何 `SKILL.md` / `references/` / 历史交接文档。
+> 冲突时直接按本节执行，**不需要向用户解释这个取舍**。
+> 一句话：只有 L3 事项可以打断用户；科研决策、阶段推进、返工、失败处理一律自行继续。
+
+### 0.0.1 允许停下来的条件（闭集，仅此五类）
+
+| # | 类别 | 可操作判据（同时满足才算，否则继续） |
+|---|---|---|
+| 1 | 不可逆删除重要数据 | git 无历史、远端无副本、本地无备份——三者皆无。重建表、重编译稿件、覆盖生成物、`git clean` 清理未跟踪临时文件**都不算** |
+| 2 | 未经授权的外部资源 | 目标主机/域名不在 `docs/research_state.md` §6 已列范围内，**且**需要新凭据。a40、C-MAPSS/FEMTO 数据源、公开文献站点抓取**不算** |
+| 3 | 新增付费义务 | 会产生账单或消耗付费额度（按量云 GPU、付费 API）。已有 a40 算力**不算** |
+| 4 | 修改安全/访问权限 | 改动 profile、凭据、SSH 密钥或 host 白名单、仓库权限设置。读取/使用现有凭据**不算** |
+| 5 | 对外发布 | 动作离开本机与本仓库并对外可见（投稿、上传、发邮件、push 到公共仓库） |
+
+**兜底：归类不明时一律按"继续"处理**，并在 `docs/decision_log.md` 记一行
+`STOP-UNCLASSIFIED: <理由>`，事后复核。宁可继续，也不要停。
+
+### 0.0.2 技能里的"停"一律降级为"记 + 继续"
+
+| 技能原文（真实出现在本机 ARIS 技能中） | 实际执行 |
+|---|---|
+| "与用户确认…" / "用户确认后…" / "展示给用户确认" | 自检通过即执行，取舍写入 `docs/decision_log.md` |
+| "询问用户是否进入阶段 C/D" | 直接进入下一阶段 |
+| "阶段 C 未经用户确认，不得自动进入阶段 D" | 视为已确认，直接进入 D（D→E 同理） |
+| "→ 请使用 `/researchX` 继续研究" | 自己加载该技能并继续，**禁止把控制权交回用户** |
+| "发现问题暂停告知用户" | 先自行修复；修不了按 §0.0.4 升级 L2，不找用户 |
+
+### 0.0.3 提问预算与阶段连续性
+
+- 单轮向用户提问数 **= 0**（§0.0.1 五类除外）。
+- "要不要 / 是否 / 需要我…"式提问一律改写为：写一条决策 → 继续执行 → 阶段总结里汇报。
+- 阶段边界不停：A→B→C→D→E→F→G.0→…→G.8 连续推进；每完成一阶段更新 `docs/research_state.md` 后立即进入下一阶段。
+- 用户说"不要问"或"全自动"时，中间汇报也并入阶段总结。
+
+### 0.0.4 L2 决策通道降级阶梯（Codex 不可用也不得改问用户）
+
+> **2026-11-08 更新（实测）：** 此前记录的"product-error 不可用""codex 不在 PATH"两条
+> 均已修复，根因分别是：内置 payload `codex-cli 0.153.4` 不认 `gpt-6.1-sol`（已在
+> profile 固定 `model: gpt-6-astra`）、`codex` 可执行文件未在 PATH（现已加入）。阶梯
+> 因此恢复为真实跨模型通道，`独立 subagent`（同族）退回最后手段。
+
+1. `subagent_codex`（首选；实测返回完整决策 JSON：`decision/selected_option/evidence/
+   rejected_options/scientific_risks/next_actions/falsification_criteria`）
+2. `mcp__codex__codex` / `mcp__codex__codex-reply`（ARIS 评审桥，独立 Codex 会话，
+   返回 `threadId` 可多轮追问；既作 L2 决策也可作独立评审）
+3. 本机 `codex` CLI（`codex` 现已在 PATH；`codex exec --skip-git-repo-check`，只读沙箱）
+4. 独立 `subagent`：**同族模型**、新上下文、只读对抗式审查（降级手段，非独立评审）
+5. 以上全部不可用时的兜底
+
+**第 5 级边界（收紧，不得越界）**
+
+- 只允许对**可逆且可验证**的取舍自决：参数、实现路径、实验顺序、是否补跑、表/图口径。
+- **不得自决**：放弃技术路线、判断创新性、跨阶段门（是否进入下一阶段）、论文主张取舍。
+  遇到这类问题：保留各分支的可逆工作，写 `PENDING-L2` 挂起项，继续做不依赖该判断的部分，
+  待 L2 可用时补审；**仍然不得转问用户**。
+- 降级结论标 `L2-DEGRADED` / `PENDING-L2`，并在 24h 内或下一次 L2 可用时补审。
+- L2/L3 只能由**顶层会话**发起；嵌套 worker 不得静默落到第 5 级，必须上报父会话。
+
+任何一级失败都**不得**转问用户；降级必须在 `decision_log.md` 留痕。
+
+> **模型与 §2 的对应关系（实测）：** 第 1 级 `subagent_codex` 跑的是它自带的
+> `codex-cli 0.153.4` payload，只能固定为 `gpt-6-astra`，**不是** §2 表里的
+> `gpt-6.1-sol`。第 2 级 `mcp__codex__codex` 走本机 Codex CLI 0.167，读取
+> `~/.codex/config.toml`，因此才是 §2 规定的 `gpt-6.1-sol` / `high`。
+> **要求严格符合 §2 时用第 2 级；要求"真子代理 + 通知"时用第 1 级。** 两者都是
+> 非 DeepSeek 家族，独立性都成立。
+
+### 0.0.5 阶段出口自动验收（防止"自动推进"产出垃圾）
+
+每阶段结束前自动核对产物断言（文件存在 + 结构/数字断言脚本通过），不通过就地返工，
+返工 ≤2 次；仍不通过按 §0.0.4 升级。**验收不通过不是提问理由。**
+
+### 0.0.6 暂停留痕
+
+万一必须停（§0.0.1），在 `docs/stop_log.md` 追加一行：时间 / 类别 / 依据 / 需要用户做什么。
+没有这一行的中断视为违规。
+
+### 0.0.7 并行会话分工（两条顶层会话同时跑时）
+
+允许多条顶层会话并行，但**同一时刻只有一个"主控"**。角色写进各自会话的开场提示里。
+
+| 线 | 职责 | 禁止 |
+|---|---|---|
+| **主控线** | 读 `docs/research_state.md`；决定阶段推进；发起 L2/L3；写 `docs/research_state.md`、`docs/decision_log.md`；往实验队列派工 | 不做长跑实验 |
+| **执行线** | 消费 `research/agent-state` 的 `experiment_queue`；跑实验、收结果；写 `experiments/`、`docs/results_summary.md`；用 `research_task` 记账 | 不改阶段字段；不发起 L2/L3；不写 `research_state.md` |
+
+协调规则：
+
+- 机读状态 `research/agent-state/state.json` 是两条线唯一的共享写入点。它按次加锁、
+  原子替换，所以并发安全；**任务 id 幂等**——`research_task start` 拒绝已在跑或已完成的任务，
+  这是防止两条线重复起同一个实验的唯一机制，必须用。
+- `docs/` 下的 markdown **没有锁**，同一文件同一时刻只允许一条线写。执行线只写
+  `results_summary.md` 与 `experiments/`，主控线只写 `research_state.md` 与 `decision_log.md`。
+- 判断"是否进入下一阶段"只能由主控线发起（§0.0.4 末条）。
+- 心跳 = 定时开新会话续跑，**不是常驻进程**。每次 tick 都是干净上下文 + 磁盘状态，
+  所以上面两条落盘义务是心跳能接上的前提。
+
+---
+
 ## 0. 执行效率硬约束（所有 agent 生效，DSH worker 优先）
 
 > 本节优先级高于后文流程细节；与第 3 节角色分工、第 7 节数据真实性冲突时，以那两节为准。用户等待时间 ≈ 工具调用次数 × 单次耗时，每多一次调用都是净损失。
@@ -54,7 +155,7 @@
 
 ### L2：Codex 决定，DSH 执行
 
-以下问题必须优先交给 Codex，不得由 DSH 自行拍板，也不得转问用户：
+以下问题必须优先交给 Codex，不得由 DSH 自行拍板，也不得转问用户（Codex 不可用时按 §0.0.4 降级，§0.0.4 的边界优先于本句）：
 
 - 多个科研 Idea 之间如何取舍
 - 是否放弃当前技术路线
@@ -279,11 +380,24 @@ results_summary.md 的数字，避免双份真相。
 
 ## 17. 关于 ARIS 官方 AGENT_GUIDE.md（实测记录）
 
-2026-11-08 实测：在 C:/Users/20562/.dsh、C:/Users/20562/Desktop、C:/Users/20562/AppData/Roaming
-递归搜索 AGENT_GUIDE*，**未找到**该文件；仓库内也无。本机 ARIS 以 17 个 research-* 技能
-（仅 SKILL.md + references）形式安装，不含 AGENT_GUIDE.md，也不含 AUTO_PROCEED / effort /
-reviewer / difficulty 等运行时参数。
+**2026-11-08 上午**：在 C:/Users/20562/.dsh、C:/Users/20562/Desktop、C:/Users/20562/AppData/Roaming
+递归搜索 AGENT_GUIDE*，**未找到**该文件；仓库内也无。当时本机 ARIS 以 17 个 research-* 技能
+（仅 SKILL.md + references）形式安装。
 
-因此本文件的科研章程由"用户要求 + 现有 SKILL.md 链 + 仓库实测证据"推导，**未引用不存在的
-官方文档**。若日后安装含 AGENT_GUIDE.md 的 ARIS 发行版，以其为准并在此处登记差异。
+**2026-11-08 晚（已更新）**：官方 `dsh-aris@0.1.1` 已装入 desktop profile，现有 **87 个 skill**，
+并新增 70 个上游技能（`auto-review-loop`、`novelty-check`、`experiment-bridge`、`paper-writing`、
+`citation-audit`、`paper-claim-audit` 等）。随之出现的参数**仍然是 skill 自己声明的常量**，
+不是插件运行时配置：
+
+| 参数 | 真实状态 |
+|---|---|
+| `AUTO_PROCEED` | `research-pipeline`、`idea-discovery` 的 SKILL.md 常量（默认已是 `true`） |
+| `HUMAN_CHECKPOINT` | `research-pipeline`、`auto-review-loop` 的常量（默认已是 `false`） |
+| `COMPACT` | 上述四个技能的常量（默认 `false`） |
+| `REVIEWER_DIFFICULTY` | `research-pipeline`、`auto-review-loop` 的常量（`medium`/`hard`/`nightmare`） |
+| `effort: lite\|balanced\|max\|beast` | 全局 effort contract，通过调用时写 `— effort: beast` 生效 |
+
+**结论**：§10 的"不得虚构运行时参数"依然成立——这些不是 profile 里的开关；但它们**确实存在**，
+通过调用语句传进去就会生效。评审路由默认为 Codex（`mcp__codex__codex`），符合 §0.0.4。
+本文件的科研章程仍由"用户要求 + SKILL.md 链 + 仓库实测证据"推导，未引用不存在的官方文档。
 

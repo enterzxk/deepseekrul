@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "project_id": "cmapss-rul-conformal",
+  "research_goal": "把 C-MAPSS RUL 保形区间方法做到可投 IEEE TIM：方法成立、证据完整、论文成稿。",
+  "workspace": "C:\\Users\\20562\\Desktop\\deepseek-rul",
+  "current_stage": "S9",
+  "stage_title": "Paper Evidence Consolidation",
+  "stage_history": [
+    {
+      "stage": "S0",
+      "entered_at": "2026-11-08T15:35:53.623Z",
+      "reason": "project initialized"
+    },
+    {
+      "stage": "S9",
+      "from": "S0",
+      "entered_at": "2026-11-08T15:36:22.254Z",
+      "reason": "通用状态机的 S0-S2 对这个仓库已无意义：审计、文献、gap、idea、novelty、方法、实验、评估都已有落盘证据（Gate 0 通过、论文已编译）。实际位置是 S9 证据整合，并可能因 Gate 1 或审稿缺口回落到 S7/S8。强制设定以反映真实状态，避免心跳把已完成的工作重做一遍。",
+      "evidence": [
+        "docs/research_state.md §2 已完成表（主实验 40 格、追加 seeds、跨域 FEMTO、A4 置换消融、覆盖诊断、论文 MD/LaTeX/PDF 编译通过）",
+        "docs/research_state.md §3 已排除方向 9 项（D001/D002/非对称/分层/引擎级/seed 集成/局部化 CQR）",
+        "README.md：IDA-PE Gate 0 PASSED 4/4，status GO_TO_GATE1",
+        "docs/manuscripts/ 与 docs/figures/ 已产出"
+      ],
+      "forced": true
+    }
+  ],
+  "active_task": null,
+  "completed_tasks": [
+    {
+      "id": "mcd80-backfill",
+      "title": "MC-Dropout 80 格回填（4 子集×5 折×4 seed）",
+      "outcome": "completed",
+      "result": "80/80 格完成。Stage A 40 格（seeds 42/7，现有 checkpoint）+ Stage B 40 格（seeds 2024/13，先 --heads point --save-ckpt 重训）。完整性：重训点模型 vs 冻结 preds_point max|Δy_lo|=0.000e+00（40/40）→ 配对有效。可复现性：首轮未设种子，已加 R.set_seed 并整批重跑，seeded 为权威口径，抽检差全 0.0；两遍独立抽样噪声底线主指标中位 0.63pp/p90 3.20pp，方向翻转 0/80。终值（名义水平、同中心对照）：尺度单独效应 43/80 胜、均值 +9.5%、中位 −1.0%；vs CQR 8/80、+21.4%；覆盖 0.881 vs 0.899。预注册判定门落在第三档（异质）→ 只作子集条件陈述。",
+      "artifacts": [
+        "docs/results_summary.md §32",
+        "docs/tables/mcd80_cells_seeded.csv",
+        "docs/tables/mcd80_cells.csv",
+        "docs/decision_log.md D023",
+        "docs/wiki/experiments.md E-MCD80",
+        "scripts/analyze_mcd80.py",
+        "scripts/compare_mcd_draws.py",
+        "scripts/verify_mcd80.py",
+        "scripts/run_mcd80_backfill.sh",
+        "scripts/run_mcd80_seeded.sh"
+      ],
+      "note": "预算实际 ≈7.8 GPU-h（估计 ≤6，FD002/FD004 每格 14.5 min）。产物在 a40 experiments/punet_mcd80_seeded/（权威）、punet_mcd80/（首轮）、punet_mcd80_repro/（复现抽检）。",
+      "finished_at": "2026-11-09T04:01:25.868Z"
+    }
+  ],
+  "next_actions": [
+    "精读近年设备级/组级不确定度与风险控制文献，形成 3 个可证伪创新候选",
+    "用 Codex（高推理）对候选做独立新颖性与可行性裁决",
+    "选定后设计方法（数学规格 + 失效条件）并实现",
+    "在 a40 上跑 C-MAPSS 四子集全量训练与强基线对比",
+    "消融 + 跨数据集 + 噪声鲁棒性",
+    "Codex 审查后成稿（TIM LaTeX）"
+  ],
+  "selected_idea": null,
+  "research_decisions": [
+    {
+      "at": "2026-11-08T15:36:22.254Z",
+      "level": "stage",
+      "decision": "advance",
+      "selected_option": "S0 -> S9",
+      "rationale": "通用状态机的 S0-S2 对这个仓库已无意义：审计、文献、gap、idea、novelty、方法、实验、评估都已有落盘证据（Gate 0 通过、论文已编译）。实际位置是 S9 证据整合，并可能因 Gate 1 或审稿缺口回落到 S7/S8。强制设定以反映真实状态，避免心跳把已完成的工作重做一遍。",
+      "evidence": [
+        "docs/research_state.md §2 已完成表（主实验 40 格、追加 seeds、跨域 FEMTO、A4 置换消融、覆盖诊断、论文 MD/LaTeX/PDF 编译通过）",
+        "docs/research_state.md §3 已排除方向 9 项（D001/D002/非对称/分层/引擎级/seed 集成/局部化 CQR）",
+        "README.md：IDA-PE Gate 0 PASSED 4/4，status GO_TO_GATE1",
+        "docs/manuscripts/ 与 docs/figures/ 已产出"
+      ]
+    },
+    {
+      "at": "2026-11-08T17:53:11.223Z",
+      "level": "L2",
+      "decision": "branch",
+      "selected_option": "Q1=A2（完成 80 格，作内部技术报告与新问题动机，不得据此证明失效可识别）；Q2=B3（撤回 D009 第②项，MC-Dropout 只作常规基线，不提认知不确定性反例）；Q3=C3（先核验最近邻本体再定新立项新颖性）",
+      "rationale": "",
+      "evidence": [
+        "docs/decision_log.md D019（本轮追加，含 Codex threadId 01a1bc42-f728-7b50-8127-6b6a38263674）",
+        "docs/difftable_crulp_ijphm.md：CRULP 三源核实（IEEE TIM 74:1-11, 2025, DOI 10.1109/TIM.2024.3522678）；IJPHM 2026 核实（DOI 10.36001/ijphm.2026.v17i1.4724）",
+        "scripts/run_mcdropout.py 第 42-55 行：实现的是 dropout 采样均值与标准差 + split conformal，不是 UACQR",
+        "docs/tables/mcd80_cells.csv：40/80 格名义水平结果，尺度单独效应 24/40 胜、均值 +10.3%、中位 -2.7%；协议回归 max|Δ|=7.1e-15",
+        "docs/HANDOFF_V2.md §3.3：覆盖对齐口径已被 D015 移出论文证据体系",
+        "Zenodo 10.5281/zenodo.21330745（Hong Yan, U Arizona）：C-MAPSS 四子集 + N-CMAPSS 的 conditional coverage / operating regimes / Mondrian 审计"
+      ],
+      "rejected_options": [
+        {
+          "option": "Q1=A1（只作相关工作证据，不写任何主张）",
+          "reason": "过度收缩：完整 80 格可支撑限定协议、明确异质性的内部结论"
+        },
+        {
+          "option": "Q1=A3（做完 Stage A 40 格即停，省 1 GPU-h）",
+          "reason": "用户已明确要求补到 80 格，且有预注册判定门与有限预算；中途停会留下不完整 seed 比较"
+        },
+        {
+          "option": "Q2=B1（主张 dropout 尺度无效/劣于常数宽度）",
+          "reason": "40 格结果落在异质档（FD002 -7.6% 更优、FD003 +31.6% 更差），不支持方向性断言"
+        },
+        {
+          "option": "Q2=B2（实现 UACQR 基线再谈 CRULP 机制）",
+          "reason": "通用 UACQR 仍不能评价 CRULP 的 ensemble+cross-conformal 具体机制；在 D016 下对可识别性问题增量价值不足"
+        },
+        {
+          "option": "Q3=C1（认定审计包已覆盖分层失效，新立项直接限定为可识别性）",
+          "reason": "审计包正文未读，事实前提未核实"
+        },
+        {
+          "option": "Q3=C2（认定审计包未触及可识别性，新颖性成立）",
+          "reason": "未读本体不能断言其未研究可识别性"
+        }
+      ],
+      "scientific_risks": [
+        "20 折共享训练数据、80 格共享同一 5 折划分，bootstrap 区间只能描述性解释，不得作独立样本显著性检验",
+        "MC-Dropout 同时改变预测中心与尺度；已加同中心对照 const_mc 隔离尺度，但中心本身仍是随机前向均值",
+        "覆盖对齐使用测试标签，只能作事后诊断，不能模拟部署选择规则",
+        "引擎轨迹内窗口相关，经验最低覆盖受轨迹长度影响；覆盖 <0.80 的观测不等于真实条件覆盖率 <0.80",
+        "若「只用校准集信息」不写明允许信息集，同可观测信息的对象不可区分，识别目标无定义",
+        "分层/审计方向已被 Zenodo 审计包、RESS similarity-calibrated CP、IEEE stratified CP 等占住，新立项新颖性存疑"
+      ],
+      "falsification_criteria": [
+        "完整 80 格若出现 MC-Dropout 胜≥60% 折且均值改善≥5% 且既定 CI 排除 0，则撤回「无整体收益」说法",
+        "任何 MC-Dropout 结果都不能证伪 UACQR/CRULP；评价其机制须另有经核验的对应实现与公平对照",
+        "若 Hong Yan 审计包或其他最近邻已在同等信息约束下完成失效预警与识别条件分析，则否决当前问题的新颖性主张，提交 L2 重新划界",
+        "若风险评分在引擎隔离验证中未超过预注册的分层基线效应阈值或不满足误报预算，则不主张有效预警",
+        "若收益依赖目标标签、完整寿命、官方测试集调参或校准与评价引擎重叠，则撤回识别结论"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-08T18:14:10.010Z",
+      "level": "L2",
+      "decision": "reject",
+      "selected_option": "C：否决「单位级保形有效性协议审计」立项，转 D016 第 8 项（内部技术报告 / 应用稿候选评估）。不启动 G5，不实现新方法。",
+      "rationale": "Codex 指出草案存在内部形式化缺口，而非仅贡献不足：(1) 算术阈值 n≥9 约束的是指定保形构造中的校准分数数目，草案却把它提升为「单位级认证需要 ≥9 台校准发动机」，既未定义发动机级分数，也未建立从分数保证到单机覆盖 C_i 保证的推导；(2) 草案混用三个计数对象——校准发动机数（6/16/6/15）、每台校准发动机窗口数（130–200）、G1 要求的「最大单机校准点数<9」——三者互相矛盾，G1 按其自身写法会失败；(3) engine_calib_split 整机分配，测试发动机自身校准标签数为零，其他校准发动机的窗口不能替代；(4) 「未报告逐机覆盖」与「边际覆盖主张错误」未分离；(5) 对重叠时间窗口直接用二项检验缺少独立性依据。修正后只剩失效分布、固定划分下的跨 seed 稳定性与文献报告审计，不足以跨过 Q1 贡献门槛。",
+      "evidence": [
+        "docs/PROPOSAL_unit_coverage_identifiability.md §3.2 G1 vs §5.1 vs §5.3（三个计数对象不一致）",
+        "docs/BASELINE_FREEZE.md §3.4（6/16/6/15 是发动机数量，不是每台发动机的校准点数）",
+        "src/punet/conformal.py::engine_calib_split（整机分配，测试机自身校准标签为零）",
+        "scripts/freeze_audit.py F1/F2（18/20 折 <0.80；真实最小单机覆盖 0.2814–0.5521）",
+        "scripts/engine_coverage_stability.py（ICC 0.780，跨 seed ρ +0.762）",
+        "docs/wiki/literature.md 新增节（DriftGuard / HACC / CPA / Domingues / Yan 的占位）"
+      ],
+      "rejected_options": [
+        {
+          "option": "A 按现草案立项",
+          "reason": "核心算术论证混用发动机数与组内窗口数，并把有限分位数条件提升为单位级认证结论"
+        },
+        {
+          "option": "B 修订后立项",
+          "reason": "修正计数对象并删除过度主张后，只剩已有基线的失效分布、固定划分稳定性与文献报告审计，无足以跨门槛的核心结果"
+        },
+        {
+          "option": "D 立即换角度",
+          "reason": "现有材料未确认另一个未被占且可用冻结产物解决的 Q1 问题"
+        }
+      ],
+      "scientific_risks": [
+        "必须区分四种不同对象：窗口边际覆盖、新发动机总体上的保证、指定发动机的条件覆盖、以置信度 1−δ 认证其覆盖达到 1−α；草案未规定证书的概率对象与 δ",
+        "6<9 只说明某个指定次序统计量构造无有限阈值，不证明所有认证方案不可达；15–16≥9 也不证明认证可达",
+        "6/16/6/15 是本仓库协议事实，未经文献核查不能推广为 C-MAPSS 领域标准",
+        "重叠时间窗口上直接用二项检验缺少独立性依据，不能作为认证证据",
+        "未报告逐机覆盖不等于边际覆盖主张错误",
+        "ICC<0.70 不能反向证明失效主要来自训练噪声；本基线上未运行 HACC，不能外推其改善数值"
+      ],
+      "falsification_criteria": [
+        "若重开认证方向，必须先明确保证事件、随机性来源、α 与必要 δ，给出具体分数与所需假设，并推导发动机数如何约束该保证；仅重算 6<9 或增加校准比例不足以重开",
+        "若可核查的全文比较证明存在此前遗漏的实质差异，且该差异已有数学规格、实现对应与独立证据，可提交新的 L2 立项门；文献未报告 ICC 或逐机最小值本身不够",
+        "若完整证据与具体期刊贡献审查支持独立应用价值，可依 D016 第 8 项另议应用稿；这不自动恢复 TIM 目标",
+        "若后续发现划分、指标或发动机匹配错误，应追加撤回受影响的经验结论"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-09T03:56:17.919Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "A：IJPHM 应用评估稿，revise 后投稿（先修统计实现与过强表述；不恢复 TIM 目标）",
+      "rationale": "Codex 判定现有证据足以支持一篇范围受限的应用评估稿，但必须先修统计实现与过强表述。三处缺陷属实：G-A/G-C 的 bootstrap 只重采样自变量破坏配对；事后半宽用 1.96×平均 SD 而非逐格百分位；G-D 判据符号与预注册「不得恶化」相反。修正后四个门结果不变，故不需重开 H005。",
+      "evidence": [
+        "docs/VENUE_FIT.md §2（IJPHM 先例：Robinson 2026, DOI 10.36001/ijphm.2026.v17i1.4724）",
+        "docs/tables/mcd80_cells.csv（80 格，FD002 19/20 胜 −7.05% vs FD003 1/20 胜 +28.53%）",
+        "experiments/punet_mcd80/verify_mcd80.csv（重训点预测与冻结 preds 逐位一致）",
+        "scripts/scale_diagnostic.py + tmp/freeze/h005_v2_corrected.json（G-A −0.039 [−0.431,+0.317]；G-C −0.221 [−0.712,+0.300]；G-D +2.79%/FD003 +13.77%）",
+        "docs/wiki/failures.md F003（含三处统计缺陷的更正记录）"
+      ],
+      "rejected_options": [
+        {
+          "option": "QRE 首选",
+          "reason": "应用匹配成立但官方贡献要求未核实，统计缺陷未修前不优于 IJPHM"
+        },
+        {
+          "option": "PHME 首选",
+          "reason": "会议，不满足目标期刊选择；无证据必须先降为会议稿"
+        },
+        {
+          "option": "RESS",
+          "reason": "现有材料未证明超出相邻覆盖审计工作的系统可靠性贡献；Yan 投稿一事未独立核实"
+        },
+        {
+          "option": "暂不投先补证据",
+          "reason": "缺口是统计修复、贡献边界与期刊要求核验，不需要默认新增训练证据"
+        }
+      ],
+      "scientific_risks": [
+        "「系统性高估实际交付」超出证据：边际覆盖本不保证单机覆盖",
+        "跨 seed 稳定只证明失效对训练随机性可重复，不证明单 seed 估计必然偏乐观",
+        "相关系数近零且区间宽不证明不存在预测关系；H005 只能表述为未达预注册支持标准",
+        "n_cal=6 的 bootstrap 波动只支持该估计量在本样本不稳定，不支持普遍样本量下界",
+        "20 折共享训练数据，修正配对 bootstrap 仍不消除折间依赖",
+        "名义水平 Winkler 是覆盖与宽度的联合表现，不能把 MCD 差异全归因于宽度",
+        "E5–E7 受控组合只支持范围受限的新颖性段落，不支持「首次」或「唯一」"
+      ],
+      "falsification_criteria": [
+        "若 IJPHM 官方要求明确排除独立应用评估稿或要求本稿没有的贡献类型，撤销 A",
+        "若最近邻全文已含实质相同的同中心尺度对照 + 诊断规则检验 + 估计稳定性分析，E5–E7 不足以承担独立新颖性",
+        "若冻结产物复核不能复现尺度异质性/CQR 折级收益/单机失效重复性，删除相应贡献",
+        "若正确的逐格重采样不能支持诊断估计不稳定，撤回 E7"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-09T05:55:28.285Z",
+      "level": "L3",
+      "decision": "branch",
+      "selected_option": "B：按用户指令转向 IEEE TIM 正向方法创新（新框架/新机制/性能优势），IJPHM 审计稿转为内部资产与强基线证据",
+      "rationale": "用户以顶层指令明确变更项目目标：唯一目标期刊为 IEEE TIM，要求正向方法创新（新框架/新机制/明确性能优势），明确不以现有 IJPHM 实证审计稿为最终成果，也不以负结果为主要贡献。该指令优先于此前 D016（放弃 TIM 目标）与 D022（IJPHM 应用评估稿）的裁决——二者是 agent/L2 在缺少用户明确目标时作出的路线判断，用户现以直接指令覆盖。记录为 branch：关闭「IJPHM 审计稿作为最终成果」的路线，开启「TIM 正向方法创新」主线；IJPHM 稿与全部审计产物保留为内部资产与基线证据，不删除。",
+      "evidence": [
+        "用户 2026-11-09 13:54 顶层指令：唯一目标期刊 IEEE TIM，正向方法创新，不以负结果/审计为主要贡献",
+        "docs/decision_log.md D016（放弃 TIM 目标）、D022（IJPHM revise）",
+        "docs/BASELINE_FREEZE.md（现有 CQR 冻结为基线，可作强基线）",
+        "docs/manuscripts/ijphm_v2/（审计稿与台账，转为内部资产）"
+      ],
+      "rejected_options": [],
+      "scientific_risks": [],
+      "falsification_criteria": [],
+      "reviewer": "none"
+    }
+  ],
+  "experiment_queue": [],
+  "running_jobs": [],
+  "last_git_commit": null,
+  "last_successful_checkpoint": "checkpoints\\2026-11-09T04-05-19-461Z-S9.json",
+  "blocked_reason": null,
+  "resume_instructions": "权威源是 docs/ 不是本文件。恢复顺序：读 AGENTS.md → docs/research_state.md → docs/decision_log.md → docs/results_summary.md → docs/manuscripts/SUBMISSION_CHECKLIST.md，核对产物确实在磁盘上，再继续。research/agent-state/state.json 只提供任务队列与幂等账本，不复制 docs 里的数字（避免双份真相）。",
+  "created_at": "2026-11-08T15:35:53.623Z",
+  "updated_at": "2026-11-09T05:55:28.288Z",
+  "revision": 16
+}

@@ -13,9 +13,38 @@
 | E004 | 2026-11 | 置换消融（A4） | 20 折置换标签 | 与真标签差异显著 | 均值 +0.2%，无信号 | docs/tables/ | 完成 |
 | E005 | 2026-11 | 覆盖诊断（引擎级/阶段级） | 20 折 | 截面 PICP 达标但引擎级失效 | 引擎级最小覆盖 0.50–0.71 | docs/tables/engine_*.csv | 完成 |
 
+## E-MCD80 · MC-Dropout 补到 80 格（D009 第 ③ 项 / D019 A2）
+
+- **日期**：2026-11-09 01:43 起（a40 后台）。
+- **目的**：把"dropout 采样标准差作为每样本条件尺度"这一操作化补到完整 80 格，
+  支撑内部报告中的限定结论；**不作为对 UACQR/CRULP 机制的评价**（D019 B3）。
+- **配置**：`scripts/run_mcd80_backfill.sh`。Stage A：40 格已有 checkpoint（seeds 42/7）
+  直接跑 `run_mcdropout.py`（T=30）；Stage B：40 格（seeds 2024/13）先
+  `run_e2e_cqr.py --heads point --save-ckpt` 重训再跑。产物 `experiments/punet_mcd80/`，
+  不覆盖冻结的 `experiments/punet_matrix/`。
+- **判定门（启动前预注册）**：名义水平为主口径（δ=0.1，可部署；D015 已删覆盖对齐）；
+  折级 n=20；胜≥60% 折且均值≤−5% 且 CI 排除 0 → 撤回"无整体收益"；输≥70% 折 → 限定反例成立；
+  否则只作子集条件陈述。**完整性门**：重训点模型的 `preds_point.csv` 必须复现冻结版
+  （max|y_lo|≤1e-3），否则配对无效、升级 L2。
+- **结果（80/80 格，seeded 权威口径）**：名义水平下尺度单独效应（同中心对照 `const_mc`）
+  43/80 胜、均值 +9.5%、中位 −1.0%；vs CQR 8/80；实际覆盖 0.881 vs 0.899（偏低 1.8pp）；
+  逐子集 FD001 +18.8%、FD002 −7.1%、FD003 +28.1%、FD004 −1.8%；
+  折级 11/20 胜、均值 +9.5%、中位 −1.4%、bootstrap [+1.3%, +19.0%]（描述性）。
+- **判定门**：第三档（异质）→ 只作子集条件陈述。
+- **可复现性**：首轮未设种子（重跑 picp 差 ≤7.6e-3）；已加 `R.set_seed(seed)` 并整批重跑，
+  抽检差全 0.0。两遍独立抽样的噪声底线：主指标 |Δ| 中位 0.63pp / p90 3.20pp，
+  **方向翻转 0/80**。
+- **完整性**：重训 40 格点模型与冻结 `preds_point.csv` 逐位一致（max|Δ|=0.000e+00）。
+- **协议回归检查**：重算 `const`/`cqr` 与 `docs/tables/cells_all.csv` 逐位一致（max|Δ|=7.1e-15）。
+- **证据路径**：`docs/tables/mcd80_cells_seeded.csv`（权威）、`docs/tables/mcd80_cells.csv`（首轮）、
+  `scripts/analyze_mcd80.py`、`scripts/compare_mcd_draws.py`、`scripts/verify_mcd80.py`、
+  a40 `experiments/punet_mcd80_seeded/`。
+- **状态**：完成（80/80）。
+
 ## 待登记
 
 - 补跑 FD004 f4 s13 后登记为 E001 的补齐行，不改 E001 原行。
+
 
 ## 规范
 
