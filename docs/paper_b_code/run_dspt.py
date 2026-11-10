@@ -17,7 +17,7 @@ def set_seed(s):
 
 def rul_curve(n, max_rul=125.0):
     """True RUL at step t is n-t (cycles remaining), capped at max_rul."""
-    r = float(n) - np.arange(n, dtype=np.float64)
+    r = float(n - 1) - np.arange(n, dtype=np.float64)
     return np.clip(r, 0.0, max_rul)
 
 def windows_for(frame, values, labels, pop_ref, tau=2.0, max_rul=125.0, span=MAX_SPAN, hi_map=None):
@@ -50,15 +50,45 @@ def windows_for(frame, values, labels, pop_ref, tau=2.0, max_rul=125.0, span=MAX
     return (np.stack(xs), np.asarray(ys, np.float32), np.stack(ms),
             np.stack(bs), np.asarray(cs, np.float32), np.asarray(hs, np.float32))
 
-def evaluate(net, data, device, bs=512):
+def evaluate(net, data, device, bs=512, no_cycle=False, mode='dual'):
     net.eval(); x, y, mk, b, c = data[0], data[1], data[2], data[3], data[4]; preds = []
     with torch.no_grad():
         for i in range(0, len(x), bs):
+            cyc = None if no_cycle else torch.from_numpy(c[i:i+bs]).to(device)
             out = net(torch.from_numpy(x[i:i+bs]).to(device), mask=torch.from_numpy(mk[i:i+bs]).to(device),
-                      baseline=torch.from_numpy(b[i:i+bs]).to(device), cycle=torch.from_numpy(c[i:i+bs]).to(device))
-            preds.append(out['prediction'].reshape(-1).cpu().numpy())
+                      baseline=torch.from_numpy(b[i:i+bs]).to(device), cycle=cyc)
+            key = 'y_B' if mode == 'long' else ('y_A' if mode in ('short','repeat') else 'prediction')
+            preds.append(out[key].reshape(-1).cpu().numpy())
     p = np.concatenate(preds)
     return float(np.sqrt(np.mean((p - y)**2))), p
+
+
+def fit_hi(train_units, tr_frame, tr_scaled, seed=42):
+    """Health indicator fitted ONLY on the training engines of this fold.
+    Returns dict (unit, cycle) -> hi in [0,1]. No validation/test information used."""
+    from sklearn.cluster import KMeans
+    d = tr_frame[tr_frame.unit.isin(train_units)].sort_values(['unit','cycle']).reset_index(drop=True)
+    pos = d.index.to_numpy(np.int64)
+    X = np.asarray(tr_scaled[pos], dtype=np.float64)
+    ops = d[['op_1','op_2','op_3']].to_numpy(np.float64)
+    nreg = len(np.unique(ops, axis=0))
+    k = int(min(6, max(1, nreg)))
+    km = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(ops)
+    lab = km.labels_
+    Z = X.copy()
+    for c in range(k):
+        m = lab == c
+        if m.sum() < 2: continue
+        mu = Z[m].mean(0); sd = Z[m].std(0) + 1e-9
+        Z[m] = (Z[m] - mu) / sd
+    C = np.cov(Z.T)
+    w, V = np.linalg.eigh(C)
+    pc1 = Z @ V[:, -1]
+    cyc = d['cycle'].to_numpy(float)
+    if np.corrcoef(pc1, cyc)[0,1] > 0: pc1 = -pc1
+    lo, hi = np.percentile(pc1, 1), np.percentile(pc1, 99)
+    val = np.clip((pc1 - lo)/(hi - lo + 1e-9), 0.0, 1.0)
+    return {(int(u), int(c)): float(v) for u, c, v in zip(d['unit'].to_numpy(), cyc, val)}
 
 def main():
     ap = argparse.ArgumentParser()
@@ -114,10 +144,8 @@ def main():
         pop[k] = tr_s[sel].mean(axis=0) if sel.any() else tr_s.mean(axis=0)
     HI = None
     if getattr(a, 'hi_lambda', 0.0) > 0:
-        hip = ROOT/'data'/'HI'/f'hi_{a.subset}.csv'
-        hid = pd.read_csv(hip)
-        HI = hid.set_index(['unit','cycle'])['hi_raw'].to_dict()
-        print('HI loaded', len(HI), flush=True)
+        HI = fit_hi(train_units, tr, tr_s, a.split_seed)
+        print('HI fitted on %d TRAIN engines only: %d entries' % (len(train_units), len(HI)), flush=True)
     TR = windows_for(tr, tr_s, lt, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI); VA = windows_for(va, va_s, lv, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI)
     print('windows train %d val %d' % (len(TR[0]), len(VA[0])), flush=True)
     SW = None
@@ -181,19 +209,22 @@ def main():
                     else:
                         ema_state[_k].copy_(_v)
         sch.step()
-        vr, _ = evaluate(net, VA, dev)
+        vr, _ = evaluate(net, VA, dev, no_cycle=getattr(a, "no_cycle", False), mode=a.mode)
         if ep % 5 == 0 or ep == 1:
             print("ep%03d val=%.4f best=%.4f@%d" % (ep, vr, best, best_ep), flush=True)
-        if vr < best - 1e-4:
+        if getattr(a, "full_data", False):
+            best, best_ep = vr, ep
+            best_state = {k: t.detach().clone() for k, t in net.state_dict().items()}
+        elif vr < best - 1e-4:
             best, best_ep = vr, ep
             best_state = {k: t.detach().clone() for k, t in net.state_dict().items()}
         elif (not getattr(a, "full_data", False)) and ep - best_ep >= a.patience:
             break
     if best_state is not None: net.load_state_dict(best_state)
     _bs = {k: t.detach().clone() for k, t in net.state_dict().items()}
-    _vb = evaluate(net, VA, dev)[0]
+    _vb = evaluate(net, VA, dev, no_cycle=getattr(a, 'no_cycle', False), mode=a.mode)[0]
     net.load_state_dict(ema_state)
-    _ve = evaluate(net, VA, dev)[0]
+    _ve = evaluate(net, VA, dev, no_cycle=getattr(a, 'no_cycle', False), mode=a.mode)[0]
     if _ve < _vb:
         print("  using EMA weights (%.4f < %.4f)" % (_ve, _vb), flush=True)
     else:

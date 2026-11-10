@@ -87,8 +87,9 @@ class DSPT(nn.Module):
         # distance-from-end positional table
         dist = torch.arange(L - 1, -1, -1, device=x.device)          # 0 = newest
         tokens = tokens + self.temporal_pe[:, dist]
+        pad = ~mask.bool().unsqueeze(1).expand(B, N, L).reshape(B * N, L)
         for layer in self.layers:
-            tokens = layer(tokens)
+            tokens = layer(tokens, src_key_padding_mask=pad)
         tokens = tokens.reshape(B, N, L, self.d_model).permute(0, 2, 1, 3)
         st = tokens.reshape(B * L, N, self.d_model)
         st = self.sensor_attn(st)
