@@ -16,6 +16,10 @@
 | `stratified_cp_srf` | 2026 | IEEE Xplore [11708000](https://ieeexplore.ieee.org/document/11708000) | 分层保形 + 传感器残差融合（SR-Conformal） | 分层补救路线；与我们已关闭的 Mondrian 方向重叠 | ⚠ 仅摘要 |
 | `diao2026sensors` | 2026 | Sensors 26(7):2249，DOI [10.3390/s26072249](https://doi.org/10.3390/s26072249) | LSTM 分位回归 + 保形校准，含跨工况实验 | 方法族相同，评价口径不同 | ⚠ 仅摘要 |
 | `onilede2026techrxiv` | 2026 | TechRxiv，DOI [10.36227/techrxiv.177220374.46388084/v1](https://doi.org/10.36227/techrxiv.177220374.46388084/v1) | 涡扇 RUL 的分布无关 UQ + CQR | 预印本，未同行评审 | ⚠ 仅摘要 |
+| `liu2025stgatn` | 2025 | IEEE TIM 74，DOI [10.1109/TIM.2025.3550613](https://doi.org/10.1109/TIM.2025.3550613) | 气流图 + 机械结构图两条物理先验图，张量外积跨图融合，ConvLSTM 时间建模 | **点预测**，无区间/覆盖；真实数据实验是参数估计不是 RUL 终点预测 | ✅ 元数据核实（Scopus）；RMSE 表格为图形层，未引数值 |
+| `jin2025hdagnn` | 2025 | IEEE TIM 74:3538014，DOI [10.1109/TIM.2025.3569885](https://doi.org/10.1109/TIM.2025.3569885) | MIC/MAS 异构图 + GRU-Attention 动态关系 + GCN + Transformer | **点预测**，无区间/覆盖；动态图权重未证明对应退化而非工况 | ✅ 元数据核实（NSTL/eurekamag）；RMSE 表格为图形层，未引数值 |
+| `kim2025stkdformer` | 2025 | IEEE TIM，DOI [10.1109/TIM.2025.3625335](https://doi.org/10.1109/TIM.2025.3625335) | 时空 Koopman 自编码器（z_{t+1}≈Kz_t）+ 双分支 Transformer + 动态损失权重 | **点预测**，无区间/覆盖；隐空间无直接物理含义 | ✅ 元数据核实；RMSE 四数在 PDF 文本层可追溯 |
+| `qu2026sfisthgat` | 2026 | IEEE TIM（Xplore 11732126），DOI ⚠ 待补 | 工况–传感器协同交互（非线性基 + 哈希 + FFT 域）+ 分层时空图（窗口内/窗口间） | **点预测**，无区间/覆盖；可解释性权重不等于因果 | ⚠ 缺 DOI；RMSE 四数在 PDF 文本层可追溯 |
 
 ## 最近邻差异矩阵（本轮已核实部分）
 

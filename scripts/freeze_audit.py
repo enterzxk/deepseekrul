@@ -221,22 +221,31 @@ def main(argv=None) -> int:
           f"{np.corrcoef(rmse, emin)[0, 1]:+.3f}")
 
     # ---- G. FEMTO ----------------------------------------------------------
+    # 2026-11-10 correction: the previous version passed only split=="test" rows
+    # into pts_cqr/pts_scaled, which derive q_hat from the rows they are given --
+    # i.e. it calibrated on the same rows it scored (self-calibration leak), and
+    # the two assertions locked in the leaked numbers (5/6, -12.2%).
+    # Now: calibrate on split=="cal", score on split=="test", alpha fixed at 0.1
+    # (D005), and report how many bearings can actually reach 0.90 coverage.
     sys.path.insert(0, str(root / "scripts"))
-    from evaluate_femto import at as f_at, pts_cqr as f_pts_cqr, pts_scaled as f_pts_scaled  # noqa: E402
+    from femto_check import at as f_at, frontier_cqr as f_cqr, frontier_const as f_const  # noqa: E402
 
-    frel = []
+    frel, f_ok = [], 0
     for d0 in sorted(femto.glob("Bearing*")):
         q, p = d0 / "preds_q.csv", d0 / "preds_p.csv"
         if not (q.exists() and p.exists()):
             continue
         qq, pp = pd.read_csv(q), pd.read_csv(p)
-        tq, tp = qq.split == "test", pp.split == "test"
-        c = f_at(f_pts_cqr(qq.y.values[tq], qq.lo.values[tq], qq.hi.values[tq]))
-        k = f_at(f_pts_scaled(pp.y.values[tp], pp.mu.values[tp], np.ones(tp.sum())))
+        cq, tq = (qq.split == "cal").to_numpy(), (qq.split == "test").to_numpy()
+        cp, tp = (pp.split == "cal").to_numpy(), (pp.split == "test").to_numpy()
+        c, ok1 = f_at(f_cqr(qq.y.values, qq.lo.values, qq.hi.values, cq, tq, fixed_alpha=True))
+        k, ok2 = f_at(f_const(pp.y.values, pp.mu.values, cp, tp, fixed_alpha=True))
         frel.append((c - k) / k * 100)
-    check("G1 FEMTO 5/6 better", int(sum(1 for x in frel if x < 0)) == 5,
-          f"{int(sum(1 for x in frel if x<0))}/{len(frel)}")
-    check("G2 FEMTO mean -12.2%", abs(np.mean(frel) + 12.2) < 0.05, f"{np.mean(frel):+.2f}%")
+        f_ok += int(ok1 and ok2)
+    check("G1 FEMTO 6/6 better (held-out calibration)", int(sum(1 for x in frel if x < 0)) == 6,
+          f"{int(sum(1 for x in frel if x < 0))}/{len(frel)}")
+    check("G2 FEMTO mean -16.3%", abs(np.mean(frel) + 16.3) < 0.2,
+          f"{np.mean(frel):+.2f}% | 0.90 reachable on {f_ok}/6 bearings")
 
     # ---- H. split identity: analysis-time split reproduces run-time q_hat ---
     # run_e2e_cqr.py calibrates with engine_calib_split(seed=args.seed); the

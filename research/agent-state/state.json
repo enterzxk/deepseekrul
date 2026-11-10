@@ -49,12 +49,12 @@
     }
   ],
   "next_actions": [
-    "精读近年设备级/组级不确定度与风险控制文献，形成 3 个可证伪创新候选",
-    "用 Codex（高推理）对候选做独立新颖性与可行性裁决",
-    "选定后设计方法（数学规格 + 失效条件）并实现",
-    "在 a40 上跑 C-MAPSS 四子集全量训练与强基线对比",
-    "消融 + 跨数据集 + 噪声鲁棒性",
-    "Codex 审查后成稿（TIM LaTeX）"
+    "10:00 前已交付 docs/VERDICT_20261110.md（饱和地图 + 两个审计更正 + 三个带成本选项）",
+    "C12 A4 已独立复算一致：均值 +0.246%、中位 +0.930%、11/20 变差、FD004 −3.02%",
+    "C13 口径已澄清：46.82% 是相对改善的 seed 方差份额；绝对 Winkler 仅 3.92%（变异主要来自子集）",
+    "台账 C1/C3/C4/C5/C6/C7/C8/C12/C13 已全部独立复算通过；C11 已更正（泄漏→6/6、−16.30%、2/6 可达 0.90）",
+    "待用户 10:00 在 A（测量协议）/B（3–6 个月方法程序）/C（改期刊或改贡献类型）中选一；未选前不启动训练",
+    "若选 B：第一步是找新问题而不是新方法；先过无 GPU 新颖性门，再用 L2 批准的 20 GPU-h 先导"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -236,15 +236,45 @@
       "scientific_risks": [],
       "falsification_criteria": [],
       "reviewer": "none"
+    },
+    {
+      "at": "2026-11-09T15:39:33.031Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "Q1=A3（C4 仅批准一次限时 2 小时、0 GPU 的定向查新与等价性审查，不批准实现或立项）；Q2=B3（若 C4 失败则承认当前资产不足，保留 TIM 目标，重新设计前瞻方法实验）；Q3=没有（现有资产不足以支撑 TIM 级正向方法贡献）",
+      "rationale": "",
+      "evidence": [
+        "docs/NOVELTY_CHECK_C1.md：C1 的理论（arXiv 2604.01502；Phil. Trans. R. Soc. A 384(2327):20250068）与应用（Shi 2026, EPPM 16(6):2026-0090）均已被占",
+        "Codex 推导：C4 对固定嵌套区间族可归约为引擎级 PAC 容忍界，λ=S_(k) 使 P{Bin(n,1−β)≤k−1}≥1−δ",
+        "Codex 样本量结论：β=0.10,δ=0.05 需 ≥29 台独立校准引擎；β=0.05,δ=0.05 需 59 台；冻结协议仅 6/16/6/15 台，重复 seed 不增加独立引擎数",
+        "docs/BASELINE_FREEZE.md §3.4 与 src/punet/conformal.py::engine_calib_split（整机分配）"
+      ],
+      "rejected_options": [],
+      "scientific_risks": [
+        "把经验轨迹覆盖、潜在单机覆盖、总体坏引擎比例与有限未来机队坏引擎比例混为同一保证",
+        "以全标签轨迹构造经验覆盖分数后未论证外推到在线截断轨迹",
+        "通过无限加宽或输出完整标签范围满足覆盖目标而没有可用区间效率",
+        "把重叠折、重复 seed 或重复使用的发动机视为独立证据",
+        "在同一校准集上学习分数、选择区间族并套用固定分数的容忍界，造成保证失效",
+        "增加 GPU 预算只能购买验证机会，不能保证产生创新"
+      ],
+      "falsification_criteria": [
+        "C4 的保证与算法可由通用引擎级分数容忍界直接推出且无额外机制与效率优势：关闭原始 C4",
+        "所需保证只能针对经验轨迹覆盖成立却被宣称为潜在单机条件覆盖：理论门失败",
+        "冻结划分下无法获得有效有限阈值且没有新的合法构造；不得合并重复 seed 或擅改划分补足样本",
+        "任何新方法收益在同骨干、同划分、同校准预算的强近邻或简单替代机制下消失：不立 TIM 方法贡献",
+        "通过测试标签调参、删除失败子集或事后改变主指标才能通过判定门：该验证无效"
+      ],
+      "reviewer": "codex"
     }
   ],
   "experiment_queue": [],
   "running_jobs": [],
   "last_git_commit": null,
-  "last_successful_checkpoint": "checkpoints\\2026-11-09T04-05-19-461Z-S9.json",
+  "last_successful_checkpoint": "checkpoints\\2026-11-09T15-47-51-676Z-S9.json",
   "blocked_reason": null,
   "resume_instructions": "权威源是 docs/ 不是本文件。恢复顺序：读 AGENTS.md → docs/research_state.md → docs/decision_log.md → docs/results_summary.md → docs/manuscripts/SUBMISSION_CHECKLIST.md，核对产物确实在磁盘上，再继续。research/agent-state/state.json 只提供任务队列与幂等账本，不复制 docs 里的数字（避免双份真相）。",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-09T05:55:28.288Z",
-  "revision": 16
+  "updated_at": "2026-11-09T15:47:51.693Z",
+  "revision": 21
 }
