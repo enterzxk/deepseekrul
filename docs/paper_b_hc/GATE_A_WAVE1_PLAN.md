@@ -7,12 +7,13 @@
 
 ## 1. 变体集
 
-**主表（post-norm 家族）**：`{A0, A1, A2, A3a, A4, A5}` —— 编码形式比较以 **A3a** 为主臂
-（Fourier，post-norm），A2/A4/A5 为同注入点的 raw/log/spline，A1 为无 cycle 基线，A0 为年龄参考线。
+**第一波主表 24 格**：`{A0, A1, A2, A3p, A4, A5}` × 4 子集（已在跑）。
+其中 **A3p 是 frozen 参考臂**（pre-norm，`DSPT_HC_Frozen`），用于 V0-NoHI 引用与 G2′ 注入点对照，
+**不与 A2/A4/A5 比较编码形式**。
 
-**A3p 是 frozen 参考臂**（pre-norm，`DSPT_HC_Frozen`）：跑 FD002/003/004 三格，
-FD001 已有 `A3p-FD001-s101-W1`（= R0 自检格，10.895096839289387）。
-A3p 只用于 V0-NoHI 引用与注入点对照，**单独一张表**，不与 A2/A4/A5 比编码形式。
+**补充 3 格**：`A3a × {FD002, FD003, FD004}`（FD001 已有 `0030Z` = 11.3167）。
+A3a 是 post-norm 的 Fourier 臂，补上后 post-norm 家族 `{A2, A3a, A4, A5}` 才完整，
+G2（编码形式）才可判。合计 24 + 3 + 1(0030Z) = 28 格。
 
 > 硬约束（2026-11-12 主控）：**任何把 A3p 与 A2/A4/A5 放在同一列比较编码形式的表，一律作废**。
 > 原因：A3p 是 pre-norm，其余是 post-norm，Δ 里混着「编码形式」与「注入位置」两个因子。
@@ -72,10 +73,10 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 10 | A2 | FD002 | 101 | wave1_init_A2 | HC-C-A2-FD002-s101-W1 |
 | 11 | A2 | FD003 | 101 | wave1_init_A2 | HC-C-A2-FD003-s101-W1 |
 | 12 | A2 | FD004 | 101 | wave1_init_A2 | HC-C-A2-FD004-s101-W1 |
-| 13 | A3a | FD001 | 101 | init_v9_A3p | HC-C-A3a-FD001-s101-W1 |
-| 14 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
-| 15 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
-| 16 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
+| 13 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1（R0，已完成） |
+| 14 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
+| 15 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
+| 16 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
 | 17 | A4 | FD001 | 101 | wave1_init_A4 | HC-C-A4-FD001-s101-W1 |
 | 18 | A4 | FD002 | 101 | wave1_init_A4 | HC-C-A4-FD002-s101-W1 |
 | 19 | A4 | FD003 | 101 | wave1_init_A4 | HC-C-A4-FD003-s101-W1 |
@@ -85,18 +86,17 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 23 | A5 | FD003 | 101 | wave1_init_A5 | HC-C-A5-FD003-s101-W1 |
 | 24 | A5 | FD004 | 101 | wave1_init_A5 | HC-C-A5-FD004-s101-W1 |
 
-**A3p frozen 参考臂（单独一张表，不进主表）**
+**A3a 补充 3 格（post-norm Fourier 臂；FD001 用 0030Z）**
 
 | # | variant | subset | seed | init | run_id |
 |---|---|---|---|---|---|
-| 25 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1（R0，已完成） |
-| 26 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
-| 27 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
-| 28 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
+| 25 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
+| 26 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
+| 27 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
 
-> 第 13–16 格是 2026-11-12 主控裁决后的 **post-norm Fourier 主臂**（A3a）；
-> 原 A3p×4 改列到 25–28，作 frozen 参考臂。A3a 的 init 用 A3p 那份
+> 第 25–27 格在主表落盘后补跑（主控 2026-11-12 裁决）；A3a 的 init 用 A3p 那份
 > （`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap，与 `0030Z` 一致。
+> FD001 的 A3a 值取 `0030Z`（11.3167，preliminary），不重复跑。
 
 ## 4. 并行方案
 
