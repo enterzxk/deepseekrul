@@ -4,7 +4,9 @@ Protocol (frozen):
   split by engine id, 80/20, split_seed=7, fold=0
   model seeds 101/202/303
   RUL cap 125, endpoint RUL=0 at the last training cycle
-  early stopping on engine-level truncated validation RMSE (cuts 0.5/0.75/0.9)
+  early stopping on engine-level truncated validation RMSE
+    (cuts 0.4/0.55/0.7/0.85/0.95, from paper_b/configs/protocol.json;
+     the engine is the statistical unit -- see audit R2)
   no EMA selection (single, predetermined checkpoint rule)
 """
 from __future__ import annotations
@@ -18,7 +20,7 @@ import numpy as np
 import torch
 
 from .data import prepare_train
-from .metrics import rmse, summarize
+from .metrics import per_engine_rmse, rmse, summarize
 from ..models import build_dspt, build_vanilla
 
 DEFAULTS = dict(
@@ -98,9 +100,19 @@ def train_one(cfg, device='cuda:0', out_root=None):
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=cfg['epochs'], eta_min=1e-5)
     g = torch.Generator(device=dev).manual_seed(cfg['seed'])
 
-    def val_rmse():
+    def val_metrics():
+        """Return (pooled, engine_mean, predictions).
+
+        Selection uses ``engine_mean``: the task book makes the validation
+        engine the statistical unit. Every validation engine contributes
+        exactly five windows, so the pooled value already weights engines
+        equally (1/E each); the difference is the aggregation order --
+        ``sqrt(mean MSE_e) >= mean sqrt(MSE_e)`` by Jensen -- and squaring
+        amplifies the tail, so a few hard engines widen the gap. ``pooled`` is
+        kept for comparison with historical numbers only.
+        """
         p = predict(net, va, dev, cfg['mode'])
-        return rmse(p, va['y']), p
+        return rmse(p, va['y']), per_engine_rmse(va['unit'], va['y'], p), p
 
     best, best_state, best_ep, history = float('inf'), None, -1, []
     for ep in range(1, cfg['epochs'] + 1):
@@ -135,11 +147,12 @@ def train_one(cfg, device='cuda:0', out_root=None):
             opt.step()
             tot += float(loss.detach()); nb += 1
         sch.step()
-        vr, _ = val_rmse()
-        history.append(dict(epoch=ep, train_loss=tot / max(nb, 1), val_rmse=vr))
+        pooled, vr, _ = val_metrics()
+        history.append(dict(epoch=ep, train_loss=tot / max(nb, 1), val_rmse=vr,
+                            val_pooled_rmse=pooled))
         if ep % 5 == 0 or ep == 1:
-            print('  ep%03d loss=%.4f val=%.4f best=%.4f@%d' % (ep, tot / max(nb, 1), vr, best, best_ep),
-                  flush=True)
+            print('  ep%03d loss=%.4f val=%.4f pooled=%.4f best=%.4f@%d'
+                  % (ep, tot / max(nb, 1), vr, pooled, best, best_ep), flush=True)
         if vr < best - 1e-4:
             best, best_ep = vr, ep
             best_state = {k: v.detach().clone() for k, v in net.state_dict().items()}
@@ -149,8 +162,13 @@ def train_one(cfg, device='cuda:0', out_root=None):
         net.load_state_dict(best_state)
     pv = predict(net, va, dev, cfg['mode'])
     vr = rmse(pv, va['y'])
+    em = per_engine_rmse(va['unit'], va['y'], pv)
     m = summarize(pv, va['y'])
-    m.update(val_engine_rmse=vr, best_val_rmse=best, best_ep=best_ep,
+    # Main metric = engine-level mean (audit R2). ``val_engine_rmse`` is kept as
+    # a legacy alias of the POOLED value because that is what the field always
+    # contained; read ``val_engine_mean_rmse`` for the engine-level number.
+    m.update(val_engine_rmse=vr, val_pooled_rmse=vr, val_engine_mean_rmse=em,
+             best_val_rmse=best, best_ep=best_ep,
              params=int(nparam), epochs_run=len(history), elapsed_s=round(time.time() - t0, 1))
     per_cut = {}
     for c in np.unique(va['cut']):

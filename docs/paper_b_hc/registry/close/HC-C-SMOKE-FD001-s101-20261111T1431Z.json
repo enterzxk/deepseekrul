@@ -1,0 +1,11 @@
+{
+ "run_id": "HC-C-SMOKE-FD001-s101-20261111T1431Z",
+ "status": "failed",
+ "closed_utc": "2026-11-11T14:36:00Z",
+ "epochs_run": 0,
+ "best_epoch": null,
+ "metrics": {},
+ "main_metric": "val_engine_mean_rmse",
+ "artifacts": ["launch.json", "config.json", "train.log"],
+ "notes": "FAILED before the first optimiser step: RuntimeError in model_hc.encode -- the cycle term was added as (B,D) to a (B,L,D) hidden state (70 vs 512). No checkpoint, no predictions, no metrics. Superseded by HC-C-SMOKE-FD001-s101-20261111T1436Z. Not evidence."
+}

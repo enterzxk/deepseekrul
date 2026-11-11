@@ -278,9 +278,18 @@ def _prepare_split(subset, data_dir, split_seed, fold, val_frac, n_cond):
 
 
 def prepare_train(subset, data_dir, span=70, split_seed=7, fold=0, val_frac=0.2,
-                  rul_cap=125.0, n_cond=6, cuts=(0.5, 0.75, 0.9), legacy_rul=False,
+                  rul_cap=125.0, n_cond=6, cuts=None, legacy_rul=False,
                   global_hi=False):
-    """Build train + engine-level validation tensors. Never opens test files."""
+    """Build train + engine-level validation tensors. Never opens test files.
+
+    ``cuts`` is required: the frozen protocol's validation cut points live in
+    ``paper_b/configs/protocol.json`` and silently defaulting to a different
+    tuple produced a validation set that was not comparable to the baseline
+    (audit R1). Callers must pass ``tuple(PROTOCOL['val_cuts'])`` explicitly.
+    """
+    if cuts is None:
+        raise ValueError('cuts must be explicit; see paper_b/configs/protocol.json '
+                         "(val_cuts = [0.4, 0.55, 0.7, 0.85, 0.95])")
     key = ('train', str(data_dir), subset, span, split_seed, fold, val_frac, rul_cap,
            n_cond, tuple(cuts), legacy_rul, global_hi)
     if key in _CACHE:

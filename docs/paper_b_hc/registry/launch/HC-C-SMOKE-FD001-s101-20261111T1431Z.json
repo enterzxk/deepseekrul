@@ -1,0 +1,30 @@
+{
+ "run_id": "HC-C-SMOKE-FD001-s101-20261111T1431Z",
+ "stage": "C",
+ "variant": "SMOKE",
+ "subset": "FD001",
+ "seed": 101,
+ "span": 70,
+ "hypothesis": "Pipeline check only: the Stage C run path (data -> model -> train -> artifacts) executes end to end on a40 with the frozen protocol. Not evidence.",
+ "gate": "A",
+ "host": "a40",
+ "code_md5": {
+  "paper_b/hc/config_hc.py": "64bf6d5543f7fae6a8cd05cf254b2bcd",
+  "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
+  "paper_b/hc/model_hc.py": "99888134af4d6be807e5d8f978161ef0",
+  "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
+  "paper_b/hc/train_hc.py": "1e1580b189b65d9892e53e747333694e",
+  "paper_b/hc/run_hc.py": "9cb09d6010bebca17c37d5507b4aa5be",
+  "paper_b/training/data.py": "c2ee079f6e60a8b0d0eb608676ff871a",
+  "paper_b/training/train.py": "ef14ee21cf8dccf3b9de2f089e885cfc",
+  "paper_b/training/metrics.py": "a799d43f1c35649f22882f95e26790d1",
+  "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
+  "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114"
+ },
+ "git_sha": "WORKTREE",
+ "data_split": {"split_seed": 7, "fold": 0, "val_frac": 0.2,
+                "val_engine_ids_hash": "f81d7f2496c494ca"},
+ "budget": {"epochs": 1, "patience": 1, "est_gpu_min": 2},
+ "registry_note": "not evidence",
+ "launched_utc": "2026-11-11T14:31:00Z"
+}
