@@ -1021,6 +1021,35 @@ A3a-FD002 的 best 比 A1 **好 10.1%**，只比 A2 差 3.90%——**FD002 上 F
 
 **这条同时提醒**：§12.18 的尺度测量是在**初始化**时做的，它能说明「起点小」，不能说明「训练中不会被用起来」。**初始尺度小 ≠ 通道永久无效。**
 
+## 12.19 `A2 vs A3a` 不是单变量比较：`cycle_source` 同时从 `raw` 变成 `clipped`
+
+主控要求「在写进论文计划之前，必须由代码级确认 A4、A5 各自改的是哪一项，不要凭键名推」。按此执行——直接跑 `hc_config` 做字段级 diff：
+
+```
+A2 vs A4   只有 cycle_mode: 'raw' -> 'log'               ← 干净
+A2 vs A5   只有 cycle_mode: 'raw' -> 'spline'            ← 干净
+A2 vs A3a  cycle_mode:   'raw' -> 'fourier'
+           cycle_source: 'raw' -> 'clipped'              ← 第二个变量
+A2 vs A1   cycle_mode: 'raw' -> 'none'
+           injection:  'post_norm' -> 'none'
+```
+
+**`A3a` 把 `cycle_source` 从 `raw` 换成了 `clipped`**（label：`sensor + Fourier cycle (clipped at 250)`）。因此：
+
+- **`A2 vs A4`、`A2 vs A5` 是真·单变量**，可以归因；
+- **`A2 vs A3a` 混着「编码形式（raw 标量 vs Fourier 特征）」与「cycle 是否在 250 处截断」两个变量**，`−6.84%` **不能归因给 Fourier 编码**。
+
+`A3p` 的 `cycle_source` 同为 `clipped`，所以**所有 Fourier 臂都用截断 cycle，线性/样条臂用原始 cycle**——系统性差异，不是个别配置。
+
+### 影响
+
+1. **「`A2 vs A3a` 是唯一干净的编码形式比较」这个前提被推翻**——它今晚已被主控、tmh 与本报告各引用过一次。
+2. 编码形式上真正干净的比较只剩 **`A2 vs A4`（log 变换）** 与 **`A2 vs A5`（样条基）**。
+3. 要判 Fourier，需补一个 `cycle_source='raw'` 的 Fourier 臂，或补一个 `clipped` 的线性臂。
+4. 标 **PENDING-L2**：是否补这一臂属主张取舍。
+
+**教训**：这次是「按代码确认、不凭键名推」直接抓出来的。`A2/A3a` 的差异在 manifest 的键集合上**看不出来**（两者都有 `cycle_enc.proj`，只是形状不同），只有 diff `hc_config` 的字段才暴露。
+
 ### 12.18.1 附带更正：我那个「3.5σ」算错了（主控指正）
 
 我写过「G2 阈值 0.106 约为噪声 0.030 的 3.5 倍」。**错在用 `E|Δ|` 当 σ。** 正确换算：
