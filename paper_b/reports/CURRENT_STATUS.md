@@ -34,6 +34,31 @@ below come from `paper_b/results/fd001_final_table.csv` and the per-run
 - DSPT beats the feature-matched Vanilla by 16% on test, so the architecture
   adds value beyond the three-channel input and cycle encoding.
 
+## 2b. Single-seed scope (user correction, 2026-11-11)
+
+The requested scope is **one dataset and one random seed**. The completed runs
+already contain seed 101, so no new training is needed. Seed 101 is the
+primary seed; seeds 202/303 are retained only as an already-computed stability
+check and are not part of the headline claim.
+
+| model | val RMSE (s101) | test RMSE (s101) |
+|---|---:|---:|
+| DSPT base | 12.166 | 11.547 |
+| DSPT MS+SA (final) | 11.599 | **10.822** |
+| DSPT FULL | 11.458 | not opened |
+| Vanilla (raw) | 13.602 | 16.606 |
+| Vanilla (features+cycle) | 13.121 | 12.322 |
+
+Single-seed reading: MS+SA is -4.7% on validation and -6.3% on test relative
+to base; DSPT MS+SA is 12.1% better than the feature-matched Vanilla.
+
+**Why the final model stays MS+SA even though FULL has the lower seed-101
+validation number (11.458 vs 11.599):** the 0.14 gap is within seed noise, and
+the model was fixed by the pre-registered three-seed rule before the test was
+opened. Re-selecting FULL on one seed after seeing the MSSA test number would
+be post-hoc selection. If a strict one-seed protocol is required, the model
+must be fixed by design (MS+SA) before looking at the seed.
+
 ## 3. Historical evidence status
 
 | item | status |
