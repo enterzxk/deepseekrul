@@ -1,0 +1,128 @@
+{
+ "frozen": true,
+ "scope": "factorial-seed202-303",
+ "created": "2026-11-11",
+ "note": "Seed-robustness check for the selected cell (single-scale conv + attention + HI) against the factorial base and FULL. Selection rule unchanged (validation only); test is descriptive.",
+ "runs": [
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD002",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD002",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD003",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD003",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD004",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_mean_hi0",
+   "subset": "FD004",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD002",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD002",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD003",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD003",
+   "seed": 303
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD004",
+   "seed": 202
+  },
+  {
+   "tag": "F_single_proj_basic_hi1",
+   "subset": "FD004",
+   "seed": 303
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD002",
+   "seed": 202
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD002",
+   "seed": 303
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD003",
+   "seed": 202
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD003",
+   "seed": 303
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD004",
+   "seed": 202
+  },
+  {
+   "tag": "F_full_basic_hi1",
+   "subset": "FD004",
+   "seed": 303
+  }
+ ]
+}
