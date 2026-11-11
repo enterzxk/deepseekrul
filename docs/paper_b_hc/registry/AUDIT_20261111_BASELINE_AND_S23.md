@@ -415,3 +415,60 @@ a40 的 `registry/code_lock.json` md5 = `c04c9586…`，与本地一致。
 在此之前，同格重复只能靠人工比对 `ckpt/best.pt` 与 `preds.csv` 的 sha256 发现。
 此项进 v10 backlog，不动 v9。
 
+
+---
+
+## H. 台账冻结记录（2026-11-12 00:5x，主控令）
+
+### H.1 冻结状态
+
+| 项 | 值 |
+|---|---|
+| 行数 | **50** |
+| 列数 | **38**（v1 起 32 列 → 33 `val_metric_kind`/`legacy_metric`/`baseline_version`/`retired_version` → 37 `determinism_only` → 38 `in_gate_a_table`） |
+| `check_runs.py` | **rows=50 flags=0** |
+| git | 干净；台账提交链 `8436878` → `8798b87` → `b813154` |
+| 冻结后动作 | 不再追加登记，直到 W1 格落盘并按预登记清单准入 |
+
+### H.2 Gate A 准入口径（主控 2026-11-12 定）
+
+**准入 = `run_id` 在 `GATE_A_WAVE1_PLAN.md` §3 预登记清单里**，不看 `gate` 标签。
+`gate` 字段是 launch 时人填的，会填错；清单是发车前写死的。
+
+因此台账新增 `in_gate_a_table` 列，当前 **50 行全为 false**——W1 格尚未登记，此刻没有任何 run 是 Gate A 证据。
+登记时按预登记 `run_id` 逐格比对后置 true，**不用 `init_from` 是否为空做条件**
+（W1 的格除 A0 外全部带 `init_from`，骨干共享是刻意的公平性设计）。
+
+`gate` 字段保持原值不动（`0030Z` 两条已按裁决置 `R`），因为它已不承担准入语义。
+
+### H.3 检查器改动披露（主控要求留痕）
+
+`check_runs.py` 初次运行报 **34 flag**，逐条核完：**31 条是检查器自身的规则缺陷，3 条是真数据问题**。
+
+**31 条假阳性（改规则，不改数据）**
+
+1. `R-a` 的 `LEGAL` 枚举缺 2026-11-12 新引入的状态对：
+   `superseded/n-a`、`unclosed/n-a`、`running/n-a`、`unclosed|running|ok + determinism_only`、`ok/duplicate`、`failed/fail`。
+   主控新定的去重与确定性口径一写进台账，就被判成"不一致"。
+2. `R-c` 把两类合法行误判为 legacy 口径：
+   - 24 条 Gate B 行**本来就** `legacy_metric=true`，已被下游排除，再报一次没有信息量；
+   - a40 上的 hc run `git_sha=WORKTREE` 是**设计如此**（a40 无 git），版本绑定在 `baseline_version` + 15-blob `code_md5`，不在 commit sha 上。
+
+原文件保留为 `tmp/audit_hc/check_runs.py.orig`。**没有为了过检查修改任何一行台账数据**。
+
+**3 条真数据问题（改数据）**
+
+| run | 原值 | 改为 | 依据 |
+|---|---|---|---|
+| `A3a-0030Z` / `A3p-0030Z` | `gate=A` | `gate=R` | 不在预登记清单内，是注入点对照，非 Gate A 证据 |
+| `A3a-1640Z` | `retired_version=true` | `false` | 它是 v9 的**成功** run（11.3167），`retired_version` 只该给版本号复用的 v6/v7 |
+| `A3a-R2` / `A3p-R2` | `running` | `running`→aborted 说明 | 跑到 ep025/ep030 被终止、无 close；`determinism_only`，不进任何表 |
+
+### H.4 并发写入的遗留风险
+
+冻结前 `runs.csv` 至少被两个写入方交替改写：我置的 `determinism_only` / `duplicate` 判决曾被回写为 `pass` / `n-a`，
+`gate=R` 也曾被改回 `A`。**当前状态已回读确认稳定**（改后 4 秒与再读一致），且已入库。
+
+若后续再出现"读一次一个样"，说明仍有第二个写入方在跑；届时以**最近一次 commit 的 blob** 为准
+（`git cat-file blob HEAD:docs/paper_b_hc/registry/runs.csv`），不看工作树。
+
