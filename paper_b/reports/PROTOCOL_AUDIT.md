@@ -27,7 +27,7 @@ data split, model selection and test evaluation are one auditable pipeline.
 | P1-1 | causal EMA initialised at `x[:,0]` | for a left-padded window `x[:,0]=0`, so the first valid EMA is halved | moderate for short test/validation windows | initialise at the first valid frame |
 | P1-2 | early stopping on window-level validation RMSE | `evaluate(net, VA)` over **all** windows of the 20% validation engines | high: optimistically biased, dominated by long engines | engine-level truncated validation, 5 cuts (0.40/0.55/0.70/0.85/0.95) |
 | P1-3 | OOF truncation points sampled from the official test RUL distribution | `RESULTS_SUMMARY.md` §0 states this explicitly | fatal for OOF | OOF is INVALID, not used |
-| P1-4 | test evaluator cannot load the checkpoints it is said to evaluate | `eval_dspt.py` builds `max_span=100`; `ABL_FD001_base/FD001/dspt_s101.pt` has `temporal_pe [1,70,64]`; load raises `RuntimeError: size mismatch` | fatal for provenance | unified model/data/evaluator; every test number regenerated |
+| P1-4 | test evaluator cannot load the checkpoints it is said to evaluate | `eval_dspt.py` builds `max_span=100`; `ABL_FD001_base/FD001/dspt_s101.pt` has `temporal_pe [1,70,64]`; load raises `RuntimeError: size mismatch` | high | the archived predictions **are reproducible** with a reconstructed evaluator (corr 0.9935-0.9995); the committed evaluator is wrong, not the table |
 | P1-5 | official test observed many times | `RESULTS_SUMMARY.md` §4; `VANILLA_ABLATION_REPORT.md` §10 | high | freeze manifest; test opened once per frozen run |
 | P1-6 | reported parameter counts included dead modules | old base 115,716 params although SA/HI were off; new conditional base 77,058 | reporting | modules built conditionally |
 | P1-7 | commit message and content disagree | `git show --stat 95e729e` | high | archived; server snapshot saved in `archive/legacy_2026_11/` |
@@ -53,6 +53,25 @@ $ ls -l experiments/ABLTEST/FD001_base.csv experiments/ABL_FD001_base/FD001/dspt
 -rw-rw-r-- ... 12:20 ... FD001_base.csv
 ```
 
+### Reconstruction of the archived test predictions
+
+Loading the archived checkpoints into the current model (remapping
+`multi_conv.{0,1,2}` to `conv3/5/7` and `mscale_proj` to `ms_proj`) and
+evaluating with the frozen test builder gives:
+
+| config | archived RMSE | recomputed RMSE | corr | max abs diff |
+|---|---:|---:|---:|---:|
+| base | 10.604 | 10.919 | 0.9995 | 6.76 |
+| FULL | 12.698 | 12.328 | 0.9935 | 20.17 |
+| SA | 11.462 | 11.685 | 0.9994 | 6.19 |
+| HI | 11.190 | 11.266 | 0.9995 | 5.95 |
+
+So the archived table is **arithmetically correct and checkpoint-consistent**.
+The differences (base +3.0%, FULL -2.9%) are the P0 fixes (MS padding, EMA
+init, HI masking). The table is not fabricated; it is **protocol-confounded**
+(single seed, test reuse, window-level selection), and the committed evaluator
+is broken.
+
 ## 3. Frozen protocol used by `paper_b/`
 
 | item | value |
@@ -67,6 +86,37 @@ $ ls -l experiments/ABLTEST/FD001_base.csv experiments/ABL_FD001_base/FD001/dspt
 | loss | MSE + 0.5 x asymmetric MSE (late 1.8x); DSPT dual-span auxiliary 0.25 x (e_A^2 + e_B^2) |
 | preprocessing | operating-condition KMeans (6) + per-cluster z-score, fitted on training engines only |
 | HI | PCA-1 health index, fitted on training engines only, decreasing with life |
+
+## 3a. Validation vs test RUL distribution (known limitation)
+
+The validation cut rule is test-blind (fixed fractions of each validation
+engine's life). It does not reproduce the official test RUL mix exactly:
+
+| subset | test RUL mean | test q25/50/75 | validation RUL mean | validation q25/50/75 |
+|---|---:|---|---:|---|
+| FD001 | 74.5 | 33/86/112 | 58.9 | 25/58/90 |
+| FD002 | 73.7 | 35/80/121 | 61.2 | 27/60/94 |
+| FD003 | 73.8 | 43/78/115 | 63.1 | 26/60/97 |
+| FD004 | 77.9 | 36/88/125 | 69.5 | 28/68/114 |
+
+The validation mix is shifted toward lower RUL (later truncation). This is a
+limitation of a protocol that never reads the test RUL file; it is reported,
+not hidden. A sensitivity run with an earlier cut (30% of life) is planned for
+the final model to check that the ranking is not driven by the cut set.
+
+## 3b. Cross-machine reproducibility
+
+The same config/seed/split trained on two machines does not reproduce exactly:
+
+| machine | torch | GPU | FD001 A8_full s101 val RMSE | best epoch |
+|---|---|---|---:|---:|
+| lab3090 | 2.6.0+cu118 | RTX 3090 | 11.2928 | 25 |
+| a40 | 2.5.1+cu121 | A40 | 11.4346 | 22 |
+
+The 1.2% gap comes from version/GPU-dependent kernels (cuDNN, atomics), not
+from data. Consequence: **all comparative runs are executed on one machine**
+(lab3090), and the a40 attribution experiment is analysed only within a40.
+Cross-machine numbers are never mixed in a table.
 
 ## 4. What this audit does **not** establish
 

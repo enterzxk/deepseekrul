@@ -31,7 +31,7 @@ Immutable reference: git tag **`archive/paper-b-pre-cleanup-95e729e`** (commit
 | grid | location on lab3090 | cells | status | reason |
 |---|---|---:|---|---|
 | OOF 5-fold | `experiments/OOF*` (61 dirs) | 60 | **INVALID** | truncation points sampled from the official test RUL distribution (`RESULTS_SUMMARY.md` §0); test information leaked into validation |
-| DSPT 32-cell ablation | `experiments/ABL_*` (32 dirs) + `experiments/ABLTEST` | 32 | **INVALID** as a table | single seed/fold; test predictions produced by an evaluator that cannot load the checkpoints; validation early stopping on window-level RMSE |
+| DSPT 32-cell ablation | `experiments/ABL_*` (32 dirs) + `experiments/ABLTEST` | 32 | **ARCHIVED**, not paper evidence | single seed/fold; window-level early stopping. The archived `eval_dspt.py` cannot load the checkpoints (span bug), but the archived predictions **are reproducible** from the checkpoints with a reconstructed evaluator: corr 0.9935-0.9995, RMSE 10.92/12.33/11.69/11.27 vs archived 10.60/12.70/11.46/11.19 for base/FULL/SA/HI (`results/legacy_repro.csv`). The table is arithmetically correct; its protocol is confounded, not fabricated. |
 | Vanilla 96-cell ablation | `experiments/VB_*` (96 dirs) | 96 | **ARCHIVED** | 3 seeds, but window-level early stopping; its cross-model claim vs DSPT is confounded (different evaluators and feature sets) |
 
 ## Numbers that may be quoted only with a caveat

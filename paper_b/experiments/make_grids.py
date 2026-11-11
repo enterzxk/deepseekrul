@@ -120,6 +120,21 @@ for name, kw in {
                      hi_source='hf', **flags))
 dump('attribution.json', runs)
 
+# G2. validation-cut sensitivity (earlier cut covers the high-RUL regime)
+runs = []
+for cfg in ('base', 'full'):
+    for subset in ('FD001', 'FD004'):
+        for seed in SEEDS:
+            c = dspt(f'SENS_{cfg}', subset, seed, **CFG8[cfg])
+            c['cuts'] = [0.3, 0.4, 0.55, 0.7, 0.85, 0.95]
+            runs.append(c)
+dump('sens_cuts.json', runs)
+
+# I. same-machine reproducibility check (duplicate of two runs)
+runs = [dspt('REPRO_base', 'FD001', 101, **CFG8['base']),
+        dspt('REPRO_full', 'FD001', 101, **CFG8['full'])]
+dump('repro.json', runs)
+
 # H. window search is generated after the ablation decides the final config.
 if not (G / 'window.json').exists():
     dump('window.json', [])

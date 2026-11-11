@@ -17,8 +17,8 @@ tag is in `results/FREEZE.json`.
 
 ## 2. Protocol-fixed grids (this takeover)
 
-All grids: `split_seed=7`, `fold=0`, `rul_cap=125`, `epochs=36`,
-`patience=6`, `batch=512`, engine-level validation (5 cuts).
+All grids: `split_seed=7`, `fold=0`, `rul_cap=125`, `epochs=40`,
+`patience=12`, `batch=512`, engine-level validation (5 cuts).
 
 | grid file | tag prefix | runs | subsets | seeds | purpose | status |
 |---|---|---|---:|---|---|---|

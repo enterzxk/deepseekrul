@@ -7,13 +7,34 @@ import argparse
 import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch
 
 from ..training.data import prepare_test
 from ..training.metrics import summarize
 from ..training.train import _build, predict
+
+
+def evaluate_run(run_dir, data_dir='data/CMAPSS', device='cuda:0'):
+    run_dir = Path(run_dir)
+    cfg = json.loads((run_dir / 'config.json').read_text())
+    ds = prepare_test(cfg['subset'], Path(data_dir), span=cfg['span'],
+                      split_seed=cfg['split_seed'], fold=cfg['fold'],
+                      val_frac=cfg['val_frac'], rul_cap=cfg['rul_cap'], n_cond=cfg['n_cond'])
+    te = ds['test']
+    dev = torch.device(device)
+    net = _build(cfg).to(dev)
+    net.load_state_dict(torch.load(run_dir / 'model.pt', map_location='cpu', weights_only=True))
+    p = predict(net, te, dev, cfg['mode'])
+    m = summarize(p, te['y'])
+    m.update(subset=cfg['subset'], seed=cfg['seed'], tag=cfg['tag'], n=int(len(p)),
+             params=int(sum(q.numel() for q in net.parameters())))
+    pd.DataFrame(dict(unit=te['unit'], y_true=te['y'], y_pred=p)).to_csv(
+        run_dir / 'test_pred.csv', index=False)
+    (run_dir / 'test_metrics.json').write_text(json.dumps(m, indent=1))
+    print('TEST %s %s s%d RMSE %.4f NASA %.1f n=%d' % (
+        cfg['tag'], cfg['subset'], cfg['seed'], m['rmse'], m['nasa_sum'], m['n']), flush=True)
+    return m
 
 
 def main():
@@ -34,24 +55,8 @@ def main():
         if (cfg['tag'], cfg['subset'], int(cfg['seed'])) not in allowed:
             raise SystemExit(f"run {(cfg['tag'], cfg['subset'], cfg['seed'])} not in freeze manifest")
     else:
-        print('WARNING: --force bypasses the freeze manifest (smoke only)', flush=True)
-
-    ds = prepare_test(cfg['subset'], Path(a.data_dir), span=cfg['span'],
-                      split_seed=cfg['split_seed'], fold=cfg['fold'],
-                      val_frac=cfg['val_frac'], rul_cap=cfg['rul_cap'], n_cond=cfg['n_cond'])
-    te = ds['test']
-    dev = torch.device(a.device)
-    net = _build(cfg).to(dev)
-    net.load_state_dict(torch.load(run_dir / 'model.pt', map_location='cpu', weights_only=True))
-    p = predict(net, te, dev, cfg['mode'])
-    m = summarize(p, te['y'])
-    m.update(subset=cfg['subset'], seed=cfg['seed'], tag=cfg['tag'], n=int(len(p)),
-             params=int(sum(q.numel() for q in net.parameters())))
-    pd.DataFrame(dict(unit=te['unit'], y_true=te['y'], y_pred=p)).to_csv(
-        run_dir / 'test_pred.csv', index=False)
-    (run_dir / 'test_metrics.json').write_text(json.dumps(m, indent=1))
-    print('TEST %s %s s%d RMSE %.4f NASA %.1f n=%d' % (
-        cfg['tag'], cfg['subset'], cfg['seed'], m['rmse'], m['nasa_sum'], m['n']), flush=True)
+        print('WARNING: --force bypasses the freeze manifest (diagnostic only)', flush=True)
+    evaluate_run(run_dir, a.data_dir, a.device)
 
 
 if __name__ == '__main__':

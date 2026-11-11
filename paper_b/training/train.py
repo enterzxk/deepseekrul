@@ -22,7 +22,7 @@ from .metrics import rmse, summarize
 from ..models import build_dspt, build_vanilla
 
 DEFAULTS = dict(
-    model='dspt', subset='FD001', seed=101, span=70, epochs=36, patience=6,
+    model='dspt', subset='FD001', seed=101, span=70, epochs=40, patience=12,
     batch=512, lr=1e-3, weight_decay=1e-4, d_model=64, layers=2, dropout=0.2,
     mode='dual', ms_mode='full', sa_mode='off', hi_source='none', hi_mono='none',
     hi_lambda=0.5, hi_mono_coef=0.1, use_cycle=True, use_pad_mask=True,
