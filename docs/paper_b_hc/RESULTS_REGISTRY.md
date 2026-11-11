@@ -56,7 +56,14 @@ HC-<stage>-<variant>-<subset>-s<seed>-<YYYYMMDDTHHMMZ>
 ```
 
 - `stage`：`A` | `B` | `C` | `D` | `E`
-- `variant`：`A0`–`A5`、`B0`–`B3`、`C0`–`C3`、`V0C`（V0-Cycle）、`V0N`（V0-NoCycle）、`V0H`（V0-NoHI）
+- `variant`：`A0`–`A5`、`B0`–`B3`、`C0`–`C3`、`V0C`（V0-Cycle）、`V0N`（V0-NoCycle）、`V0H`（V0-NoHI）、`SMOKE`。
+  **A3 的子臂单列**：`A3a`（原 250 截断 Fourier）、`A3b`（不截断）、`A3c`（不饱和归一化）、
+  `A3p`（frozen pre-norm 注入点对照）。四个都是合法变体，不是拼写错误。
+- `hypothesis` **必填**：写"这次实验想证伪/证实什么"，一句话。填 `(not stated)` 的 run 按 `fail` 处理。
+- **代码指纹三件套必填**（缺任一即 `fail`）：
+  - `baseline_version`：如 `v3`，对应 `TASK_BOOK.md` §1 的版本表
+  - `git_sha`：完整 commit SHA；a40 上恒为 `WORKTREE`
+  - `worktree_dirty`：布尔值。**`true` 的 run 不进任何 Gate 表**
 - `subset`：`FD001`–`FD004`
 - `seed`：`101` | `202` | `303`（扩展需主控批准）
 - 时间戳用 **UTC**，精确到分钟
@@ -66,6 +73,50 @@ HC-<stage>-<variant>-<subset>-s<seed>-<YYYYMMDDTHHMMZ>
 **同一 run_id 不得重跑。** 重跑必须换时间戳，并在 `registry_note` 里写清"重跑原因 + 前一次的 run_id"。
 
 ---
+
+## 3.1 Gate 表准入（按格，不按精确 run_id）
+
+主控裁决 2026-11-12（revision 51）：**准入按「格」判，`run_id` 只作句柄**。
+原因是 W1 的 OOM 重试落在 `-W1r2` / `-W1r3` 后缀上，按精确 id 会把真实成功的格错误排除。
+
+### 格键
+
+```
+(baseline_version, variant, subset, seed)
+```
+
+`baseline_version` **是承重件，不可省**。实测反例：省掉它时 `A3a-FD001` 会按「最早 ok」
+选中 pre-versioning 的 `…T1505Z`（`val_engine_mean=10.5455`、`audit_verdict=fail`、已 retired），
+而不是 v9 的 `0030Z`（`11.3167`），**差 0.77 RMSE，正好落在敏感性臂的主数字上**。
+
+### run_id 前缀
+
+格的证据必须满足 `run_id` 前缀匹配：
+
+```
+HC-C-{variant}-{subset}-s{seed}-W1
+```
+
+**允许重试后缀** `-W1r2` / `-W1r3`（上限 `r3`）。其余形态一律不算该格证据。
+
+### 选行规则
+
+1. 同一格取**第一个 `status=ok`** 的 run 作为该格证据；`failed` / `aborted` / `unclosed` 的重试**不占位**；
+2. 同格有多个 `ok` 时，按 `launched_utc` 取**最早**，其余标 `superseded`；
+3. 证据行置 `in_gate_a_table=true`，其余行一律 `false`。
+
+### 仍然排除（重要）
+
+`0030Z` / `1640Z` 的 `run_id` 形如 `…-s101-20261112T0030Z`，**不匹配 `-W1` 前缀**，
+因此**永远不是 Gate A 证据**，`in_gate_a_table=false`，只进 `CYCLE_DEPENDENCE_STUDY.md` 的 preliminary 小节。
+
+> **注意**：这条推翻了先前批准的 `A3a-FD001 → 0030Z` 别名。若调度器的幂等跳过按
+> `(variant, subset, seed)` 判「已完成」，`A3a-FD001` 会因为有 `0030Z` 而被跳过、
+> 又因为前缀规则不被准入 —— 该格会**永久缺失**。调度器的 `cell_done()` 必须同样收窄到 `-W1` 前缀。
+
+---
+
+
 
 ## 4. launch 文件 schema（tmh 在启动前写）
 
