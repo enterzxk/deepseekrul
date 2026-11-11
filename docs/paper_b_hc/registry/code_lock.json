@@ -1,7 +1,8 @@
 {
  "schema_version": 1,
- "git_sha": "2482baaeee965001b31aec2e9e0aaa34c2ad0298",
- "generated_utc": "2026-11-11T15:13:25Z",
+ "git_sha": "a203f4bdeb487d83fe39247988b346ef17ce6484",
+ "baseline_version": "v4",
+ "generated_utc": "2026-11-11T15:21:27Z",
  "definition": "md5 of `git show HEAD:<path>` blob bytes",
  "code_md5": {
   "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
@@ -11,13 +12,13 @@
   "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114",
   "paper_b/hc/config_hc.py": "bffe552fefa49c0e9cff38a31c6cd8ff",
   "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
-  "paper_b/hc/model_hc.py": "95e6685ef7f3c12f56ce72bf5ff87866",
+  "paper_b/hc/model_hc.py": "26e2d7c3ad963a0dcc2eeda437902f1d",
   "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
   "paper_b/hc/train_hc.py": "c8f3cfe5cf12387019bbf280e4dd7975",
-  "paper_b/hc/run_hc.py": "72a4605d8f3cc736cddb06e47ddfb970",
-  "paper_b/hc/verify_loop.py": "bf3022ba60a804bdbd7b2ead0a38577c",
+  "paper_b/hc/run_hc.py": "45bedd9791dd1dee9861da6b9eaa3f34",
+  "paper_b/hc/verify_loop.py": "111c7be5106a74dc0e1152c68a69308b",
   "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
   "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
-  "paper_b/hc/code_lock.py": "dc71b7faa2769a9c5b3fdfa38c42c077"
+  "paper_b/hc/code_lock.py": "e30f3748a2e2529b7fdd322e4a32d211"
  }
 }
