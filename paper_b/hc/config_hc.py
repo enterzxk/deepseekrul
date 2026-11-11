@@ -155,9 +155,12 @@ def hc_config(variant_name, subset, seed, span=SPAN):
         subset=subset, seed=int(seed), span=int(span),
         cycle_mode=v['cycle_mode'], cycle_source=v['cycle_source'],
         # A3p stores cycle_mode='none' because the base DSPT class carries the
-        # Fourier term itself; the *effective* path is the frozen one. Without
-        # this field a reader of config.json would file A3p as a no-cycle arm.
+        # Fourier term itself; the *effective* path is the frozen one. Both
+        # fields are written so an auditor reading config.json cannot file A3p
+        # as a no-cycle arm (P2-2).
         effective_cycle_mode='fourier_frozen' if frozen_inj else v['cycle_mode'],
+        injection='frozen_pre_norm' if frozen_inj else (
+            'post_norm' if v['cycle_mode'] != 'none' else 'none'),
         period_bank=v.get('period_bank', 'frozen'),
         frozen_injection=frozen_inj,
         cycle_only=bool(v['cycle_only']),

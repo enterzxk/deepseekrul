@@ -50,7 +50,7 @@ FROZEN = ['paper_b/models/dspt.py', 'paper_b/training/data.py',
 OWN = ['paper_b/hc/config_hc.py', 'paper_b/hc/data_hc.py', 'paper_b/hc/model_hc.py',
        'paper_b/hc/cycle_encoder.py', 'paper_b/hc/train_hc.py', 'paper_b/hc/run_hc.py',
        'paper_b/hc/verify_loop.py', 'paper_b/hc/snapshot_val.py',
-       'paper_b/hc/compare_val_snapshot.py']
+       'paper_b/hc/compare_val_snapshot.py', 'paper_b/hc/code_lock.py']
 KEEP_DIRS = {'ckpt'}
 
 
@@ -99,6 +99,61 @@ def exclusive_write(path, payload):
         fh.write(data)
 
 
+GUARD_PATHS = ['paper_b/hc', 'paper_b/training', 'paper_b/models',
+               'paper_b/configs', 'paper_b/experiments']
+
+
+def _git_status(paths, untracked):
+    args = ['git', 'status', '--porcelain']
+    if not untracked:
+        args.append('--untracked-files=no')
+    args += ['--'] + list(paths)
+    return subprocess.check_output(args, cwd=REPO).decode().strip()
+
+
+def worktree_guard():
+    """Refuse to launch from an uncommitted tree (2026-11-11 ruling, step 1).
+
+    Returns ``{'mode': 'git', 'git_sha': ...}`` on a host with git, or ``None``
+    when git is absent (a40), in which case ``code_lock_guard`` takes over.
+    ``paper_b/hc`` is checked with untracked files included (a new module is
+    code); the other paths are tracked-only so result/artifact files written by
+    parallel lines cannot block a run.
+    """
+    try:
+        inside = subprocess.check_output(
+            ['git', 'rev-parse', '--is-inside-work-tree'],
+            cwd=REPO, stderr=subprocess.DEVNULL).decode().strip()
+    except Exception:
+        return None
+    if inside != 'true':
+        return None
+    dirty = _git_status(['paper_b/hc'], True)
+    dirty += ('\n' if dirty else '') + _git_status(
+        ['paper_b/training', 'paper_b/models', 'paper_b/configs', 'paper_b/experiments'], False)
+    if dirty.strip():
+        raise SystemExit('REFUSED: uncommitted code under paper_b/; commit first:\n' + dirty)
+    sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
+    return dict(mode='git', git_sha=sha, code_lock_sha1=None)
+
+
+def code_lock_guard(path):
+    """No-git equivalent: every hashed file must equal the committed lock."""
+    path = Path(path)
+    if not path.exists():
+        raise SystemExit(f'REFUSED: no git on this host and no code lock at {path}; '
+                         f'generate it on the repo with '
+                         f'`python -m paper_b.hc.code_lock --write` and sync it')
+    lock = json.loads(path.read_text())
+    got = code_hashes()
+    bad = {k: (got.get(k), v) for k, v in lock['code_md5'].items() if got.get(k) != v}
+    if bad:
+        raise SystemExit('REFUSED: code differs from the committed lock:\n'
+                         + json.dumps(bad, indent=1))
+    return dict(mode='lock', git_sha=lock.get('git_sha', 'UNKNOWN'),
+                code_lock_sha1=hashlib.sha1(path.read_bytes()).hexdigest())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--variant', required=True)
@@ -112,12 +167,28 @@ def main():
     ap.add_argument('--out-root', default=os.environ.get('HC_OUT_ROOT', 'experiments/hc'))
     ap.add_argument('--registry-root', default=str(REPO / 'docs' / 'paper_b_hc' / 'registry'),
                     help='launch/ and close/ records (task book §11)')
+    ap.add_argument('--code-lock', default=str(REPO / 'docs' / 'paper_b_hc' / 'registry' /
+                                               'code_lock.json'),
+                    help='committed-code lock, used when the host has no git (a40)')
     ap.add_argument('--device', default='cuda:0')
+    ap.add_argument('--init-from', default=None,
+                    help='state_dict loaded before training (shared-init control)')
     ap.add_argument('--smoke', action='store_true', help='1-epoch pipeline check; not evidence')
     ap.add_argument('--force', action='store_true', help='overwrite an existing run dir')
     a = ap.parse_args()
 
     assert_protocol_matches_taskbook()
+
+    # Step 1 of the 2026-11-11 ruling: a run may only start from a committed
+    # tree. Git hosts use `git status`; a40 has no git, so it verifies every
+    # hashed file against the lock generated from `git show HEAD:` blobs.
+    guard = worktree_guard()
+    if guard is None:
+        guard = code_lock_guard(a.code_lock)
+        print(f'[hc] code lock ok git_sha={guard["git_sha"][:12]} '
+              f'lock_sha1={guard["code_lock_sha1"][:12]}', flush=True)
+    else:
+        print(f'[hc] worktree clean at {guard["git_sha"][:12]}', flush=True)
 
     # R6 drift guard: refuse to spend GPU on a split that is not the frozen one.
     from ..training.data import load_train, split_units
@@ -138,6 +209,7 @@ def main():
     cfg['hypothesis'] = a.hypothesis
     cfg['gate'] = a.gate
     cfg['smoke'] = bool(a.smoke)
+    cfg['init_from'] = a.init_from
     if a.smoke:
         cfg['epochs'], cfg['patience'] = 1, 1
         cfg['budget_override'] = 'smoke: 1 epoch, not evidence'
@@ -147,23 +219,34 @@ def main():
         raise SystemExit(f'REFUSED: {out} is not empty; pass --force to overwrite '
                          f'or use a new run_id')
 
-    # B2: the authoritative launch record goes to the registry (task book §11)
-    # and is created with O_EXCL, so a run_id can never be launched twice.
+    # B2 + P0: the launch record is machine-generated at process start, created
+    # with O_EXCL, then read back and compared. Hand-written or copied launch
+    # files are what broke the evidence chain on the first two smoke runs, so the
+    # record now carries written_by / process_start_utc and self-verifies.
+    proc_start = now_utc()
     reg = Path(a.registry_root)
+    hashes = code_hashes()
     launch = dict(
         run_id=a.run_id, stage=cfg['stage'], variant=a.variant, subset=a.subset,
         seed=a.seed, span=cfg['span'], hypothesis=a.hypothesis or '(not stated)',
         gate=a.gate, host=env_info()['host'], smoke=bool(a.smoke),
-        code_md5=code_hashes(), git_sha=env_info()['git'],
+        written_by='run_hc', process_start_utc=proc_start,
+        code_md5=hashes, git_sha=guard['git_sha'], worktree=guard,
         data_split=dict(split_seed=SPLIT_SEED, fold=FOLD, val_frac=VAL_FRAC,
                         val_engine_ids_hash=got),
         budget=dict(epochs=cfg['epochs'], patience=cfg['patience'],
                     budget_override=cfg.get('budget_override'), est_gpu_min=25),
         launched_utc=now_utc())
-    exclusive_write(reg / 'launch' / f'{a.run_id}.json', launch)
+    launch_path = reg / 'launch' / f'{a.run_id}.json'
+    exclusive_write(launch_path, launch)
+    # Read-back self-check: what is on disk must equal what the process computed.
+    back = json.loads(launch_path.read_text())
+    if back.get('code_md5') != code_hashes() or back.get('written_by') != 'run_hc':
+        raise SystemExit(f'SELF-CHECK FAILED: {launch_path} does not match the code '
+                         f'this process is running')
     out.mkdir(parents=True, exist_ok=True)
     # A copy inside the run directory keeps the artifact directory self-describing.
-    (out / 'launch.json').write_text(json.dumps(launch, indent=1))
+    (out / 'launch.json').write_text(json.dumps(back, indent=1))
     (out / 'config.json').write_text(json.dumps(cfg, indent=1))
 
     logf = open(out / 'train.log', 'w', encoding='utf-8')
@@ -181,7 +264,29 @@ def main():
     log(f'[hc] smoke={bool(a.smoke)} backbone={cfg["backbone"]}')
     if a.smoke:
         log('[hc] BUDGET OVERRIDE: 1 epoch; this run is not evidence')
-    m, ds = train_hc(cfg, device=a.device, out_dir=out, log=log)
+
+    # P2-1: a crash must still leave a close record. Without this, a batch of 24
+    # runs leaves launch-without-close entries and O_EXCL then blocks those
+    # run_ids forever (that is exactly what happened to T1431Z).
+    try:
+        m, ds = train_hc(cfg, device=a.device, out_dir=out, log=log)
+    except Exception as exc:
+        import traceback
+        tb = traceback.format_exc()
+        failed = dict(
+            run_id=a.run_id, status='failed', closed_utc=now_utc(),
+            epochs_run=0, best_epoch=None, metrics={},
+            main_metric='val_engine_mean_rmse', written_by='run_hc',
+            artifacts=sorted(str(p.relative_to(out)) for p in out.rglob('*') if p.is_file()),
+            notes=(f'FAILED {type(exc).__name__}: {exc}'[:400]
+                   + ' | last traceback line: ' + tb.strip().splitlines()[-1][:200]))
+        (out / 'close.json').write_text(json.dumps(failed, indent=1))
+        (reg / 'close').mkdir(parents=True, exist_ok=True)
+        (reg / 'close' / f'{a.run_id}.json').write_text(json.dumps(failed, indent=1))
+        log(f'[hc] FAILED {type(exc).__name__}: {exc}')
+        log(tb)
+        logf.close()
+        raise
 
     close = dict(
         run_id=a.run_id, status='smoke' if a.smoke else 'ok', closed_utc=now_utc(),
@@ -190,7 +295,7 @@ def main():
                      val_pooled_rmse=m['val_pooled_rmse'],
                      val_nasa_mean=m.get('nasa_mean'), val_mae=m.get('mae'),
                      val_bias=m.get('bias')),
-        main_metric='val_engine_mean_rmse',
+        main_metric='val_engine_mean_rmse', written_by='run_hc',
         artifacts=['config.json', 'manifest.json', 'metrics.json', 'preds.csv',
                    'train.log', 'history.json', 'ckpt/best.pt', 'launch.json'],
         notes=('smoke run: not evidence' if a.smoke else

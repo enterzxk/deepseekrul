@@ -59,7 +59,11 @@ class DSPT_HC_Frozen(DSPT):
         self.needs_cycle = True
 
     def encode(self, x, baseline, mask, cycle, cond=None):
-        c = None if cycle is None else torch.clamp(cycle, min=0.0) / 250.0
+        if cycle is None:
+            return super().encode(x, baseline, mask, None, cond)
+        # Upper bound as well as lower: anything above 250 is outside the frozen
+        # encoding's domain, and silently wrapping it would make A3p incomparable.
+        c = torch.clamp(cycle, min=0.0, max=250.0) / 250.0
         return super().encode(x, baseline, mask, c, cond)
 
 

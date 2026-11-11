@@ -1,4 +1,16 @@
-"""Compare window-level vs engine-level validation against test for archived checkpoints."""
+"""Compare window-level vs engine-level validation against test for archived checkpoints.
+
+Diagnostic only, never evidence, and never a selection input:
+  * it opens the official test set, which the protocol allows only through
+    evaluation/evaluate_test.py after the freeze manifest exists;
+  * the checkpoints it reads are archived ones from an earlier host.
+
+Audit C6: ``prepare_train`` is called with an explicit ``cuts`` (it used to
+silently take the function default, which was off-protocol), the pooled value is
+no longer named ``eng``, and the CSV is written under ``experiments/hc/tmp/``
+instead of ``paper_b/results/``.
+"""
+import os
 import sys
 from pathlib import Path
 
@@ -7,12 +19,16 @@ import pandas as pd
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from paper_b.configs import protocol  # noqa: F401  (import kept for clarity)
 from paper_b.models import build_dspt
 from paper_b.training.data import prepare_train, prepare_test, make_train_windows
 from paper_b.training.train import predict
 from paper_b.training.metrics import rmse
 
-ROOT = Path('/home/user/rulb')
+ROOT = Path(os.environ.get('PROBE_ROOT', Path(__file__).resolve().parents[2]))
+OUT = Path(os.environ.get('HC_OUT_ROOT', ROOT / 'experiments' / 'hc')) / 'tmp' / \
+    'selection_metric_probe.csv'
+CUTS = (0.4, 0.55, 0.7, 0.85, 0.95)
 CASES = {
     'base': dict(ms_mode='off', sa_mode='off', hi_source='none'),
     'FULL': dict(ms_mode='full', sa_mode='basic', hi_source='hf'),
@@ -43,16 +59,18 @@ for cfg, kw in CASES.items():
     net = build_dspt(max_span=70, **kw)
     net.load_state_dict(sd, strict=False)
     ds = prepare_train('FD001', ROOT / 'data' / 'CMAPSS', span=70, split_seed=7, fold=0,
-                       rul_cap=125, n_cond=6)
+                       rul_cap=125, n_cond=6, cuts=CUTS)
     allw = make_train_windows(ds['va'], ds['va_s'], ds['lv'], ds['pop'], span=70, hi_map=None)
     p_win = predict(net, allw, torch.device('cpu'), 'dual')
     win = rmse(p_win, allw['y'])
     p_cut = predict(net, ds['val'], torch.device('cpu'), 'dual')
-    eng = rmse(p_cut, ds['val']['y'])
+    pooled_cut = rmse(p_cut, ds['val']['y'])
     te = prepare_test('FD001', ROOT / 'data' / 'CMAPSS', span=70, split_seed=7, fold=0,
                       rul_cap=125, n_cond=6)['test']
     p_te = predict(net, te, torch.device('cpu'), 'dual')
     test = rmse(p_te, te['y'])
-    rows.append(dict(cfg=cfg, window_val=win, engine_val=eng, test=test))
+    rows.append(dict(cfg=cfg, window_val=win, pooled_cut_val=pooled_cut, test=test))
     print(rows[-1])
-pd.DataFrame(rows).to_csv('paper_b/results/selection_metric_probe.csv', index=False)
+OUT.parent.mkdir(parents=True, exist_ok=True)
+pd.DataFrame(rows).to_csv(OUT, index=False)
+print('wrote', OUT)

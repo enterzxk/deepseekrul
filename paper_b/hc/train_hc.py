@@ -151,6 +151,16 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
 
     torch.backends.cudnn.benchmark = True
     net = build_hc(cfg).to(dev)
+    if cfg.get('init_from'):
+        # Shared-initialisation control (A3a vs A3p): the backbone and the
+        # Fourier projection are loaded from one file so the only difference
+        # between the two runs is the injection point, not the RNG stream.
+        ckpt = torch.load(cfg['init_from'], map_location='cpu', weights_only=True)
+        missing, unexpected = net.load_state_dict(ckpt, strict=False)
+        log('  init_from=%s loaded=%d missing=%d unexpected=%d'
+            % (cfg['init_from'], len(ckpt) - len(unexpected), len(missing), len(unexpected)))
+        if unexpected:
+            log('  unexpected keys ignored: %s' % sorted(unexpected)[:6])
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
@@ -195,6 +205,9 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
             tot += float(loss.detach()); nb += 1
         sch.step()
         pooled, eng, _ = val_metrics()
+        # 郑总 P2-3: one field vocabulary across both trainers. The frozen
+        # trainer's ``val_rmse`` key is the engine-level mean; here the names say
+        # what they are, so a merged curve cannot silently pick the wrong column.
         history.append(dict(epoch=ep, train_loss=tot / max(nb, 1),
                             val_engine_mean_rmse=eng, val_pooled_rmse=pooled))
         if ep % 5 == 0 or ep == 1:
