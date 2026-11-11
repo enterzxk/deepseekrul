@@ -908,3 +908,35 @@ RESULTS_INDEX.md 已按 aseline_version 分组：当前基线 v9 一组，历�
 （此前 `launch/`、`close/` 全是 untracked，四次越权写入没有一次进过 git）。
 
 **冻结**：本轮改完、`check_runs.py` 0 flag、提交后停手。
+
+### 12.11 Gate 表准入按「格 + -W1rN」（2026-11-12 02:5x 生效，主控裁定）
+
+**依据**：W1 的 OOM 重试落在 -W1r2 / -W1r3 后缀上，按「精确 un_id」准入会把真实成功的格错误排除。
+当时的唯一 ok 证据正是两条重试：HC-C-A1-FD001-s101-W1r2（11.2806）、HC-C-A1-FD003-s101-W1r2（12.0306）。
+
+**规则（已同步写入 RESULTS_REGISTRY.md §3.1，4a6f703）**
+
+1. 格 = (baseline_version, variant, subset, seed)；un_id 必须匹配前缀
+   HC-C-{variant}-{subset}-s101-W1，**允许 -W1r2 / -W1r3 重试后缀**（上限 r3）。
+2. 同格取**第一个 ok**，排序用 close.json 的 closed_utc（不用字符串序）；
+   ailed / borted / unclosed 的重试**不占位**；多个 ok 取最早，其余标 superseded。
+3.  030Z / 1640Z 形如 …-s101-20261112T0030Z，**不匹配 -W1 前缀 → 永不是 Gate A 证据**，
+   in_gate_a_table=false，只进 CYCLE_DEPENDENCE_STUDY.md preliminary 小节。
+4. **aseline_version 是承重件**：省掉它，A3a-FD001 会按「最早 ok」选中 pre-versioning 的
+   …T1505Z（10.5455，udit_verdict=fail、已 retired）而非 v9 的  030Z（11.3167），差 0.77 RMSE。
+
+**格数纠正**：主表 24 = {A0, A1, A2, A3a, A4, A5} × 4（**A3a 替换**原 A3p 四格，不是额外加）；
+A3p 参考臂 4 格（FD001 已完成）；**合计 28 格，待跑 27 格**。
+
+**A3p-FD001-W1 的 note 口径**：与  030Z 逐位相同（同 init、同 seed），**非独立证据，同格只计一次**。
+
+**按本条实测的当前准入：6 / 24** —— A0×4（30.0986 / 26.2874 / 39.9834 / 37.1218）+
+A1-FD001-W1r2（11.2806）+ A1-FD003-W1r2（12.0306）。A3p-FD001-W1（10.8951）属 frozen 表，不计入主表。
+
+**遗留阻塞（已报主控，待裁）**：调度器 un_wave1.sh 的 cell_done() 仍按 (variant, subset, seed)
+匹配**任何** v9 ok run，不要求 -W1 前缀。实测它会把 A3a-FD001 判成已完成（因为 A3a-FD001-…T1640Z 是 v9 ok），
+而前缀规则又不准入该 run → **该格永久缺失，主表停在 23/24**，且它正是 G2 主臂的第一格。
+需二选一：收窄 cell_done() 到 -W1 前缀（推荐），或恢复  030Z 别名。
+
+**发车冻结**：wave1_init_{A1,A2,A3a,A4,A5} 五份 init 的骨干键两两比对通过后，才恢复发车。
+
