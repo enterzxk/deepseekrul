@@ -1,5 +1,9 @@
 # Paper B experiment registry
 
+> Scope reduced to **FD001 only** on 2026-11-11 at the user's request. The FD001
+> 8-config ablation was already complete (24/24), so no new ablation was run.
+> Test numbers exist only for the tags in `results/FREEZE_FD001.json`.
+
 Status values: PLANNED / RUNNING / DONE / INVALID / ARCHIVED.
 A run is DONE only when `paper_b/results/raw/<tag>/<subset>/s<seed>/metrics.json`
 exists; a test number is DONE only when `test_metrics.json` also exists and the
@@ -22,17 +26,17 @@ All grids: `split_seed=7`, `fold=0`, `rul_cap=125`, `epochs=40`,
 
 | grid file | tag prefix | runs | subsets | seeds | purpose | status |
 |---|---|---|---:|---|---|---|
-| `ablation8.json` | `A8_<cfg>_L70` | 96 | 4 | 3 | DSPT internal ablation: base, MS, SA, HI, MSSA, MSHI, SAHI, FULL | RUNNING |
-| `vanilla.json` | `VAN_<variant>_L70` | 24 | 4 | 3 | independent Vanilla (raw) + feature-matched control (DSPT 3-channel + cycle) | RUNNING |
-| `nocycle.json` | `NC_base_L70` | 12 | 4 | 3 | absolute-cycle control | RUNNING |
-| `ms_mech.json` | `MSM_<mode>_L70` | 18 | FD001, FD004 | 3 | single_proj / multi_noproj / multi3 vs off / full | RUNNING |
-| `sa_mech.json` | `SAM_<mode>_L70` | 24 | 4 | 3 | sensor identity vs operating-condition context | RUNNING |
-| `hi_mech.json` | `HIM_<variant>_L70` | 18 | FD001, FD004 | 3 | HI source (hf/hB), monotone sign, no monotone | RUNNING |
+| `ablation8.json` | `A8_<cfg>_L70` | 96 | 4 | 3 | DSPT internal ablation: base, MS, SA, HI, MSSA, MSHI, SAHI, FULL | **DONE FD001 24/24**; FD002 24/24; FD003 18/24; FD004 0/24; stopped |
+| `vanilla.json` | `VAN_<variant>_L70` | 24 | 4 | 3 | independent Vanilla (raw) + feature-matched control (DSPT 3-channel + cycle) | **DONE FD001 6/6**; stopped |
+| `nocycle.json` | `NC_base_L70` | 12 | 4 | 3 | absolute-cycle control | NOT RUN (scope reduction) |
+| `ms_mech.json` | `MSM_<mode>_L70` | 18 | FD001, FD004 | 3 | single_proj / multi_noproj / multi3 vs off / full | NOT RUN (scope reduction) |
+| `sa_mech.json` | `SAM_<mode>_L70` | 24 | 4 | 3 | sensor identity vs operating-condition context | NOT RUN (scope reduction) |
+| `hi_mech.json` | `HIM_<variant>_L70` | 18 | FD001, FD004 | 3 | HI source (hf/hB), monotone sign, no monotone | NOT RUN (scope reduction) |
 | `attribution.json` | `ATTR_<variant>` | 7 | FD001 | 101 | historical 10.91 -> 12.70 attribution (not paper evidence) | DONE (a40) |
-| `nomask.json` | `NM_<cfg>` | 24 | 4 | 3 | padding-mask control (attribution suggests unmasking helps) | PLANNED |
-| `sens_cuts.json` | `SENS_<cfg>` | 12 | FD001, FD004 | 3 | validation-cut sensitivity (earlier 30% cut) | PLANNED |
-| `repro.json` | `REPRO_<cfg>` | 2 | FD001 | 101 | same-machine determinism check | PLANNED |
-| `window.json` | `WIN_L<L>_<cfg>` | TBD | 4 | 3 | window search after structure freeze | PLANNED |
+| `nomask.json` | `NM_<cfg>` | 24 | 4 | 3 | padding-mask control (attribution suggests unmasking helps) | NOT RUN (scope reduction) |
+| `sens_cuts.json` | `SENS_<cfg>` | 12 | FD001, FD004 | 3 | validation-cut sensitivity (earlier 30% cut) | NOT RUN (scope reduction) |
+| `repro.json` | `REPRO_<cfg>` | 2 | FD001 | 101 | same-machine determinism check | NOT RUN (scope reduction) |
+| `window.json` | `WIN_L<L>_<cfg>` | TBD | 4 | 3 | window search after structure freeze | NOT RUN (scope reduction) |
 
 ### Grid definitions
 

@@ -18,11 +18,34 @@ by >=1% mean validation RMSE and is not worse than DSPT-base overall.
 
 ## 2. Accepted improvements
 
-`[RESULT]`
+### A1. MS + SA (no HI) on FD001
+
+- **Scope:** FD001 only.
+- **Validation:** 11.112 +- 0.344 vs base 11.874 +- 0.258 (-6.4%).
+- **Official test:** 10.598 +- 0.299 vs base 11.054 +- 0.350 (-4.1%).
+- **Seeds:** 101/202/303; the gain is larger than the seed std and the
+  validation and test directions agree.
+- **Why MS+SA and not FULL:** FULL is 11.132 validation, statistically tied
+  with MS+SA; MS+SA has fewer parameters and drops the unsupported HI head.
+- **Source:** `results/fd001_final_table.csv`, `results/raw/A8_mssa_L70/FD001`.
 
 ## 3. Rejected improvements (kept for the record)
 
-`[RESULT]`
+### R1. HI auxiliary supervision (FD001)
+
+HI alone is +0.5% validation (worse than base); HI added to MS+SA (FULL) gives
+no gain over MS+SA. The probe explains it: the target is noisy and largely
+redundant with RUL. HI is removed from the final model.
+
+### R2. FULL over MS+SA
+
+No measurable gain (11.132 vs 11.112 validation, 0.2%, far below the seed std).
+The simpler model is selected by the pre-registered tie-break.
+
+### R3. Mechanism grids (SA identity/condition, HI h_B/no-mono, MS controls)
+
+Not run: the multi-subset grid was stopped at the user's request after the
+FD001 ablation was complete. The mechanism explanations remain probe-level.
 
 ## 4. What is not claimed
 

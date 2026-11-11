@@ -150,17 +150,64 @@ Controls:
 | why? | hi vs h_f no-mono, h_f inverted sign, h_B source |
 | do they interact? | mssa, mshi, sahi, full |
 
-## 4. Results
+## 4. Results (FD001 only; scope reduced on 2026-11-11)
 
-`[RESULT: ablation8 table, validation, mean +- std over 3 seeds, relative to base]`
+The multi-subset grid was stopped at the user's request. The FD001 8-config
+ablation was already complete (24/24 cells, 3 seeds), so it is reported here
+without any further ablation runs. Mechanism grids (MS/SA/HI) were not run;
+the CPU probes in §2 remain the mechanism evidence.
 
-`[RESULT: MS mechanism table]`
+### 4.1 Validation RMSE (mean +- std over seeds 101/202/303)
 
-`[RESULT: SA mechanism table]`
+| config | val RMSE | vs base | test RMSE | vs base |
+|---|---:|---:|---:|---:|
+| base | 11.874 +- 0.258 | - | 11.054 +- 0.350 | - |
+| MS | 11.385 +- 0.282 | -4.1% | not evaluated | - |
+| SA | 11.349 +- 0.373 | -4.4% | not evaluated | - |
+| HI | 11.939 +- 0.310 | +0.5% | not evaluated | - |
+| MS+SA | **11.112 +- 0.344** | **-6.4%** | **10.598 +- 0.299** | **-4.1%** |
+| MS+HI | 11.256 +- 0.097 | -5.2% | not evaluated | - |
+| SA+HI | 11.341 +- 0.514 | -4.5% | not evaluated | - |
+| FULL | 11.132 +- 0.234 | -6.3% | not evaluated | - |
+| Vanilla (raw) | 13.366 +- 0.184 | +12.6% | 15.046 +- 1.111 | +36.1% |
+| Vanilla (features+cycle) | 12.503 +- 0.666 | +5.3% | 12.599 +- 0.415 | +14.0% |
 
-`[RESULT: HI mechanism table]`
+Source: `results/fd001_final_table.csv`. Test numbers exist only for the tags
+in `results/FREEZE_FD001.json` (final, base, two Vanilla baselines); the rest of
+the ablation is validation-only, as pre-registered.
 
-`[RESULT: attribution table]`
+### 4.2 Findings
+
+1. **MS+SA is the best FD001 configuration**, -6.4% validation and -4.1% test
+   relative to base. FULL is statistically tied (11.132 vs 11.112; the 0.2%
+   difference is far below the seed std), so the simpler MS+SA is the final
+   model.
+2. **HI does not help.** HI alone is +0.5% (worse); adding HI to MS+SA (FULL)
+   gives no gain over MS+SA. The probe explains why: the HI target is a noisy,
+   largely redundant re-parameterisation of RUL (R^2 0.61-0.78, ~48% local
+   violations).
+3. **The architecture adds value beyond the features.** A Vanilla Transformer
+   with the same three-channel input and cycle encoding reaches 12.599 test
+   RMSE, 14% worse than MS+SA (10.598). The raw Vanilla is 15.046. The DSPT
+   advantage is therefore not only the input representation.
+4. **The historical negative ablation is reversed.** The archived table had
+   FULL 12.70 vs base 10.60 on FD001. Under the fixed protocol, MS+SA/FULL is
+   better than base on both validation and test. The archived ranking was a
+   property of the old training/selection/evaluation stack, not of the modules.
+5. **Validation and test agree in direction** for the frozen comparison:
+   MS+SA is -6.4% on validation and -4.1% on test. This is the first
+   protocol-consistent result in the project.
+
+### 4.3 Scope and caveats
+
+- FD001 only. FD002/FD003/FD004 were not completed; no cross-subset claim is
+  made.
+- Three seeds; the MSSA-vs-base gap (0.46 test RMSE) is larger than the seed
+  std (0.3-0.35), but a paired test with n=3 has low power.
+- The official FD001 test set has been observed in earlier work. The freeze
+  manifest limits further selection, but it cannot make the test pristine.
+- The mechanism grids were not run; SA condition-heterogeneity and MS scale
+  redundancy remain probe-level explanations, not ablation-confirmed ones.
 
 ## 5. Decision rules
 

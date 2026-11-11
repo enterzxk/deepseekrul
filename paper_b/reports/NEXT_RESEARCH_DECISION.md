@@ -51,6 +51,32 @@ A mechanism variant is added to the final model only if it passes the
 `FREEZE_RULE.md` test. Otherwise it is reported as a scope-limited finding,
 not adopted.
 
-## 5. Current leaning
+## 5. Current decision (FD001 scope)
 
-`[RESULT]`
+**Final model: MS+SA (MSSA), no HI.**
+
+| evidence | value |
+|---|---|
+| FD001 validation (3 seeds) | 11.112 +- 0.344 vs base 11.874 (-6.4%) |
+| FD001 official test (3 seeds) | 10.598 +- 0.299 vs base 11.054 (-4.1%) |
+| Vanilla raw / feature-matched test | 15.046 / 12.599 (14-36% worse) |
+| FULL vs MSSA | 11.132 vs 11.112 validation, tied; MSSA simpler |
+
+**Verdict: READY as an FD001-scope pilot; REVISE before an IEEE TIM
+submission.**
+
+Why not READY for submission: a single C-MAPSS subset cannot support a general
+claim, and FD002/FD004 are exactly the multi-condition subsets where the
+historical modules failed. The FD001 result is internally clean and
+protocol-consistent, but it is one dataset.
+
+**Minimal next round if resumed (estimated 1.5-2 GPU-h):**
+
+1. FD002 and FD004 only: MSSA vs base vs Vanilla (raw + features), 3 seeds.
+2. If MSSA wins on at least one multi-condition subset and does not lose on the
+   other, the claim becomes "subset-conditional gain" with a stated scope.
+3. If MSSA loses on both, the paper is FD001-scope or a protocol/audit paper;
+   do not stack more modules.
+
+**Stop rule:** no new module is added in this round. Only the three existing
+comparisons are extended to two subsets.

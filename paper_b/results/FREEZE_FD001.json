@@ -1,0 +1,75 @@
+{
+ "frozen": true,
+ "scope": "FD001",
+ "created": "2026-11-11",
+ "final": "A8_mssa_L70",
+ "rule": "lowest mean validation RMSE on FD001; test once for final + base + Vanilla baselines",
+ "eval_tags": [
+  "A8_mssa_L70",
+  "A8_base_L70",
+  "VAN_raw_L70",
+  "VAN_dsp_cycle_L70"
+ ],
+ "runs": [
+  {
+   "tag": "A8_mssa_L70",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "A8_mssa_L70",
+   "subset": "FD001",
+   "seed": 101
+  },
+  {
+   "tag": "A8_mssa_L70",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "A8_base_L70",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "A8_base_L70",
+   "subset": "FD001",
+   "seed": 101
+  },
+  {
+   "tag": "A8_base_L70",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "VAN_raw_L70",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "VAN_raw_L70",
+   "subset": "FD001",
+   "seed": 101
+  },
+  {
+   "tag": "VAN_raw_L70",
+   "subset": "FD001",
+   "seed": 202
+  },
+  {
+   "tag": "VAN_dsp_cycle_L70",
+   "subset": "FD001",
+   "seed": 303
+  },
+  {
+   "tag": "VAN_dsp_cycle_L70",
+   "subset": "FD001",
+   "seed": 101
+  },
+  {
+   "tag": "VAN_dsp_cycle_L70",
+   "subset": "FD001",
+   "seed": 202
+  }
+ ]
+}

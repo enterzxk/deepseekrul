@@ -1,86 +1,74 @@
 # Paper B current status
 
-Updated 2026-11-11 (takeover day). Authoritative numbers are added only after
-the corresponding `metrics.json` / `test_metrics.json` exist.
+Updated 2026-11-11 after the scope reduction to **FD001 only**. All numbers
+below come from `paper_b/results/fd001_final_table.csv` and the per-run
+`metrics.json` / `test_metrics.json` files.
 
 ## 1. Where the project stands
 
 | item | state |
 |---|---|
-| branch | `punet-interval`, remote HEAD = local HEAD = `95e729e` |
+| branch | `punet-interval`; local commits on top of `95e729e` |
 | Paper A | untouched |
-| Paper B working tree | `lab3090:/home/user/rulb` (no git); archived snapshot in `paper_b/archive/legacy_2026_11/` |
 | active code | `paper_b/models`, `paper_b/training`, `paper_b/evaluation` |
-| historical evidence | mostly INVALID or untraceable; see `ARCHIVE_INDEX.md` and `PROTOCOL_AUDIT.md` |
-| current compute | protocol-fixed DSPT 8-config ablation + mechanism grids (2 x RTX 3090) |
+| scope this round | **FD001 only** (multi-subset grid stopped at the user's request) |
+| running jobs | none |
+| final model | **MS+SA (MSSA), no HI** |
+| official test | opened once, for the frozen FD001 tags only |
 
-## 2. What is trustworthy today
+## 2. FD001 final results (3 seeds, 101/202/303)
 
-Only the following statements are supported by code that can be run end to end:
+| model | validation RMSE | official test RMSE | test vs base |
+|---|---:|---:|---:|
+| DSPT base | 11.874 +- 0.258 | 11.054 +- 0.350 | - |
+| **DSPT MS+SA (final)** | **11.112 +- 0.344** | **10.598 +- 0.299** | **-4.1%** |
+| DSPT FULL | 11.132 +- 0.234 | not evaluated | - |
+| Vanilla (raw) | 13.366 +- 0.184 | 15.046 +- 1.111 | +36.1% |
+| Vanilla (features+cycle) | 12.503 +- 0.666 | 12.599 +- 0.415 | +14.0% |
 
-1. The repository copy of the old DSPT runner is non-runnable (`NameError`),
-   and the committed test evaluator cannot load the old checkpoints (span 100
-   vs 70). **However**, the archived prediction CSVs are arithmetically exact
-   and are reproducible from the checkpoints with a reconstructed evaluator
-   (corr 0.9935-0.9995; `results/legacy_repro.csv`, `legacy_all_repro.csv`).
-   The historical table is protocol-confounded, not fabricated.
-2. The OOF 60-cell grid used truncation points sampled from the official test
-   RUL distribution. Those numbers are **INVALID**.
-3. Recomputing the archived base/FULL checkpoints with the P0-fixed evaluator
-   moves the absolute values (FD001 base 10.60 -> 10.92, FULL 12.70 -> 12.33)
-   but does **not** flip the ranking (FULL worse on FD001, tie FD002, better
-   FD003/FD004). The historical negative ablation is therefore not explained
-   by the evaluation fixes alone.
-4. The HI target is a decreasing health index (per-engine Spearman vs cycle
-   -0.79 to -0.92). It is globally monotone but locally noisy: ~48% of adjacent
-   steps move against the trend, and R^2(HI~RUL) is 0.61-0.78. This makes a hard
-   monotone penalty questionable and makes HI largely redundant with RUL.
-5. Sensor-correlation heterogeneity across operating conditions is 10-19x
-   larger on FD002/FD004 than on FD001/FD003 (hetero/within = 0.47/0.26 vs
-   0.025/0.032). On FD002 the top sensor pairs change correlation by 0.51-0.56
-   between conditions (s8-s14, s13-s14, s12-s13).
-6. The degradation signal is smooth on a ~25-cycle scale (first-PC
-   autocorrelation 0.76-0.82 at lag 7, crossing 0.5 at lag 23-27), so the MS
-   kernels k=3/5/7 all sit inside the correlation length and see nearly the
-   same low-frequency content.
-7. The archived FULL under-predicts high-RUL engines (FD001 bias -12.4 at
-   RUL>=125 vs base -6.8), which is where its test deficit is concentrated.
-8. Attribution (FD001/seed 101, diagnostic): fitting HI on all engines (the
-   old leaky behaviour) improves test RMSE by 3.0%; the EMA-initialisation fix
-   improves test by 5.8% while *worsening* validation; training without the
-   temporal padding mask improves both validation (-1.8%) and test (-5.4%).
-   The padding-mask effect appears on full windows too, so it is a training
-   effect, not an inference artefact. A 24-run control is queued.
+- MS+SA is -6.4% on validation and -4.1% on test relative to base; the two
+  directions agree.
+- FULL is tied with MS+SA on validation (0.2%, far below the seed std); the
+  simpler MS+SA is selected by the pre-registered tie-break.
+- HI alone is +0.5% (worse); adding HI to MS+SA gives no gain. HI is dropped.
+- DSPT beats the feature-matched Vanilla by 16% on test, so the architecture
+  adds value beyond the three-channel input and cycle encoding.
 
-## 3. Historical numbers (do not cite without the caveat)
+## 3. Historical evidence status
 
-| number | source | status |
-|---|---|---|
-| DSPT FD001 base 10.60 / FULL 12.70 | `archive/.../results/abl_test2.csv` | untraceable evaluator, 1 seed |
-| DSPT FD002/3/4 base 11.40/11.95/12.36 | same | same |
-| Vanilla FD001 BASE 15.91 | `archive/.../results/vb_test.csv` | 3 seeds, window-level selection, different evaluator |
-| OOF FD001 10.12 | `archive/.../results/oof_summary.csv` | INVALID (test-derived truncation) |
+| item | status |
+|---|---|
+| Archived 32-cell table | checkpoint-consistent (corr 0.9935-0.9995); protocol-confounded, not fabricated |
+| P0-fixed recomputation | moves absolute values, does not flip the archived ranking |
+| OOF 60-cell | **INVALID** (truncation points sampled from official test RUL) |
+| Historical negative ablation | **reversed** under the fixed FD001 protocol |
 
-## 4. Running now
+Attribution (FD001/seed 101, diagnostic): global HI leakage buys 3.0% test;
+the EMA fix buys 5.8% test but looks worse on validation; removing the padding
+mask buys 5.4% test. See `ATTRIBUTION.md`.
 
-| grid | runs | purpose |
-|---|---:|---|
-| `ablation8` | 96 | DSPT base / MS / SA / HI / pairs / FULL, 4 subsets x 3 seeds, L=70 |
-| `vanilla` | 24 | independent Vanilla baseline and feature-matched control |
-| `nocycle` | 12 | absolute-cycle control |
-| `ms_mech` | 18 | projection vs multi-scale vs capacity |
-| `sa_mech` | 24 | sensor identity vs operating-condition context |
-| `hi_mech` | 18 | HI source and monotone sign |
+## 4. What was not run
 
-## 5. Next decisions (evidence-gated)
+- FD002/FD003/FD004 completion (FD002 has 24 cells, FD003 18, FD004 0).
+- MS/SA/HI mechanism grids, window search, padding-mask control, cut
+  sensitivity, determinism check. These remain planned, not claimed.
 
-1. After the 8-config ablation: is FULL ever better than base with 3 seeds and
-   engine-level selection? If not, DSPT-Full is not the paper model.
-2. MS: if `multi3` (parameter-matched single scale) matches `full`, the gain is
-   capacity/projection, not multi-scale.
-3. SA: if `cond` beats `basic` on FD002/FD004, the mechanism is condition-aware
-   sensor interaction; if `identity` beats `basic`, the mechanism is sensor
-   identity. If neither, SA is not supported.
-4. HI: if `hB_correct` or `hf_nomono` beats `hf` with the legacy sign, the
-   problem is representation/target noise, not the auxiliary task itself.
-5. Window search only after the model is frozen; selection on validation only.
+## 5. Decision
+
+**READY as an FD001-scope pilot; REVISE before an IEEE TIM submission.**
+
+The FD001 result is internally clean and protocol-consistent. A single C-MAPSS
+subset cannot support a general claim; the minimal next round is FD002/FD004
+for MSSA/base/Vanilla (3 seeds, ~1.5-2 GPU-h). If MSSA does not hold on the
+multi-condition subsets, the paper stays FD001-scope or becomes a protocol/audit
+paper.
+
+## 6. Caveats
+
+- FD001 only; no cross-subset claim.
+- n=3 seeds; the MSSA-vs-base gap is larger than the seed std, but a paired
+  test with n=3 has low power.
+- The official FD001 test set has been observed before; the freeze manifest
+  limits further selection but cannot make it pristine.
+- The mechanism explanations (SA condition heterogeneity, HI target noise, MS
+  scale redundancy) are probe-level, not ablation-confirmed in this round.
