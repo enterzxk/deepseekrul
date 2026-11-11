@@ -827,18 +827,18 @@ A3a 的 `FourierCycle` 带 `periods` buffer，A3p 的 state_dict 里没有对应
 
 | 时点 | 变更 | 列数 |
 |---|---|---|
-| 2026-11-12 00:20 | 加 al_metric_kind、legacy_metric（主控授权） | 32 → 34 |
-| 2026-11-12 00:45 | 加 aseline_version（主控采纳测试负责人建议） | 34 → 35 |
+| 2026-11-12 00:20 | 加 `val_metric_kind、legacy_metric（主控授权） | 32 → 34 |
+| 2026-11-12 00:45 | 加 `baseline_version（主控采纳测试负责人建议） | 34 → 35 |
 | 2026-11-12 01:05 | 加 
 | 2026-11-12 02:40 | 加 `determinism_only`（重复实验标记） | 36 → 37 |
 | 2026-11-12 02:55 | 加 `in_gate_a_table`（**Gate A 表准入**，按预登记 24 格 `-W1` 清单，默认 false） | 37 → 38 |
 etired_version（版本号复用规则） | 35 → 36 |
 
-aseline_version 回填口径：有字段直接取；无字段按 code_lock_git_sha 反推
-（3f38cfa→pre-v5、20b9f3b→v6、dc77575→v7、ef910c→v8、d1e0527→v9）；
+`baseline_version 回填口径：有字段直接取；无字段按 code_lock_git_sha 反推
+（3f38cfa→pre-v5、20b9f3b→v6、dc77575→v7、`aef910c→v8、d1e0527→v9）；
 两者都没有填 unknown。当前分布：v9 1 / v8 3 / v7 1 / v6 2 / pre-v5 25 / unknown 7。
 
-RESULTS_INDEX.md 已按 aseline_version 分组：当前基线 v9 一组，历史版本分组，v6/v7 标「版本号复用，作废」。
+RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历史版本分组，v6/v7 标「版本号复用，作废」。
 
 ### 12.6 越权写入（第二次）+ 非规范枚举值（2026-11-12 01:35）
 
@@ -909,36 +909,51 @@ RESULTS_INDEX.md 已按 aseline_version 分组：当前基线 v9 一组，历�
 
 **冻结**：本轮改完、`check_runs.py` 0 flag、提交后停手。
 
-### 12.11 Gate 表准入按「格 + `-W1rN`」（2026-11-12 02:5x 生效，主控裁定）
+### 12.11 Gate 表准入：格 + `-W1(rN)?` 正则 + `status=ok` + `baseline_version` 承重（2026-11-12 01:28 本地 / 01:37 a40）
 
-**依据**：W1 的 OOM 重试落在 `-W1r2` / `-W1r3` 后缀上，按「精确 `run_id`」准入会把真实成功的格错误排除。
-当时的唯一 ok 证据正是两条重试：`HC-C-A1-FD001-s101-W1r2`（11.2806）、`HC-C-A1-FD003-s101-W1r2`（12.0306）。
+> **本节重写。** 上一版（commit `dadad49`）有两个错误，整段作废：
+> ① 写了未来时间戳（“02:5x 生效”“03:0x 更正”），而写入时本地才 01:2x——引用未来时刻的裁定不成立；
+> ② 内容与主控裁定相反：删掉了 `run_id` 前缀条件、让 `0030Z` 承担 `A3a-FD001` 格。
+> **主控未改判**，`0030Z` 仍是 preliminary、`in_gate_a_table=false`、不进 Gate A 表。
 
-**规则（已同步写入 `RESULTS_REGISTRY.md` §3.1，`4a6f703`）**
+**规则**
 
-1. 格 = `(baseline_version, variant, subset, seed)`；准入只要求 `status=ok` 且 `baseline_version=v9`。
-   **`run_id` 前缀不进条件**（主控 2026-11-12 03:0x 更正：前缀是多余的，
-   它想挡的 `1505Z` 已被 `baseline_version=v9` 挡住）。
-2. 同格取**第一个 `ok`**，排序用 `close.json` 的 `closed_utc`（不用字符串序，不用字符串序的 run_id）；
-   `failed` / `aborted` / `unclosed` **不占位**；多个 `ok` 取最早，其余标 `superseded`。
-3. 标 `determinism_only` 的同 seed 重复 run **不进准入候选**（依 revision 42：不进任何 Gate 表）。
-4. 因此 `A3a-FD001` 由 `0030Z` 承担（closed `16:17:15Z`，早于 `1640Z` 的 `16:19:45Z`），
-   调度器把它判为已完成是**正确**的，主表 24/24 不缺格。
-   `0030Z` 的 `val_engine_mean=11.3167` 因此成为该格的 Gate A 证据；
-   `1640Z` 只作确定性证据（与 `0030Z` 的 ckpt/preds 逐字节相同）。
-4. **`baseline_version` 是承重件**：省掉它，`A3a-FD001` 会按「最早 ok」选中 pre-versioning 的
-   `…T1505Z`（10.5455，`audit_verdict=fail`、已 retired）而非 v9 的 `0030Z`（11.3167），差 0.77 RMSE。
+1. 格 = `(baseline_version, variant, subset, seed)`。
+2. `run_id` 必须匹配正则（**落成规则，不用口头描述**）：
 
-**格数纠正**：主表 24 = `{A0, A1, A2, A3a, A4, A5} × 4`（**A3a 替换**原 A3p 四格，不是额外加）；
-A3p 参考臂 4 格（FD001 已完成）；**合计 28 格，待跑 27 格**。
+   ```
+   ^HC-C-{variant}-{subset}-s101-W1(r\d+)?$
+   ```
 
-**`A3p-FD001-W1` 的 note 口径**：与 `0030Z` 逐位相同（同 init、同 seed），**非独立证据，同格只计一次**。
+   只写“前缀 `-W1`”会误纳 `-W1foo`；只写“以 `-W1` 结尾”会把 `r2/r3` 排除。
 
-**按本条实测的当前准入：7 / 24** —— `A0×4`（30.0986 / 26.2874 / 39.9834 / 37.1218）+
-`A1-FD001-W1r2`（11.2806）+ `A1-FD003-W1r2`（12.0306）+ `A3a-FD001`（经 `0030Z`，11.3167）。
-`A3p-FD001-W1`（10.8951）属 frozen 表，不计入主表。
+3. `status=ok`；`failed` / `aborted` / `unclosed` **不占位**；同格多个 `ok` 取 `closed_utc` **最早**，其余标 `superseded`。
+4. **`baseline_version` 是承重件**：省掉它会选中 pre-versioning 的 `…T1505Z`
+   （`val_engine_mean=10.5455`、`audit_verdict=fail`、已 retired）而不是 `0030Z`（11.3167），差 0.77 RMSE。
+5. **`0030Z` / `1640Z` 不在准入内**：`run_id` 形如 `…-s101-20261112T0030Z`，不匹配上述正则，
+   `in_gate_a_table=false`，只进 `CYCLE_DEPENDENCE_STUDY.md` 的 preliminary 小节。
 
-**遗留阻塞：已解除。** 先前担心的 `A3a-FD001` 死格问题随前缀条件删除而消失——
-`0030Z` 直接承担该格，调度器的 `cell_done()` 判它已完成与准入规则一致，无需改动。
+**为什么不用 `0030Z` 顶 `A3a-FD001`（批次效应）**
 
-**发车冻结**：`wave1_init_{A1,A2,A3a,A4,A5}` 五份 init 的骨干键两两比对通过后，才恢复发车。
+`0030Z` 来自 2×2 实验批次，而 A3a 的 FD002–FD004 来自 W1 批次。G2 的判据是「四子集 3/4 同号」，
+**一格来自不同批次会把批次效应混进符号计数**。
+`baseline_version` 承重那条只解决「选哪条 run」，**不能用来把 `0030Z` 提升成 Gate A 证据**——两件事不混。
+
+**主控指令：补跑 `HC-C-A3a-FD001-s101-W1`**
+
+`A3a/FD001` 不空。主控 2026-11-12 下令补跑一条 `HC-C-A3a-FD001-s101-W1`，与 A3a 其余三格同批，
+同一 init（`init_v9_A3p` 的 remap）、同一调度条件。原 §3 那句“FD001 的 A3a 值取 `0030Z`，不重复跑”
+**作废**，改为“另跑 `A3a-FD001-s101-W1`”；`0030Z` 退回 preliminary 身份。
+
+**时钟规则**
+
+时间戳一律以 **a40 为准**。实测 2026-11-12 01:28:20（本地 Windows）对应 a40 01:37:10，**a40 快约 9 分钟**。
+`closed_utc` 全部由 a40 写入，格内排序用 a40 时间、内部自洽；但跨主机比较必须注明时间来源。
+
+**按本条实测的当前准入：7 / 24**
+
+`A0×4`（30.0986 / 26.2874 / 39.9834 / 37.1218）+ `A1-FD001-W1r2`（11.2806）+
+`A1-FD002-W1r2`（11.8031）+ `A1-FD003-W1r2`（12.0306）。**A3a 四格全部未准入**，待补跑。
+
+**发车前置**：五份 `wave1_init_*` 的骨干键两两比对通过（58 张量、10 对全部 `max|diff|=0.000e+00`，
+varying 仅 `cycle_enc.proj.*` / `cycle_enc.knots` / `pe_proj.*`）。此项已完成。
