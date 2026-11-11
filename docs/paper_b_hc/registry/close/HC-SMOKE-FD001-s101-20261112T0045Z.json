@@ -1,0 +1,27 @@
+{
+ "run_id": "HC-SMOKE-FD001-s101-20261112T0045Z",
+ "status": "smoke",
+ "closed_utc": "2026-11-11T16:20:35Z",
+ "epochs_run": 1,
+ "best_epoch": 1,
+ "metrics": {
+  "val_engine_mean_rmse": 62.59307407980715,
+  "val_pooled_rmse": 63.64717174158743,
+  "val_nasa_mean": 1092.4801261404061,
+  "val_mae": 50.7371875,
+  "val_bias": -50.6359375
+ },
+ "main_metric": "val_engine_mean_rmse",
+ "written_by": "run_hc",
+ "artifacts": [
+  "config.json",
+  "manifest.json",
+  "metrics.json",
+  "preds.csv",
+  "train.log",
+  "history.json",
+  "ckpt/best.pt",
+  "launch.json"
+ ],
+ "notes": "smoke run: not evidence"
+}

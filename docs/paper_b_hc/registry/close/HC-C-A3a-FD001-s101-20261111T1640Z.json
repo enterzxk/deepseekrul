@@ -1,0 +1,27 @@
+{
+ "run_id": "HC-C-A3a-FD001-s101-20261111T1640Z",
+ "status": "ok",
+ "closed_utc": "2026-11-11T16:19:45Z",
+ "epochs_run": 37,
+ "best_epoch": 25,
+ "metrics": {
+  "val_engine_mean_rmse": 11.316705661052403,
+  "val_pooled_rmse": 11.933914812579577,
+  "val_nasa_mean": 2.884356008397749,
+  "val_mae": 8.51671875,
+  "val_bias": -0.49546875
+ },
+ "main_metric": "val_engine_mean_rmse",
+ "written_by": "run_hc",
+ "artifacts": [
+  "config.json",
+  "manifest.json",
+  "metrics.json",
+  "preds.csv",
+  "train.log",
+  "history.json",
+  "ckpt/best.pt",
+  "launch.json"
+ ],
+ "notes": "intervention mean|d|=1.486; init_from=experiments/hc/tmp/init_A3p_FD001_s101.pt; init_shared=yes"
+}

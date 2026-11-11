@@ -1,0 +1,53 @@
+{
+ "run_id": "HC-SMOKE-FD001-s101-20261112T0045Z",
+ "stage": "C",
+ "variant": "SMOKE",
+ "subset": "FD001",
+ "seed": 101,
+ "span": 70,
+ "hypothesis": "v9_clean_tree_pipeline_check",
+ "gate": "A",
+ "host": "YNDXTEA0034",
+ "smoke": true,
+ "written_by": "run_hc",
+ "process_start_utc": "2026-11-11T16:20:06Z",
+ "code_md5": {
+  "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
+  "paper_b/training/data.py": "c2ee079f6e60a8b0d0eb608676ff871a",
+  "paper_b/training/train.py": "13ec2fbb75ed09a389e4e979a82e11e6",
+  "paper_b/training/metrics.py": "39202682865d14dc6be5d332ac7a1c16",
+  "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114",
+  "paper_b/hc/config_hc.py": "bffe552fefa49c0e9cff38a31c6cd8ff",
+  "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
+  "paper_b/hc/model_hc.py": "c55eb2b430e2d356a809a0ccbbb3f3f0",
+  "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
+  "paper_b/hc/train_hc.py": "069f8977bee8cf6aa01953c817d01601",
+  "paper_b/hc/run_hc.py": "8784311bebdc6891b59058f278e8d1f8",
+  "paper_b/hc/verify_loop.py": "2c15fcb4293e226102e368c717ef3f3a",
+  "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
+  "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
+  "paper_b/hc/code_lock.py": "45916d9a08c88b40072c03f2127cfd07"
+ },
+ "git_sha": "WORKTREE",
+ "worktree_dirty": false,
+ "baseline_version": "v9",
+ "worktree": {
+  "mode": "lock",
+  "git_sha": "d1e0527e83256e1df9781113ca73761912249b13",
+  "code_lock_sha1": "c2a6242b3ec8ef9c2391d4eb0eb3e16a08cc703f"
+ },
+ "code_lock_git_sha": "d1e0527e83256e1df9781113ca73761912249b13",
+ "data_split": {
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "val_engine_ids_hash": "f81d7f2496c494ca"
+ },
+ "budget": {
+  "epochs": 1,
+  "patience": 1,
+  "budget_override": "smoke: 1 epoch, not evidence",
+  "est_gpu_min": 25
+ },
+ "launched_utc": "2026-11-11T16:20:07Z"
+}

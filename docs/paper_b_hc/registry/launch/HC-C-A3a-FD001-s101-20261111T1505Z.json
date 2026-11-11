@@ -1,0 +1,44 @@
+{
+ "run_id": "HC-C-A3a-FD001-s101-20261111T1505Z",
+ "stage": "C",
+ "variant": "A3a",
+ "subset": "FD001",
+ "seed": 101,
+ "span": 70,
+ "hypothesis": "Fourier cycle at post-norm injection beats the simpler age encodings; this arm fixes the injection point used by A2/A4/A5",
+ "gate": "A",
+ "host": "YNDXTEA0034",
+ "smoke": false,
+ "written_by": "run_hc",
+ "process_start_utc": "2026-11-11T15:12:05Z",
+ "code_md5": {
+  "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
+  "paper_b/training/data.py": "c2ee079f6e60a8b0d0eb608676ff871a",
+  "paper_b/training/train.py": "13ec2fbb75ed09a389e4e979a82e11e6",
+  "paper_b/training/metrics.py": "39202682865d14dc6be5d332ac7a1c16",
+  "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114",
+  "paper_b/hc/config_hc.py": "bffe552fefa49c0e9cff38a31c6cd8ff",
+  "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
+  "paper_b/hc/model_hc.py": "adcbceb901ae59d2bd15bbfc4067fc3f",
+  "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
+  "paper_b/hc/train_hc.py": "3fb058441ffe12b0ece1ff38e11a3027",
+  "paper_b/hc/run_hc.py": "d1c4d87e9456cb801d32ce30801ebf6a",
+  "paper_b/hc/verify_loop.py": "bf3022ba60a804bdbd7b2ead0a38577c",
+  "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
+  "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6"
+ },
+ "git_sha": "WORKTREE (no git on this host)",
+ "data_split": {
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "val_engine_ids_hash": "f81d7f2496c494ca"
+ },
+ "budget": {
+  "epochs": 40,
+  "patience": 12,
+  "budget_override": null,
+  "est_gpu_min": 25
+ },
+ "launched_utc": "2026-11-11T15:12:06Z"
+}

@@ -1,0 +1,16 @@
+{
+ "run_id": "HC-C-A3p-FD001-s101-20261112T0012Z",
+ "status": "failed",
+ "closed_utc": "2026-11-11T15:52:18Z",
+ "epochs_run": 0,
+ "best_epoch": null,
+ "metrics": {},
+ "main_metric": "val_engine_mean_rmse",
+ "written_by": "run_hc",
+ "artifacts": [
+  "config.json",
+  "launch.json",
+  "train.log"
+ ],
+ "notes": "FAILED RuntimeError: init_from mismatch: missing=['pe_proj.bias', 'pe_proj.weight'] unexpected=['cycle_enc.proj.bias', 'cycle_enc.proj.weight'] (after pe_proj<->cycle_enc.proj remap) | last traceback line: RuntimeError: init_from mismatch: missing=['pe_proj.bias', 'pe_proj.weight'] unexpected=['cycle_enc.proj.bias', 'cycle_enc.proj.weight'] (after pe_proj<->cycle_enc.proj remap)"
+}

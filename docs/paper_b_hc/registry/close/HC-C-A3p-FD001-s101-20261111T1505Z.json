@@ -1,0 +1,16 @@
+{
+ "run_id": "HC-C-A3p-FD001-s101-20261111T1505Z",
+ "status": "failed",
+ "closed_utc": "2026-11-11T15:12:20Z",
+ "epochs_run": 0,
+ "best_epoch": null,
+ "metrics": {},
+ "main_metric": "val_engine_mean_rmse",
+ "written_by": "run_hc",
+ "artifacts": [
+  "config.json",
+  "launch.json",
+  "train.log"
+ ],
+ "notes": "FAILED RuntimeError: CUDA error: invalid device ordinal\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.\nFor debugging consider passing CUDA_LAUNCH_BLOCKING=1\nCompile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.\n | last traceback line: Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions."
+}

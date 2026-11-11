@@ -1,17 +1,26 @@
 {
  "run_id": "HC-C-SMOKE-FD001-s101-20261111T1436Z",
  "status": "smoke",
- "closed_utc": "2026-11-11T14:44:00Z",
+ "closed_utc": "2026-11-11T14:44:13Z",
  "epochs_run": 1,
  "best_epoch": 1,
  "metrics": {
-  "val_engine_mean_rmse": 62.5931,
-  "val_pooled_rmse": 63.6472
+  "val_engine_mean_rmse": 62.59307407980715,
+  "val_pooled_rmse": 63.64717174158743,
+  "val_nasa_mean": 1092.4801261404061,
+  "val_mae": 50.7371875,
+  "val_bias": -50.6359375
  },
  "main_metric": "val_engine_mean_rmse",
- "artifacts": ["launch.json", "config.json", "manifest.json", "metrics.json",
-               "preds.csv", "train.log", "history.json", "ckpt/best.pt"],
- "notes": "not evidence: 1 epoch, budget override. Pipeline proof only. Params 115586; Jensen check holds (62.59 <= 63.65); lifetime tertiles 7/7/6; cycle intervention mean|d|=0.133, frac_negative 0.61 (1-epoch model, not interpretable).",
- "retry_of": "HC-C-SMOKE-FD001-s101-20261111T1431Z",
- "retry_reason": "first attempt crashed with RuntimeError in model_hc.encode: cycle term added as (B,D) to a (B,L,D) tensor; fixed with unsqueeze(1)"
+ "artifacts": [
+  "config.json",
+  "manifest.json",
+  "metrics.json",
+  "preds.csv",
+  "train.log",
+  "history.json",
+  "ckpt/best.pt",
+  "launch.json"
+ ],
+ "notes": "smoke run: not evidence"
 }

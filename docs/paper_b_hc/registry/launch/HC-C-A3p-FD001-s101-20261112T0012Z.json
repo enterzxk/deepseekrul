@@ -1,0 +1,53 @@
+{
+ "run_id": "HC-C-A3p-FD001-s101-20261112T0012Z",
+ "stage": "C",
+ "variant": "A3p",
+ "subset": "FD001",
+ "seed": 101,
+ "span": 70,
+ "hypothesis": "A3a_vs_A3p_shared_init_H0_delta_within_single_seed_noise_floor",
+ "gate": "A",
+ "host": "YNDXTEA0034",
+ "smoke": false,
+ "written_by": "run_hc",
+ "process_start_utc": "2026-11-11T15:52:07Z",
+ "code_md5": {
+  "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
+  "paper_b/training/data.py": "c2ee079f6e60a8b0d0eb608676ff871a",
+  "paper_b/training/train.py": "13ec2fbb75ed09a389e4e979a82e11e6",
+  "paper_b/training/metrics.py": "39202682865d14dc6be5d332ac7a1c16",
+  "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114",
+  "paper_b/hc/config_hc.py": "bffe552fefa49c0e9cff38a31c6cd8ff",
+  "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
+  "paper_b/hc/model_hc.py": "c55eb2b430e2d356a809a0ccbbb3f3f0",
+  "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
+  "paper_b/hc/train_hc.py": "821638254856c4f4f50cabeb0e861ccd",
+  "paper_b/hc/run_hc.py": "4e057e9056d32c2a887a98b510f2acd9",
+  "paper_b/hc/verify_loop.py": "111c7be5106a74dc0e1152c68a69308b",
+  "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
+  "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
+  "paper_b/hc/code_lock.py": "e30f3748a2e2529b7fdd322e4a32d211"
+ },
+ "git_sha": "WORKTREE",
+ "worktree_dirty": false,
+ "baseline_version": "v6",
+ "worktree": {
+  "mode": "lock",
+  "git_sha": "6dc83486c869af0e245aa889eeac5db47ca171f1",
+  "code_lock_sha1": "08b0ed46ef4c16cdf8b215ea441cfd4dbe13c9e5"
+ },
+ "code_lock_git_sha": "6dc83486c869af0e245aa889eeac5db47ca171f1",
+ "data_split": {
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "val_engine_ids_hash": "f81d7f2496c494ca"
+ },
+ "budget": {
+  "epochs": 40,
+  "patience": 12,
+  "budget_override": null,
+  "est_gpu_min": 25
+ },
+ "launched_utc": "2026-11-11T15:52:08Z"
+}
