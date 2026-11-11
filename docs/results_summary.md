@@ -683,3 +683,13 @@ pooled. Per-seed authoritative predictions/metrics/checkpoints/configs:
 main-method cells completed and passed independent source/metric audits.
 See STATUS.json and EXECUTION_PROVENANCE.json for numerical/source limits;
 this entry does not replace previous experiments or DSPT results.
+
+### Paper B baseline current-protocol comparability correction — 2026-11-12
+
+The completed public-source baseline matrix is genuine but does not strictly
+match the current desktop DSPT trainer: pooled validation checkpoint
+selection vs per-engine-mean selection; complete vs all-cycle padded
+training windows. Do not use its unified table as current-DSPT matched
+evidence. Dataset/protocol constants match. Dated analysis and all old
+results: docs/paper_b_baselines/PROTOCOL_COMPARISON_20261112.md.
+No historical prediction/config/checkpoint or numerical result was changed.

@@ -186,3 +186,17 @@ launcher provenance and public-result limitations remain explicitly reported.
 The following documentation-only commit records this verified delivery;
 there are no pending experiments for this reproduction task. Resume only
 from the final report and STATUS.json, without rerunning or tuning TEST.
+
+## 2026-11-12 · Current-DSPT protocol comparison correction
+
+Read the live desktop PaperB protocol/current runner and DSPT-HC taskbook.
+Independent audit confirms two substantive mismatches: old baselines use
+pooled validation checkpoint selection and complete training windows;
+current DSPT uses mean per-engine RMSE and all-cycle padded prefixes.
+protocol.json semantics and all12 data SHA256 match. Completed120-run
+training/metric evidence remains valid, but strict current-DSPT matched
+comparison is FAIL. See PROTOCOL_COMPARISON_20261112.md/.json.
+The old report now carries a dated correction; no run/config/checkpoint/
+prediction was changed. This follow-up is an audit, not a new training batch.
+Strict matched comparisons require a separately registered rerun; adding an
+engine-mean number to old selected-checkpoint CSV cannot fix selection.

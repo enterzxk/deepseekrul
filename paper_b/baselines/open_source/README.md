@@ -3,6 +3,13 @@
 This package imports full upstream implementations. It does not edit DSPT,
 Paper A, the frozen Paper B protocol, or previous experiment results.
 
+**2026-11-12 comparison correction:** this recorded batch shares engine
+splits, labels, validation cuts and official-test scoring with DSPT, but its
+pooled validation selection and complete-only training windows differ from
+the current desktop DSPT engine-mean selection/all-cycle prefix construction.
+It is not a strict current-DSPT matched comparison. See
+`docs/paper_b_baselines/PROTOCOL_COMPARISON_20261112.md` before citing results.
+
 ## Source preservation
 
 Run on a networked computer from the repository root:

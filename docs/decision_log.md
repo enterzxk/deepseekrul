@@ -1818,3 +1818,18 @@ gaps are still fully reported. Candidate CPT failure is interface-only.
 Execution: actual120 unique completed runs; final report and checkpoints
 archived; remote/local strict1698-hash audit PASS; independent final PASS.
 Next action: commit and push the authorized isolated branch; no model changes.
+
+## PB-OS-005 · 2026-11-12 · Current-DSPT comparability correction
+
+Target: live desktop PaperB config+training code, not PaperA FINAL_PROTOCOL.
+Decision: classify prior unified batch as shared split/labels/test scoring,
+not strictly current-DSPT training/selection. Independent high-reasoning
+audit confirms pooled-vs-engine-mean selection and complete-vs-prefix
+training-window differences. All12 dataset hashes and protocol JSON
+semantics match; those facts do not make selection code equivalent.
+Preserve all original evidence/status and add prominent report correction.
+Prior SUCCESS means registered reproduction gates, not this new comparison.
+Counterevidence/risks: CSV rescoring cannot recover a different best epoch
+or train on omitted prefixes; do not infer new ranking versus current DSPT.
+No new training/test inference occurred during the audit. Evidence:
+docs/paper_b_baselines/PROTOCOL_COMPARISON_20261112.md/.json.

@@ -1,0 +1,219 @@
+{
+  "audit_date": "2026-11-12",
+  "target_workspace": "C:\\Users\\20562\\Desktop\\deepseek-rul",
+  "target_git_head": "6c405adb99bad3ae890a5bdec218c5fba2cc79a6",
+  "target_source_sha256": {
+    "paper_b/configs/protocol.json": "4c4c8ddaa8089f9bd73d0076136dc42f813974acf70650f3dd50850aa011409c",
+    "paper_b/training/data.py": "d97d9932ace8a0e67ad9ea6720a990764751c0045c92abf9a985757979d24e4f",
+    "paper_b/training/train.py": "a9c9de9940c0fd57e3c761f421179a7e9edb698ea8bfadaf2456a849d495f73b",
+    "paper_b/training/metrics.py": "8d70d13abbdd5c16a2169885a340e929e8ff41760979c95ec5010495c7a2cff6",
+    "docs/paper_b_hc/TASK_BOOK.md": "03d6cb782ddb6e9fa448ea87963316af81c7959bc578edf21c484e6e50b729b4"
+  },
+  "protocol_json_semantically_equal": true,
+  "strict_current_dspt_protocol_match": "FAIL",
+  "mismatches": [
+    "pooled validation selection versus engine-mean RMSE selection",
+    "complete training windows versus all-cycle left-padded prefix training windows"
+  ],
+  "shared_constants": [
+    "split_seed=7",
+    "fold=0",
+    "val_frac=0.2",
+    "cuts=0.4/0.55/0.7/0.85/0.95",
+    "seeds101/202/303",
+    "RULcap125",
+    "NASA Sum",
+    "one official final-cycle prediction per engine"
+  ],
+  "additional_declared_conditions": [
+    "method-specific windows, budgets and precision",
+    "Two-Phase paired-subset pretraining and operating inputs",
+    "FFVE causal smoothing"
+  ],
+  "recomputing_saved_csv_is_sufficient_to_correct_selection": false,
+  "official_test_inference_rerun": false,
+  "source_experiments_modified": false,
+  "same_checkpoint_validation_comparison": [
+    {
+      "model": "aidgn",
+      "subset": "FD001",
+      "seed": 101,
+      "stored_checkpoint_pooled_val_rmse": 11.606537677414213,
+      "same_checkpoint_engine_mean_val_rmse": 10.684176995745329,
+      "identifies_engine_mean_selected_best_epoch": false
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD001",
+      "seed": 101,
+      "stored_checkpoint_pooled_val_rmse": 12.026308026207085,
+      "same_checkpoint_engine_mean_val_rmse": 11.486306756318863,
+      "identifies_engine_mean_selected_best_epoch": false
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD001",
+      "seed": 101,
+      "stored_checkpoint_pooled_val_rmse": 13.56389941588839,
+      "same_checkpoint_engine_mean_val_rmse": 12.617633055411623,
+      "identifies_engine_mean_selected_best_epoch": false
+    },
+    {
+      "model": "ffve",
+      "subset": "FD001",
+      "seed": 101,
+      "stored_checkpoint_pooled_val_rmse": 12.470736504513106,
+      "same_checkpoint_engine_mean_val_rmse": 11.78202009685536,
+      "identifies_engine_mean_selected_best_epoch": false
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD001",
+      "seed": 101,
+      "stored_checkpoint_pooled_val_rmse": 14.358703140561868,
+      "same_checkpoint_engine_mean_val_rmse": 13.40764880940024,
+      "identifies_engine_mean_selected_best_epoch": false
+    }
+  ],
+  "dataset_source": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "dataset_sha256_matches": {
+    "test_FD002.txt": true,
+    "RUL_FD001.txt": true,
+    "RUL_FD004.txt": true,
+    "train_FD004.txt": true,
+    "train_FD001.txt": true,
+    "test_FD003.txt": true,
+    "train_FD002.txt": true,
+    "test_FD004.txt": true,
+    "RUL_FD003.txt": true,
+    "test_FD001.txt": true,
+    "RUL_FD002.txt": true,
+    "train_FD003.txt": true
+  },
+  "training_window_checks": {
+    "FD001": {
+      "train_engine_count": 80,
+      "target_all_cycle_training_windows": 16762,
+      "models": {
+        "aidgn": {
+          "window": 50,
+          "stored_training_windows": 12842,
+          "excluded_early_windows": 3920
+        },
+        "two_phase": {
+          "window": 45,
+          "stored_training_windows": 13242,
+          "excluded_early_windows": 3520
+        },
+        "dual_mixer": {
+          "window": 30,
+          "stored_training_windows": 14442,
+          "excluded_early_windows": 2320
+        },
+        "ffve": {
+          "window": 30,
+          "stored_training_windows": 14442,
+          "excluded_early_windows": 2320
+        },
+        "fcstgnn": {
+          "window": 30,
+          "stored_training_windows": 14442,
+          "excluded_early_windows": 2320
+        }
+      }
+    },
+    "FD002": {
+      "train_engine_count": 208,
+      "target_all_cycle_training_windows": 43251,
+      "models": {
+        "aidgn": {
+          "window": 50,
+          "stored_training_windows": 33059,
+          "excluded_early_windows": 10192
+        },
+        "two_phase": {
+          "window": 45,
+          "stored_training_windows": 34099,
+          "excluded_early_windows": 9152
+        },
+        "dual_mixer": {
+          "window": 30,
+          "stored_training_windows": 37219,
+          "excluded_early_windows": 6032
+        },
+        "ffve": {
+          "window": 30,
+          "stored_training_windows": 37219,
+          "excluded_early_windows": 6032
+        },
+        "fcstgnn": {
+          "window": 50,
+          "stored_training_windows": 33059,
+          "excluded_early_windows": 10192
+        }
+      }
+    },
+    "FD003": {
+      "train_engine_count": 80,
+      "target_all_cycle_training_windows": 20486,
+      "models": {
+        "aidgn": {
+          "window": 50,
+          "stored_training_windows": 16566,
+          "excluded_early_windows": 3920
+        },
+        "two_phase": {
+          "window": 45,
+          "stored_training_windows": 16966,
+          "excluded_early_windows": 3520
+        },
+        "dual_mixer": {
+          "window": 30,
+          "stored_training_windows": 18166,
+          "excluded_early_windows": 2320
+        },
+        "ffve": {
+          "window": 30,
+          "stored_training_windows": 18166,
+          "excluded_early_windows": 2320
+        },
+        "fcstgnn": {
+          "window": 50,
+          "stored_training_windows": 16566,
+          "excluded_early_windows": 3920
+        }
+      }
+    },
+    "FD004": {
+      "train_engine_count": 199,
+      "target_all_cycle_training_windows": 48691,
+      "models": {
+        "aidgn": {
+          "window": 50,
+          "stored_training_windows": 38940,
+          "excluded_early_windows": 9751
+        },
+        "two_phase": {
+          "window": 45,
+          "stored_training_windows": 39935,
+          "excluded_early_windows": 8756
+        },
+        "dual_mixer": {
+          "window": 30,
+          "stored_training_windows": 42920,
+          "excluded_early_windows": 5771
+        },
+        "ffve": {
+          "window": 30,
+          "stored_training_windows": 42920,
+          "excluded_early_windows": 5771
+        },
+        "fcstgnn": {
+          "window": 50,
+          "stored_training_windows": 38940,
+          "excluded_early_windows": 9751
+        }
+      }
+    }
+  }
+}

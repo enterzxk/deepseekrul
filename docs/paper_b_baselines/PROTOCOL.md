@@ -93,3 +93,14 @@ Report parameter count including frozen parameters and separately trainable
 count; total training wall time includes pretraining. Aggregate all three
 seeds as mean, sample SD and Student-t 95% CI; keep per-seed rows. Missing
 published metrics remain missing, never transcribed from unrelated papers.
+
+## Dated current-DSPT comparison clarification (2026-11-12)
+
+The registered rules above describe the completed historical baseline batch.
+The live desktop DSPT trainer now selects by mean per-engine validation RMSE
+and trains all cycles with left-padded early prefixes. This batch selects by
+pooled validation RMSE and uses complete training windows. It therefore does
+not satisfy strict current-DSPT training/selection equivalence, despite the
+same protocol constants, splits, dataset hashes, capped labels and official
+test scoring. See PROTOCOL_COMPARISON_20261112.md/.json. No historical run,
+checkpoint, prediction or configuration was changed by this clarification.

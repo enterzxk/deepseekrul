@@ -94,6 +94,7 @@ def generate(artifacts, source_audit, report_dir):
     lines = ["# Paper B：公开源码强基线复现报告", "",
              "数据与代码审计日期：2026-11-11。执行人为 Codex；三个独立 `gpt-6.1-sol/high` 子代理只读审计。",
              "冻结 DSPT、Paper A、旧实验均未修改。以下数字全部由保存的真实预测与指标文件生成；缺测不补填。", "",
+             "> **2026-11-12 协议更正：** 本报告的旧 `unified` 批次共享DSPT划分/标签/测试口径，但不严格匹配当前目录的发动机平均RMSE选模及全部周期训练窗口规则。SUCCESS判定不代表通过当前协议对照。见[逐项核查与结果](PROTOCOL_COMPARISON_20261112.md)。", "",
              "## 1. 复现判定与证据覆盖", "",
              "SUCCESS/PARTIAL/FAILED 的门见 [PROTOCOL.md](PROTOCOL.md)。SUCCESS 要求两协议各12次完整运行、",
              "审计通过，以及每个子集的作者公开 RMSE 相对差在±10%以内。PARTIAL 不等于模型被简化：",
