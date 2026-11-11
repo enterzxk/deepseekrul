@@ -21,12 +21,19 @@ A3a 是敏感性臂，不进第一波（已有 0030Z）；A3b/A3c 不在第一�
 | A3p | `pe_proj` Linear(8,64) | `experiments/hc/tmp/init_v9_A3p_s101.pt`（现成，sha `336074a6…`） |
 | A1 | 无 | `wave1_init_A1_s101.pt`（仅骨干） |
 | A2 | `ScalarCycle` Linear(1,64) | `wave1_init_A2_s101.pt`（骨干 + 自身 Linear(1,64)） |
-| A4 | `ScalarCycle(log)` Linear(1,64) | `wave1_init_A4_s101.pt` |
+| A4 | `ScalarCycle(log)` Linear(1,64) | `wave1_init_A4_s101.pt`（骨干 + **与 A2 同一份** Linear(1,64) 抽样） |
 | A5 | `SplineAge` Linear(9,64) | `wave1_init_A5_s101.pt` |
-| A0 | `CycleOnly`（无骨干） | 无 init（自身 seed 初始化，参考线） |
+| A0 | `CycleOnly`（无骨干） | 无 init（自身 seed 初始化，**参考线，不进 treatment 比较**） |
 
 生成器放 `experiments/hc/tmp/make_wave1_inits.py`（不在 15-blob 锁内，不碰 `paper_b/hc/`），
 产物 sha256 写入各自 manifest 的 `init_sha256`。
+
+两条额外约束（2026-11-12 主控补充）：
+
+- **A2 / A4 共用同一次 `Linear(1,64)` 抽样**：两者只差 `log1p` 变换，若循环投影各自随机，
+  A2−A4 的差里会混入投影初始化噪声。
+- **A0 是参考线**：它没有共享骨干，不参与「cycle 编码优劣」的 treatment 比较，只用来回答
+  「这个 benchmark 能不能仅靠年龄解」。
 
 ## 3. 24 格清单
 
@@ -83,3 +90,27 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 
 - 未生成 init 文件（等发车指令）。
 - 未启动任何训练。
+
+## 9. Gate A 可执行判据（预注册，阈值写死，不含 X）
+
+主指标一律 `val_engine_mean_rmse`（发动机级等权平均，select-on-val）；单 seed，只判方向，
+不作显著性声明。所有比较基于 24 格同骨干、同 seed、同预算（40 epoch / patience 12）。
+
+定义：`Δ(A→B) = (RMSE_A − RMSE_B) / RMSE_A`，正值表示 B 更好。
+
+| # | 判据 | 阈值（写死） | 结论 |
+|---|---|---|---|
+| G1 | Cycle 是否有用：A2 相对 A1 | 四子集 `Δ(A1→A2)` 均值 **≥ 1.0%**，且无子集 **< −2.0%** | 过 → Cycle 有增益；否则「cycle 无可测增益」 |
+| G2 | Fourier 是否优于简单年龄：A3p 相对 A2 | `Δ(A2→A3p)` 均值 **≥ 1.0%**，且至少 **3/4** 子集同号 | 过 → Fourier 形式有额外贡献；否则按任务书 §9「不得把 Fourier 编码当创新点」 |
+| G3 | 年龄捷径检查：A0 相对 A1 | `Δ(A1→A0)` **≤ −10.0%**（A0 明显更差） | 不过 → benchmark 可由年龄单独解，cycle 结论作废 |
+| G4 | 干预方向：`cycle_intervention` | 所有带 cycle 的臂 `mean_abs_delta ≥ 0.5` 且 `frac_negative ≥ 0.5`；A1 必须 `mean_abs_delta = 0` | 不过 → 该臂的 cycle 路径未被模型使用，该臂结论作废 |
+| G5 | 方向稳定性 | 四子集上 G1/G2 的符号至少 **3/4** 一致 | 不过 → 只作子集条件陈述，不进主表 |
+
+补充规则：
+
+- **R0 发车即验**：`HC-C-A3p-FD001-s101-W1` 必须复现 `HC-C-A3p-FD001-s101-20261112T0030Z`
+  （同 init sha `336074a6…`、`val_engine_mean_rmse = 10.8951`）。不一致 → **立即停波**，先查
+  init/数据/代码指纹，不允许继续跑完 24 格。
+- **R1 单 seed 限制**：以上只判方向；「显著」一律留给 Gate A 第二波的 3 seed。
+- **R2 不挑子集**：G1–G5 必须报四子集全表，禁止只报最好子集。
+- **R3 A0 排除**：A0 只进 G3，不进 G1/G2 的 treatment 比较。
