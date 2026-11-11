@@ -909,7 +909,7 @@ RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历�
 
 **冻结**：本轮改完、`check_runs.py` 0 flag、提交后停手。
 
-### 12.11 Gate 表准入：格 + `-W1(rN)?` 正则 + `status=ok` + `baseline_version` 承重（2026-11-12 01:28 本地 / 01:37 a40）
+### 12.11 Gate 表准入：格 + `-W1(rN)?` 正则 + `status=ok`（`baseline_version` 作第二道锁）（2026-11-12 01:28 本地 / 01:37 a40）
 
 > **本节重写。** 上一版（commit `dadad49`）有两个错误，整段作废：
 > ① 写了未来时间戳（“02:5x 生效”“03:0x 更正”），而写入时本地才 01:2x——引用未来时刻的裁定不成立；
@@ -928,8 +928,12 @@ RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历�
    只写“前缀 `-W1`”会误纳 `-W1foo`；只写“以 `-W1` 结尾”会把 `r2/r3` 排除。
 
 3. `status=ok`；`failed` / `aborted` / `unclosed` **不占位**；同格多个 `ok` 取 `closed_utc` **最早**，其余标 `superseded`。
-4. **`baseline_version` 是承重件**：省掉它会选中 pre-versioning 的 `…T1505Z`
-   （`val_engine_mean=10.5455`、`audit_verdict=fail`、已 retired）而不是 `0030Z`（11.3167），差 0.77 RMSE。
+4. **`baseline_version` 是第二道锁，不是承重件**（勘误见本节末）：`…T1505Z` 在台账里是
+   `val_engine_mean=10.5455`、`audit_verdict=fail`、`baseline_version=unknown`（文件无该字段）、
+   **`retired_version=false`（未标 retired）**，比 `0030Z`（11.3167）低 0.77 RMSE。
+   但它**本来就被第 2 条正则挡住**（`run_id` 以 `-20261111T1505Z` 结尾，不是 `-W1`），
+   所以真正拦住它的是正则；`baseline_version` 只对「同样是 `-W1` 但跑在旧版本上」的 run 生效。
+   上一版写的「已 retired」与台账不符——`retired` 只给版本号复用的 v6/v7。
 5. **`0030Z` / `1640Z` 不在准入内**：`run_id` 形如 `…-s101-20261112T0030Z`，不匹配上述正则，
    `in_gate_a_table=false`，只进 `CYCLE_DEPENDENCE_STUDY.md` 的 preliminary 小节。
 
@@ -950,10 +954,39 @@ RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历�
 时间戳一律以 **a40 为准**。实测 2026-11-12 01:28:20（本地 Windows）对应 a40 01:37:10，**a40 快约 9 分钟**。
 `closed_utc` 全部由 a40 写入，格内排序用 a40 时间、内部自洽；但跨主机比较必须注明时间来源。
 
-**按本条实测的当前准入：7 / 24**
+**按本条实测的当前准入：9 / 24（2026-11-12 01:41 a40）**
 
 `A0×4`（30.0986 / 26.2874 / 39.9834 / 37.1218）+ `A1-FD001-W1r2`（11.2806）+
-`A1-FD002-W1r2`（11.8031）+ `A1-FD003-W1r2`（12.0306）。**A3a 四格全部未准入**，待补跑。
+`A1-FD002-W1r2`（11.8031）+ `A1-FD003-W1r2`（12.0306）+ `A2-FD002-W1`（10.2074）+
+`A3p-FD001-W1`（10.8951）。**A3a 四格全部未准入**，待补跑。
+
+> 这 9 格**尚未写入 `runs.csv`**（台账仍 50 行，全表 `in_gate_a_table=false`）。按冻结令等 24 格收口
+> 一次性登记，本节是准入规则的 dry-run 结果，不是台账状态。
+
+> **勘误（2026-11-12 01:42 本地 / 01:51 a40，台账管理员）**：上一版写「7 / 24」漏了两格——
+> `A3p-FD001-W1`（第 13 格，`10.895096839289387`，与 `A3p-…0030Z` 逐位相同，非独立证据但占该格）
+> 和 `A2-FD002-W1`（`10.207390787535077`，01:38Z 之后才 close）。
+> 本节上一版由非台账管理员写入（`dadad49` / `2a00729`），此处按 a40 实测与台账事实勘误。
 
 **发车前置**：五份 `wave1_init_*` 的骨干键两两比对通过（58 张量、10 对全部 `max|diff|=0.000e+00`，
 varying 仅 `cycle_enc.proj.*` / `cycle_enc.knots` / `pe_proj.*`）。此项已完成。
+
+> **init 溯源的一点保留**：`init_v9_A3p_s101.pt` 的 wrapper 里 `git_sha="WORKTREE"`（不是提交号），
+> 它的 v9 身份靠 `code_md5` 15/15 与 `code_lock.json` 一致来证；四份 `wave1_init_*` 的 wrapper
+> **没有 `code_md5` / `baseline_version` / `git_sha`**，只有 `created_utc` / `note` / `seed` / `subset` / `variant`。
+> 所以「五份 init 同骨干」是实测成立的，但「四份 init 属于 v9」只能由生成器 + 骨干相等推出，不能写成「已锁」。
+
+**早停核验（`A1-FD002-W1r2` 只有 20 epoch，主控 2026-11-12 要求核）**
+
+机制正常，不是被 kill：`patience=12`、`best_epoch=8`、`epochs_run=20`，**8+12=20 恰好触发早停**。
+`close.metrics.val_engine_mean_rmse` 与 `history.json` 第 8 轮的最小值逐位相同（`11.80312421699082`）。
+
+同批 9 条 ok run 里 7 条是 `epochs = best_epoch + 12` 的精确早停；两条 A0（FD001 / FD003）跑到
+40 上限未触发，因为其最优点出现得晚。所以「20 epoch 偏少」是**该格收敛更早**，不是异常。
+
+但这一格仍要记一笔：第 8 轮之后 12 轮没有一轮低于 `12.0698`（第 14 轮），第 13 轮还冲到 `16.7728`。
+即该格数值取自单一 epoch 的最小值，与次优差 `0.267` RMSE，稳定性弱于 `A1-FD001`（37 轮、best 25）。
+登记时写进 `registry_note`，不改 `audit_verdict`。
+
+> **待外部修改**：`GATE_A_WAVE1_PLAN.md` §3 那句「FD001 的 A3a 值取 `0030Z`，不重复跑」
+> 不在台账管理员写入边界内（本 Bot 只写 `runs.csv` / `RESULTS_INDEX.md` / 本审计文档），需由该文件负责人改。
