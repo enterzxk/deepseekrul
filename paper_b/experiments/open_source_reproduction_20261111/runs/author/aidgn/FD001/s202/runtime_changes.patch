@@ -1,0 +1,53 @@
+--- Model/__init__.py.upstream
++++ Model/__init__.py.runtime
+@@ -1,15 +1 @@
+-from Model.Transformer import Transformer
+-from Model.CNN import CNN
+-from Model.Transfomer_domain_adaptive import Transformer_domain
+-from Model.FCSTGNN import FC_STGNN_RUL
+-from Model.AGCNN import AGCNN
+-from Model.LeNet import LeNet
+-from Model.LSTM import LSTM
+-from Model.Autoformer import Autoformer
+-from Model.PatchTST import PatchTST
+-from Model.Dual_Mixer import DualMLPMixer
+ from Model.AIDGN import AIDGN
+-from Model.AIGCN import AIGCN #Old version to test with old weights of N_CMAPSS
+-from Model.PINN import PINN
+-from Model.CDSG import CDSG
+-from Model.SDAGCN import SDAGCN
+--- FD001_3_train.py.upstream
++++ FD001_3_train.py.runtime
+@@ -2,7 +2,7 @@
+ import os
+ import warnings
+ 
+-from Experiment.Experiment_PINN import Exp_PINN
++# optional unselected task import omitted: from Experiment.Experiment_PINN import Exp_PINN
+ from configs.data_model_configs import update_namespace
+ from configs.hparams import get_configs
+ 
+--- FD001_3_train.py.upstream
++++ FD001_3_train.py.runtime
+@@ -9,7 +9,7 @@
+ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+ warnings.filterwarnings("ignore")
+ from Experiment.Experiment import Exp
+-from Experiment.Experiment_DA import Exp_DA
++# optional unselected task import omitted: from Experiment.Experiment_DA import Exp_DA
+ 
+ 
+ """
+--- Experiment.py.upstream
++++ Experiment.py.runtime
+@@ -14,7 +14,7 @@
+ import matplotlib.pyplot as plt
+ from sklearn.metrics import mean_squared_error
+ import yaml
+-from N_CMAPSS_Related.N_CMAPSS_load_data import get_n_cmapss_data_, N_CMAPSSData
++# unselected N-CMAPSS import omitted; C-MAPSS implementation unchanged
+ from CMAPSS_Related.load_data_CMAPSS import get_cmapss_data_
+ from CMAPSS_Related.CMAPSS_Dataset import CMAPSSData
+ 
+
+AST main-variable overrides: {}

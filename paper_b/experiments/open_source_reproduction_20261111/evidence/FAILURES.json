@@ -1,0 +1,17 @@
+[
+  {
+    "attempt": "v3/author/fcstgnn/FD001/s101",
+    "evidence": "evidence/failed_attempts/v3/author/fcstgnn/FD001/s101",
+    "error": "Traceback (most recent call last):\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 191, in run\n    ns = execute(entry, {}, changes)\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 56, in execute\n    exec(compile(revised, str(path), \"exec\"), namespace)\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/fcstgnn/FD001/s101/runtime_source/FC_STGNN/main_RUL.py\", line 243, in <module>\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/fcstgnn/FD001/s101/runtime_source/FC_STGNN/main_RUL.py\", line 18, in __init__\nTypeError: Can't instantiate abstract class CMPDataIter_graph with abstract method __iter__\n"
+  },
+  {
+    "attempt": "v3/author/ffve/FD001/s101",
+    "evidence": "evidence/failed_attempts/v3/author/ffve/FD001/s101",
+    "error": "Traceback (most recent call last):\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 175, in run\n    ns = execute(work / \"main.py\", {}, changes)\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 56, in execute\n    exec(compile(revised, str(path), \"exec\"), namespace)\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/ffve/FD001/s101/runtime_source/main.py\", line 1, in <module>\n    import utils\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/ffve/FD001/s101/runtime_source/utils.py\", line 9, in <module>\n    import imageio\nModuleNotFoundError: No module named 'imageio'\n"
+  },
+  {
+    "attempt": "v1/author/aidgn/FD001/s101",
+    "evidence": "evidence/failed_attempts/v1/author/aidgn/FD001/s101",
+    "error": "Traceback (most recent call last):\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 118, in run\n    execute(entry, {}, changes)\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py\", line 50, in execute\n    exec(compile(revised, str(path), \"exec\"), namespace)\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/FD001_3_train.py\", line 7, in <module>\n    from configs.hparams import get_configs\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/Experiment/Experiment.py\", line 17, in <module>\n    from N_CMAPSS_Related.N_CMAPSS_load_data import get_n_cmapss_data_, N_CMAPSSData\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/N_CMAPSS_load_data.py\", line 10, in <module>\n    from .sample_creator_auto import sampler\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/sample_creator_auto.py\", line 10, in <module>\n    from .N_CMAPSS_create_sample import df_all_creator, df_train_creator, df_test_creator, Input_Gen\n  File \"/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/N_CMAPSS_create_sample.py\", line 7, in <module>\n    import h5py\nModuleNotFoundError: No module named 'h5py'\n"
+  }
+]

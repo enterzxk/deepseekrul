@@ -54,6 +54,7 @@ def generate(artifacts, source_audit, report_dir):
     summaries = aggregate(table)
     write_json(artifacts / "summary.json", summaries)
     lookup = {(x["protocol"], x["model"], x["subset"]): x for x in summaries}
+    provenance = json.loads((artifacts / "evidence/EXECUTION_PROVENANCE.json").read_text())
     for protocol in ["author", "unified"]:
         table[table.protocol == protocol].to_csv(report_dir / f"{protocol}_per_seed.csv", index=False)
     states = {}
@@ -80,6 +81,9 @@ def generate(artifacts, source_audit, report_dir):
                 reasons.append("published RMSE ±10% gate not met on every subset")
         if model == "dual_mixer":
             reasons.append("public-code versus preprint hyperparameters differ; paper result is normalized/all-window")
+        missing_source = [r for r in provenance["author_runs"] if r["model"] == model and r["status"] != "EXACT_SOURCE_RETAINED"]
+        if missing_source:
+            reasons.append(f"exact historical launcher source missing/unrecorded for {len(missing_source)} author runs; upstream/core/runtime patches retained")
         state = "SUCCESS" if not reasons else ("PARTIAL" if len(author) or len(unified) or not matrix_finished else "FAILED")
         states[model] = {"status": state, "author_runs": len(author), "unified_runs": len(unified),
                          "reasons": reasons, "author_rmse_relative_gaps": gaps}
@@ -181,6 +185,7 @@ def generate(artifacts, source_audit, report_dir):
                   "这些retained-engine endpoint文件只作附录，不进入完整官方TEST表。统一协议保留全部发动机。", "",
                   "## 5. DSPT匹配的统一协议：官方TEST", "",
                   "相同engine-ID划分（80/20，split_seed7/fold0）、seeds101/202/303、cap125、cycles输出、NASA Sum。",
+                  "NASA定义：d=预测cycles−真实cycles；逐机d<0取exp(−d/13)−1，否则exp(d/10)−1，最后求和。",
                   "Validation为每个独立验证机生命周期40/55/70/85/95%五截断点。所有统计仅fit训练机。按validation选checkpoint，",
                   "保存config/source/checkpoint freeze后才允许读取official test；访问审计禁止训练期读test或RUL文件。",
                   "统一输入采用DSPT的训练机拟合KMeans(k=6)工况簇+sensor z-score；FD001/3的六个簇并非六种真实工况。短验证/测试历史左零填充，训练使用完整方法窗口。",
@@ -225,6 +230,12 @@ def generate(artifacts, source_audit, report_dir):
                   f"本次共收集并独立复算 **{len(table)}** 次完整训练。所有数字源于逐run checkpoint/预测/配置；",
                   "RMSE与NASA由独立math.fsum/expm1实现复算，checkpoint/config hash核对，权重有限性检查，统一engine数量与官方标签核对。",
                   "20组真实train-only前向/反向检查及最终FFVE配置复检均有原始日志。原始失败、初始错误导出与修正链不删除。", "",
+                  f"历史执行器证据：作者协议{len(provenance['author_runs'])}次中，{provenance['exact_source_retained']}次保留了与config记录哈希完全一致的launcher源码；",
+                  f"{provenance['exact_source_missing']}次有历史launcher哈希但未找回完全匹配文本，{provenance['runner_hash_not_recorded']}次早期config未记录该哈希。",
+                  "已从Git与初始部署的纯文本差异中按精确SHA恢复两版自身脚本；未执行候选文本或改写原config。缺口逐run列于",
+                  "[EXECUTION_PROVENANCE.json](../../paper_b/experiments/open_source_reproduction_20261111/evidence/EXECUTION_PROVENANCE.json)。",
+                  "固定上游代码、实际runtime patch、checkpoint及预测均保留，但不将这20次声称为完整逐字节launcher追溯；相关方法判为PARTIAL。",
+                  "统一协议60次的四个冻结核心文件均有config哈希并经独立核对。", "",
                   "主要产物：", "",
                   "- [逐run记录](../../paper_b/experiments/open_source_reproduction_20261111/runs.csv)",
                   "- [指标与holdout审计](../../paper_b/experiments/open_source_reproduction_20261111/metric_audit.json)",

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 191, in run
+    ns = execute(entry, {}, changes)
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 56, in execute
+    exec(compile(revised, str(path), "exec"), namespace)
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/fcstgnn/FD001/s101/runtime_source/FC_STGNN/main_RUL.py", line 243, in <module>
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/fcstgnn/FD001/s101/runtime_source/FC_STGNN/main_RUL.py", line 18, in __init__
+TypeError: Can't instantiate abstract class CMPDataIter_graph with abstract method __iter__

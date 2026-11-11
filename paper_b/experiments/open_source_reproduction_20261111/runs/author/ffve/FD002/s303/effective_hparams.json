@@ -1,0 +1,21 @@
+{
+  "save_dir": "/home/yndx/paper_b_public_baselines_20261111/experiments/v4/author/ffve/FD002/s303/author_output",
+  "dataset": "FD002",
+  "itr": 1,
+  "threshold": 125,
+  "latent_dim": 3,
+  "batch_size": 128,
+  "lr": 0.001,
+  "early_stopping_with_loss": "val_rmse",
+  "patience": 10,
+  "device": "cuda:0",
+  "e_layers": 2,
+  "norm": false,
+  "fac_C": true,
+  "short_res": true,
+  "long_res": 0,
+  "window": 30,
+  "smoothing_alpha": 0.1,
+  "max_epochs": 100000,
+  "epochs_run": 25
+}

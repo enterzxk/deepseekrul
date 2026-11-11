@@ -1,0 +1,25 @@
+{
+  "official_test_forward_executed": false,
+  "real_artifact_manifest_unchanged": true,
+  "checks": [
+    {
+      "case": "real_complete_120",
+      "result": "PASS"
+    },
+    {
+      "case": "missing_registered_run",
+      "result": "REJECTED",
+      "assertion": "incomplete final matrix: 119/120"
+    },
+    {
+      "case": "row_checkpoint_hash",
+      "result": "REJECTED",
+      "assertion": "(PosixPath('<isolated_fixture>/runs/author/aidgn/FD001/s101'), 'checkpoint_sha256')"
+    },
+    {
+      "case": "stale_summary_mean",
+      "result": "REJECTED",
+      "assertion": "(('author', 'aidgn', 'FD001'), 'rmse')"
+    }
+  ]
+}

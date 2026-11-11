@@ -1,0 +1,16 @@
+{
+  "length": 30,
+  "negs": 5,
+  "bs": 1024,
+  "mixer_layer_num": 6,
+  "hidden_dim": 32,
+  "dropout": 0,
+  "label_norm": true,
+  "contra_training": true,
+  "subset": "FD003",
+  "lr": 0.001,
+  "epochs": 100,
+  "patience": 5,
+  "negative_thresh": 0.5,
+  "negative_std": 0.3
+}

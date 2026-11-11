@@ -56,3 +56,14 @@
 **对 D021 草案的净影响**：第一版「识别边界」框架作废（见 `failures.md` F001）。
 第二版收窄为「协议算术下界 + 后果量化 + ICC 可复现性 + 文献审计」的测量学审计，
 并正面回答 HACC 反驳（草案 §2.3）。
+
+## Paper B pinned public-source baseline audit — 2026-11-11
+
+AIDGN-RUL (10.1109/TII.2026.3694202), Two-Phase Attention
+(10.1109/TIM.2025.3576953), Dual-Mixer/FSGRI (10.1016/j.ress.2024.110398),
+FFVE (10.1016/j.aei.2023.102316), FC-STGNN (10.1609/aaai.v38i14.29500),
+and sixth candidate CPT (10.1088/2631-8695/ae88b8) have commit-pinned source
+audits. Identity, official-code links, public checkpoint inventory, original
+protocol and verified/missing published results are indexed in
+`docs/paper_b_baselines/SOURCE_AUDIT.json`; do not fill missing tables from
+unrelated papers. Full baseline report: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.

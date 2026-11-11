@@ -1,0 +1,147 @@
+{
+  "ll1.0.weight": {
+    "shape": [
+      10,
+      50
+    ],
+    "dtype": "torch.float32"
+  },
+  "ll1.0.bias": {
+    "shape": [
+      10
+    ],
+    "dtype": "torch.float32"
+  },
+  "ll2.0.weight": {
+    "shape": [
+      10,
+      50
+    ],
+    "dtype": "torch.float32"
+  },
+  "ll2.0.bias": {
+    "shape": [
+      10
+    ],
+    "dtype": "torch.float32"
+  },
+  "m_gate1.0.0.weight": {
+    "shape": [
+      1,
+      60
+    ],
+    "dtype": "torch.float32"
+  },
+  "m_gate1.0.0.bias": {
+    "shape": [
+      1
+    ],
+    "dtype": "torch.float32"
+  },
+  "m_gate2.0.0.weight": {
+    "shape": [
+      1,
+      60
+    ],
+    "dtype": "torch.float32"
+  },
+  "m_gate2.0.0.bias": {
+    "shape": [
+      1
+    ],
+    "dtype": "torch.float32"
+  },
+  "gconv.0.mlp.mlp.weight": {
+    "shape": [
+      64,
+      100,
+      1,
+      1
+    ],
+    "dtype": "torch.float32"
+  },
+  "gconv.0.mlp.mlp.bias": {
+    "shape": [
+      64
+    ],
+    "dtype": "torch.float32"
+  },
+  "project.weight": {
+    "shape": [
+      10,
+      50
+    ],
+    "dtype": "torch.float32"
+  },
+  "project.bias": {
+    "shape": [
+      10
+    ],
+    "dtype": "torch.float32"
+  },
+  "temporal_agg.0.weight": {
+    "shape": [
+      64,
+      64
+    ],
+    "dtype": "torch.float32"
+  },
+  "temporal_agg.0.bias": {
+    "shape": [
+      64
+    ],
+    "dtype": "torch.float32"
+  },
+  "decoder.0.weight": {
+    "shape": [
+      256,
+      64
+    ],
+    "dtype": "torch.float32"
+  },
+  "decoder.0.bias": {
+    "shape": [
+      256
+    ],
+    "dtype": "torch.float32"
+  },
+  "decoder.2.weight": {
+    "shape": [
+      1,
+      256
+    ],
+    "dtype": "torch.float32"
+  },
+  "decoder.2.bias": {
+    "shape": [
+      1
+    ],
+    "dtype": "torch.float32"
+  },
+  "channel_decoder.0.weight": {
+    "shape": [
+      56,
+      14
+    ],
+    "dtype": "torch.float32"
+  },
+  "channel_decoder.0.bias": {
+    "shape": [
+      56
+    ],
+    "dtype": "torch.float32"
+  },
+  "channel_decoder.2.weight": {
+    "shape": [
+      1,
+      56
+    ],
+    "dtype": "torch.float32"
+  },
+  "channel_decoder.2.bias": {
+    "shape": [
+      1
+    ],
+    "dtype": "torch.float32"
+  }
+}

@@ -136,3 +136,63 @@ This is acceptance/evidence code only; no training mathematics changed.
 A separate P2 review tracks missing exact historical harness versions;
 original upstream snapshots and runtime patches survive. Final provenance
 coverage will be disclosed explicitly rather than modifying old configs.
+
+## Lower48 and final full-matrix acceptance
+
+The independent secondary reviewer audited all48 lower-priority trained
+cells: FFVE/FC each12 author(v4) and12 unified(v3). Verdict PASS, no newP1.
+Actual author FFVE epochs18–41, unified12–33; all FC runs41epochs. All48
+checkpoints/configs/finite tensors/stored prediction scores/raw labels and
+all24 unified min-validation checkpoint/freeze/access checks passed.
+The23 fixed upstream files passed hashes; author runtime fixes preserve
+original model bytecode/source and preprocessing AST. Author/unified state
+keys and tensor shapes match per subset. Raw train-engine scaler statistics
+were independently reconstructed; tiny KMeans-center differences <=7.11e-15
+are numerical rounding, not a different engine split.
+
+Reviewer-reported output:
+
+```text
+COUNTS {'upstream_hashed_files': 23, 'author_ffve': 12,
+        'author_fcstgnn': 12, 'unified_ffve': 12, 'unified_fcstgnn': 12}
+FAILURES 0 []
+```
+
+The independent integrity reviewer then executed the complete stdlib gate:
+
+```bash
+python -B paper_b/baselines/open_source/verify_artifacts.py \
+  --root paper_b/experiments/open_source_reproduction_20261111 \
+  --require-complete
+```
+
+Actual output (also independently passed locally after transport):
+
+```text
+PASS: 1698 file hashes and 120 independently recomputed run metrics; complete=True; report rows and summary bound
+```
+
+Independent final cross-check found exactly120 completed remote run IDs,
+no omissions, extra completions or RUNNING claims;40 summary groups and
+60 rows in each protocol export. Report main36 indicator rows match summary.
+All60 unified core hashes match retained exact code. The provenance audit
+was independently recomputed:40 exact author launcher sources,16 historical
+hashes without exact source,4 early configs without runner hash. These20
+retain original upstream/runtime patches/checkpoints/predictions but limit
+AIDGN/Two-Phase/Dual to PARTIAL. Git320a and recovered dbd scripts are saved
+with exact SHA; an additional262144 initial-to-final text candidate search
+found no further historical matches. No candidate script was executed.
+
+Final verdict PASS with disclosed P2 provenance limitation; FFVE/FC SUCCESS,
+AIDGN/Two-Phase/Dual PARTIAL, CPT original pretraining interface probe FAILED.
+No reviewer trained a model or ran a new unified official TEST forward.
+Three file-read events per unified run include provenance hashing and
+must not be described as three test prediction passes. Checkpoint/prediction
+consistency rests on original execution, freeze hashes and saved logs,
+not a second official-test evaluation.
+
+The reproducible adversarial acceptance check also passed: the actual120-run
+artifact set is accepted; isolated copies with119 runs, a corrupt report-row
+checkpoint hash, or a stale summary mean are rejected even after updating
+the transport manifest. Source artifacts are unchanged. Exact commands and
+stdout: audits/final_acceptance_checks.py and its .stdout.json.

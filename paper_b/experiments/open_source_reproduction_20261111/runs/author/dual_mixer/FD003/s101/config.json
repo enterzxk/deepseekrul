@@ -1,0 +1,16 @@
+{
+  "protocol": "author",
+  "model": "dual_mixer",
+  "subset": "FD003",
+  "seed": 101,
+  "source": {
+    "model": "dual_mixer",
+    "repository": "https://github.com/fuen1590/PhmDeepLearningProjects",
+    "commit": "727c020cabba2c6ae96e8f0e28f7f0121b292e81",
+    "manifest_sha256": "45c714d4e818493e3d9c20d63489f0a957ddc6c4251d340add1250e1d0099281"
+  },
+  "data_dir": "/home/yndx/deepseek-rul/data/CMAPSS",
+  "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+  "test_order": "sequential (evaluation ordering only)",
+  "config_sha256": "89a1f074782674607a26148d7c4b9ad962a805a3945d7dd403fc7376eaee51c5"
+}

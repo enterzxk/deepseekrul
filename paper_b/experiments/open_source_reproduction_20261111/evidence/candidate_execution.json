@@ -1,0 +1,24 @@
+{
+  "model": "cpt",
+  "source": {
+    "model": "cpt",
+    "repository": "https://github.com/ZeyU1999/RUL-Prediction",
+    "commit": "0b4a32e8b163709440b9c225ca1b4fffba7f1eea",
+    "manifest_sha256": "5953a01ccf7ffeacd00d9ed93251a73deac64e259359aa75663ed2760afab2f3"
+  },
+  "data": "real FD001 training engines only",
+  "input_shape": [
+    4,
+    40,
+    17
+  ],
+  "training_completed": false,
+  "author_pretrain_callsite": "CMAPSS/run_cmapss.py:261-266",
+  "forward_shape": [
+    4,
+    1
+  ],
+  "status": "FAILED",
+  "reason": "released pretraining interface passes scalar regression output to embedding classifier",
+  "error": "Traceback (most recent call last):\n  File \"/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/probe_candidate.py\", line 30, in <module>\n    net.classifier(representation)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/module.py\", line 1736, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/module.py\", line 1747, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/container.py\", line 250, in forward\n    input = module(input)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/module.py\", line 1736, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/module.py\", line 1747, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/home/yndx/miniconda3/envs/a40_env/lib/python3.9/site-packages/torch/nn/modules/linear.py\", line 125, in forward\n    return F.linear(input, self.weight, self.bias)\nRuntimeError: mat1 and mat2 shapes cannot be multiplied (4x1 and 36x18)\n"
+}

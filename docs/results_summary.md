@@ -672,3 +672,14 @@ FD001 +19.3%、FD002 −7.6%、FD003 +31.6%、FD004 −2.0%。
   且不得用单窗口/引擎计算引擎级覆盖率。
 
 **处置**：D032 的这两条在复现出具体口径前不得再被引用；引用 FEMTO 一律用 33.1 的表述。
+
+## Paper B public-source reproduction — 2026-11-11
+
+The complete public-source baseline task is recorded separately in
+[OPEN_SOURCE_REPRODUCTION_REPORT.md](paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md).
+Author-protocol, validation diagnostics and unified official TEST are never
+pooled. Per-seed authoritative predictions/metrics/checkpoints/configs:
+`paper_b/experiments/open_source_reproduction_20261111/`. All requested
+main-method cells completed and passed independent source/metric audits.
+See STATUS.json and EXECUTION_PROVENANCE.json for numerical/source limits;
+this entry does not replace previous experiments or DSPT results.

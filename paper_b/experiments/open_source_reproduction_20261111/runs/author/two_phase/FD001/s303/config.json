@@ -1,0 +1,16 @@
+{
+  "protocol": "author",
+  "model": "two_phase",
+  "subset": "FD001",
+  "seed": 303,
+  "source": {
+    "model": "two_phase",
+    "repository": "https://github.com/mjliu-advertising/RUL",
+    "commit": "5bd33b2b1bb044ab4be1a8cb67fdf8a5d96d1d0a",
+    "manifest_sha256": "c7cbdd3e7f31a9c053ccf1bbaa0fa28e4103cca32b86b8fb0a1abe1e167cbd16"
+  },
+  "data_dir": "/home/yndx/deepseek-rul/data/CMAPSS",
+  "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+  "test_order": "sequential (evaluation ordering only)",
+  "config_sha256": "745e24b23aeb3659c522ba7138c75c6c92217ba158d6456ca30c47c309ff520a"
+}

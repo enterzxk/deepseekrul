@@ -1,0 +1,20 @@
+{
+  "python": "3.9.25 (main, Nov  3 2025, 22:33:05) \n[GCC 11.2.0]",
+  "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.31",
+  "gpu": "NVIDIA A40",
+  "cuda": "12.1",
+  "cudnn": 90100,
+  "packages": {
+    "torch": "2.5.1+cu121",
+    "numpy": "1.26.4",
+    "pandas": "2.0.3",
+    "scipy": "1.10.1",
+    "scikit-learn": "1.6.1",
+    "einops": "0.8.2",
+    "matplotlib": "3.9.4",
+    "seaborn": "0.13.2",
+    "tqdm": "4.67.3",
+    "PyYAML": "6.0.3"
+  },
+  "driver": "535.230.02"
+}

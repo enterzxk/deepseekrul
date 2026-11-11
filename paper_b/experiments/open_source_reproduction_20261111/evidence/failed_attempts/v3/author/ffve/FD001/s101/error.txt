@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 175, in run
+    ns = execute(work / "main.py", {}, changes)
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 56, in execute
+    exec(compile(revised, str(path), "exec"), namespace)
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/ffve/FD001/s101/runtime_source/main.py", line 1, in <module>
+    import utils
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v3/author/ffve/FD001/s101/runtime_source/utils.py", line 9, in <module>
+    import imageio
+ModuleNotFoundError: No module named 'imageio'

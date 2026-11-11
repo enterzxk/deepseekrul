@@ -1,0 +1,24 @@
+--- experiments.py.upstream
++++ experiments.py.runtime
+@@ -15,7 +15,7 @@
+     Loss = "InfoNCE" if contra else ""
+     model.flag = model_flag
+     net = model
+-    net.set_visual_samples(visual_sample)
++    net.set_visual_samples(None)
+     net.prepare_data(train_set, test_set, val_set, batch_size=batch_size, num_workers=0,
+                      eval_shuffle=False)
+     net.train_model(epoch=100,
+--- trainable.py.upstream
++++ trainable.py.runtime
+@@ -161,7 +161,7 @@
+                     break
+             self.epoch_end()  # callback function
+         end_time = time.time()
+-        self.train_end()  # callback function
++        # plotting-only train_end callback omitted
+         print("Total time spent: %s s" % round(end_time - start_time, 2))
+         self.plot_losses()
+         torch.save(self.state_dict(), self.get_model_result_path() + 'model.pt')
+
+AST main-variable overrides: {"contra_training": "True", "dataset": "cmapss.Subset.FD003"}

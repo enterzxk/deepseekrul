@@ -1,0 +1,22 @@
+{
+  "rmse": 11.16897055676376,
+  "mae": 8.211970348358154,
+  "nasa_sum": 232.2069879267916,
+  "nasa_mean": 2.322069879267916,
+  "bias": 1.0182098960876464,
+  "late_frac": 0.48,
+  "severe_late": 0.18,
+  "max_late": 40.58649444580078,
+  "n": 100,
+  "model": "ffve",
+  "subset": "FD003",
+  "seed": 303,
+  "protocol": "author",
+  "evaluation_unit": "official_test_engine_stochastic_score_draw",
+  "params": 207480,
+  "elapsed_s": 249.0443570613861,
+  "trainable_params": 207480,
+  "config_sha256": "a4e2e76aa618847ed3b5cd0b1896333bedc1983b6099b0c809e024270791d6cd",
+  "checkpoint_sha256": "89ccb474507c74556e2e6fcf0b6bbba064e4c292be336616ac72200ccf5e62ad",
+  "author_reported_rmse_separate_stochastic_draw": 11.785139008807503
+}

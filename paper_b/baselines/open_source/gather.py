@@ -30,7 +30,7 @@ def gather(remote_root, data_dir, target):
     remote_root, target = Path(remote_root).resolve(), Path(target).resolve()
     target.mkdir(parents=True, exist_ok=True)
     # CSV/JSON/checkpoint hashes must survive Windows Git checkouts byte-exact.
-    (target / ".gitattributes").write_text("* -text\n", encoding="utf-8")
+    (target / ".gitattributes").write_text("* -text -whitespace\n", encoding="utf-8")
     rows, audits = [], []
     # Hand-check NASA asymmetry and sum, independently of the training code.
     probe = pd.DataFrame({"y_true": [20.0, 20.0, 20.0], "y_pred": [7.0, 30.0, 20.0]})
@@ -164,6 +164,32 @@ def gather(remote_root, data_dir, target):
         source = deployment / "paper_b/training" / filename
         code_manifest.append({"path": "paper_b/training/" + filename, "sha256": digest(source)})
     write_json(evidence / "execution_code_sha256.json", code_manifest)
+    recovered = ROOT / "execution_history"
+    if recovered.exists():
+        for path in recovered.iterdir():
+            if path.is_file():
+                shutil.copy2(path, history / path.name)
+    versions = {}
+    for path in history.glob("*author*.py"):
+        versions.setdefault(digest(path), []).append(path.relative_to(target).as_posix())
+    provenance = []
+    for row in rows:
+        if row["protocol"] != "author":
+            continue
+        cfg = json.loads((target / row["path"] / "config.json").read_text())
+        runner = cfg.get("runner_sha256")
+        status = "EXACT_SOURCE_RETAINED" if runner in versions else ("HASH_NOT_RECORDED" if runner is None else "EXACT_SOURCE_MISSING")
+        provenance.append({"model": row["model"], "subset": row["subset"], "seed": row["seed"],
+                           "path": row["path"], "runner_sha256": runner, "status": status,
+                           "matching_sources": versions.get(runner, []),
+                           "upstream_snapshot_and_runtime_patch_retained": True})
+    write_json(evidence / "EXECUTION_PROVENANCE.json", {
+        "scope": "author launcher exact source; unified core code hashes audited separately",
+        "known_sources": versions, "author_runs": provenance,
+        "exact_source_retained": sum(x["status"] == "EXACT_SOURCE_RETAINED" for x in provenance),
+        "exact_source_missing": sum(x["status"] == "EXACT_SOURCE_MISSING" for x in provenance),
+        "runner_hash_not_recorded": sum(x["status"] == "HASH_NOT_RECORDED" for x in provenance),
+        "disclosure": "Missing historical launcher text is not replaced by a different source or claimed byte-exact. Original configs are unchanged; upstream/core/runtime patches and trained predictions remain available."})
     # Explicitly retain the failed original import attempt and its traceback.
     failure = remote_root / "v1/author/aidgn/FD001/s101"
     if failure.exists():

@@ -1,0 +1,706 @@
+{
+  "scope": "author launcher exact source; unified core code hashes audited separately",
+  "known_sources": {
+    "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603": [
+      "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+    ],
+    "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec": [
+      "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+    ],
+    "cd829b65ac35dae7f03bd981ce601d4cb180d5f4150ce9684db9e301e7bef9d7": [
+      "evidence/execution_code/initial_author.py"
+    ],
+    "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1": [
+      "evidence/execution_code/final_author.py"
+    ],
+    "f9b4bcdd2aaf5b163e4e1ae8f460b35824d1850dc722e7284efde66788043781": [
+      "evidence/execution_code/final_reconcile_author.py"
+    ]
+  },
+  "author_runs": [
+    {
+      "model": "aidgn",
+      "subset": "FD001",
+      "seed": 101,
+      "path": "runs/author/aidgn/FD001/s101",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD001",
+      "seed": 202,
+      "path": "runs/author/aidgn/FD001/s202",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD001",
+      "seed": 303,
+      "path": "runs/author/aidgn/FD001/s303",
+      "runner_sha256": "9ebec1a5366d5fcb9dfb6b7d52a06af42f88573f46a08ecfabf578537d05ef6f",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD002",
+      "seed": 101,
+      "path": "runs/author/aidgn/FD002/s101",
+      "runner_sha256": "9ebec1a5366d5fcb9dfb6b7d52a06af42f88573f46a08ecfabf578537d05ef6f",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD002",
+      "seed": 202,
+      "path": "runs/author/aidgn/FD002/s202",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD002",
+      "seed": 303,
+      "path": "runs/author/aidgn/FD002/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD003",
+      "seed": 101,
+      "path": "runs/author/aidgn/FD003/s101",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD003",
+      "seed": 202,
+      "path": "runs/author/aidgn/FD003/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD003",
+      "seed": 303,
+      "path": "runs/author/aidgn/FD003/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD004",
+      "seed": 101,
+      "path": "runs/author/aidgn/FD004/s101",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD004",
+      "seed": 202,
+      "path": "runs/author/aidgn/FD004/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "aidgn",
+      "subset": "FD004",
+      "seed": 303,
+      "path": "runs/author/aidgn/FD004/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD001",
+      "seed": 101,
+      "path": "runs/author/two_phase/FD001/s101",
+      "runner_sha256": null,
+      "status": "HASH_NOT_RECORDED",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD001",
+      "seed": 202,
+      "path": "runs/author/two_phase/FD001/s202",
+      "runner_sha256": null,
+      "status": "HASH_NOT_RECORDED",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD001",
+      "seed": 303,
+      "path": "runs/author/two_phase/FD001/s303",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD002",
+      "seed": 101,
+      "path": "runs/author/two_phase/FD002/s101",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD002",
+      "seed": 202,
+      "path": "runs/author/two_phase/FD002/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD002",
+      "seed": 303,
+      "path": "runs/author/two_phase/FD002/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD003",
+      "seed": 101,
+      "path": "runs/author/two_phase/FD003/s101",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD003",
+      "seed": 202,
+      "path": "runs/author/two_phase/FD003/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD003",
+      "seed": 303,
+      "path": "runs/author/two_phase/FD003/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD004",
+      "seed": 101,
+      "path": "runs/author/two_phase/FD004/s101",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD004",
+      "seed": 202,
+      "path": "runs/author/two_phase/FD004/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "two_phase",
+      "subset": "FD004",
+      "seed": 303,
+      "path": "runs/author/two_phase/FD004/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD001",
+      "seed": 101,
+      "path": "runs/author/dual_mixer/FD001/s101",
+      "runner_sha256": null,
+      "status": "HASH_NOT_RECORDED",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD001",
+      "seed": 202,
+      "path": "runs/author/dual_mixer/FD001/s202",
+      "runner_sha256": null,
+      "status": "HASH_NOT_RECORDED",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD001",
+      "seed": 303,
+      "path": "runs/author/dual_mixer/FD001/s303",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD002",
+      "seed": 101,
+      "path": "runs/author/dual_mixer/FD002/s101",
+      "runner_sha256": "113f7be6bc3465042720f27bca9a7aced8999a69cdccedd85e7711868da2f6e2",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD002",
+      "seed": 202,
+      "path": "runs/author/dual_mixer/FD002/s202",
+      "runner_sha256": "9ebec1a5366d5fcb9dfb6b7d52a06af42f88573f46a08ecfabf578537d05ef6f",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD002",
+      "seed": 303,
+      "path": "runs/author/dual_mixer/FD002/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD003",
+      "seed": 101,
+      "path": "runs/author/dual_mixer/FD003/s101",
+      "runner_sha256": "3459fc07245b0e307c0dbd9afb7b7b8235f8f188e75eaf2375191b2050966ace",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD003",
+      "seed": 202,
+      "path": "runs/author/dual_mixer/FD003/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD003",
+      "seed": 303,
+      "path": "runs/author/dual_mixer/FD003/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD004",
+      "seed": 101,
+      "path": "runs/author/dual_mixer/FD004/s101",
+      "runner_sha256": "5622915ab6dd1784a14ce90d957cbafc6a410ec073395957bb8bff7fd601503c",
+      "status": "EXACT_SOURCE_MISSING",
+      "matching_sources": [],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD004",
+      "seed": 202,
+      "path": "runs/author/dual_mixer/FD004/s202",
+      "runner_sha256": "dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_dbd204e1e57e0abcc12f10671750a44de9b7a73e2c8e815db171e4af4206f4ec.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "dual_mixer",
+      "subset": "FD004",
+      "seed": 303,
+      "path": "runs/author/dual_mixer/FD004/s303",
+      "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/author_320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD001",
+      "seed": 101,
+      "path": "runs/author/ffve/FD001/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD001",
+      "seed": 202,
+      "path": "runs/author/ffve/FD001/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD001",
+      "seed": 303,
+      "path": "runs/author/ffve/FD001/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD002",
+      "seed": 101,
+      "path": "runs/author/ffve/FD002/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD002",
+      "seed": 202,
+      "path": "runs/author/ffve/FD002/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD002",
+      "seed": 303,
+      "path": "runs/author/ffve/FD002/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD003",
+      "seed": 101,
+      "path": "runs/author/ffve/FD003/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD003",
+      "seed": 202,
+      "path": "runs/author/ffve/FD003/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD003",
+      "seed": 303,
+      "path": "runs/author/ffve/FD003/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD004",
+      "seed": 101,
+      "path": "runs/author/ffve/FD004/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD004",
+      "seed": 202,
+      "path": "runs/author/ffve/FD004/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "ffve",
+      "subset": "FD004",
+      "seed": 303,
+      "path": "runs/author/ffve/FD004/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD001",
+      "seed": 101,
+      "path": "runs/author/fcstgnn/FD001/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD001",
+      "seed": 202,
+      "path": "runs/author/fcstgnn/FD001/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD001",
+      "seed": 303,
+      "path": "runs/author/fcstgnn/FD001/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD002",
+      "seed": 101,
+      "path": "runs/author/fcstgnn/FD002/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD002",
+      "seed": 202,
+      "path": "runs/author/fcstgnn/FD002/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD002",
+      "seed": 303,
+      "path": "runs/author/fcstgnn/FD002/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD003",
+      "seed": 101,
+      "path": "runs/author/fcstgnn/FD003/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD003",
+      "seed": 202,
+      "path": "runs/author/fcstgnn/FD003/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD003",
+      "seed": 303,
+      "path": "runs/author/fcstgnn/FD003/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD004",
+      "seed": 101,
+      "path": "runs/author/fcstgnn/FD004/s101",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD004",
+      "seed": 202,
+      "path": "runs/author/fcstgnn/FD004/s202",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    },
+    {
+      "model": "fcstgnn",
+      "subset": "FD004",
+      "seed": 303,
+      "path": "runs/author/fcstgnn/FD004/s303",
+      "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+      "status": "EXACT_SOURCE_RETAINED",
+      "matching_sources": [
+        "evidence/execution_code/final_author.py"
+      ],
+      "upstream_snapshot_and_runtime_patch_retained": true
+    }
+  ],
+  "exact_source_retained": 40,
+  "exact_source_missing": 16,
+  "runner_hash_not_recorded": 4,
+  "disclosure": "Missing historical launcher text is not replaced by a different source or claimed byte-exact. Original configs are unchanged; upstream/core/runtime patches and trained predictions remain available."
+}

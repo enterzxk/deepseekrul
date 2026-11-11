@@ -1,0 +1,67 @@
+{
+  "aidgn": {
+    "status": "PARTIAL",
+    "author_runs": 12,
+    "unified_runs": 12,
+    "reasons": [
+      "exact historical launcher source missing/unrecorded for 7 author runs; upstream/core/runtime patches retained"
+    ],
+    "author_rmse_relative_gaps": [
+      -0.007276753231130813,
+      -0.009499352844114737,
+      -0.008187269975404744,
+      0.020169701936010212
+    ]
+  },
+  "two_phase": {
+    "status": "PARTIAL",
+    "author_runs": 12,
+    "unified_runs": 12,
+    "reasons": [
+      "published cycles-RMSE/NASA table unverified or not applicable",
+      "exact historical launcher source missing/unrecorded for 6 author runs; upstream/core/runtime patches retained"
+    ],
+    "author_rmse_relative_gaps": []
+  },
+  "dual_mixer": {
+    "status": "PARTIAL",
+    "author_runs": 12,
+    "unified_runs": 12,
+    "reasons": [
+      "published cycles-RMSE/NASA table unverified or not applicable",
+      "public-code versus preprint hyperparameters differ; paper result is normalized/all-window",
+      "exact historical launcher source missing/unrecorded for 7 author runs; upstream/core/runtime patches retained"
+    ],
+    "author_rmse_relative_gaps": []
+  },
+  "ffve": {
+    "status": "SUCCESS",
+    "author_runs": 12,
+    "unified_runs": 12,
+    "reasons": [],
+    "author_rmse_relative_gaps": [
+      -0.00010771113410516149,
+      0.023722340142556697,
+      0.005857683807194746,
+      0.015475619809133838
+    ]
+  },
+  "fcstgnn": {
+    "status": "SUCCESS",
+    "author_runs": 12,
+    "unified_runs": 12,
+    "reasons": [],
+    "author_rmse_relative_gaps": [
+      0.06627796238205519,
+      0.06990042950502688,
+      0.07367670596673183,
+      0.03424250115949401
+    ]
+  },
+  "cpt": {
+    "status": "FAILED",
+    "scope": "released pretraining interface probe only",
+    "reason": "released pretraining interface passes scalar regression output to embedding classifier",
+    "training_completed": false
+  }
+}

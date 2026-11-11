@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 118, in run
+    execute(entry, {}, changes)
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py", line 50, in execute
+    exec(compile(revised, str(path), "exec"), namespace)
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/FD001_3_train.py", line 7, in <module>
+    from configs.hparams import get_configs
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/Experiment/Experiment.py", line 17, in <module>
+    from N_CMAPSS_Related.N_CMAPSS_load_data import get_n_cmapss_data_, N_CMAPSSData
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/N_CMAPSS_load_data.py", line 10, in <module>
+    from .sample_creator_auto import sampler
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/sample_creator_auto.py", line 10, in <module>
+    from .N_CMAPSS_create_sample import df_all_creator, df_train_creator, df_test_creator, Input_Gen
+  File "/home/yndx/paper_b_public_baselines_20261111/experiments/v1/author/aidgn/FD001/s101/runtime_source/N_CMAPSS_Related/N_CMAPSS_create_sample.py", line 7, in <module>
+    import h5py
+ModuleNotFoundError: No module named 'h5py'

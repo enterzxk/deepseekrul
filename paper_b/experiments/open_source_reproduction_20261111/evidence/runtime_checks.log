@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/yndx/miniconda3/envs/a40_env/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/verify_runtime.py", line 80, in <module>
+    results.append(check(model, subset, a.data_dir))
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/verify_runtime.py", line 18, in check
+    data = prepare(subset, Path(data_dir), cfg)
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/data.py", line 70, in prepare
+    return {"train": windows(tr, tr_values, cfg["window"], average_life, None),
+  File "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/data.py", line 11, in windows
+    seq, op = values[pos], ops[pos]
+TypeError: 'NoneType' object is not subscriptable

@@ -41,3 +41,12 @@
 - 已按 D016 第 8 项产出 `docs/INTERNAL_REPORT_baseline_audit.md`（内部技术报告 + 基线）。
 - 若要做应用稿：先做具体期刊的贡献匹配审查，结论写 `decision_log.md`；不得当作投稿就绪认定。
 - 失败登记：`failures.md` F001（第一版框架被占位）、F002（第二版计数对象混淆）。
+
+## Paper B public-source baselines accepted — 2026-11-11
+
+Full author/unified main-method matrix and three independent audits are
+complete. Strict coverage/report/metric/hash checks passed after transport.
+Report: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.
+PaperA, frozen DSPT and old experiment artifacts were not changed.
+Publication proceeds on `codex/paper-b-open-source-reproduction`; status
+limits and exact provenance are documented rather than hidden.

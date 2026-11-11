@@ -1,0 +1,21 @@
+{
+  "protocol": "author",
+  "model": "fcstgnn",
+  "subset": "FD002",
+  "seed": 202,
+  "source": {
+    "model": "fcstgnn",
+    "repository": "https://github.com/Frank-Wang-oss/FCSTGNN",
+    "commit": "93f2387feff4457b17016b33931a7dc6ec757719",
+    "manifest_sha256": "5e8ad8f8fde862a407c5160407d645248a6f09bf00891458b5987cfc7f3aad07"
+  },
+  "data_dir": "/home/yndx/deepseek-rul/data/CMAPSS",
+  "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+  "test_order": "sequential (evaluation ordering only)",
+  "official_data_sha256": {
+    "train": "dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f",
+    "test": "de7b5bf7e998a985c378488480528b7c02cff1406a46740def362dda8d9b4e02",
+    "RUL": "c851dd96a6ea6998d3c4a8f834d3c8013aa90e93a6ed950dc826ad0655b2906b"
+  },
+  "config_sha256": "00e8ba6d67391647bb0726ee590205d89c13e1d17143e0557994b1a1974bb2e3"
+}

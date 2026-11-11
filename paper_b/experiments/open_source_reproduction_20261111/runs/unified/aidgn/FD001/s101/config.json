@@ -1,0 +1,44 @@
+{
+  "protocol": "unified",
+  "model": "aidgn",
+  "subset": "FD001",
+  "seed": 101,
+  "window": 50,
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "rul_cap": 125,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "source": {
+    "model": "aidgn",
+    "repository": "https://github.com/TCCofWANG/AIDGN-RUL",
+    "commit": "d1ac173b13659af1854cf500a9b1cba8367353fe",
+    "manifest_sha256": "c18ccb46d71266d5f2435e0f8eed8f0e0caaa0689186ea7dccd2b81c79ff63ce"
+  },
+  "window_search": [
+    50
+  ],
+  "window_tuning_trials": 0,
+  "precision": "float32",
+  "epochs": 300,
+  "patience": 12,
+  "batch": 128,
+  "lr": 0.001,
+  "weight_decay": 0.0,
+  "code_sha256": {
+    "unified.py": "b349fd00b4e36e25615db3737b0660f5dcd256d228c74cc46e80f8f765c30214",
+    "adapters.py": "8acf658f7221347f08416de4566e1d6edd16f2523d6d7576f60eeab8f6af5e80",
+    "data.py": "67fd6f448a0d086bbdf9989445fa64dc2fc12b2248e9bab0bead2b345bf0c60d",
+    "common.py": "cb93161499b7d73a2b514943790efd160bf3333d7af8d0700beba236b0f44d6f"
+  },
+  "training_data_sha256": {
+    "FD001": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8"
+  },
+  "config_sha256": "c0dd67c7561328d4173db56f9251d85708444814063152045135b3b5816bdb18"
+}

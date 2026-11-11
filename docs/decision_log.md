@@ -1797,3 +1797,24 @@ are not author-seed-matched; do not imply they are. A stage-reseed control
 would be a new registered experiment and must be separately reported, not a
 replacement selected after test exposure. Preserve original configuration
 hashes; attach an explicit policy annotation instead of rewriting them.
+
+## PB-OS-004 · 2026-11-11 · Final baseline evidence acceptance
+
+Decision: accept the complete120-cell evidence matrix after independent
+source/training/metric audits and strengthened final verification. Separate
+author and unified protocols; do not add test-driven hyperparameter trials.
+Independent P1 findings about report-row/summary binding and exact coverage
+were repaired in verification code and tested on actual artifacts plus
+isolated corrupt fixtures. No training mathematics changed.
+
+Counterevidence/risk:16 historical author runner hashes lack matching source
+and4 early configs lack that hash. Exact upstream/core/runtime patches and
+results exist, but those20 are not claimed fully byte-traceable. Two exact
+launcher versions were recovered by Git/pure-text SHA matching. Explicit
+provenance completeness therefore limits related methods to PARTIAL even
+when RMSE matches. FFVE/FC meet registered numerical/coverage gates; NASA
+gaps are still fully reported. Candidate CPT failure is interface-only.
+
+Execution: actual120 unique completed runs; final report and checkpoints
+archived; remote/local strict1698-hash audit PASS; independent final PASS.
+Next action: commit and push the authorized isolated branch; no model changes.

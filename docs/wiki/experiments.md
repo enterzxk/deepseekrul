@@ -78,3 +78,14 @@
 - **状态**：**未达判定门**。且 eval 覆盖未对齐（CQR 0.869 vs 头 0.891），需按主协议的
   "沿覆盖前沿对齐"重做比较，才能判定第 1、2 条。
 - **下一步**：把比较改成覆盖对齐（扫加性 q 得 (coverage, shortfall) 前沿），再跑 4 子集 × 4 seeds。
+
+## Paper B public-source reproduction matrix — 2026-11-11
+
+Registered objective: full upstream methods under author and DSPT-matched
+protocols; exact engine split/seeds/cap/NASA rules and zero window-search
+budget in `docs/paper_b_baselines/PROTOCOL.md`. Complete matrix, commands,
+per-run config hashes/checkpoints/predictions and evaluation gates:
+`paper_b/experiments/open_source_reproduction_20261111/`.
+Source/training/final metric audits are indexed in
+`docs/paper_b_baselines/INDEPENDENT_AUDIT.md`; authoritative numeric tables
+are generated in OPEN_SOURCE_REPRODUCTION_REPORT.md, not duplicated here.

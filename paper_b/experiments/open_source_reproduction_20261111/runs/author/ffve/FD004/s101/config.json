@@ -1,0 +1,21 @@
+{
+  "protocol": "author",
+  "model": "ffve",
+  "subset": "FD004",
+  "seed": 101,
+  "source": {
+    "model": "ffve",
+    "repository": "https://github.com/LLerDagu/RUL-FFVE",
+    "commit": "dd74264d8bb034e74ed7bc0133325f4e05ecebdf",
+    "manifest_sha256": "0916d2825bfcb68d53f82a5b481ed10b1a8ab0e632d4e160f7a15b8af80b31bc"
+  },
+  "data_dir": "/home/yndx/deepseek-rul/data/CMAPSS",
+  "runner_sha256": "7996579cb56c459d6b81b80b12a2de6300bf90afdb930765cdef9cd0bb515dd1",
+  "test_order": "sequential (evaluation ordering only)",
+  "official_data_sha256": {
+    "train": "27ef6160b6a1dcb2613a88de9c239f763b223f02cdc41dc5cdedc5dc189b6218",
+    "test": "1dc675fff0624bac10786927c6715b37d1297657137400d2b1a3138d777a3ba5",
+    "RUL": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
+  },
+  "config_sha256": "e459a9137d97b7dffa635a23f44d8b42732ed8b4bf9945141c147ff4d5207775"
+}

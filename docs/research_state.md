@@ -899,3 +899,13 @@ Independent Paper B baseline worktree/branch and current recovery commands:
 `docs/paper_b_baselines/RESEARCH_STATE.md`. The user authorized direct Codex
 execution without DSH and GitHub push after reproduction. This entry does
 not change Paper A's stage, model, protocol or existing evidence.
+
+### Paper B public-source baselines: final acceptance — 2026-11-11
+
+All120 requested main-matrix trainings completed in the isolated Codex
+worktree; author and unified official TEST tables remain separate. Full
+report/evidence/status and restore commands: docs/paper_b_baselines/.
+Strict1698-file/120-run verification and three independent audits passed;
+historical launcher-source gaps are explicitly retained as PARTIAL reasons.
+Paper A and frozen DSPT/model/config/protocol paths are unchanged.
+GitHub publication is authorized by the latest user instruction.

@@ -147,3 +147,30 @@ FFVE/FC author runs use v4, then their unified runs use v3. Old blocked
 orchestrator records/logs are archived in experiments/orchestrator_attempt1;
 the stale root completion marker was moved there before retry completion.
 No frozen unified mathematics or test-driven configuration changes occurred.
+
+## Final acceptance complete; publication pending
+
+All120 actual trainings are complete (author60/unified60), exact FD001–004
+byseeds101/202/303 coverage; no extra completed runs or active claims.
+The final120-cell matrix has no blocked methods. Three independent
+gpt-6.1-sol/high reviewers accepted real training, full source/core fidelity,
+train-only scaler/splits, validation selection and saved metric evidence.
+Remote and local strict verification passed1698 hashes and120 metrics,
+including report-row/summary binding. Adversarial acceptance fixtures were
+rejected as intended without changing actual evidence.
+
+Final report: OPEN_SOURCE_REPRODUCTION_REPORT.md. Final artifacts:
+paper_b/experiments/open_source_reproduction_20261111 (~100MB uncompressed;
+maxfile3.36MB). Public-source raw code is restored by pinned manifests,
+not re-uploaded. The source deployment archive is excluded.
+
+Statuses: FFVE/FC SUCCESS; AIDGN/Two-Phase/Dual PARTIAL with exact reasons
+in STATUS.json; candidate CPT FAILED only at released pretraining interface.
+AIDGN numerical RMSE matches the registered gate, but launcher provenance
+for7 authorruns is incomplete. Overall author exact-source coverage40/60,
+16missing historical text and4unrecorded hashes; configs were not altered.
+The complete upstream/core/runtime patches and all predictions survive.
+
+Only remaining authorized task: commit final PaperB deliverables, verify
+staged-byte/frozen-boundary assertions, push this branch to GitHub, and
+record the remote commit. Do not retrain or tune from observed TEST.

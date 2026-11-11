@@ -1,0 +1,46 @@
+{
+  "protocol": "unified",
+  "model": "ffve",
+  "subset": "FD003",
+  "seed": 303,
+  "window": 30,
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "rul_cap": 125,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "source": {
+    "model": "ffve",
+    "repository": "https://github.com/LLerDagu/RUL-FFVE",
+    "commit": "dd74264d8bb034e74ed7bc0133325f4e05ecebdf",
+    "manifest_sha256": "0916d2825bfcb68d53f82a5b481ed10b1a8ab0e632d4e160f7a15b8af80b31bc"
+  },
+  "window_search": [
+    30
+  ],
+  "window_tuning_trials": 0,
+  "precision": "float32",
+  "epochs": 100000,
+  "patience": 10,
+  "batch": 128,
+  "lr": 0.001,
+  "weight_decay": 0.01,
+  "code_sha256": {
+    "unified.py": "b349fd00b4e36e25615db3737b0660f5dcd256d228c74cc46e80f8f765c30214",
+    "adapters.py": "8acf658f7221347f08416de4566e1d6edd16f2523d6d7576f60eeab8f6af5e80",
+    "data.py": "67fd6f448a0d086bbdf9989445fa64dc2fc12b2248e9bab0bead2b345bf0c60d",
+    "common.py": "cb93161499b7d73a2b514943790efd160bf3333d7af8d0700beba236b0f44d6f"
+  },
+  "ffve_blocks": 1,
+  "ffve_long_residual": false,
+  "training_data_sha256": {
+    "FD003": "2abbe9968cc5e8eb091980f51b20f62bb4127336d3482cb52071d53bf23329e2"
+  },
+  "config_sha256": "721da5a9f55865f969309a5e513142c5219c870b0410a64069427bc0852ef188"
+}

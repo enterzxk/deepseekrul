@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/home/yndx/paper_b_public_baselines_20261111/paper_b/baselines/open_source/author.py",
+    "--model",
+    "fcstgnn",
+    "--subset",
+    "FD001",
+    "--seed",
+    "101",
+    "--data-dir",
+    "/home/yndx/deepseek-rul/data/CMAPSS",
+    "--out-root",
+    "/home/yndx/paper_b_public_baselines_20261111/experiments/v4"
+  ],
+  "python": "/home/yndx/miniconda3/envs/a40_env/bin/python",
+  "torch": "2.5.1+cu121",
+  "cuda": "12.1",
+  "device": "NVIDIA A40"
+}

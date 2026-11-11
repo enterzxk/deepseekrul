@@ -1,0 +1,20 @@
+{
+  "SEED": 202,
+  "sub_dataset": "FD002",
+  "lr": 0.001,
+  "batch_size": 256,
+  "num_hidden": 16,
+  "ffn_hidden": 32,
+  "mlp_size": 32,
+  "n_heads": 2,
+  "seq_len": 45,
+  "mask_p": 0.3,
+  "random_p": 0.6,
+  "dropout": 0,
+  "epochs": 100,
+  "encoder_layers": 2,
+  "pre_model": "FD0024",
+  "input_size": 17,
+  "max_rul": 125,
+  "n_type": "z-score"
+}

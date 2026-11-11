@@ -1,0 +1,15 @@
+--- Transformer_ft_serialatten.py.upstream
++++ Transformer_ft_serialatten.py.runtime
+@@ -68,7 +68,7 @@
+     )
+ 
+     train_loader = DataLoader(train_dataset, **kwargs)
+-    test_loader = DataLoader(test_dataset, **kwargs)
++    test_loader = DataLoader(test_dataset, **{**kwargs, 'shuffle': False})
+     # valid_loader = DataLoader(valid_dataset, **kwargs)
+     # Initialize model parameters
+     model = Transformer_ft(input_size, num_hidden, seq_len, ffn_hidden, mlp_size, encoder_layers, n_heads, dropout)
+
+AST main-variable overrides: {"SEED": "303", "sub_dataset": "'FD001'"}
+
+AST main-variable overrides: {"SEED": "303", "sub_dataset": "'FD001'"}

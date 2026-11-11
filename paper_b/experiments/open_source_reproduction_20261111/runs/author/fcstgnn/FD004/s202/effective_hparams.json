@@ -1,0 +1,41 @@
+{
+  "seed": 202,
+  "num_workers": 0,
+  "batch_size": 100,
+  "epoch": 41,
+  "early_stop": 10,
+  "lr_scheduler": true,
+  "show_interval": 1,
+  "lr": 0.001,
+  "momentum": 0.9,
+  "weight_decay": 0.0005,
+  "lr_gamma": 0.0003,
+  "lr_decay": 0.75,
+  "patch_size": 5,
+  "time_denpen_len": 10,
+  "num_sensor": 14,
+  "drop_last": false,
+  "max_rul": 125,
+  "n_class": 1,
+  "save_name": "test",
+  "k": 1,
+  "conv_kernel": 2,
+  "moving_window": [
+    2,
+    2
+  ],
+  "stride": [
+    1,
+    2
+  ],
+  "pool_choice": "mean",
+  "decay": 0.7,
+  "data_sub": 4,
+  "conv_out": 7,
+  "num_windows": 14,
+  "lstmout_dim": 6,
+  "hidden_dim": 8,
+  "window_sample": 50,
+  "conv_time_CNN": 10,
+  "lstmhidden_dim": 8
+}

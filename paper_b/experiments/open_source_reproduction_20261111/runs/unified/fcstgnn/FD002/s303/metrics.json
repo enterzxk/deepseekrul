@@ -1,0 +1,31 @@
+{
+  "rmse": 14.686842038410525,
+  "mae": 10.721747828036202,
+  "nasa_sum": 1125.262687066078,
+  "nasa_mean": 4.344643579405706,
+  "bias": -1.6121072426265732,
+  "late_frac": 0.40540540540540543,
+  "severe_late": 0.15057915057915058,
+  "max_late": 51.31333923339844,
+  "n": 259,
+  "protocol": "unified",
+  "model": "fcstgnn",
+  "subset": "FD002",
+  "seed": 303,
+  "best_epoch": 8,
+  "epochs_run": 41,
+  "validation_rmse": 14.26640236009516,
+  "training_time_s": 314.213258266449,
+  "params": 28073,
+  "trainable_params": 28073,
+  "config_sha256": "4bf3f5056f8f1f18bf49d22a12e41f13dd6223ec83b6410af5ff71bc9c9dce2b",
+  "checkpoint_sha256": "0ee54c1438012f2b3f96b4f0f418aa4008318f9d55316bc372a66123c3aa8ee1",
+  "n_train_windows": 33059,
+  "n_validation_cuts": 260,
+  "evaluation_unit": "official_test_engine",
+  "evaluation_seed": 200303,
+  "official_test_data_sha256": {
+    "test": "de7b5bf7e998a985c378488480528b7c02cff1406a46740def362dda8d9b4e02",
+    "RUL": "c851dd96a6ea6998d3c4a8f834d3c8013aa90e93a6ed950dc826ad0655b2906b"
+  }
+}

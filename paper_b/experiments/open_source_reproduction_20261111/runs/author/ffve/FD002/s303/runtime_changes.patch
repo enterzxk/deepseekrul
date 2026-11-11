@@ -1,0 +1,13 @@
+--- model_FFVE.py.upstream
++++ model_FFVE.py.runtime
+@@ -4,7 +4,7 @@
+ import torch.nn as nn
+ import torch.nn.functional as F
+ 
+-seed = 99
++seed = 303
+ random.seed(seed)
+ torch.manual_seed(seed)
+ np.random.seed(seed)
+
+AST main-variable overrides: {}

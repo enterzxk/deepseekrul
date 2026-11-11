@@ -141,3 +141,15 @@ n_cal=6 下的 bootstrap 波动只支持「**该估计量在本样本中不稳�
 **后续**：转候选 C（退化状态空间 + 保形层）的两天、0 GPU 设计门。
 若未来重开测量误差方向，必须先给出部署目标
 $h_\nu(z)=\int[a(x)+(m(x)-\mu(z))^2]p_\nu(x|z)dx$ 的可部署后验积分算法与误差界。
+
+## Public-source compatibility and evidence limits — 2026-11-11
+
+AIDGN unselected-model imports, FFVE missing imageio, and FC-STGNN abstract
+array-container construction initially failed. Minimal recorded runtime
+repairs completed the main matrix; failed attempts are retained in its
+`evidence/failed_attempts/`. CPT's released pretraining contract passes a
+scalar output back into a36-dimensional classifier; only that interface
+probe is FAILED, no simplified regression substitute was trained.
+Historical own-launcher source gaps survive explicitly in
+`evidence/EXECUTION_PROVENANCE.json`; original configs/results are intact.
+See the independent audit/report for all protocol risks and limitations.

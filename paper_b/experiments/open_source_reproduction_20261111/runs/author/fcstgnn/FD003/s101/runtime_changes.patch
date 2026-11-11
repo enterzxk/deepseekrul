@@ -1,0 +1,23 @@
+--- data_loader_RUL.py.upstream
++++ data_loader_RUL.py.runtime
+@@ -450,6 +450,9 @@
+     dataset.end = min(dataset.start + per_worker, overall_end)
+ 
+ class CMPDataIter_graph(data.IterableDataset):
++    def __iter__(self):
++        raise NotImplementedError('This upstream preprocessing container is consumed through out_x/out_y arrays, not streaming iteration.')
++
+ 
+     def __init__(self, data_root, data_set, max_rul, seq_len, time_denpen_len,window_sample, net_name):
+         super(CMPDataIter_graph, self).__init__()
+--- main_RUL.py.upstream
++++ main_RUL.py.runtime
+@@ -302,6 +302,6 @@
+ 
+         return args
+ 
+-    args = args_config(1, args)
++    args = args_config(3, args)
+     train = Train(args)
+     train.Train_model()
+AST main-variable overrides: {}

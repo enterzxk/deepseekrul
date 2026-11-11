@@ -1,0 +1,21 @@
+{
+  "protocol": "author",
+  "model": "aidgn",
+  "subset": "FD002",
+  "seed": 303,
+  "source": {
+    "model": "aidgn",
+    "repository": "https://github.com/TCCofWANG/AIDGN-RUL",
+    "commit": "d1ac173b13659af1854cf500a9b1cba8367353fe",
+    "manifest_sha256": "c18ccb46d71266d5f2435e0f8eed8f0e0caaa0689186ea7dccd2b81c79ff63ce"
+  },
+  "data_dir": "/home/yndx/deepseek-rul/data/CMAPSS",
+  "runner_sha256": "320a6c8fcf5ca7daa2dd89d91b8f11c165f53290a8f06a52314ac7de09bfa603",
+  "test_order": "sequential (evaluation ordering only)",
+  "official_data_sha256": {
+    "train": "dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f",
+    "test": "de7b5bf7e998a985c378488480528b7c02cff1406a46740def362dda8d9b4e02",
+    "RUL": "c851dd96a6ea6998d3c4a8f834d3c8013aa90e93a6ed950dc826ad0655b2906b"
+  },
+  "config_sha256": "4fc2ed0b7daca1ec26d3d08573fe94c061e19e2486ea48984841d1c8f569b49b"
+}
