@@ -28,7 +28,10 @@ All grids: `split_seed=7`, `fold=0`, `rul_cap=125`, `epochs=40`,
 | `ms_mech.json` | `MSM_<mode>_L70` | 18 | FD001, FD004 | 3 | single_proj / multi_noproj / multi3 vs off / full | RUNNING |
 | `sa_mech.json` | `SAM_<mode>_L70` | 24 | 4 | 3 | sensor identity vs operating-condition context | RUNNING |
 | `hi_mech.json` | `HIM_<variant>_L70` | 18 | FD001, FD004 | 3 | HI source (hf/hB), monotone sign, no monotone | RUNNING |
-| `attribution.json` | `ATTR_<variant>` | 7 | FD001 | 101 | historical 10.91 -> 12.70 attribution (not paper evidence) | PLANNED |
+| `attribution.json` | `ATTR_<variant>` | 7 | FD001 | 101 | historical 10.91 -> 12.70 attribution (not paper evidence) | DONE (a40) |
+| `nomask.json` | `NM_<cfg>` | 24 | 4 | 3 | padding-mask control (attribution suggests unmasking helps) | PLANNED |
+| `sens_cuts.json` | `SENS_<cfg>` | 12 | FD001, FD004 | 3 | validation-cut sensitivity (earlier 30% cut) | PLANNED |
+| `repro.json` | `REPRO_<cfg>` | 2 | FD001 | 101 | same-machine determinism check | PLANNED |
 | `window.json` | `WIN_L<L>_<cfg>` | TBD | 4 | 3 | window search after structure freeze | PLANNED |
 
 ### Grid definitions

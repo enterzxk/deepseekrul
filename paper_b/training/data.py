@@ -128,7 +128,11 @@ def fit_hi(train_units, tr_frame, tr_scaled, seed=7):
 
 def load_global_hi(data_dir: Path, subset: str):
     """Legacy global HI (leaky: fitted on all engines). Attribution only."""
-    path = Path(data_dir) / 'HI' / f'hi_{subset}.csv'
+    cands = [Path(data_dir) / 'HI' / f'hi_{subset}.csv',
+             Path(data_dir).parent / 'HI' / f'hi_{subset}.csv']
+    path = next((p for p in cands if p.exists()), None)
+    if path is None:
+        raise FileNotFoundError(f'global HI not found in {cands}')
     d = pd.read_csv(path)
     return {(int(u), int(c)): float(v)
             for u, c, v in zip(d['unit'], d['cycle'], d['hi_raw'])}

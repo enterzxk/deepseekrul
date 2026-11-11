@@ -31,6 +31,7 @@ MECH = {
     'HIM_hf_wrong_L70': 'A8_hi_L70', 'HIM_hf_nomono_L70': 'A8_hi_L70',
     'HIM_hB_correct_L70': 'A8_hi_L70',
 }
+MASK = {'NM_base': 'A8_base_L70', 'NM_full': 'A8_full_L70'}
 
 
 def subset_means(df, tag, metric='val_rmse'):
@@ -82,6 +83,20 @@ def main():
         if ok:
             supported.append(tag)
             eligible.append(dict(tag=tag, score=overall['mean_rel'], params=params, kind='mech'))
+    for tag, ref in MASK.items():
+        st = rel_stats(df, tag, ref)
+        if st is None:
+            continue
+        overall = rel_stats(df, tag, base)
+        params = float(df[df.tag == tag].params.median())
+        ok = (st['wins'] >= 3 and st['mean_rel'] <= -0.01 and overall is not None
+              and overall['mean_rel'] <= 0)
+        rows.append(dict(kind='mask', tag=tag, ref=ref, **st,
+                         overall_vs_base=(overall['mean_rel'] if overall else np.nan),
+                         params=params, eligible=ok))
+        if ok:
+            supported.append(tag)
+            eligible.append(dict(tag=tag, score=overall['mean_rel'], params=params, kind='mask'))
     tab = pd.DataFrame(rows).sort_values(['eligible', 'mean_rel'], ascending=[False, True])
     print(tab.to_string(index=False))
     if eligible:

@@ -130,6 +130,14 @@ for cfg in ('base', 'full'):
             runs.append(c)
 dump('sens_cuts.json', runs)
 
+# J. padding-mask control (the attribution run suggests unmasking helps)
+runs = []
+for cfg, tag in (('base', 'NM_base'), ('full', 'NM_full')):
+    for subset in SUBSETS:
+        for seed in SEEDS:
+            runs.append(dspt(tag, subset, seed, use_pad_mask=False, **CFG8[cfg]))
+dump('nomask.json', runs)
+
 # I. same-machine reproducibility check (duplicate of two runs)
 runs = [dspt('REPRO_base', 'FD001', 101, **CFG8['base']),
         dspt('REPRO_full', 'FD001', 101, **CFG8['full'])]

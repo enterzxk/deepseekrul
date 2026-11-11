@@ -45,6 +45,12 @@ Only the following statements are supported by code that can be run end to end:
    same low-frequency content.
 7. The archived FULL under-predicts high-RUL engines (FD001 bias -12.4 at
    RUL>=125 vs base -6.8), which is where its test deficit is concentrated.
+8. Attribution (FD001/seed 101, diagnostic): fitting HI on all engines (the
+   old leaky behaviour) improves test RMSE by 3.0%; the EMA-initialisation fix
+   improves test by 5.8% while *worsening* validation; training without the
+   temporal padding mask improves both validation (-1.8%) and test (-5.4%).
+   The padding-mask effect appears on full windows too, so it is a training
+   effect, not an inference artefact. A 24-run control is queued.
 
 ## 3. Historical numbers (do not cite without the caveat)
 
