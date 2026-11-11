@@ -29,7 +29,7 @@ exp(d/10)-1 otherwise, d=prediction-truth. Store its mean separately. Official
 test has exactly one final prediction per engine; expected counts are
 100/259/100/248. Do not mix it with all-window, OOF or validation metrics.
 
-The registered unified implementation uses DSPT's six-condition KMeans
+The registered unified implementation uses DSPT's KMeans(k=6) operating-setting
 sensor z-score fitted on training engines, and left zero-padding for short
 validation/test histories. Two-Phase retains standardized operating settings;
 FFVE retains causal exponential smoothing. Training uses complete method-length
@@ -37,6 +37,15 @@ windows. These preprocessing choices differ from some author pipelines;
 the unified table compares full architectures/objectives under this common
 input protocol, not unchanged author end-to-end preprocessing. The singleton
 window budget does not establish each method's optimal tuned performance.
+The six clusters on FD001/FD003 do not imply six physical operating conditions.
+
+Two-Phase unified execution uses a whole-pipeline seed: FT is initialized
+before PRE, and RNG states are not reset at the phase transition. The author
+scripts reseed each stage independently. This is a disclosed stochastic-stream
+deviation, not a claim of seed-matched author trajectories. A read-only
+initialization audit (SEED_POLICY_AUDIT.json) confirmed this before any choice
+to change the policy; the frozen implementation is retained without rerunning
+or selecting a different random stream from observed test results.
 
 ## Search, checkpoint selection and freeze
 

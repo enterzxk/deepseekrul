@@ -66,3 +66,73 @@ Pending until the finite training matrix completes. A successful import,
 forward/backward check or launched batch is not a successful reproduction.
 Final verdicts must use saved checkpoints/predictions and complete audit rows,
 with source/coverage/numerical limitations retained in the generated report.
+
+## Lower-priority compatibility repairs: independent audit
+
+The independent `gpt-6.1-sol/high` secondary-source reviewer inspected the
+actual A40 v4 runtime copies, imports and completed training evidence.
+Verdict: PASS, no new P1. No unified official TEST inference was executed.
+
+- FFVE imageio imports from the isolated optional_dependencies/imageio path,
+  version2.34.2. Wheel SHA256 independently matched
+  a0bb27ec9d5bab36a9f4835e51b21d2cb099e1f78451441f94687ff3404b79f8.
+- Five created FFVE runtime copies retained byte-identical main.py/utils.py;
+  model_FFVE.py differed only by task seed99 -> specified seed.
+- Five created FC runtime copies retained byte-identical Model.py/Model_Base.py.
+  Removing the added __iter__ stub yielded AST equality with upstream
+  data_loader_RUL.py; the stub only raises NotImplementedError.
+- Both methods FD001/002/003 seed101 completed, with actual FFVE train/val
+  epochs and FC41-epoch evidence; remaining v4 runs were in progress, no v4
+  failures at this snapshot. Both original v3 failures and patches survive.
+
+This compatibility review is separate from the final full-matrix artifact
+audit. It does not certify publication-number agreement.
+
+## Priority72: completed-run independent audit
+
+Reviewer: independent `gpt-6.1-sol/high` priority-source agent. Actual SSH
+read-only commands exited0; stdlib metric/source checks and torch finite
+weight checks. No new training, TEST inference or file changes. Verdict PASS.
+
+Reviewer-reported checks:
+
+```text
+author: aidgn=12, two_phase=12, dual_mixer=12
+unified: aidgn=12, two_phase=12, dual_mixer=12
+ISSUES []
+PINNED_GIT_BLOB_PASS 401
+VERIFIED_SOURCE_HASHES 401
+FINITE_CHECKPOINTS 72
+AUTHOR_CORE_IDENTICAL 120
+RAW_LABEL_CYCLE_CHECKS 72
+DATA_HASH_AND_TRAIN_ONLY_SCALER_PASS 36
+SPLIT_VARIANTS_PER_SUBSET FD001/002/003/004 = 1/1/1/1
+```
+
+Actual author epochs: AIDGN36–127, Two-Phase200/600, Dual14–29. Unified
+epochs: AIDGN18–58, Two-Phase28–101, Dual16–33. Dual's100 is its maximum
+budget, not its actual early-stopped epoch count. All36 unified cells
+matched minimum validation history, selected epoch, freeze, split/scaler
+training IDs and post-freeze official-file access. All four mathematical
+core hashes matched local/remote/config across all36 cells.
+
+The audit independently checked every stored truth against raw engine/cycle/
+RUL. Dual's inverse126*x-1 and real missing short engines were confirmed.
+The original AIDGN scaler ran unchanged; an earlier speculative static
+shape concern was disproven and is not a reproduction failure.
+
+## Final-verifier review and repair
+
+The independent training-integrity reviewer found a P1 acceptance gap:
+old verification checked stored predictions/metrics but did not bind the
+report's runs.csv and summary to those metrics, or require all120 unique
+registered cells. The stdlib verifier now has `--require-complete`, exact
+protocol/model/subset/seed set checks, per-row metric/hash/count/time binding,
+independent mean/sample-SD/t95%-CI reconstruction, and stricter nonempty
+unlocked TEST-access/freeze/source checks. The existing45-run snapshot
+actually passed the strengthened partial-mode verifier (606 hashes).
+This is acceptance/evidence code only; no training mathematics changed.
+
+A separate P2 review tracks missing exact historical harness versions;
+original upstream snapshots and runtime patches survive. Final provenance
+coverage will be disclosed explicitly rather than modifying old configs.

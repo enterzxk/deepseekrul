@@ -1751,3 +1751,49 @@ relax the holdout or simplify a model to match a target value.
 data forward/backward checks passed. Preserve failed attempts and reconciled
 export corrections as detailed in the Paper B recovery state. No reproduction
 is called SUCCESS before all required evidence/coverage gates pass.
+
+## PB-OS-002 · 2026-11-11 · Priority author stage acceptance
+
+**Decision:** accept the36 completed priority author runs and continue the
+registered unified matrix. Five full-data architecture implementations and
+fixed parameters were already registered; no new search is added. Completed
+methods may fill idle A40 slots with their already registered unified cells.
+
+**Evidence:** the actual gather/report/independent stdlib checker returned
+`COLLECTED45`, `PASS606 file hashes and45 independently recomputed run metrics`.
+The snapshot includes all36 author runs plus nine unified runs. Author source
+deviations and preliminary export corrections remain explicit. Training-only
+preprocessing, exact engine IDs, full test coverage, checkpoint/config/freeze
+hash binding and access timestamps were checked for unified cells.
+
+**Risks/counterevidence:** stricter engine holdout and common preprocessing
+can differ substantially from author numbers; the single-window budget does
+not establish optimal tuned accuracy. Official tests have historical and
+author-protocol exposure; do not call this a fresh blind test. Keep frozen
+configurations, retain all seeds/results, and report numerical failures as
+PARTIAL rather than adding test-motivated searches. Final method status waits
+for complete coverage and the published-number gates.
+
+## PB-OS-003 · 2026-11-11 · Two-Phase random-stream audit
+
+**Question/options:** source scripts independently reseed PRE/FT; the unified
+implementation initializes FT first and then PRE from one advancing seed.
+Keep and disclose, or replace/re-run the unified Two-Phase cells?
+
+**Decision:** keep the frozen whole-pipeline seed policy and disclose the
+deviation. Do not change the model, data, objective, windows, LR, epoch budget
+or random-stream policy from observed results. The independent reviewer did
+not read unified official TEST metrics for this decision.
+
+**Evidence:** six pure-initialization comparisons (three seeds, one/two
+layers) found FT identical to stage-reseeded author FT, while PRE consumes the
+advanced RNG as implemented. Exact tensor/RNG hashes are persisted in
+`docs/paper_b_baselines/SEED_POLICY_AUDIT.json`; no data/forward/gradient/training
+was needed. This is deterministic and reproducible whole-pipeline seeding,
+not a missing core module or an invalid split.
+
+**Counterevidence/risk:** stage initializations and stochastic trajectories
+are not author-seed-matched; do not imply they are. A stage-reseed control
+would be a new registered experiment and must be separately reported, not a
+replacement selected after test exposure. Preserve original configuration
+hashes; attach an explicit policy annotation instead of rewriting them.

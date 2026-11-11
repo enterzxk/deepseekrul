@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-11",
+  "reviewer": "audit_training_integrity, gpt-6.1-sol/high, read-only",
+  "official_unified_test_metrics_read_for_this_review": false,
+  "scope": "Two-Phase model initialization only; no data read, forward, gradient or training",
+  "environment": "A40 host, PyTorch2.5.1+cu121",
+  "registered_seeds": [101, 202, 303],
+  "encoder_layers_checked": [1, 2],
+  "author_policy": "Each source script resets the same seed independently before its model construction/training",
+  "unified_policy": "One whole-pipeline seed; FT is constructed before PRE; PRE consumes the CPU RNG stream advanced by FT construction; no stage-transition reseed",
+  "results": {
+    "FT_matches_independently_reseeded_author_FT": "3/3 seeds for both layer counts, every tensor equal",
+    "PRE_random_tensors_differ_from_independently_reseeded_author_PRE": {"1_layer": "25/37 tensors", "2_layers": "39/59 tensors"},
+    "current_PRE_construction_rng_equals_after_FT_construction_rng": "3/3 seeds for both layer counts"
+  },
+  "seed101_layer1_sha256": {
+    "author_PRE_initial_weights": "86e9129778292403d302f8a497dbdbb021758a95c81961d54a328b8ba9e9d8b7",
+    "unified_PRE_initial_weights": "e78a16c917b122aa4dd1fcf3c16ea58564b5f64269fef823f588a3aeb0c8e00f",
+    "author_and_unified_FT_initial_weights": "35fce9fffae7afed7379926a8e1d86cb76ba2ccb169f5ca6b30bb2aec296f725",
+    "after_FT_and_before_unified_PRE_rng": "260b47548096d414ac93d6b4eb80b1799645a8fd498543f8ac2c4f84ce70e6ad"
+  },
+  "decision": "Keep the frozen unified pipeline and disclose the seed-stream difference; do not withdraw/rerun or switch policy after test exposure",
+  "reason": "Registered seeds specify deterministic whole-pipeline runs, not per-stage resets. Architectures, objectives, data splits and training hyperparameters are unchanged. Switching random-stream policy is another experimental design, not a neutral code correction.",
+  "limitation": "Do not claim seed-matched per-stage initializations or stochastic trajectories equal to the author scripts. A stage-reseed experiment would require separate preregistration and a separate result table."
+}

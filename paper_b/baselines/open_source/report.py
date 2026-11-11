@@ -183,7 +183,7 @@ def generate(artifacts, source_audit, report_dir):
                   "相同engine-ID划分（80/20，split_seed7/fold0）、seeds101/202/303、cap125、cycles输出、NASA Sum。",
                   "Validation为每个独立验证机生命周期40/55/70/85/95%五截断点。所有统计仅fit训练机。按validation选checkpoint，",
                   "保存config/source/checkpoint freeze后才允许读取official test；访问审计禁止训练期读test或RUL文件。",
-                  "统一输入采用DSPT的训练机拟合六工况KMeans+sensor z-score；短验证/测试历史左零填充，训练使用完整方法窗口。",
+                  "统一输入采用DSPT的训练机拟合KMeans(k=6)工况簇+sensor z-score；FD001/3的六个簇并非六种真实工况。短验证/测试历史左零填充，训练使用完整方法窗口。",
                   "Two-Phase另保留标准化OC输入，FFVE另保留因果指数平滑。这些预处理与部分作者管道不同；本表比较统一输入协议下的完整架构/目标，非原端到端预处理性能。",
                   "每次run只评一次官方TEST；以下结果不与历史OOF或验证窗口指标混用。", "",
                   "窗口范围为作者默认的单点：AIDGN50、Two-Phase45、Dual30、FFVE30、FC30/50/50/50；调窗预算0次。",
@@ -199,6 +199,9 @@ def generate(artifacts, source_audit, report_dir):
     lines.extend(["", "### 5.2 跨子集预训练资源条件：Two-Phase单列", "",
                   "完整方法需要FD001+3或FD002+4预训练，双方验证机均排除；不把额外训练数据隐藏进单子集表。",
                   "encoder完整迁移并冻结，GRL与分类/回归预训练均保留。", "",
+                  "统一实现按整条流水线设seed，先初始化FT再初始化PRE，阶段切换不重置RNG；作者两个脚本分别重置同一seed。",
+                  "独立初始化审计确认该差异，未读取统一TEST数字，并决定保留冻结实现、不据已见结果切换随机流。",
+                  "因此不主张逐阶段初始化/训练轨迹与作者同seed完全一致；旁注绑定原config哈希，原config不改。见[SEED_POLICY_AUDIT.json](SEED_POLICY_AUDIT.json)。", "",
                   "| 子集 | 官方RMSE cycles | 官方NASA Sum | 参数量（总量 / 可训练） |", "|---|---:|---:|---:|"])
     for subset in SUBSETS:
         row = lookup.get(("unified", "two_phase", subset))
@@ -207,6 +210,7 @@ def generate(artifacts, source_audit, report_dir):
     lines.extend(["", "统一协议完整逐seed数据见 [unified_per_seed.csv](unified_per_seed.csv)。逐指标Student-t 95%CI、",
                   "训练时间、参数量见 [summary.json](../../paper_b/experiments/open_source_reproduction_20261111/summary.json)。",
                   "CI仅反映三次训练随机性，不增加独立发动机数量，也不消除固定开发集被重复使用的限制。", "",
+                  "官方TEST在历史项目和本次作者协议中已经被观测，本次不是全新盲测。统一配置在新增统一测试前锁定，冻结后不依据TEST调参。", "",
                   "## 6. 核心一致性、协议差异与失败留痕", "",
                   "- AIDGN：原aging投影、动态图、图卷积保留；OCC=可见cycle/训练机平均寿命×1e-3。原代码滑窗验证改为engine验证。",
                   "- Two-Phase：原代码保留paired预训练和冻结encoder；作者协议fit train+test特征统计，统一协议仅fit训练机。",
@@ -214,6 +218,7 @@ def generate(artifacts, source_audit, report_dir):
                   "- FFVE：按作者四子集脚本保留1/2/1/2 blocks和FD004长残差；保留随机重参数与KL+RMSE；统一validation/test用固定种子的单次实际随机draw，非取mu、非ensemble。",
                   "- FC-STGNN：两图分支与每FD patch/CNN参数完整保留；作者test-selected epoch只出现在作者表，统一表只按validation选模。",
                   "- 原始作者码始终独立保存；可选依赖导入、子集参数化、随机种子、纯可视化callback及test行序调整均有runtime patch。",
+                  "- FFVE首次启动缺imageio：校验wheel后仅安装到隔离目录；FC-STGNN首次启动因IterableDataset抽象方法失败：仅为原数组容器加不可迭代stub。两者v3失败证据保留，v4完整重跑；独立审计确认网络和原数组处理未改。",
                   "- 早期Two-Phase行序和Dual×125导出记录保留；最终使用RECONCILED_metrics及已校验预测，旧导出不得引用为cycles/engine证据。",
                   "- 第六候选原预训练接口在真实训练输入上报shape错误，证据保存为candidate_execution.json；没有宣称完成训练。", "",
                   "## 7. 可复算与完整性", "",

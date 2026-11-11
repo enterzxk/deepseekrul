@@ -28,7 +28,7 @@ def main():
 
     def task(item):
         protocol, model, subset, seed = item
-        version = "v2" if protocol == "author" and model == "aidgn" else ("v1" if protocol == "author" and model in ["two_phase", "dual_mixer"] else "v3")
+        version = "v2" if protocol == "author" and model == "aidgn" else ("v1" if protocol == "author" and model in ["two_phase", "dual_mixer"] else ("v4" if protocol == "author" else "v3"))
         out_root = root / version
         folder = out_root / protocol / model / subset / f"s{seed}"
         logdir = out_root / "logs"

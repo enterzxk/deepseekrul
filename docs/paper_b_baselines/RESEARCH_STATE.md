@@ -111,3 +111,39 @@ append Paper B wiki/results pointers; assert Paper A/DSPT files unchanged;
 commit only this scope and push the authorized branch. A generated
 `paper_b_source_deploy.tar.gz` at this worktree root is a temporary deployment
 bundle, not a deliverable and must not be added to git.
+
+## Priority author stage passed
+
+All36 priority author trainings (AIDGN, Two-Phase, Dual-Mixer, fourFDs,
+three seeds) completed. The next gather/report/stdlib verification passed
+**45 real runs and606 artifact hashes**, including the first nine unified
+runs. The finite matrix is now in priority-unified stage. Completed author
+methods were allowed to prefill registered unified cells in otherwise idle
+slots; these are the same run IDs and are skipped/adopted by the matrix,
+not extra trials. No parameters/windows were changed after test exposure.
+
+Own training modules `unified.py`, `adapters.py`, `data.py`, `common.py` are
+now frozen. Do not edit them based on observed test performance. New changes
+may address evidence/reporting only. Local source commits exist (latest
+`a64574b` at this checkpoint), **not pushed yet**. All source manifests were
+verified against their staged Git blobs; JSON bytes must have `-text` because
+the registered manifests originally use CRLF. The fetcher now preserves
+existing manifest/lock bytes even when restoring on Linux.
+
+## Priority stages complete; lower-priority compatibility repair
+
+All72 priority cells completed: three models, author/unified protocols,
+four subsets, seeds101/202/303. The lower-priority first launches failed
+before training: FFVE lacked declared imageio; FC-STGNN's array container
+was abstract under the installed torch version. Both v3 failures survive.
+FFVE now uses a hash-verified imageio2.34.2 wheel installed only in the
+deployment's optional_dependencies directory. FC gets a runtime-only
+__iter__ stub that raises if used; original code directly reads its arrays.
+Independent high-reasoning read-only audit passed: model files are
+byte-identical and graph preprocessing AST matches after removing the stub.
+
+The finite matrix resumed as matrix_retry.log: completed72 cells skipped;
+FFVE/FC author runs use v4, then their unified runs use v3. Old blocked
+orchestrator records/logs are archived in experiments/orchestrator_attempt1;
+the stale root completion marker was moved there before retry completion.
+No frozen unified mathematics or test-driven configuration changes occurred.

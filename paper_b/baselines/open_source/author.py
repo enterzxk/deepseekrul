@@ -86,6 +86,11 @@ def run(model, subset, seed, data_dir, out_root):
                                         "torch": torch.__version__, "cuda": torch.version.cuda,
                                         "device": torch.cuda.get_device_name(0)})
     os.environ["MPLBACKEND"] = "Agg"
+    if model == "ffve":
+        # Per-experiment dependency directory; never modify the shared env.
+        optional = ROOT.parents[2] / "optional_dependencies"
+        if optional.exists():
+            sys.path.insert(0, str(optional))
     sys.path.insert(0, str(work))
     seed_everything(seed)
     captured = {}
@@ -185,6 +190,10 @@ def run(model, subset, seed, data_dir, out_root):
             sys.path.insert(0, str(work))
             (work / "experiment").mkdir(exist_ok=True)
             entry = work / "main_RUL.py"
+            replace_file(work / "data_loader_RUL.py", "class CMPDataIter_graph(data.IterableDataset):",
+                         "class CMPDataIter_graph(data.IterableDataset):\n"
+                         "    def __iter__(self):\n"
+                         "        raise NotImplementedError('This upstream preprocessing container is consumed through out_x/out_y arrays, not streaming iteration.')\n", changes)
             replace_file(entry, "args = args_config(1, args)", f"args = args_config({int(subset[-1])}, args)", changes)
             sys.argv = ["main_RUL.py", "--seed", str(seed)]
             sys.setprofile(profile)

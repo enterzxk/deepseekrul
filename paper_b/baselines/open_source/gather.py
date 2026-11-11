@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import numpy as np
 import pandas as pd
 import torch
@@ -36,7 +37,7 @@ def gather(remote_root, data_dir, target):
     assert abs(independently_score(probe)[1] - 2 * math.expm1(1)) < 1e-12
     for protocol in ["author", "unified"]:
         for model in MODELS:
-            version = "v2" if protocol == "author" and model == "aidgn" else ("v1" if protocol == "author" and model in ["two_phase", "dual_mixer"] else "v3")
+            version = "v2" if protocol == "author" and model == "aidgn" else ("v1" if protocol == "author" and model in ["two_phase", "dual_mixer"] else ("v4" if protocol == "author" else "v3"))
             base = remote_root / version
             for subset in SUBSETS:
                 for seed in [101, 202, 303]:
@@ -101,6 +102,13 @@ def gather(remote_root, data_dir, target):
                         elif isinstance(value, torch.Tensor):
                             shapes[name] = {"shape": list(value.shape), "dtype": str(value.dtype)}
                     write_json(dest / "checkpoint_shapes.json", shapes)
+                    if protocol == "unified" and model == "two_phase":
+                        write_json(dest / "SEED_POLICY_ANNOTATION.json", {
+                            "original_config_sha256": m["config_sha256"],
+                            "policy": "whole-pipeline seed; FT initialized before PRE; no phase reseed",
+                            "author_policy": "independent reseed for each phase",
+                            "architecture_objectives_splits_hyperparameters_changed": False,
+                            "disclosure": "seed-matched author phase initializations/trajectories are not claimed"})
                     for path in source.iterdir():
                         if path.is_file() and path.suffix in [".json", ".csv", ".pt", ".patch", ".txt", ".log"]:
                             shutil.copy2(path, dest / path.name)
@@ -130,9 +138,32 @@ def gather(remote_root, data_dir, target):
     evidence = target / "evidence"
     evidence.mkdir(exist_ok=True)
     deployment = remote_root.parent
-    for name in ["runtime_checks.json", "runtime_checks_ffve_final.json", "candidate_execution.json", "environment_packages.json", "runtime_checks.log", "runtime_checks_v2.log", "runtime_checks_ffve_final.log"]:
+    seed_audit = deployment / "docs/paper_b_baselines/audits"
+    if seed_audit.exists():
+        shutil.copytree(seed_audit, evidence / "seed_policy_audit", dirs_exist_ok=True)
+    for name in ["runtime_checks.json", "runtime_checks_ffve_final.json", "candidate_execution.json", "environment_packages.json", "optional_dependencies.json", "runtime_checks.log", "runtime_checks_v2.log", "runtime_checks_ffve_final.log"]:
         if (deployment / name).exists():
             shutil.copy2(deployment / name, evidence / name)
+    history = evidence / "execution_code"
+    history.mkdir(exist_ok=True)
+    # The initial deployment also contained upstream code; extract ONLY our
+    # own harness versions, never re-upload the unlicensed upstream archive.
+    if (deployment / "source.tar.gz").exists():
+        with tarfile.open(deployment / "source.tar.gz", "r:gz") as archive:
+            for filename in ["author.py", "common.py", "dispatch.py"]:
+                member = "paper_b/baselines/open_source/" + filename
+                stream = archive.extractfile(member)
+                if stream is not None:
+                    (history / ("initial_" + filename)).write_bytes(stream.read())
+    code_manifest = []
+    for filename in ["author.py", "unified.py", "adapters.py", "data.py", "common.py", "reconcile_author.py", "gather.py", "report.py", "matrix.py"]:
+        source = ROOT / filename
+        shutil.copy2(source, history / ("final_" + filename))
+        code_manifest.append({"path": "paper_b/baselines/open_source/" + filename, "sha256": digest(source)})
+    for filename in ["data.py", "metrics.py"]:
+        source = deployment / "paper_b/training" / filename
+        code_manifest.append({"path": "paper_b/training/" + filename, "sha256": digest(source)})
+    write_json(evidence / "execution_code_sha256.json", code_manifest)
     # Explicitly retain the failed original import attempt and its traceback.
     failure = remote_root / "v1/author/aidgn/FD001/s101"
     if failure.exists():
@@ -144,6 +175,12 @@ def gather(remote_root, data_dir, target):
     for name in ["matrix_complete.json", "matrix_stage_1.json", "matrix_stage_2.json", "matrix_stage_3.json", "matrix_stage_4.json"]:
         if (remote_root / name).exists():
             shutil.copy2(remote_root / name, evidence / name)
+    previous = remote_root / "orchestrator_attempt1"
+    if previous.exists():
+        shutil.copytree(previous, evidence / "orchestrator_attempt1", dirs_exist_ok=True)
+    for name in ["matrix.log", "matrix_retry.log"]:
+        if (deployment / name).exists():
+            (evidence / (name + ".gz")).write_bytes(gzip.compress((deployment / name).read_bytes(), mtime=0))
     failures = []
     for record in remote_root.glob("v*/*/*/FD*/s*/FAILED.json"):
         source = record.parent

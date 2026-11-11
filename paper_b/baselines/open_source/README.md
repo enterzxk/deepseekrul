@@ -30,6 +30,15 @@ SciPy/scikit-learn/einops/matplotlib/seaborn/tqdm in the existing a40_env.
 Per-run environment JSON and stdout are archived. All methods use float32.
 The source downloader itself needs Python standard library and Git only.
 
+The exact installed versions are recorded in the artifact directory at
+`evidence/environment_packages.json`. FFVE also requires `imageio==2.34.2`.
+The recorded run installed its SHA256-verified PyPI wheel with
+`pip install --no-index --no-deps --target optional_dependencies <wheel>`
+from the repository root, leaving the shared environment unchanged. The
+author FFVE launcher adds that directory to its own import path. Its wheel
+hash and import location are recorded in `evidence/optional_dependencies.json`.
+An equivalent clean environment may install that version normally.
+
 Place official `train_FD001.txt` through `train_FD004.txt`, their test files
 and RUL files in an external data directory. The actual12 source-file
 fingerprints are archived. Unified training cannot open official test files
@@ -80,8 +89,13 @@ finite batch for the current request, not a periodic automation.
 
 For this recorded run, `v1` retains the initial AIDGN optional-import failure
 and Two-Phase/Dual-Mixer results; `v2` contains the isolated AIDGN retry;
-`v3` contains unified and lower-priority results. A fresh matrix creates these
-namespaces itself; it never overwrites a failed run.
+`v3` contains unified results and the first FFVE/FC-STGNN author launch
+failures; `v4` contains their repaired author runs. A fresh matrix creates
+these namespaces itself; it never overwrites a failed run. FC-STGNN's graph
+preprocessing container needs a concrete `__iter__` to instantiate on the
+recorded PyTorch version: the runtime-only stub raises if iterated. The
+author entrypoint reads its original arrays directly. Model files and array
+preprocessing remain byte/AST-identical, with the exact patch archived.
 
 ## Author export corrections and reporting
 
@@ -120,3 +134,15 @@ gaps are visible; test results never change registered configurations.
 
 Protocol, source audits and recovery state: `docs/paper_b_baselines/`.
 Main deliverable: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.
+
+After generation or transfer, run the GPU-free final acceptance gate:
+
+```bash
+python paper_b/baselines/open_source/verify_artifacts.py \
+  --root paper_b/experiments/open_source_reproduction_20261111 \
+  --require-complete
+```
+
+This requires exactly120 unique registered cells and independently binds
+report rows, summary mean/SD/95% CI, prediction metrics and artifact hashes.
+Omit the flag only for explicitly incomplete progress snapshots.
