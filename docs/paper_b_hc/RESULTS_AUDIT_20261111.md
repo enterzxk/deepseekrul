@@ -830,8 +830,8 @@ A3a 的 `FourierCycle` 带 `periods` buffer，A3p 的 state_dict 里没有对应
 | 2026-11-12 00:20 | 加 `val_metric_kind、legacy_metric（主控授权） | 32 → 34 |
 | 2026-11-12 00:45 | 加 `baseline_version（主控采纳测试负责人建议） | 34 → 35 |
 | 2026-11-12 01:05 | 加 
-| 2026-11-12 02:40 | 加 `determinism_only`（重复实验标记） | 36 → 37 |
-| 2026-11-12 02:55 | 加 `in_gate_a_table`（**Gate A 表准入**，按预登记 24 格 `-W1` 清单，默认 false） | 37 → 38 |
+| 2026-11-12 00:45 | 加 `determinism_only`（重复实验标记） | 36 → 37 |
+| 2026-11-12 00:47 | 加 `in_gate_a_table`（**Gate A 表准入**，按预登记 24 格 `-W1` 清单，默认 false） | 37 → 38 |
 etired_version（版本号复用规则） | 35 → 36 |
 
 `baseline_version 回填口径：有字段直接取；无字段按 code_lock_git_sha 反推
@@ -892,7 +892,7 @@ RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历�
 这是今晚第三次（22:49 回填 24 行、01:1x 追加 7 行含非规范枚举、01:4x 改写单行 note）。
 **已上报主控：连续三次说明有进程或另一个 Bot 在写这个文件，仅靠"以我为准覆盖"治不了根。**
 
-### 12.10 新增 `in_gate_a_table`（37 → 38 列，2026-11-12 02:40）
+### 12.10 新增 `in_gate_a_table`（37 → 38 列，2026-11-12 00:45）
 
 **问题**：`gate` 记的是**实验类型**（A=treatment，R=重复/确定性），而"能否进 Gate A 表"是**准入**，
 是两个轴。此前硬塞进 `gate` 导致同一对 run 来回改。
