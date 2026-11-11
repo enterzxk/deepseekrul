@@ -1,5 +1,5 @@
 *.py text eol=lf
-*.json -text
+*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 *.md text eol=lf
 .gitattributes text eol=lf
 .gitignore text eol=lf

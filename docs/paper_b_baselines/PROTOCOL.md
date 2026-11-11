@@ -29,6 +29,15 @@ exp(d/10)-1 otherwise, d=prediction-truth. Store its mean separately. Official
 test has exactly one final prediction per engine; expected counts are
 100/259/100/248. Do not mix it with all-window, OOF or validation metrics.
 
+The registered unified implementation uses DSPT's six-condition KMeans
+sensor z-score fitted on training engines, and left zero-padding for short
+validation/test histories. Two-Phase retains standardized operating settings;
+FFVE retains causal exponential smoothing. Training uses complete method-length
+windows. These preprocessing choices differ from some author pipelines;
+the unified table compares full architectures/objectives under this common
+input protocol, not unchanged author end-to-end preprocessing. The singleton
+window budget does not establish each method's optimal tuned performance.
+
 ## Search, checkpoint selection and freeze
 
 Use upstream learning rates, optimizers, losses and architectural widths.

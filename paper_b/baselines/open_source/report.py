@@ -183,9 +183,12 @@ def generate(artifacts, source_audit, report_dir):
                   "相同engine-ID划分（80/20，split_seed7/fold0）、seeds101/202/303、cap125、cycles输出、NASA Sum。",
                   "Validation为每个独立验证机生命周期40/55/70/85/95%五截断点。所有统计仅fit训练机。按validation选checkpoint，",
                   "保存config/source/checkpoint freeze后才允许读取official test；访问审计禁止训练期读test或RUL文件。",
+                  "统一输入采用DSPT的训练机拟合六工况KMeans+sensor z-score；短验证/测试历史左零填充，训练使用完整方法窗口。",
+                  "Two-Phase另保留标准化OC输入，FFVE另保留因果指数平滑。这些预处理与部分作者管道不同；本表比较统一输入协议下的完整架构/目标，非原端到端预处理性能。",
                   "每次run只评一次官方TEST；以下结果不与历史OOF或验证窗口指标混用。", "",
                   "窗口范围为作者默认的单点：AIDGN50、Two-Phase45、Dual30、FFVE30、FC30/50/50/50；调窗预算0次。",
                   "Two-Phase45由特征注意力硬编码决定。每个子集允许各自原始学习率与架构参数；完整搜索预算已预注册。", "",
+                  "单点窗口预算未证明每个方法的最佳调优性能；不得因已看到TEST差异而追加调参。", "",
                   "### 5.1 单子集训练方法", "",
                   "| 方法 | 子集 | 官方RMSE cycles | 官方NASA Sum | 参数量 |", "|---|---|---:|---:|---:|"])
     for model in ["aidgn", "dual_mixer", "ffve", "fcstgnn"]:
