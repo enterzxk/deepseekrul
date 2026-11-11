@@ -732,7 +732,7 @@ legacy 行豁免路径与 freeze 检查（产物在本地、历史 test 属既�
 | v5 | `4c7f238` | — | 不合格（dump payload 缺字段、`--dump-init` 写完不退出） |
 | v7 | `20b9f3b` | — | 被取代（`HC-C-SMOKE-…1548Z` 跑在这把锁上） |
 | v8 | `aef910c` | `441c92f` | 被 v9 取代 |
-| **v9** | **`d1e0527`** | **`6c405ad`**（当前 HEAD） | **待主控确认锁有效性** |
+| **v9** | **`d1e0527`** | **`6c405ad`** | **主控已签发（2026-11-12 00:1x），Gate A 放行基准；15/15 与 HEAD blob 一致，`--check` 退出码 0** |
 
 **v8（`441c92f`）实测 blob**（我本地 `git cat-file` 重算，非转录）：
 
@@ -827,18 +827,21 @@ A3a 的 `FourierCycle` 带 `periods` buffer，A3p 的 state_dict 里没有对应
 
 | 时点 | 变更 | 列数 |
 |---|---|---|
-| 2026-11-12 00:20 | 加 `val_metric_kind、legacy_metric（主控授权） | 32 → 34 |
-| 2026-11-12 00:45 | 加 `baseline_version（主控采纳测试负责人建议） | 34 → 35 |
-| 2026-11-12 01:05 | 加 
-| 2026-11-12 00:45 | 加 `determinism_only`（重复实验标记） | 36 → 37 |
+| 2026-11-12 00:20 | 加 `val_metric_kind`、`legacy_metric`（主控授权） | 32 → 34 |
+| 2026-11-12 00:45 | 加 `baseline_version`（主控采纳测试负责人建议） | 34 → 35 |
+| 2026-11-12 01:05 | 加 `retired_version`（版本号复用规则） | 35 → 36 |
+| 2026-11-12 00:40 | 加 `determinism_only`（重复实验标记） | 36 → 37 |
 | 2026-11-12 00:47 | 加 `in_gate_a_table`（**Gate A 表准入**，按预登记 24 格 `-W1` 清单，默认 false） | 37 → 38 |
-etired_version（版本号复用规则） | 35 → 36 |
 
-`baseline_version 回填口径：有字段直接取；无字段按 code_lock_git_sha 反推
-（3f38cfa→pre-v5、20b9f3b→v6、dc77575→v7、`aef910c→v8、d1e0527→v9）；
-两者都没有填 unknown。当前分布：v9 1 / v8 3 / v7 1 / v6 2 / pre-v5 25 / unknown 7。
+> 时点均为本地时钟（a40 快约 9 分钟）。`determinism_only` / `in_gate_a_table` 曾误写成 02:40 / 02:55
+> 的未来时间，已按实际提交时间更正；行序按「列加入的先后」而非时间排序，因为 00:40 晚于 00:45 是本机时钟抖动。
 
-RESULTS_INDEX.md 已按 `baseline_version 分组：当前基线 v9 一组，历史版本分组，v6/v7 标「版本号复用，作废」。
+`baseline_version` 回填口径：有字段直接取；无字段按 `code_lock_git_sha` 反推
+（`3f38cfa`→pre-v5、`20b9f3b`→v6、`dc77575`→v7、`aef910c`→v8、`d1e0527`→v9）；
+两者都没有填 `unknown`。当前分布（50 行，2026-11-12 01:45）：pre-v5 25 / **v9 10** / unknown 7 / v8 3 / v5 2 / v6 2 / v7 1；
+`retired_version=true` 3 条（v6×2、v7×1），`in_gate_a_table=true` 0 条。
+
+`RESULTS_INDEX.md` 已按 `baseline_version` 分组：当前基线 v9 一组，历史版本分组，v6/v7 标「版本号复用，作废」。
 
 ### 12.6 越权写入（第二次）+ 非规范枚举值（2026-11-12 01:35）
 
