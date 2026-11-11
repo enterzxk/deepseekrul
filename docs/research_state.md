@@ -909,3 +909,8 @@ Strict1698-file/120-run verification and three independent audits passed;
 historical launcher-source gaps are explicitly retained as PARTIAL reasons.
 Paper A and frozen DSPT/model/config/protocol paths are unchanged.
 GitHub publication is authorized by the latest user instruction.
+
+Paper B baseline GitHub delivery verified: artifact commit `f96d85151e05441fa439838f54d154ee7443ce8c`
+on `codex/paper-b-open-source-reproduction` matches the remote ref.
+Final report: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.
+The isolated reproduction task is complete with disclosed per-method statuses.

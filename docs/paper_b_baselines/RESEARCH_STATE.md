@@ -174,3 +174,15 @@ The complete upstream/core/runtime patches and all predictions survive.
 Only remaining authorized task: commit final PaperB deliverables, verify
 staged-byte/frozen-boundary assertions, push this branch to GitHub, and
 record the remote commit. Do not retrain or tune from observed TEST.
+
+## GitHub delivery verified — 2026-11-11
+
+The artifact/code/report commit `f96d85151e05441fa439838f54d154ee7443ce8c` was pushed to
+`enterzxk/deepseekrul`, branch `codex/paper-b-open-source-reproduction`; git ls-remote
+returned the identical full commit hash. All requested main-method training,
+evidence/report generation and independent audits are complete. Historical
+launcher provenance and public-result limitations remain explicitly reported.
+
+The following documentation-only commit records this verified delivery;
+there are no pending experiments for this reproduction task. Resume only
+from the final report and STATUS.json, without rerunning or tuning TEST.
