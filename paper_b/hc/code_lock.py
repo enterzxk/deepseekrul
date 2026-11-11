@@ -22,19 +22,26 @@ from .run_hc import FROZEN, OWN, REPO
 DEFAULT = REPO / 'docs' / 'paper_b_hc' / 'registry' / 'code_lock.json'
 
 
-def _blob(rel):
+def _blob(rel, from_index=False):
+    ref = ':' + rel if from_index else 'HEAD:' + rel
     try:
-        return subprocess.check_output(['git', 'show', f'HEAD:{rel}'], cwd=REPO)
+        return subprocess.check_output(['git', 'cat-file', 'blob', ref], cwd=REPO)
     except subprocess.CalledProcessError:
-        raise SystemExit(f'REFUSED: {rel} is not in HEAD; commit it before generating the lock')
+        raise SystemExit(f'REFUSED: {rel} is not in the index/HEAD; add and commit it first')
 
 
-def build(baseline_version='unregistered'):
-    code_md5 = {rel: hashlib.md5(_blob(rel)).hexdigest() for rel in FROZEN + OWN}
-    sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
-    return dict(schema_version=1, git_sha=sha, baseline_version=baseline_version,
+def build(baseline_version='unregistered', from_index=False):
+    code_md5 = {rel: hashlib.md5(_blob(rel, from_index)).hexdigest() for rel in FROZEN + OWN}
+    try:
+        sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
+    except subprocess.CalledProcessError:
+        sha = None
+    return dict(schema_version=1, git_sha=(None if from_index else sha),
+                baseline_version=baseline_version,
+                source=('staged index (the commit that contains this file)' if from_index
+                        else 'HEAD'),
                 generated_utc=datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                definition='md5 of `git show HEAD:<path>` blob bytes',
+                definition='md5 of `git cat-file blob <ref>:<path>` bytes',
                 code_md5=code_md5)
 
 
@@ -52,10 +59,12 @@ def main():
     g.add_argument('--check', action='store_true', help='verify this host')
     ap.add_argument('--out', default=str(DEFAULT))
     ap.add_argument('--version', default='unregistered',
-                    help='registered baseline label written into the lock (e.g. v4)')
+                    help='registered baseline label written into the lock (e.g. v7)')
+    ap.add_argument('--from-index', action='store_true',
+                    help='hash the staged index so code and lock can be one commit')
     a = ap.parse_args()
     if a.write:
-        lock = build(a.version)
+        lock = build(a.version, a.from_index)
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps(lock, indent=1) + '\n')
         print('wrote', a.out, 'git_sha', lock['git_sha'], 'files', len(lock['code_md5']))

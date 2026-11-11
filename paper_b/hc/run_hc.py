@@ -152,7 +152,7 @@ def code_lock_guard(path):
     if bad:
         raise SystemExit('REFUSED: code differs from the committed lock:\n'
                          + json.dumps(bad, indent=1))
-    return dict(mode='lock', git_sha=lock.get('git_sha', 'UNKNOWN'),
+    return dict(mode='lock', git_sha=(lock.get('git_sha') or 'WORKTREE'),
                 code_lock_sha1=hashlib.sha1(path.read_bytes()).hexdigest())
 
 

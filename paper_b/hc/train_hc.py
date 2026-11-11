@@ -189,28 +189,34 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
     net = build_hc(cfg).to(dev)
     if cfg.get('init_from'):
         # Shared-initialisation control (A3a vs A3p). The two variants name the
-        # same Linear(8->d) differently -- ``pe_proj`` in the frozen model,
-        # ``cycle_enc.proj`` in the subclass -- so a plain load_state_dict with
-        # strict=False would silently leave the cycle projection at its own
-        # random init while reporting success. Remap in both directions and
-        # refuse anything that does not line up exactly (test-lead ①②).
+        # same Linear(8->d) and the same period buffer differently -- ``pe_proj``
+        # / ``pe_periods`` in the frozen model, ``cycle_enc.proj`` /
+        # ``cycle_enc.periods`` in the subclass -- so the remap must be driven by
+        # what THIS model has, not by what the dump happens to contain. A plain
+        # strict=False load would silently leave the cycle projection at its own
+        # random draw; anything left over raises.
         ckpt = torch.load(cfg['init_from'], map_location='cpu', weights_only=True)
         if isinstance(ckpt, dict) and 'state_dict' in ckpt:
             ckpt = ckpt['state_dict']   # --dump-init wraps it with provenance
-        if 'pe_proj.weight' in ckpt and 'cycle_enc.proj.weight' not in ckpt:
-            ckpt = {(k.replace('pe_proj.', 'cycle_enc.proj.', 1) if k.startswith('pe_proj.') else k): v
-                    for k, v in ckpt.items()}
-        elif 'cycle_enc.proj.weight' in ckpt and 'pe_proj.weight' not in ckpt:
-            ckpt = {(k.replace('cycle_enc.proj.', 'pe_proj.', 1)
-                     if k.startswith('cycle_enc.proj.') else k): v
-                    for k, v in ckpt.items()}
-        missing, unexpected = net.load_state_dict(ckpt, strict=False)
+        sd = dict(ckpt)
+        want = net.state_dict()
+        if 'pe_proj.weight' in want and 'pe_proj.weight' not in sd:
+            sd = {('pe_proj.' + k.split('.', 1)[1]) if k.startswith('cycle_enc.proj.') else k: v
+                  for k, v in sd.items()}
+        if 'cycle_enc.proj.weight' in want and 'cycle_enc.proj.weight' not in sd:
+            sd = {('cycle_enc.proj.' + k.split('.', 1)[1]) if k.startswith('pe_proj.') else k: v
+                  for k, v in sd.items()}
+        if 'pe_periods' in want and 'pe_periods' not in sd and 'cycle_enc.periods' in sd:
+            sd['pe_periods'] = sd.pop('cycle_enc.periods')
+        if 'cycle_enc.periods' in want and 'cycle_enc.periods' not in sd and 'pe_periods' in sd:
+            sd['cycle_enc.periods'] = sd.pop('pe_periods')
+        missing, unexpected = net.load_state_dict(sd, strict=False)
         if missing or unexpected:
             raise RuntimeError(
                 f'init_from mismatch: missing={sorted(missing)[:8]} '
-                f'unexpected={sorted(unexpected)[:8]} (after pe_proj<->cycle_enc.proj remap)')
+                f'unexpected={sorted(unexpected)[:8]} (after target-driven remap)')
         log('  init_from=%s loaded=%d missing=0 unexpected=0 (remapped)'
-            % (cfg['init_from'], len(ckpt)))
+            % (cfg['init_from'], len(sd)))
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
