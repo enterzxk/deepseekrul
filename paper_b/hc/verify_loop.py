@@ -173,14 +173,33 @@ def main():
             term_a = a3a.cycle_enc(cyc2)
             full_p = a3p.encode(x2, b2, m2, cyc2, None)
             full_a = a3a.encode(x2, b2, m2, cyc2, None)
+            # (c) Backbone identity, the only way this can be asserted: zero both
+            # cycle projections, then A3p is norm(pooled) and A3a is norm(pooled)
+            # and the two must agree to 1e-6. With non-zero projections they
+            # MUST differ (pre-norm vs post-norm) -- that difference is the
+            # treatment, recorded in CYCLE_DEPENDENCE_STUDY.md, not asserted away.
+            wp, bp = a3p.pe_proj.weight.clone(), a3p.pe_proj.bias.clone()
+            wa, ba = a3a.cycle_enc.proj.weight.clone(), a3a.cycle_enc.proj.bias.clone()
+            a3p.pe_proj.weight.zero_(); a3p.pe_proj.bias.zero_()
+            a3a.cycle_enc.proj.weight.zero_(); a3a.cycle_enc.proj.bias.zero_()
+            try:
+                zeroed_diff = float((a3p.encode(x2, b2, m2, cyc2, None)
+                                     - a3a.encode(x2, b2, m2, cyc2, None)).abs().max())
+            finally:
+                a3p.pe_proj.weight.copy_(wp); a3p.pe_proj.bias.copy_(bp)
+                a3a.cycle_enc.proj.weight.copy_(wa); a3a.cycle_enc.proj.bias.copy_(ba)
         term_diff = float((term_p - term_a).abs().max())
         full_diff = float((full_p - full_a).abs().max())
+        proj_diff = float((a3p.pe_proj.weight - a3a.cycle_enc.proj.weight).abs().max())
         print(f'A3p/A3a shared tensors = {n_shared}, backbone max|diff| = {backbone_diff:.3e}')
+        print(f'A3p/A3a cycle-projection tensors max|diff| = {proj_diff:.3e}')
         print(f'A3p/A3a Fourier term max|diff| = {term_diff:.3e}')
         print(f'A3p/A3a full encode max|diff| = {full_diff:.3e} (treatment, expected > 0)')
+        print(f'A3p/A3a zeroed-projection max|diff| = {zeroed_diff:.3e} (must be <= 1e-6)')
 
         ok = (loss_diff < 1e-6 and max_diff < 1e-6 and set(sd_f) == set(sd_h)
-              and backbone_diff < 1e-6 and term_diff < 1e-6)
+              and backbone_diff < 1e-6 and term_diff < 1e-6 and proj_diff < 1e-6
+              and zeroed_diff <= 1e-6)
         print('VERIFY_LOOP', 'PASS' if ok else 'FAIL')
         # A3p must be the frozen model, not merely similar to it.
         eq = check_a3p_equivalence()
