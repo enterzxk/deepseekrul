@@ -166,8 +166,6 @@ def main():
     ap.add_argument('--hypothesis', required=True,
                     help='one-line falsifiable statement; required by the registry spec')
     ap.add_argument('--gate', default='A')
-    ap.add_argument('--baseline-version', default=None,
-                    help='registered baseline label; defaults to the code lock value')
     ap.add_argument('--data-dir', default=os.environ.get('HC_DATA', 'data/CMAPSS'))
     ap.add_argument('--out-root', default=os.environ.get('HC_OUT_ROOT', 'experiments/hc'))
     ap.add_argument('--registry-root', default=str(REPO / 'docs' / 'paper_b_hc' / 'registry'),
@@ -177,14 +175,20 @@ def main():
                     help='committed-code lock, used when the host has no git (a40)')
     ap.add_argument('--device', default='cuda:0')
     ap.add_argument('--init-from', default=None,
-                    help='state_dict loaded before training (shared-init control)')
+                    help='state_dict (or dump payload) loaded before training')
+    ap.add_argument('--dump-init', default=None,
+                    help='write the freshly initialised weights here before training')
     ap.add_argument('--smoke', action='store_true', help='1-epoch pipeline check; not evidence')
-    ap.add_argument('--baseline-version', default='f3142687ed6c04efcfa35173772f532b3ebb3c38',
-                    help='commit whose blobs are the code_md5 baseline (task book §1.2)')
+    ap.add_argument('--baseline-version', default=None,
+                    help='registered baseline label; defaults to the code lock value')
     ap.add_argument('--force', action='store_true', help='overwrite an existing run dir')
     a = ap.parse_args()
 
     assert_protocol_matches_taskbook()
+
+    # The dump / load of the shared initialisation happens inside train_hc, so
+    # the run that writes the dump and the run that consumes it are the same
+    # kind of process and both record the same sha256.
 
     # Step 1 of the 2026-11-11 ruling: a run may only start from a committed
     # tree. Git hosts use `git status`; a40 has no git, so it verifies every
@@ -229,6 +233,7 @@ def main():
     cfg['gate'] = a.gate
     cfg['smoke'] = bool(a.smoke)
     cfg['init_from'] = a.init_from
+    cfg['dump_init'] = a.dump_init
     if a.init_from:
         cfg['init_from_sha256'] = hashlib.sha256(Path(a.init_from).read_bytes()).hexdigest()
     if a.smoke:
@@ -343,6 +348,7 @@ def main():
         git_sha=git_sha_field,
         code_lock_git_sha=(lock.get('git_sha') if guard['mode'] == 'lock' else None),
         val_engine_ids_hash=got,
+        init_sha256=cfg.get('init_sha256') or cfg.get('init_from_sha256'),
         code_md5=code_hashes(),
         split=_d.split_fingerprint(ds),
         env=env_info(),

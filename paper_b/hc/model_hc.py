@@ -57,6 +57,7 @@ class DSPT_HC_Frozen(DSPT):
     def __init__(self, **kw):
         super().__init__(use_cycle=True, **kw)
         self.needs_cycle = True
+        self._cycle_checked = False
 
     def encode(self, x, baseline, mask, cycle, cond=None):
         if cycle is None:
@@ -64,12 +65,19 @@ class DSPT_HC_Frozen(DSPT):
         # Assert, do not clamp (test-lead ruling): A3p is declared with
         # cycle_source='clipped', so a value above 250 means the arm is
         # mis-specified. Clamping would silently turn a raw-cycle run into the
-        # clipped arm and hide the bug; failing loudly keeps the control honest.
-        mx = float(cycle.detach().max())
-        if mx > 250.0 + 1e-6:
-            raise ValueError(
-                f'frozen injection: cycle must be <= 250 (got max {mx:.4f}); '
-                f'A3p requires cycle_source="clipped"')
+        # clipped arm and hide the bug.
+        #
+        # The check is done once per model, not once per forward: on CUDA,
+        # ``.max()`` forces a device sync, and 40 epochs x thousands of batches
+        # would pay for it. ``train_hc`` also validates the whole tensor before
+        # training starts, so this is a backstop rather than the primary guard.
+        if not self._cycle_checked:
+            mx = float(cycle.detach().max())
+            if mx > 250.0 + 1e-6:
+                raise ValueError(
+                    f'frozen injection: cycle must be <= 250 (got max {mx:.4f}); '
+                    f'A3p requires cycle_source="clipped"')
+            self._cycle_checked = True
         return super().encode(x, baseline, mask, cycle / 250.0, cond)
 
 

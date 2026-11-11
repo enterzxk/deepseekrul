@@ -22,6 +22,7 @@ Audit fixes in this file (see CODE_REVIEW_20261111_test_lead.md):
       splits engines with ``np.array_split`` so 20 engines give 7/7/6.
   C4  the cycle key lookup no longer evaluates ``d['cycle']`` eagerly.
 """
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -41,6 +42,11 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+
+def _now():
+    import datetime
+    return datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
 def _t(d, dev, key):
@@ -151,16 +157,47 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
 
     torch.backends.cudnn.benchmark = True
     net = build_hc(cfg).to(dev)
+    if cfg.get('dump_init'):
+        # Producer half of the shared-init control: save the weights this very
+        # process is about to train from, before the optimiser exists, with the
+        # variant/seed and a sha256 the consuming run must match.
+        p = Path(cfg['dump_init'])
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if p.exists():
+            raise SystemExit(f'REFUSED: init dump {p} already exists; a dump is written once')
+        payload = dict(
+            state_dict={k: v.detach().cpu().clone() for k, v in net.state_dict().items()},
+            variant=cfg['variant'], subset=cfg['subset'], seed=cfg['seed'],
+            span=cfg['span'], created_utc=_now(),
+            note='initial weights only; never a trained checkpoint')
+        torch.save(payload, p)
+        cfg['init_sha256'] = hashlib.sha256(p.read_bytes()).hexdigest()
+        log('  dump_init=%s variant=%s seed=%s sha256=%s'
+            % (p, cfg['variant'], cfg['seed'], cfg['init_sha256']))
     if cfg.get('init_from'):
-        # Shared-initialisation control (A3a vs A3p): the backbone and the
-        # Fourier projection are loaded from one file so the only difference
-        # between the two runs is the injection point, not the RNG stream.
+        # Shared-initialisation control (A3a vs A3p). The two variants name the
+        # same Linear(8->d) differently -- ``pe_proj`` in the frozen model,
+        # ``cycle_enc.proj`` in the subclass -- so a plain load_state_dict with
+        # strict=False would silently leave the cycle projection at its own
+        # random init while reporting success. Remap in both directions and
+        # refuse anything that does not line up exactly (test-lead ①②).
         ckpt = torch.load(cfg['init_from'], map_location='cpu', weights_only=True)
+        if isinstance(ckpt, dict) and 'state_dict' in ckpt:
+            ckpt = ckpt['state_dict']   # --dump-init wraps it with provenance
+        if 'pe_proj.weight' in ckpt and 'cycle_enc.proj.weight' not in ckpt:
+            ckpt = {(k.replace('pe_proj.', 'cycle_enc.proj.', 1) if k.startswith('pe_proj.') else k): v
+                    for k, v in ckpt.items()}
+        elif 'cycle_enc.proj.weight' in ckpt and 'pe_proj.weight' not in ckpt:
+            ckpt = {(k.replace('cycle_enc.proj.', 'pe_proj.', 1)
+                     if k.startswith('cycle_enc.proj.') else k): v
+                    for k, v in ckpt.items()}
         missing, unexpected = net.load_state_dict(ckpt, strict=False)
-        log('  init_from=%s loaded=%d missing=%d unexpected=%d'
-            % (cfg['init_from'], len(ckpt) - len(unexpected), len(missing), len(unexpected)))
-        if unexpected:
-            log('  unexpected keys ignored: %s' % sorted(unexpected)[:6])
+        if missing or unexpected:
+            raise RuntimeError(
+                f'init_from mismatch: missing={sorted(missing)[:8]} '
+                f'unexpected={sorted(unexpected)[:8]} (after pe_proj<->cycle_enc.proj remap)')
+        log('  init_from=%s loaded=%d missing=0 unexpected=0 (remapped)'
+            % (cfg['init_from'], len(ckpt)))
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
