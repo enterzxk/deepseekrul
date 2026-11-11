@@ -65,19 +65,54 @@ mask buys 5.4% test (`ATTRIBUTION.md`).
 
 ## 5. Decision
 
-**READY as a single-seed, four-subset pilot; REVISE before an IEEE TIM
-submission.**
+**READY as a four-subset pilot; REVISE before an IEEE TIM submission.**
 
 The factorial is internally consistent and the selected model is simpler than
-FULL, but the gain is within noise, the test table is descriptive, and only one
-seed was run. The minimal next round is seeds 202/303 for the selected cell and
-FULL on all four subsets (16 runs), then a paired bootstrap with three seeds.
-No new module is added.
+FULL, but the gain is within noise and the test table is descriptive. The
+three-seed check in section 7 settles the seed question: the seed-101 margin
+does not replicate, and the winner flips on seed 202. No claim of a performance
+advantage over FULL survives three seeds. No new module is added.
 
 ## 6. Caveats
 
-- One seed (101), as requested; seed variance is not estimated in this round.
+- Three seeds (101/202/303) for the three headline cells; the other seven
+  factorial cells are still single-seed.
 - Test numbers are descriptive and were opened at the user's request.
 - The single-scale replacement uses k=3; "best scale" was not separately tuned.
 - The HI head is present in both HI levels; only the loss weight changes.
 - No claim that the selected cell is significantly better than FULL.
+
+## 7. Three-seed check (seeds 202/303)
+
+24 runs added 2026-11-11: the selected cell, the factorial base and FULL on all
+four subsets at seeds 202 and 303, with hyperparameters identical to seed 101.
+Grid `experiments/grids/factorial_s23.json`, manifest
+`results/FREEZE_FACTORIAL_S23.json`, tables `results/seed_robustness_*.csv`,
+generated report `SEED_ROBUSTNESS.md`.
+
+Validation RMSE (mean +- sd over seeds 101/202/303):
+
+| cell | FD001 | FD002 | FD003 | FD004 | mean |
+|---|---:|---:|---:|---:|---:|
+| single + mean, no HI (base) | 12.093 +- 0.311 | 11.884 +- 0.311 | 12.669 +- 0.214 | 17.026 +- 1.071 | 13.418 |
+| **single + attention + HI (selected)** | 10.760 +- 0.178 | 12.055 +- 0.414 | 11.992 +- 0.306 | 16.910 +- 0.134 | **12.929** |
+| full + attention + HI (FULL) | 11.132 +- 0.286 | 11.941 +- 0.300 | 12.342 +- 0.854 | 16.514 +- 0.184 | 12.982 |
+
+Official test RMSE (descriptive, mean over seeds): selected 11.134, FULL 11.512,
+base 11.655.
+
+What three seeds change:
+
+1. **The seed-101 margin does not replicate.** The validation gap between the
+   selected cell and FULL shrinks from -2.3% (seed 101) to -0.4% (three-seed
+   mean, 12.929 vs 12.982), and the winner **flips on seed 202**, where FULL
+   wins (12.628 vs 13.035). Per-seed winner: cand / full / cand.
+2. **Paired test deltas are not sign-stable.** selected - FULL: mean -0.378
+   (sd 1.057), better in 8/12 (subset, seed) pairs; only FD003 keeps the sign
+   across all three seeds; engine-bootstrap CIs exclude 0 in 3/12 pairs.
+   selected - base: mean -0.521 (sd 0.814), better in 9/12 pairs; FD004 is the
+   only subset whose t interval excludes 0.
+3. **The correct claim is "comparable", not "better".** The selected cell is
+   still what the validation rule picks on the seed-averaged metric and it is
+   the simplest of the three, but no performance advantage over FULL survives
+   three seeds.
