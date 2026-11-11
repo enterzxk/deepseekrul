@@ -472,3 +472,37 @@ a40 的 `registry/code_lock.json` md5 = `c04c9586…`，与本地一致。
 若后续再出现"读一次一个样"，说明仍有第二个写入方在跑；届时以**最近一次 commit 的 blob** 为准
 （`git cat-file blob HEAD:docs/paper_b_hc/registry/runs.csv`），不看工作树。
 
+
+---
+
+## I. wave1 准入缺口（2026-11-12 01:0x，只读观测，未改台账）
+
+### I.1 现场
+
+GPU 峰值曾到 **47.33 GiB 满**（8 个进程），HC-C-A1-FD003-s101-W1 在第一个 backward 就
+	orch.OutOfMemoryError，status=failed、epochs_run=0。
+同批 A1-FD001-W1 / A1-FD002-W1 也无 close 落盘（进程已消失），属 unclosed。
+
+调度器的 -W1r2 重试生效，三条重跑现在都在跑（实测 PID 1781100/1781106/1781143，各约 6 GB）。
+当前 GPU 总量 30.6 GiB：wave1 3 路 17.6 GiB、baselines 3 路 10.7 GiB、其余 2.3 GiB。
+
+### I.2 问题：重试 id 不在预登记清单里
+
+主控定的准入是「`run_id` 在 `GATE_A_WAVE1_PLAN.md` §3 清单里」，清单里是 `...-W1`。
+但 A1 这三格的**有效结果会落在 `...-W1r2`**，`-W1` 那三条一条 failed、两条 unclosed。
+
+按字面规则，A1 × FD001/002/003 **三格会全部准入不了**，而它们恰恰是 G1（A2 vs A1）的分母。
+
+需要主控明确一条，二选一：
+
+| 方案 | 规则 | 后果 |
+|---|---|---|
+| A（推荐） | `-W1r2` 视为同一格的合法重试，`-W1` 的 failed/unclosed 行标 `superseded_by=W1r2` | 准入按「格」而不是按「字符串」，重试不丢格 |
+| B | 严格按 `-W1` 字符串 | A1 三格永久缺格，G1 无法计算 |
+
+同类的第二个缺口见 §H 的别名问题（`A3a-FD001` 预登记 id 不会存在，实际由 `0030Z` 承担）。
+两个缺口合起来说明：**准入键应该按 (variant, subset, seed) 的「格」判定，`run_id` 只作辅助**，
+否则任何重试、任何复用都会让格凭空消失。
+
+台账在接到裁决前不登记 wave1 任何一行。
+
