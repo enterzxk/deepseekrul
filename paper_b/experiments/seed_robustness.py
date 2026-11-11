@@ -38,6 +38,34 @@ LABEL = {
 }
 
 
+def _load_preds(path):
+    """Aggregate one predictions file at both levels.
+
+    The engine is the statistical unit (audit R2), so the engine-level number is
+    the mean over engines of each engine's own RMSE -- take the root per engine
+    first, then average. Pooled is ``sqrt(mean squared error)`` over every
+    window. These differ whenever engines contribute unequal error profiles,
+    and by Jensen ``engine_mean <= pooled`` for a balanced window count; a
+    report that prints one while calling it the other is simply mislabelled.
+
+    The validation split has 5 truncated windows per engine, so the two levels
+    genuinely differ there. The official test split has exactly one window per
+    engine, so pooled already *is* the engine-level value and the distinction
+    collapses; ``n_units == n_rows`` records which case applied.
+    """
+    if not path.exists():
+        return None
+    p = pd.read_csv(path)
+    e2 = (p.y_pred - p.y_true) ** 2
+    per = e2.groupby(p.unit).mean()
+    return dict(
+        pooled=float(np.sqrt(e2.mean())),
+        engine_mean=float(per.pow(0.5).mean()),
+        n_units=int(per.size),
+        n_rows=int(len(p)),
+    )
+
+
 def load():
     rows = []
     for name, tag in CELLS.items():
@@ -50,10 +78,22 @@ def load():
                 t = {}
                 if (d / 'test_metrics.json').exists():
                     t = json.loads((d / 'test_metrics.json').read_text())
+                v = _load_preds(d / 'val_pred.csv') or {}
+                te = _load_preds(d / 'test_pred.csv') or {}
                 rows.append(dict(
                     cell=name, tag=tag, subset=s, seed=sd,
-                    val_rmse=m['val_engine_rmse'], val_nasa=m['nasa_mean'],
-                    test_rmse=t.get('rmse', np.nan), test_nasa=t.get('nasa_mean', np.nan),
+                    # validation: engine is the unit -> average per-engine RMSE
+                    val_rmse=v.get('engine_mean', np.nan),
+                    val_pooled_rmse=v.get('pooled', np.nan),
+                    # test: one window per engine, so pooled == engine-level
+                    test_rmse=te.get('pooled', np.nan),
+                    test_pooled_rmse=te.get('pooled', np.nan),
+                    test_engine_mean=te.get('engine_mean', np.nan),
+                    val_units=v.get('n_units'), test_units=te.get('n_units'),
+                    val_metric_field=m['val_engine_rmse'],
+                    val_nasa=m['nasa_mean'],
+                    test_metric_field=t.get('rmse', np.nan),
+                    test_nasa=t.get('nasa_mean', np.nan),
                     params=m.get('params'), best_ep=m.get('best_ep'),
                     elapsed_s=m.get('elapsed_s'),
                 ))
@@ -146,7 +186,10 @@ def seed_level(raw, metric, a='cand', b='full'):
         n = len(arr)
         mean = float(arr.mean())
         sd = float(arr.std(ddof=1)) if n > 1 else float('nan')
-        half = T975.get(n, float('nan')) * sd / np.sqrt(n) if n > 1 else float('nan')
+        # df = n - 1, so the table is indexed by df, not by n. Indexing it by n
+        # silently used the df=n value and made every interval ~26% too narrow
+        # at n=3 (t 3.182 instead of 4.303).
+        half = T975.get(n - 1, float('nan')) * sd / np.sqrt(n) if n > 1 else float('nan')
         rows.append(dict(
             subset=s, n_seeds=n, mean_delta=mean, sd_delta=sd,
             ci_lo=mean - half, ci_hi=mean + half,

@@ -146,11 +146,20 @@ def main():
            '`paper_b/results/seed_robustness_*.csv`. Do not edit by hand.', '',
            f'Coverage: {counts_block(raw)}.', '',
            'Selection rule is unchanged: validation only. The official test set',
-           'is reported descriptively and never used to pick the model.', '']
+           'is reported descriptively and never used to pick the model.', '',
+           '**Provenance.** Machine output: `paper_b/results/seed_robustness_stdout.txt`.',
+           'Values come from `seed_robustness_raw.csv`, which is recomputed from the',
+           'saved `val_pred.csv` / `test_pred.csv` of each run, not from the legacy',
+           '`metrics.json` field (that field is pooled despite its name).', '']
 
     for metric, title, note in (
         ('val_rmse', 'Validation RMSE (engine level)',
-         'Model selection uses this metric.'),
+         'Mean over engines of each engine\'s own RMSE (5 truncated windows per '
+         'engine). These runs were SELECTED on the GPU host by POOLED '
+         'validation RMSE, because that host still carries the pre-R2 '
+         '`metrics.py`; the engine-level values here are recomputed post hoc '
+         'from the saved predictions. Pooled values are kept as '
+         '`val_pooled_rmse`.'),
         ('test_rmse', 'Official test RMSE (descriptive)',
          'Opened after the freeze manifest; not a selection criterion.'),
     ):

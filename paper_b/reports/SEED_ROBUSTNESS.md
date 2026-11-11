@@ -8,24 +8,29 @@ Coverage: seeds present: 101, 202, 303; runs per cell: base=12, cand=12, full=12
 Selection rule is unchanged: validation only. The official test set
 is reported descriptively and never used to pick the model.
 
+**Provenance.** Machine output: `paper_b/results/seed_robustness_stdout.txt`.
+Values come from `seed_robustness_raw.csv`, which is recomputed from the
+saved `val_pred.csv` / `test_pred.csv` of each run, not from the legacy
+`metrics.json` field (that field is pooled despite its name).
+
 ## Validation RMSE (engine level)
 
-Model selection uses this metric.
+Mean over engines of each engine's own RMSE (5 truncated windows per engine). These runs were SELECTED on the GPU host by POOLED validation RMSE, because that host still carries the pre-R2 `metrics.py`; the engine-level values here are recomputed post hoc from the saved predictions. Pooled values are kept as `val_pooled_rmse`.
 
 | cell | FD001 | FD002 | FD003 | FD004 | mean over subsets |
 |---|---|---|---|---|---|
-| single-scale + mean pooling, no HI | 12.093 ± 0.311 | 11.884 ± 0.311 | 12.669 ± 0.214 | 17.026 ± 1.071 | 13.418 |
-| single-scale + attention + HI (selected) | 10.760 ± 0.178 | 12.055 ± 0.414 | 11.992 ± 0.306 | 16.910 ± 0.134 | 12.929 |
-| multi-scale + attention + HI (FULL) | 11.132 ± 0.286 | 11.941 ± 0.300 | 12.342 ± 0.854 | 16.514 ± 0.184 | 12.982 |
+| single-scale + mean pooling, no HI | 11.432 ± 0.200 | 10.742 ± 0.326 | 11.402 ± 0.041 | 11.882 ± 0.161 | 11.364 |
+| single-scale + attention + HI (selected) | 9.827 ± 0.221 | 10.686 ± 0.539 | 11.049 ± 0.197 | 12.021 ± 0.228 | 10.896 |
+| multi-scale + attention + HI (FULL) | 10.359 ± 0.317 | 10.761 ± 0.267 | 10.987 ± 0.890 | 11.818 ± 0.344 | 10.981 |
 
 ## Selection stability (validation RMSE)
 
 | seed | winner | mean over subsets |
 |---|---|---|
-| 101 | cand | 12.779 |
-| 202 | full | 12.628 |
-| 303 | cand | 12.974 |
-| **seed mean** | **cand** | **12.929** |
+| 101 | cand | 10.846 |
+| 202 | full | 10.587 |
+| 303 | cand | 10.734 |
+| **seed mean** | **cand** | **10.896** |
 
 - Winner is `cand` on every seed: **no**.
 - Winner under the seed-averaged validation RMSE: `cand`.
@@ -65,10 +70,10 @@ construction, so sign consistency is reported alongside it):
 
 | subset | seeds | mean delta | sd | t 95% CI | cand better | worst seed | sign kept | t-CI excl. 0 |
 |---|---|---|---|---|---|---|---|---|
-| FD001 | 3 | 0.475 | 0.540 | [-0.518, 1.468] | 1/3 | 0.985 | no | no |
-| FD002 | 3 | -0.028 | 0.608 | [-1.145, 1.089] | 2/3 | 0.663 | no | no |
-| FD003 | 3 | -1.519 | 1.264 | [-3.841, 0.804] | 3/3 | -0.152 | yes | no |
-| FD004 | 3 | -0.440 | 0.811 | [-1.930, 1.050] | 2/3 | 0.489 | no | no |
+| FD001 | 3 | 0.475 | 0.540 | [-0.867, 1.818] | 1/3 | 0.985 | no | no |
+| FD002 | 3 | -0.028 | 0.608 | [-1.538, 1.482] | 2/3 | 0.663 | no | no |
+| FD003 | 3 | -1.519 | 1.264 | [-4.660, 1.623] | 3/3 | -0.152 | yes | no |
+| FD004 | 3 | -0.440 | 0.811 | [-2.454, 1.575] | 2/3 | 0.489 | no | no |
 
 - Sign kept in **1/4** subsets.
 - t interval excludes 0 in **0/4** subsets.
@@ -101,10 +106,10 @@ construction, so sign consistency is reported alongside it):
 
 | subset | seeds | mean delta | sd | t 95% CI | cand better | worst seed | sign kept | t-CI excl. 0 |
 |---|---|---|---|---|---|---|---|---|
-| FD001 | 3 | -0.286 | 0.579 | [-1.349, 0.778] | 2/3 | 0.382 | no | no |
-| FD002 | 3 | -0.585 | 1.089 | [-2.586, 1.417] | 2/3 | 0.648 | no | no |
-| FD003 | 3 | -0.331 | 1.323 | [-2.761, 2.099] | 2/3 | 0.986 | no | no |
-| FD004 | 3 | -0.883 | 0.176 | [-1.207, -0.559] | 3/3 | -0.695 | yes | yes |
+| FD001 | 3 | -0.286 | 0.579 | [-1.724, 1.152] | 2/3 | 0.382 | no | no |
+| FD002 | 3 | -0.585 | 1.089 | [-3.291, 2.122] | 2/3 | 0.648 | no | no |
+| FD003 | 3 | -0.331 | 1.323 | [-3.617, 2.955] | 2/3 | 0.986 | no | no |
+| FD004 | 3 | -0.883 | 0.176 | [-1.322, -0.445] | 3/3 | -0.695 | yes | yes |
 
 - Sign kept in **1/4** subsets.
 - t interval excludes 0 in **1/4** subsets.

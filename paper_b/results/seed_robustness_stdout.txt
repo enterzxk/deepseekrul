@@ -1,0 +1,107 @@
+loaded runs per cell: {'base': 12, 'cand': 12, 'full': 12}
+
+== validation RMSE, mean ± sd over 3 seeds ==
+| cell | FD001 | FD002 | FD003 | FD004 | mean_over_subsets |
+|---|---|---|---|---|---|
+| single-scale + mean pooling, no HI | 11.432 ± 0.200 | 10.742 ± 0.326 | 11.402 ± 0.041 | 11.882 ± 0.161 | 11.364 |
+| single-scale + attention + HI (selected) | 9.827 ± 0.221 | 10.686 ± 0.539 | 11.049 ± 0.197 | 12.021 ± 0.228 | 10.896 |
+| multi-scale + attention + HI (FULL) | 10.359 ± 0.317 | 10.761 ± 0.267 | 10.987 ± 0.890 | 11.818 ± 0.344 | 10.981 |
+
+-- per-seed mean over the four subsets --
+seed     101     202     303
+cell                        
+base  11.431  11.269  11.392
+cand  10.846  11.107  10.734
+full  11.265  10.587  11.092
+
+-- mean ± sd over seeds (of the per-seed subset means) --
+        mean    std  count
+cell                      
+base  11.364  0.085      3
+cand  10.896  0.191      3
+full  10.981  0.352      3
+
+== official test (descriptive) RMSE, mean ± sd over 3 seeds ==
+| cell | FD001 | FD002 | FD003 | FD004 | mean_over_subsets |
+|---|---|---|---|---|---|
+| single-scale + mean pooling, no HI | 11.140 ± 0.527 | 11.544 ± 0.484 | 11.130 ± 0.440 | 12.806 ± 0.442 | 11.655 |
+| single-scale + attention + HI (selected) | 10.854 ± 0.570 | 10.960 ± 0.874 | 10.799 ± 0.888 | 11.922 ± 0.340 | 11.134 |
+| multi-scale + attention + HI (FULL) | 10.379 ± 0.262 | 10.988 ± 0.407 | 12.317 ± 1.037 | 12.362 ± 0.478 | 11.512 |
+
+-- per-seed mean over the four subsets --
+seed     101     202     303
+cell                        
+base  11.406  11.948  11.612
+cand  10.983  11.319  11.099
+full  11.311  11.225  11.999
+
+-- mean ± sd over seeds (of the per-seed subset means) --
+        mean    std  count
+cell                      
+base  11.655  0.273      3
+cand  11.134  0.171      3
+full  11.512  0.425      3
+
+== paired test RMSE delta: cand - full (negative = cand better) ==
+subset  seed  delta  ci_lo  ci_hi  ci_excludes_zero
+ FD001   101 -0.092 -1.498  1.311             False
+ FD001   202  0.985 -0.207  2.195             False
+ FD001   303  0.532 -0.504  1.468             False
+ FD002   101 -0.265 -0.853  0.395             False
+ FD002   202  0.663 -0.266  1.477             False
+ FD002   303 -0.482 -1.474  0.502             False
+ FD003   101 -0.152 -1.237  1.103             False
+ FD003   202 -1.758 -3.092 -0.411              True
+ FD003   303 -2.646 -4.520 -0.992              True
+ FD004   101 -0.801 -1.888  0.403             False
+ FD004   202  0.489 -0.561  1.592             False
+ FD004   303 -1.007 -1.988 -0.019              True
+mean delta -0.378  sd 1.057  n=12  cand better in 8/12 pairs  CI excludes 0 in 3/12 pairs
+
+per subset:
+         mean    std  count
+subset                     
+FD001   0.475  0.540      3
+FD002  -0.028  0.608      3
+FD003  -1.519  1.264      3
+FD004  -0.440  0.811      3
+
+== cross-seed aggregate: cand - full (negative = cand better) ==
+subset  n_seeds  mean_delta  sd_delta  ci_lo  ci_hi  n_cand_better  worst_seed_delta  best_seed_delta  sign_consistent  t_ci_excludes_zero
+ FD001        3       0.475     0.540 -0.867  1.818              1             0.985           -0.092            False               False
+ FD002        3      -0.028     0.608 -1.538  1.482              2             0.663           -0.482            False               False
+ FD003        3      -1.519     1.264 -4.660  1.623              3            -0.152           -2.646             True               False
+ FD004        3      -0.440     0.811 -2.454  1.575              2             0.489           -1.007            False               False
+sign consistent in 1/4 subsets; t-CI excludes 0 in 0/4 (df = n_seeds - 1, t-based)
+
+== paired test RMSE delta: cand - base (negative = cand better) ==
+subset  seed  delta  ci_lo  ci_hi  ci_excludes_zero
+ FD001   101 -0.651 -2.263  0.991             False
+ FD001   202 -0.589 -2.181  1.081             False
+ FD001   303  0.382 -0.755  1.635             False
+ FD002   101 -0.982 -1.724 -0.118              True
+ FD002   202  0.648 -0.571  1.855             False
+ FD002   303 -1.420 -2.348 -0.387              True
+ FD003   101  0.986 -0.046  2.073             False
+ FD003   202 -1.660 -3.200  0.089             False
+ FD003   303 -0.320 -1.263  0.702             False
+ FD004   101 -1.044 -1.991 -0.131              True
+ FD004   202 -0.912 -2.261  0.247             False
+ FD004   303 -0.695 -1.499  0.057             False
+mean delta -0.521  sd 0.814  n=12  cand better in 9/12 pairs  CI excludes 0 in 3/12 pairs
+
+per subset:
+         mean    std  count
+subset                     
+FD001  -0.286  0.579      3
+FD002  -0.585  1.089      3
+FD003  -0.331  1.323      3
+FD004  -0.883  0.176      3
+
+== cross-seed aggregate: cand - base (negative = cand better) ==
+subset  n_seeds  mean_delta  sd_delta  ci_lo  ci_hi  n_cand_better  worst_seed_delta  best_seed_delta  sign_consistent  t_ci_excludes_zero
+ FD001        3      -0.286     0.579 -1.724  1.152              2             0.382           -0.651            False               False
+ FD002        3      -0.585     1.089 -3.291  2.122              2             0.648           -1.420            False               False
+ FD003        3      -0.331     1.323 -3.617  2.955              2             0.986           -1.660            False               False
+ FD004        3      -0.883     0.176 -1.322 -0.445              3            -0.695           -1.044             True                True
+sign consistent in 1/4 subsets; t-CI excludes 0 in 1/4 (df = n_seeds - 1, t-based)
