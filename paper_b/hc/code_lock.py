@@ -46,8 +46,15 @@ def build(baseline_version='unregistered', from_index=False):
 
 
 def check(lock_path=DEFAULT):
+    """Verify this host against the lock.
+
+    Byte comparison is CRLF-normalised: the repo stores LF blobs, a Windows
+    working tree with ``core.autocrlf=true`` has CRLF, and a40 has LF again.
+    Comparing raw bytes therefore reports two false mismatches on Windows (v9
+    fix; the md5 in the lock always refers to the LF blob).
+    """
     lock = json.loads(Path(lock_path).read_text())
-    got = {rel: hashlib.md5((REPO / rel).read_bytes()).hexdigest()
+    got = {rel: hashlib.md5((REPO / rel).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
            for rel in lock['code_md5']}
     return {k: (got[k], v) for k, v in lock['code_md5'].items() if got[k] != v}
 

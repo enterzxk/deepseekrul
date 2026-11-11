@@ -206,10 +206,10 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
         if 'cycle_enc.proj.weight' in want and 'cycle_enc.proj.weight' not in sd:
             sd = {('cycle_enc.proj.' + k.split('.', 1)[1]) if k.startswith('pe_proj.') else k: v
                   for k, v in sd.items()}
-        if 'pe_periods' in want and 'pe_periods' not in sd and 'cycle_enc.periods' in sd:
-            sd['pe_periods'] = sd.pop('cycle_enc.periods')
         if 'cycle_enc.periods' in want and 'cycle_enc.periods' not in sd and 'pe_periods' in sd:
-            sd['cycle_enc.periods'] = sd.pop('pe_periods')
+            sd['cycle_enc.periods'] = sd['pe_periods']   # copy, never pop: A3a keeps pe_periods too
+        if 'pe_periods' in want and 'pe_periods' not in sd and 'cycle_enc.periods' in sd:
+            sd['pe_periods'] = sd['cycle_enc.periods']
         missing, unexpected = net.load_state_dict(sd, strict=False)
         if missing or unexpected:
             raise RuntimeError(
