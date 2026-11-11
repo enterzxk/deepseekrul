@@ -28,6 +28,18 @@ A3a 是敏感性臂，不进第一波（已有 0030Z）；A3b/A3c 不在第一�
 生成器放 `experiments/hc/tmp/make_wave1_inits.py`（不在 15-blob 锁内，不碰 `paper_b/hc/`），
 产物 sha256 写入各自 manifest 的 `init_sha256`。
 
+**注入点（2026-11-12 主控要求，必须写死）**
+
+| 变体 | 模型类 | 循环项注入位置 |
+|---|---|---|
+| A3p | `DSPT_HC_Frozen` | `DSPT.encode` 内部、`self.norm` **之前**（pre-norm），与 `build_dspt(use_cycle=True)` 逐位等价 |
+| A1 / A2 / A4 / A5 | `DSPT_HC` | `encode()` 返回之后（post-norm） |
+| A0 | `CycleOnly` | 无编码器，直接线性回归年龄 |
+
+因此 A3p 与 A1/A2/A4/A5 之间同时差「编码形式」和「注入位置」两个变量，
+Δ(A2→A3p) 不能单独归因给 Fourier；G2 必须拆成两张表（见 §9），
+拆表需要 post-norm 的 Fourier 臂 **A3a**，故第一波从 24 格扩为 28 格。
+
 两条额外约束（2026-11-12 主控补充）：
 
 - **A2 / A4 共用同一次 `Linear(1,64)` 抽样**：两者只差 `log1p` 变换，若循环投影各自随机，
@@ -65,14 +77,27 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 22 | A5 | FD002 | 101 | wave1_init_A5 | HC-C-A5-FD002-s101-W1 |
 | 23 | A5 | FD003 | 101 | wave1_init_A5 | HC-C-A5-FD003-s101-W1 |
 | 24 | A5 | FD004 | 101 | wave1_init_A5 | HC-C-A5-FD004-s101-W1 |
+| 25 | A3a | FD001 | 101 | init_v9_A3p | HC-C-A3a-FD001-s101-W1 |
+| 26 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
+| 27 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
+| 28 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
+
+> 第 25–28 格是 2026-11-12 主控要求新增的 **post-norm Fourier 臂**（A3a），
+> 用于把 G2 拆成「同注入点比编码形式」与「同编码形式比注入点」两张表。
+> A3a 的 init 用 A3p 那份（`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap，
+> 与 `0030Z` 的做法一致。
 
 ## 4. 并行方案
 
-- 显存：A40 49140 MiB。实测单 run 约 6.9 GB，双 run 并行时 14.4 GB（≈7.2 GB/run）。
-  按郑总给的保守值 14 GB/run，3 路 = 42 GB < 49 GB，余 ~7 GB。
+- 显存：A40 49140 MiB。实测单 run 约 **6.9 GB**（`0030Z`/`0105Z`），双 run 并行时 14.4 GB
+  （≈7.2 GB/run）。3 路按实测约 **21 GB**，余 ~28 GB；按保守 14 GB/run 则是 42 GB，
+  仍 < 49 GB。两种口径都放得下，计划采用实测口径。
 - **并发度 3**（`cuda:0`）。每路独立进程，`cudnn.benchmark=True` 保持默认。
-- 墙钟：单 run 实测 200–440 s（并发时变慢）。3 路并行按 6–9 min/run 估，
-  24 格 / 3 = 8 波 × ~7 min ≈ **60–75 min**，加启动开销约 80 min。
+- **R0 必须单跑**：`HC-C-A3p-FD001-s101-W1` 先在并发度 1 下跑完并核对逐位值，
+  再开 3 路跑其余 27 格。`cudnn.benchmark=True` 下并发可能改变算法选择，
+  把 R0 放在并发里会把「链路问题」和「并发算法选择」混在一起。
+- 墙钟：单 run 实测 200–440 s。R0 单跑约 3.5 min；其余 27 格 / 3 路 = 9 波 × ~7 min
+  ≈ **65–80 min**，加启动开销约 85 min。
 - 调度：`experiments/hc/tmp/run_wave1.sh` 用 3 个槽位的信号量（`flock` 或 FIFO），
   逐格调用 `run_hc`，每格独立日志 `logs/wave1/<run_id>.log`。
 
@@ -101,10 +126,15 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | # | 判据 | 阈值（写死） | 结论 |
 |---|---|---|---|
 | G1 | Cycle 是否有用：A2 相对 A1 | 四子集 `Δ(A1→A2)` 均值 **≥ 1.0%**，且无子集 **< −2.0%** | 过 → Cycle 有增益；否则「cycle 无可测增益」 |
-| G2 | Fourier 是否优于简单年龄：A3p 相对 A2 | `Δ(A2→A3p)` 均值 **≥ 1.0%**，且至少 **3/4** 子集同号 | 过 → Fourier 形式有额外贡献；否则按任务书 §9「不得把 Fourier 编码当创新点」 |
+| G2a | **同注入点**（post-norm）比编码形式：A3a 相对 A2 | `Δ(A2→A3a)` 均值 **≥ 1.0%**，且至少 **3/4** 子集同号 | 过 → 在 post-norm 下 Fourier 优于线性年龄 |
+| G2b | **同编码形式**（Fourier）比注入点：A3p 相对 A3a | 只报 `Δ(A3a→A3p)` 的均值与四子集符号，**不设增益阈值** | 用于把 G2 的联合差分解成「形式」与「位置」两部分 |
 | G3 | 年龄捷径检查：A0 相对 A1 | `Δ(A1→A0)` **≤ −10.0%**（A0 明显更差） | 不过 → benchmark 可由年龄单独解，cycle 结论作废 |
 | G4 | 干预方向：`cycle_intervention` | 所有带 cycle 的臂 `mean_abs_delta ≥ 0.5` 且 `frac_negative ≥ 0.5`；A1 必须 `mean_abs_delta = 0` | 不过 → 该臂的 cycle 路径未被模型使用，该臂结论作废 |
-| G5 | 方向稳定性 | 四子集上 G1/G2 的符号至少 **3/4** 一致 | 不过 → 只作子集条件陈述，不进主表 |
+| G5 | 方向稳定性 | 四子集上 G1/G2a 的符号至少 **3/4** 一致 | 不过 → 只作子集条件陈述，不进主表 |
+
+**G4 的方向约定（写死）**：`cycle_intervention` 的 `delta` 是**加在 raw cycle 上的 +10**，
+`mean_delta = mean(pred(c+10) − pred(c))`。**负值表示预测 RUL 随年龄增加而下降**，这是物理正确方向；
+`frac_negative ≥ 0.5` 表示至少一半窗口朝正确方向移动。`mean_abs_delta` 只衡量响应幅度，不含方向。
 
 补充规则：
 
