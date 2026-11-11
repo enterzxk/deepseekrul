@@ -1854,3 +1854,52 @@ permanent attempt token per run, config/code/data/checkpoint hashes bind
 test reconstruction. No source/config/result of old DSPT or PaperA changed.
 Evidence/spec/restore: docs/paper_b_baselines/MATCHED_PROTOCOL_20261112.md
 and MATCHED_RESEARCH_STATE.md.
+
+## PB-OS-007 · 2026-11-12 · Runtime budget review without numerical changes
+
+Observed FP32/TF32off training is slower than historical mixed precision
+(native FD001 first15/25epochs took~857s under3workers/shared GPU). Independent
+Codex L2 review decided keep the sealed common condition: projected hours
+remain within60A40h, and there is no representative end-to-end evidence for
+>2x net saving after a complete84-cell restart. No validation/TEST performance
+was used for this decision; official TEST is still locked. Do not change
+TF32/BF16 mid-batch or mix partially trained numerical conditions. No extra
+profiling/restart is required absent new budget evidence.
+
+## PB-OS-008 · 2026-11-12 · Memory-aware recovery of externally paused scheduler
+
+Existing HC resource control paused our CPU dispatcher at44GB redline;
+main shared state records this explicitly. All7 firstFD cells later
+finished naturally. To continue safely, replace only our stopped controller
+after proving all own childrenTRAINED/zombie; adopt7 results; use a finite
+new launcher with36GB admission budget, max3 and conservative per-model
+reservations. Preserve original claim/log and newlauncher hash. No signal
+to other jobs, no source-model/config/seed/data/precision changes, and no
+retraining existing cells. Shared resource gate determines launch order
+only; official TEST remains locked until all84 verified.
+
+## PB-OS-009 · 2026-11-12 · Strong-baseline fairness: method ceilings condition
+
+Based only on training/validation before any new officialTEST, independent
+Codex choosesB: retain fixed40 as budget sensitivity; register an additional
+method-author epoch-ceiling condition as primary strong-baseline comparison.
+TwoPhaseFD002s101 still improves34.5001→24.1236 onepochs32→40/best40 at
+sourceLR1e-4, while source ceiling600. Equal40 alone confounds undertraining
+with method quality. No LR/model/loss/window/source precision is changed.
+
+Uniform qualification, all models/seeds: oldepochs_run==40 AND40-best_epoch<12
+ANDauthorceil>40. Eligible cases fresh same-seed full training including PRE,
+not model-only continuation. Method ceilings AIDGN300,Two200/600,Dual100,
+FFVE100000,FC41,DSPT40. Shared engine-mean/patience12/min_delta1e-4, allprefix
+samples,FP32/TF32off unchanged. Nonqualified early-stopped cases reference
+originalconfig/weights with max-independent scheduler proof; DSPT Cosine
+Tmax remains40 and references both retained. Never fake a higher-ceiling
+config for reused oldcases. Policy amendment is explicitly aftervalidation,
+not claimed preregistered from start. All eligibility finalized and both
+conditions frozen beforeTEST; identical selected-state+prediction contracts
+reuse one realTEST output, no repeated forward. Newdata/directmodel math
+identical apart from epoch ceiling (AST/byte proof retained). Budget60A40h.
+Risks: maximum ceiling is not mathematical convergence, different compute
+not equalresource; report budget truncation/actualepochs/time and both tables.
+Evidence AUTHOR_LIMIT_POLICY.json / AUTHOR_LIMIT_EQUIVALENCE.json and new
+package paper_b/baselines/open_source_author_limits_20261112/.

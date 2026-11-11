@@ -1,0 +1,169 @@
+{
+  "name": "Method-author epoch ceilings with common DSPT data/selection/FP32 conditions",
+  "registration_date": "2026-11-12",
+  "models": [
+    "aidgn",
+    "two_phase",
+    "dual_mixer",
+    "ffve",
+    "fcstgnn",
+    "dspt_v0_cycle",
+    "dspt_train_defaults"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "subsets": [
+    "FD001",
+    "FD002",
+    "FD003",
+    "FD004"
+  ],
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 40,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "cuda_matmul_tf32": false,
+  "cudnn_tf32": false,
+  "training_windows": "all cycles, left zero padding of short prefixes",
+  "selection": "mean per-engine validation RMSE; replay min_delta state machine",
+  "test_rule": "both conditions fully trained/frozen before TEST; shared selected state+forward contract reuses one TEST prediction file, no repeated forward",
+  "primary_reference": "dspt_v0_cycle",
+  "secondary_reference": "dspt_train_defaults",
+  "reference_configs": {
+    "dspt_v0_cycle": {
+      "ms_mode": "full",
+      "sa_mode": "basic",
+      "hi_source": "hf",
+      "use_cycle": true
+    },
+    "dspt_train_defaults": {
+      "ms_mode": "full",
+      "sa_mode": "off",
+      "hi_source": "none",
+      "use_cycle": true
+    }
+  },
+  "window_search_budget": 0,
+  "window_choices": {
+    "aidgn": [
+      50,
+      50,
+      50,
+      50
+    ],
+    "two_phase": [
+      45,
+      45,
+      45,
+      45
+    ],
+    "dual_mixer": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "ffve": [
+      30,
+      30,
+      30,
+      30
+    ],
+    "fcstgnn": [
+      30,
+      50,
+      50,
+      50
+    ],
+    "dspt_v0_cycle": [
+      70,
+      70,
+      70,
+      70
+    ],
+    "dspt_train_defaults": [
+      70,
+      70,
+      70,
+      70
+    ]
+  },
+  "optimizer_lr_batch": "retained per original method; not equal gradient steps/compute",
+  "two_phase_pretraining": {
+    "FD001": 20,
+    "FD003": 20,
+    "FD002": 100,
+    "FD004": 100,
+    "paired": "FD001+FD003 / FD002+FD004; both validation engine sets excluded",
+    "resource_condition": "additional paired-subset data and pretraining; reported separately",
+    "seed_policy": "retain frozen prior whole-pipeline FT-before-PRE seed policy; no phase reseeding"
+  },
+  "max_budget_a40_hours": 60,
+  "historical_official_test_exposure": true,
+  "failure_branch": "retain failure; at most two cause-specific repairs/new attempts; no source substitution or test-tuned search",
+  "registration_basis": "protocol amendment based only on training/validation before any new TEST; original40 condition retained",
+  "author_epoch_limits": {
+    "aidgn": [
+      300,
+      300,
+      300,
+      300
+    ],
+    "two_phase": [
+      200,
+      600,
+      200,
+      600
+    ],
+    "dual_mixer": [
+      100,
+      100,
+      100,
+      100
+    ],
+    "ffve": [
+      100000,
+      100000,
+      100000,
+      100000
+    ],
+    "fcstgnn": [
+      41,
+      41,
+      41,
+      41
+    ],
+    "dspt_v0_cycle": [
+      40,
+      40,
+      40,
+      40
+    ],
+    "dspt_train_defaults": [
+      40,
+      40,
+      40,
+      40
+    ]
+  },
+  "extension_eligibility": "old epochs_run==40 AND 40-best_epoch<12 AND author ceiling>40",
+  "reuse_rule": "references remain40; other early-patience cases reused only where all training operations/schedulers are independent of max epochs; preserve originalconfig/hash, never claim rerun",
+  "extension_rule": "fresh full same-seed training incl paired pretrain; no model-only continuation",
+  "primary_comparison": "author_epoch_limit condition; fixed40 is separate budget sensitivity",
+  "mathematical_convergence_claim": false
+}

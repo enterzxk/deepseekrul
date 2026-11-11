@@ -1,0 +1,1846 @@
+{
+  "registered_before_training": true,
+  "condition": "author_epoch_limits_after_validation_before_TEST",
+  "files": [
+    {
+      "path": "paper_b/baselines/open_source/adapters.py",
+      "sha256": "8acf658f7221347f08416de4566e1d6edd16f2523d6d7576f60eeab8f6af5e80"
+    },
+    {
+      "path": "paper_b/baselines/open_source/common.py",
+      "sha256": "cb93161499b7d73a2b514943790efd160bf3333d7af8d0700beba236b0f44d6f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/sources.lock.json",
+      "sha256": "a85bafa66a8abcdf708d0b9be6a698767e7d470612124411aea40a79066c7077"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related/CMAPSS_Dataset.py",
+      "sha256": "e5351f851747045baea2eac5878f774333cf202976e81bc41446e2d8a6cd5c0b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related/load_data_CMAPSS.py",
+      "sha256": "8845c61eef99430861fbe1020a061330f0fc9f9c1ee29d502389c309420254bd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related_PINN/CMAPSS_Dataset.py",
+      "sha256": "c0540c7ca35a4ba6edd4000ddeb04bd2a89fa5c78991a558e36131ce0b83e43d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related_PINN/load_data_CMAPSS.py",
+      "sha256": "eea202c59b9e3cb9828172c785be7b7d8e87a60000c4dfcbdfb5eea7f7bca0d9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related_PINN/N_CMAPSS_load_data.py",
+      "sha256": "5dfb9abb86239162a8cd8f3726218981cd4af42ca198a4176cd1e15de98f2444"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related_PINN/New_CMAPSS_Dataset.py",
+      "sha256": "cd156e1ddd0bf2a79449d05b2bdb7d02db985e9f8bd8cd1e9fc7f9674edcbdec"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_Related_PINN/New_CMAPSS_Dataset_Process.py",
+      "sha256": "d6a86c1483b06e6ec1aac1a15663b461a856d000764f03779f10ac88ea60cd0f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/CMAPSS_test.py",
+      "sha256": "d124edde038920ab34b2199f1e6f33656cf5300c4b96d5cf405c4222121133b4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/configs/data_model_configs.py",
+      "sha256": "558920a7ad7dcfc6b700ef7cac7ee2a9584ac69ae74ed02d500acb2f68832263"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/configs/hparams.py",
+      "sha256": "ec6908704ea7db16cc105b98c6bc9aa4bb2f32bf9d6b57a9f3db8794146c6d70"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/Early_Stopping.py",
+      "sha256": "4a0540c7547a742254e4a80357fe8ed5b9a7712fd40d3cdbaac090a720e9ea61"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/Experiment.py",
+      "sha256": "09d4b926c584405f4a82cca9d2bf434a76b25a184a508284dc7682862403e7a6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/Experiment_DA.py",
+      "sha256": "26d88172c277a1647d7e83c6dfb0fedbb2fbf231f0a2dc2b1ad2de8d0eaf7922"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/Experiment_PINN.py",
+      "sha256": "67cacc0f3ee0470483b9db5c7ac6643743ead9e4c697f569649b15a2a4e0d51c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/HTS_Loss_Function.py",
+      "sha256": "b60f38e23bcb9062dda91d1733957f3fab3e7142124c7053f6fc89a5f1f3dc2c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Experiment/learining_rate_adjust.py",
+      "sha256": "3dc4ab0a7f47318aeb27d357e0abaa7fc2b538f6aa2897cb3ca2cef94eedcf0d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/FD001_3_train.py",
+      "sha256": "46c32d7fd09b6981e65e1f8fe8dc0c063839e28b09c549efc27183e250f679c4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/FD002_4_train.py",
+      "sha256": "9f33eb7d6421c3223572c8601277131c28b221070dfdfe2e654a56e583cab2ed"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/__init__.py",
+      "sha256": "f86777e8200c4b9f6ee7aa052dc72d3930f319261bb837a06932467db7392e58"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/add_and_norm.py",
+      "sha256": "db4a2c1670f2a8d4e3641d64c9a9a744d8c052bc0ddaa02674fb3eabe988c1f3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/AGCNN_base.py",
+      "sha256": "73ebc56c8a69cf057b7a63b70ba5cbd3b4340b3078f234bab1f2e446bd4388f1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/AutoCorrelation.py",
+      "sha256": "2db6fefa421cad55ab110a4a1881dfcf5407ac2bb7278d71c53faa5de164126e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Autoformer_EncDec.py",
+      "sha256": "128b530d17aff8d0d789494a43116547259ea3907e226619037bbdeec2ba8f26"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/DA_LSTM_layers.py",
+      "sha256": "c726794d908f41f64d32652f27b48cd806fb08916734009c4174498b3f400d9e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/DAT_EncDec.py",
+      "sha256": "a2c2e208fa30ae2fac638319b30ea01dc327081db8015a7c711df7251a986ca3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/DAT_SelfAttention.py",
+      "sha256": "1fcc0d0b2c130213d54fc254564f7640768844ac98dbf2220302919f208891b4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Diff_Graph_Net_base_1.py",
+      "sha256": "2576ef273072ffb3e768cbc634a5fdf6e799a4f3124bd03a82be9afa926f7b4e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Diff_Graph_Net_base_i.py",
+      "sha256": "7f6454ae5805906ae14f26a6fbde1c01b8f4aca2243d6c6f4133711d4562a39c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Diff_Graph_Net_base_iv1.py",
+      "sha256": "7f6454ae5805906ae14f26a6fbde1c01b8f4aca2243d6c6f4133711d4562a39c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Diff_Graph_Net_base_iv2.py",
+      "sha256": "3987d24196866c049f5c805ca0632154de0ab2ca9de7f8dfe4c9846c795cb7a6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Embed.py",
+      "sha256": "a74cdc3b880ba9e91b64f7c36a26129dc3058ac39adec46eacfcaf10c8bf6f33"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/FCSTGNN_base.py",
+      "sha256": "f4f79cc8056c5cba061450f98828d70616998d30c85bbe7b16b8ab14b3f86eb1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/FEB.py",
+      "sha256": "3e643045eb6703ee428230d3861c2eca3bd19f47e9ba3cda83ff029e4b0204de"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/PatchTST_backbone.py",
+      "sha256": "c5b446c2be2296b2b912f8a8447a80313722791ffc70b16276edcf720a998bcd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/PatchTST_layers.py",
+      "sha256": "cc7813bb2c6a94d0d33790da91bf593258773421184a2dd8678c65c5f017eac7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/relobralo.py",
+      "sha256": "8ad7c57635865caae0d924494c79da69692cbf02b4baa700e110131c1aadf968"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/RevIN.py",
+      "sha256": "ef7d2e6ed125e3ea1045efa9618819cce5605a57a7ebcad528a09e7690f7a83f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/SelfAttention.py",
+      "sha256": "be00b94d41aa2b667fa2db5baab230a4a15a73cdfb25d340cf1a1ff0f1067c8c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/SelfAttention_Family.py",
+      "sha256": "4e281dd3dd6a4fd86e05f65cce83fdc79c47c3a122a09e05bcc62e187b35cf6c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/tools.py",
+      "sha256": "3c2a28d8e283d7bddc5934e8d33a6fdc1b5af5977eb57fb1b9988bd9a4f08fb1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/Transformer_EncDec.py",
+      "sha256": "b4ba3cbc15572f9b1e48779bb8196803a7a77432fa40fddb969177fe77d9cebd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/layers/utils.py",
+      "sha256": "f7bdbfe29a15e56e9cb7bcfad70f7c70f0b3e9bb1b4a6aff69bcf43510289be8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/AGCNN/exp0/hparam.yaml",
+      "sha256": "3e86a603c1462be1ae8e8d1ff2f24e410ded9025044a758a7f4edbd80811ed41"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/AIGCN/exp0/hparam.yaml",
+      "sha256": "c9db340b1ca8ce7dfd4ed9982dc750df95d8bc6341a1a43953588f1217816ac2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/CDSG/exp0/hparam.yaml",
+      "sha256": "bbff0498168d89e08eeab08349a039c0df084ff8f2da2890d1bad4660d899e4c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "113aa8637dc80ba4e128d92189d590036b647496888f61a0d3b07f8578cb0632"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "b7fdf51f92e5289e0f79ec62291201691c7540a0a192b66bcd606ce8a1bcd44d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/LeNet/exp0/hparam.yaml",
+      "sha256": "a05b32973e3c640e1c8b9aa55b7b3631eabae73ef493ff4f6e75891146f25f82"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/LSTM/exp0/hparam.yaml",
+      "sha256": "6ecbbf956da4b331884cc8549db6e50492ab658f03deaab944acadc8c1f5e927"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/PatchTST/exp0/hparam.yaml",
+      "sha256": "69741942ef6fd3f179f73d4e7b9cb7319680c786a41e7419c01ca183ba4cac33"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/SDAGCN/exp0/hparam.yaml",
+      "sha256": "a7b36ac26eafa687d1ea9536ea6a2d8a4eccb23f5bc8dd5c1ce96c1e2d168f1f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/Transformer/exp0/hparam.yaml",
+      "sha256": "3f10f0ae4090710a5ba7ad2e5589e9270c5c1c7648d7934d3d4f1e566299c53b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "6ed19c872d40288b79fa8819c6712226cc7ac9f5655865e1f241e20bd247d642"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS01/Transformer_domain/exp1/hparam.yaml",
+      "sha256": "0b4e7fb201484fac0733f6a7e64227a266c972a5945559f6a77cf44eb24c7a13"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/AGCNN/exp0/hparam.yaml",
+      "sha256": "ce147783133edd7fff4b1f7ddd7fa73ac59210e7449298366fbaa32fd7d17ef6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/AIGCN/exp0/hparam.yaml",
+      "sha256": "c98f349898341cd07a5963a17a2c928dd3622a9b71780302c992a8b1c2eb81e8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/Autoformer/exp0/hparam.yaml",
+      "sha256": "16c079e06522fcef3179849e6e8e52712c0b6dce9ac288357622c8db6d62466e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/CDSG/exp0/hparam.yaml",
+      "sha256": "30c8e733e44a0768a2c2a5591a3bcf24423b3c79bbcb0755415cb1c584c6a764"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "9724fc9e29287c35f8531a62a99417f3a9b32113c8e0a4ca0c916ec66df391b6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp1/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp10/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp2/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp3/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp4/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp5/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp6/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp7/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp8/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/FCSTGNN/exp9/hparam.yaml",
+      "sha256": "24ac06cc4354909a21f8d2abf8e64ea734223031816b83817b2439d6731f280b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/LeNet/exp0/hparam.yaml",
+      "sha256": "ecb889dee4a1ee0e00f0c82bdceae0a5c8fead84648a030e51b73196d5f537d8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/LSTM/exp0/hparam.yaml",
+      "sha256": "3a6bf5e1c3a7c22d9edb4bafd82488e561847e5e7d08d5c0b99be52beb72467c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/PatchTST/exp0/hparam.yaml",
+      "sha256": "c40f9898a64a63f436a42a97f026de80e02a926520df724328c3d459a9f69b60"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/SDAGCN/exp0/hparam.yaml",
+      "sha256": "7e46dfe33edaacd27a6a5ca468f8fdfb333a9975a26546c30bf8130c6775fdeb"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/Transformer/exp0/hparam.yaml",
+      "sha256": "a0513fbb5f0c9b788ff5461c793ec7dfb95c228ebb9baca99a1fadab07bb32ed"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS02/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "6ed19c872d40288b79fa8819c6712226cc7ac9f5655865e1f241e20bd247d642"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/AGCNN/exp0/hparam.yaml",
+      "sha256": "755bedbacaea69b9270f00cafe4abc377bfc2fd3f61e73de8d18124e4069fce9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/AIGCN/exp0/hparam.yaml",
+      "sha256": "52a66b87f6ecb37d2e34cd7e485ca59658c3df823afea33161a487f212e5b141"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/Autoformer/exp0/hparam.yaml",
+      "sha256": "06686533113354d78d1b5fbd7eb9ba964683613e7f65060d2a40f7676e115648"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/CDSG/exp0/hparam.yaml",
+      "sha256": "78fc3d055b69da32a0cf41f08257349fe0ccc7647127485b5ff2a70bb285a8a0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "d27e5d551f483827f3271784681e65754350e9b0426a0234e9b941511aa0910e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "2c56ed9c71119715143ec754e69615ce291e4fbf64266b551217247a2f1491e1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/LeNet/exp0/hparam.yaml",
+      "sha256": "839d1fb5112022b6157616daaf151bed079e730f7679544717f31bd44887146e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/LSTM/exp0/hparam.yaml",
+      "sha256": "83d7177932d3a3861c8913959c4f7910eb5df1254363d0bc138413a67a25a6cb"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/PatchTST/exp0/hparam.yaml",
+      "sha256": "bd49a76b30cedc73fc48c163eef1cb137088960aced386349184c7dfbe606d6c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/SDAGCN/exp0/hparam.yaml",
+      "sha256": "4a94e96b7281b2d133dd35d5c36b88d1fb627ca95c3d45f6ba2ecf7aef37b548"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/Transformer/exp0/hparam.yaml",
+      "sha256": "98a7aa1088050ababe5b5c1b18f17fa76aa3b523cb30b3553e3a83006a0c1f73"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS03/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "89f85d40e69ac3f8793f7ddb5f2110e0bf5bb2c6f5774e1e0877806a9329462a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/AGCNN/exp0/hparam.yaml",
+      "sha256": "c90662f7fe2de918a3fdc43d69eff983f1e01544bc6195e79497f929f9f4751e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/AIGCN/exp0/hparam.yaml",
+      "sha256": "8a59cb579b1da45703ce01905571fee56950a95960f940c8fa2fddd6d5285827"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/Autoformer/exp0/hparam.yaml",
+      "sha256": "f25566581fcb31d84b226d99f97f708aa5bddcf169894c93b4e94b054980b2a0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/CDSG/exp0/hparam.yaml",
+      "sha256": "2874e9e188369f809db2ecaca0a2963c71649614403a2aaa3c1a1f9aa99ecc2d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "eb24878ad078d632a7ec31d6d12444ef0cca38d8aa7f8848023520190482c8f7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "e051027832e7cce15515f44b55beb6edfe5322b73a7964f350f3d7f4d74e2da3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/LeNet/exp0/hparam.yaml",
+      "sha256": "ffc7ca975c7f9acc67365ba4b8888264545d19074f5335fbc226324319741c62"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/LSTM/exp0/hparam.yaml",
+      "sha256": "07a64d6e6c79cc7f246915a72f5b26e042c3a4cbc693a911d8bdc1c4fe21c560"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/PatchTST/exp0/hparam.yaml",
+      "sha256": "16a7d477548cb184feed26964dbd25f9fc45951fa976375859c17ffbb7aed2db"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/SDAGCN/exp0/hparam.yaml",
+      "sha256": "79ab12c39c0cce67ff308bb3f6be65ccdfae0145cdf5bc3805fab36ab908fe45"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/Transformer/exp0/hparam.yaml",
+      "sha256": "7ed8194bfd1352ec257a8c3f35265d32c205efac63afc212de016faccdd3164b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS04/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "c84f38da7171f92ca186353fdf228d841a6aaecefbab0ff496fd4ebf303e489e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/AGCNN/exp0/hparam.yaml",
+      "sha256": "a3ad92043b878316634853cefc7df980ae91537c3f6ed48482242b734328c2ad"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/AIGCN/exp0/hparam.yaml",
+      "sha256": "1009e71259c01334ea11c09b6788333dc2fa0e1df39ca1714ad72ee6dd38c4b3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/Autoformer/exp0/hparam.yaml",
+      "sha256": "bfcdcd0c7458845cbfab8e8dcda945494a7479629ff937f158a713ac8ea26e78"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/CDSG/exp0/hparam.yaml",
+      "sha256": "e97ab74837ba119f94a642f601fe3ad59780e7b484ad8dd3a0b96f8a248c7abc"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "43d746bc2d415d54fa8b2f07e5e9fc11d5d07d64c4f263ca8fde45f737457616"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp1/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp10/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp2/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp3/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp4/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp5/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp6/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp7/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp8/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/FCSTGNN/exp9/hparam.yaml",
+      "sha256": "499f4326b63175deb8fb00fa4fb672fdde8f5bbbcab378f593bd7e748a8a4bd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/LeNet/exp0/hparam.yaml",
+      "sha256": "56561cda88b842433deef3011ca64417d67a14efd0b23d3dffa69bbf9ed019de"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/LSTM/exp0/hparam.yaml",
+      "sha256": "f6954351cd0958abafea1cebc7ca7a3456d6a9b9e3b89a62d9307af1e6b33c25"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/PatchTST/exp0/hparam.yaml",
+      "sha256": "7c36faa8cd417daccdf745380ae0d92adbdccd29025fc5487e49fa85ee236378"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp0/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp1/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp10/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp2/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp3/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp4/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp5/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp6/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp7/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp8/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/SDAGCN/exp9/hparam.yaml",
+      "sha256": "d5fccd40ac40451912b90d940436164f2987d4a91f55fb120f93091b355ac0bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/Transformer/exp0/hparam.yaml",
+      "sha256": "96db93029fa745bbe18e9950729ea635d75ac71c734ca2662407319de08f4b51"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS05/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "3cb47d488e09c7aae2eacecf603696ada0929fff20ae204ed0263f5ab77cb4d2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp0/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp1/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp10/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp2/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp3/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp4/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp5/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp6/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp7/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp8/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AGCNN/exp9/hparam.yaml",
+      "sha256": "03ec784344808219828e096f6468aef8d29044acc7e0017d11b4442188793240"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp0/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp1/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp10/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp2/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp3/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp4/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp5/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp6/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp7/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp8/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/AIGCN/exp9/hparam.yaml",
+      "sha256": "8eee92c439fd0e38a934fad41cdb0f405f84f1b62c857fe06475202d8c2c6cd7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp0/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp1/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp10/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp2/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp3/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp4/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp5/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp6/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp7/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp8/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Autoformer/exp9/hparam.yaml",
+      "sha256": "39388ac89a8d8a89697d7fdfe19259f8a804486d8ff0bf136eaa88265837ca7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp0/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp1/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp10/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp2/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp3/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp4/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp5/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp6/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp7/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp8/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/CDSG/exp9/hparam.yaml",
+      "sha256": "f5d498c55038277e6c205eac1facf80d5e6d58da6af6ca55e569a0b47b92dcd4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp1/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp10/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp2/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp3/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp4/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp5/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp6/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp7/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp8/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Dual_Mixer/exp9/hparam.yaml",
+      "sha256": "629d65335cfc5f547c0a3cf5a5871463b5b56f096ce6969c7ee2c3b2b29cc9c9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp1/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp10/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp2/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp3/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp4/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp5/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp6/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp7/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp8/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/FCSTGNN/exp9/hparam.yaml",
+      "sha256": "edda80428cb7bd1585734d80339db916fccc6a132755ef0b3a262070c3ad212b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp0/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp1/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp10/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp2/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp3/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp4/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp5/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp6/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp7/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp8/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LeNet/exp9/hparam.yaml",
+      "sha256": "e3373b38c79b85a2340fe82ef65997310ebd16b0bf260ccb6e83aeaa71c5ba67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp0/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp1/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp10/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp2/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp3/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp4/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp5/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp6/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp7/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp8/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/LSTM/exp9/hparam.yaml",
+      "sha256": "9cef86d338c4f0f95e7e5feef56702042facfb693473e525c61e87ebe76347dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp0/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp1/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp10/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp2/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp3/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp4/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp5/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp6/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp7/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp8/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/PatchTST/exp9/hparam.yaml",
+      "sha256": "1c464992f3f7c60e70badd9d4820ff6dcee2af79917b8d1ae7ae3e5f2fb3696c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp0/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp1/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp10/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp2/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp3/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp4/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp5/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp6/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp7/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp8/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/SDAGCN/exp9/hparam.yaml",
+      "sha256": "4836536b7e5ce792d2a0b9b4cffbc10467ed74e978e6cb16801582096e69a792"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp0/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp1/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp10/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp2/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp3/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp4/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp5/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp6/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp7/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp8/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer/exp9/hparam.yaml",
+      "sha256": "d7767a2a92305f10e5852a11ccd185c62e3e9014ae9d1e8b45a1d89e1743485d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp0/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp1/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp10/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp2/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp3/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp4/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp5/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp6/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp7/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp8/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS06/Transformer_domain - Copy/exp9/hparam.yaml",
+      "sha256": "d48eb735ba2a3a8a713450ed6481caa59205e4e6fdfee2741ef68c302d7939fa"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/AGCNN/exp0/hparam.yaml",
+      "sha256": "7f048dae7c46c24ec655284f6051fc1271750696ad6340d3997a0f18b7cecd84"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/AIGCN/exp0/hparam.yaml",
+      "sha256": "ffc704671fe5271cb6ccd15c80cd560f218542d3d984cb5325efb3384ca46d18"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/Autoformer/exp0/hparam.yaml",
+      "sha256": "0c3b14f6e74005805a9d021a6c084b21427d1e48f7706bba0d34e2f2d0612c49"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/CDSG/exp0/hparam.yaml",
+      "sha256": "4940e1b442643e9172e19f312dff78adc01396afb6e00070c0449f920b9cb7ea"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "f2e3273691d3b8aa193a2a16af39d4f7a40313ee56574d538c488554e87836df"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "d6ca4c22fe6dd32bf6cc2dd5609f748ef16591795a537e5212858e72661bd211"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/LeNet/exp0/hparam.yaml",
+      "sha256": "71e68c64043c6f1cbe4cb13ba5fe4f924107f4b87d8781c5598ebdfb1a9aa97a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/LSTM/exp0/hparam.yaml",
+      "sha256": "e051ee83bf32b545c4865da2b767abb8dec166afaa87664f29b4982a8b93b227"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/PatchTST/exp0/hparam.yaml",
+      "sha256": "7da55632dfbf09c8163a587105441166ca5f8adc0b7637a6cdf5b51ebd0e3f05"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/SDAGCN/exp0/hparam.yaml",
+      "sha256": "5bf7404bec94007a06091abf0120925dc2f040c047758382252d5d0f9dd9b273"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/Transformer/exp0/hparam.yaml",
+      "sha256": "7d52ff049742783f579f98645dd936078d133212f70cc15a1263ada2d33aa171"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/DS07/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "30d6f948f8b008fc174a462a6819d37cdfec7dd58dce554cbd52bce23c17f090"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/AGCNN/exp0/hparam.yaml",
+      "sha256": "50ce9f0c00fb83ab6f1c870e4122edcb682356f89468b000c2dae4002e5fd822"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/AIDGN/exp0/hparam.yaml",
+      "sha256": "9d1e869192f0b85f8f65854262d0f0a6d6eb25ae08e1a3bd1bcb936231b4a18c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/AIGCN/exp0/hparam.yaml",
+      "sha256": "e34356685ad439b9f489309e04e078ac3decb260443e1d63951227e9f408be67"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/Autoformer/exp0/hparam.yaml",
+      "sha256": "ba45f6fb90c6ee19f0edd0b2f89eebe19c21bb83373e5d891b86eb585567d2d8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/CDSG/exp0/hparam.yaml",
+      "sha256": "58bed111845ccfb023cf693dcfc8ed5524f59967a70497ce3d070cd3c6d10941"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "b5cdb7923ac843501c102ba4cbe4fa689d7f43bd4ac50bf9c0d8ddbfbc67b9d7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "32257f97c761f5ecd2cee25d91a53385fe7b856cc7b698f6adb2207f3adfd9ce"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/LeNet/exp0/hparam.yaml",
+      "sha256": "ab880d87a9a85cf56c39014f9bfa2f74b49b11d520ae8f4b703a6a2a989b2ee1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/LSTM/exp0/hparam.yaml",
+      "sha256": "4ccdf546dcdfe217d59f5b51651067bb27e6bfe9a6f8f7dd3fa8e34059086703"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/PatchTST/exp0/hparam.yaml",
+      "sha256": "35f80e777f1d68313e4886d5eceb4bbf9481e18f5a8dd73ce2c77dd371b81386"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/SDAGCN/exp0/hparam.yaml",
+      "sha256": "7ead9a52e81a2dd20717bbebd7beeae1f06161d88ce0a180ba8bec8bcfdbaa37"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/Transformer/exp0/hparam.yaml",
+      "sha256": "950f7d5d554697ff9e08e313295b5d4fc18d74cac5314b0b9543af3d48c8a378"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD001/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "bee39781c4e95fcfc430c1092d45ef1e976a0081168ee1934c724228539fb047"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/AGCNN/exp0/hparam.yaml",
+      "sha256": "432c7fd5e52e59fd2203bfda45a1f357bb1cea5c3d6dfea5185b8a5e3aa00f12"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/AIDGN/exp0/hparam.yaml",
+      "sha256": "24022e6462ab38c6d3d751506620bd50ef613c63719b2446a5fb9cc8633cebd9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/AIGCN/exp0/hparam.yaml",
+      "sha256": "0e32eb063c1963d68f6a04db625ed05f43f21e013b7e6e0824837f8a37327bae"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/Autoformer/exp0/hparam.yaml",
+      "sha256": "60f7b38c101b89c64bb4fd372fa1cc0981e09e9eb9982e4c1270226422e65048"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/CDSG/exp0/hparam.yaml",
+      "sha256": "19408f8db987248506d3d2f1af97d05edf2c77d4a1ba71e96a085ef4a3bd9099"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "d396f30835a617a288e338dd2a06b0b58fc00f9fefe98128f7d4cad9478577f7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "1d5b273054a0fcd935c6eb927ea75e69a009a59cd96c8d109151ce94bf147553"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/LeNet/exp0/hparam.yaml",
+      "sha256": "5fa7062cc11be78d2d5f88c9126aed36ebec779eba2890d45c7019f45d19ce77"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/LSTM/exp0/hparam.yaml",
+      "sha256": "64086d393fc2aa4f3a65f2534ade12b8a80f7f5fc34075b18424cca12827d5bf"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/PatchTST/exp0/hparam.yaml",
+      "sha256": "5fac5b3ec08e5695fce6205d9a17f4b93154307556459b0249654616e925e1dd"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/SDAGCN/exp0/hparam.yaml",
+      "sha256": "22436d67464e43fbe72f2269a4bc9a8becb1c970da72b11bd6aa4e5ffa51942e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/Transformer/exp0/hparam.yaml",
+      "sha256": "fc8b816a4d8111e222c5749867be717d68161a794b3bb7addab0482398606254"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD002/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "3204c6047ad111331d6256787998e2c828b25f03ad480bcceec4bdc337644bb1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/AGCNN/exp0/hparam.yaml",
+      "sha256": "78e7fc673619d8999c730df2664349f54d9fe433f3c2016649f559d4ee101ec9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/AIDGN/exp0/hparam.yaml",
+      "sha256": "e5299aefd940c217e5121d796457289b2e7787eec23e35461d97f56fdc6a7a6f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/AIGCN/exp0/hparam.yaml",
+      "sha256": "0a29f4c95929210eaa0257b6741221625c63019bbefaad2b6b6aeb65c974f46e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/Autoformer/exp0/hparam.yaml",
+      "sha256": "b80c6d5eb16de9e3b68ba9971ca7249b58d4c5792147180da219855dd63de47c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/CDSG/exp0/hparam.yaml",
+      "sha256": "0c28c65ad525b56dbb28146fe9797fec605726e58b84068dd3cdf84805a8a188"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "3a20a5604ec2a93aa9c653fe11478578187a14d5f454e78a8fe59ff79e88d988"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "55351e94320c61e389a95d7ab8b5c0d336ba2e48a520324c66d608e8d96a192f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/LeNet/exp0/hparam.yaml",
+      "sha256": "ef0b78607ffe436914a6ce389d0bfa2994ab114ee9409a539980a56759474a84"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/LSTM/exp0/hparam.yaml",
+      "sha256": "1765f5f8da55342afad66b6a3b5465ba4e99ab0d81d4df1989ee52d4cec1c4b3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/PatchTST/exp0/hparam.yaml",
+      "sha256": "1177576a7b8194751924c0c759aa6747e24e16728cb2d7e761ed881999de2634"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/SDAGCN/exp0/hparam.yaml",
+      "sha256": "a9d3ee4e3a8d46b05adfd099e7c3ea1f2f20d1e9eada2fcb827b2389110af635"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/Transformer/exp0/hparam.yaml",
+      "sha256": "ca76be1f9b16fd536a8f9287c974a6c76d84c5dff8d1efb716e24980dc97f7c2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD003/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "0ecd64f681b8b046a2277a6e3e4ce70231a410ef99683cb514296f5f93d4335a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/AGCNN/exp0/hparam.yaml",
+      "sha256": "326db24fd86b1542196c6f7ef9bb790fe1063bfd856de3a1d575252b35f56763"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/AIDGN/exp0/hparam.yaml",
+      "sha256": "8c1ba038dbbf898306a13effceae3c8e575c6d042d60e1da5a2a8c6cc1925863"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/AIGCN/exp0/hparam.yaml",
+      "sha256": "3c1728a12a28b3c153ceebbe008b66d4859f778413035aa5c910e27cfacf29d9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/Autoformer/exp0/hparam.yaml",
+      "sha256": "018f9086caba6a21a9c5d1738f55d1345d7538d93b7a841b446998f8976212db"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/CDSG/exp0/hparam.yaml",
+      "sha256": "f86455b3f14f6fe148faf3ed5860165f610357e2286dfe9ceb0627a1e168a713"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/Dual_Mixer/exp0/hparam.yaml",
+      "sha256": "d7faa7a49155c3d2f54d1af1ac336621d5aa10155f852ce61a1629dd602ae3d5"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/FCSTGNN/exp0/hparam.yaml",
+      "sha256": "7cb28023608759157b5c2c6958ef06aea4db2159c20261b019c7874e9c045b0b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/LeNet/exp0/hparam.yaml",
+      "sha256": "a842998682b6d3e9ba67ba748dbd70e0cc64c4eda5473eaf47327a5e18518857"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/LSTM/exp0/hparam.yaml",
+      "sha256": "484d279e57d83d331547b8b0b1843cf0467fb1b9357428c9fb3962656cdddf1a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/PatchTST/exp0/hparam.yaml",
+      "sha256": "c6757024fd6c279d71e586d1c09da9d7ab4551b36f059b24d52cb0b9df0e22a2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/SDAGCN/exp0/hparam.yaml",
+      "sha256": "01539c223ebf6b08a2f222cbd862b991ab4b94820a9e94e598e516d92f02c88c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/Transformer/exp0/hparam.yaml",
+      "sha256": "91e4159ec5d7f56e3044c83a862a1d5d0485575e6ec96afb1796bc9e9fbf48ea"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/logs/FD004/Transformer_domain/exp0/hparam.yaml",
+      "sha256": "ba74b170ee2c36bb96815fbca26bbfca9ee310906bace22dc5b3453ce378a92b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/__init__.py",
+      "sha256": "e450b45a4cff1fbd7232f148094890cafb85c13132a2868c4388dcb6e2cd0840"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/AGCNN.py",
+      "sha256": "b2e578d7925ffa014cd961975d9e468136b81c86c470b806bac351498b88f9ef"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/AIDGN.py",
+      "sha256": "22101fe6bc88fa792b68c909e21d70718e85b919097bf00b177586154ff245b6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Attention_Family.py",
+      "sha256": "bfc5557017877240aa916123773b286627c0c6b81303ca6a759f3c500bc4716b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Attention_Layer.py",
+      "sha256": "a086e44e0c5b6181678dcd7b15c63efd11653399b108cf5420a616485254485a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Autoformer.py",
+      "sha256": "f51de7b033a0b0e8a91757ffb7950cf669900144a8c0b85e98a889bac895d2e8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/CDSG.py",
+      "sha256": "12ce90782dd371d925ec4fc0f7d6b7d533ddc168bf2d3ce1c524d4ebfdfe7705"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/CNN.py",
+      "sha256": "2cadca92fd7bb7ba496da3d566cc4a4edf59f80067979d9ca642b518792eddef"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/DA_LSTM.py",
+      "sha256": "685afa239a4a376924882e88901f89acf7ff629c698b514537ea9d89093f56e4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Dual_Mixer.py",
+      "sha256": "5c34c2dc4446feae08184e01a98c5fb9b4a48d6a36ebbd226f46f3cfbedae16a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/FCSTGNN.py",
+      "sha256": "c2b6466c5c5a75ee33c980019d600b0fe4419f7917e19a477d7239d361379145"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/LeNet.py",
+      "sha256": "2174961cf2c043cde095bc5e13401a7727fbbaf7bd08af562d9aeb5239979376"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/LSTM.py",
+      "sha256": "403e3d12181922531d76b378dabdaf7f645c1a2b74527a15933adfde9c55211a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/PatchTST.py",
+      "sha256": "789059567f1c6961841db8cb10a5c4724a08763ff8510b3012f39006b384df34"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/PINN.py",
+      "sha256": "0658a85f496884903b6164171e50ad1db4a1d7d9c97558a51e8ae144c654b02b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/SDAGCN.py",
+      "sha256": "0ca8510f35b6f8cd620cea0e4a4365ffb047a7671bbdfe29d90e2fc36249e1f6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Transfomer_domain_adaptive.py",
+      "sha256": "0afa345120e9c4697d98c8d059d570845a0fb9346b086906f21de7c8139326f0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/Transformer.py",
+      "sha256": "edcc8c66aacd518106af253b873ea1fc357690a15d626dee0270cb252a21e911"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/Model/utils.py",
+      "sha256": "4f3b77402c839156bb24dbe0ca535f39b9c3b19c7faf67be16ee5ed7c1ffd2e6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related/N_CMAPSS_create_sample.py",
+      "sha256": "a251afe245cd60dc8d0e2178286901c3dc838118d32f843402cffdc3e960a40c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related/N_CMAPSS_load_data.py",
+      "sha256": "394bbec426d8044263835dd935aabdf591b9df7d2017fea59983e1b18c6c2d38"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related/sample_creator_auto.py",
+      "sha256": "55cab1f1d0f0464a062b1ac9ef691c8b45f6c5628383771ad270fd35c46ccdd0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related_PINN/N_CMAPSS_create_sample.py",
+      "sha256": "c2d595d75a6075f7ab6f6d534b54ff81a3ce023fbd107c4f31c56139cca3c18f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related_PINN/N_CMAPSS_load_data.py",
+      "sha256": "35ea138b9aa7d506f6be6b5d7f6fd907a308069388ab3f381764ac89b7609ff2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_Related_PINN/sample_creator_auto.py",
+      "sha256": "dc7b69c3eb0f2c64385285d46e417447eeb190a1e2799749a270bdf46b1bf757"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_test.py",
+      "sha256": "49f3c9ef52db2f11783182d3090f8ede7bd587c8e8e547a3caaaf36d294ce702"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/N_CMAPSS_train.py",
+      "sha256": "97a3317e4959899b2fabd13aecc6c383b91b47afc74a3a8cd2f25c10ec818d33"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/README.md",
+      "sha256": "f366537dff623cd98deeb26c5b378324b2e972b2e1ebd864cfcee6a0a64fc5c2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/requirements.txt",
+      "sha256": "ee391fbb24e2d041285e6817412c6c0cefb48309b1920a51dc4820efe3cc6a29"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_FD01.sh",
+      "sha256": "9bf8b5049cde5b707355d4d29802e9c2d2859c39b51972e1f708d1197bd70210"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_FD02.sh",
+      "sha256": "efa8ead91c1e750078e610cc6631c6b13b797922a43f303d920fc13069bac992"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_FD03.sh",
+      "sha256": "762a8652c43d070092c45d95a89075ccecfc31f9fd3b0eab54226dd487eaebf5"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_FD04.sh",
+      "sha256": "6a503967444460325bd9089d29e3118423580621fe1c78cc7c6a2245864bb2a4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_ncmapss.sh",
+      "sha256": "c1a1bba24bce90180a22eaa81a8ab684744062f4664a86772ef27b909800eab8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_ncmapss1.sh",
+      "sha256": "c1a1bba24bce90180a22eaa81a8ab684744062f4664a86772ef27b909800eab8"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_ncmapss2.sh",
+      "sha256": "34bc687ac4b238197e018a96e5cacd8c527d6e76ceef8862c5658a5e7ea9ac87"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_ncmapss3.sh",
+      "sha256": "74b34161cbfcd7d78a785676425e067ad2038b4e86fc8ac2743d38e5701e1120"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/scripts/train_ncmapss4.sh",
+      "sha256": "e33e48ae103b759961b394328b7d01ae7ceed8496105cc00c338e9e3c48032de"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/SOURCE_MANIFEST.json",
+      "sha256": "c18ccb46d71266d5f2435e0f8eed8f0e0caaa0689186ea7dccd2b81c79ff63ce"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/tool/Write_csv.py",
+      "sha256": "d74c5c58506ca5a65c87ec9dddf74ae7f56d2b334798910a66e45725e5b08844"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/utils/__init__.py",
+      "sha256": "db0c8ec3bfeb4bcb5328346f4679518c43927b3b43e6610d6ed08ce337d07c7d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/utils/masking.py",
+      "sha256": "af212e654439460f2fb6ac3b8a896a07eb73d8a18594b5ebedf4131307fda0ad"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/utils/setseed.py",
+      "sha256": "10d62f943f3951c94261cf4427fc0955d33f752db1044e62f800f36af48b3b64"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/utils/tools.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/aidgn/utils/Write_csv.py",
+      "sha256": "d74c5c58506ca5a65c87ec9dddf74ae7f56d2b334798910a66e45725e5b08844"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/dataset/CMAPSSDataset.py",
+      "sha256": "ab4028883b59539d1f47f110fbcf9af671ca78a30db6e30c0655c29922444345"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/model/transformer_new.py",
+      "sha256": "cb12d7568c935f3983625fc8e229bb59719dc21d1993ab38edfd62e2333e7fb3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/readme.md",
+      "sha256": "894e2c606e3e0319e220c582f5c7a71295ec432b6c03cc6c6d768ee7421d2193"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/run.py",
+      "sha256": "9f8f0708e4a83d6f802d8c51506dc6c3c58b4f36ab5757c61b948533a22c6964"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/run_cmapss.py",
+      "sha256": "59fca1d11270111948e1e61dfb488d91f49f4b4637eea578f5a4dd54f51d1a7d"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/scripts/FD001/Transformer.sh",
+      "sha256": "80e2bb7ba4756e6cfba49024525b6dd5a7caa91dba7ebd2cb62cf6ffc4b70a16"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/utils/print_args.py",
+      "sha256": "138d39cb89d0920a678400b87258ed932c3cc4e5c36eb691436a8433a4338006"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/CMAPSS/utils/tools.py",
+      "sha256": "41e9ff61a4e0066df686402f70cb62efbed4f9f2b93416042bb341d77fc119f9"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/README.md",
+      "sha256": "06bb64a34bba0b9dc96137b382ae2b5ce503101c8be9a06554b8138bc3edc045"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/cpt/SOURCE_MANIFEST.json",
+      "sha256": "5953a01ccf7ffeacd00d9ed93251a73deac64e259359aa75663ed2760afab2f3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/dataset/__init__.py",
+      "sha256": "75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/dataset/cmapss.py",
+      "sha256": "c364b9095c22514c8080fc38f7b74f7d000979b9be17af561f975989277dea2f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/dataset/utils.py",
+      "sha256": "4cb6c1efa4feb53fef71b1b5c43b68420f9f6720cc9ccb2d2a347a5f395d08d1"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/LICENSE",
+      "sha256": "ffe553f0fc41bb7de1f015632a84db0bf0e9456b7dc5104d0d86f205fbb16ca6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/__init__.py",
+      "sha256": "9ec2126125554eae88964fb34011ff9b2d532433db8761820f5397cd157aaf7a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/BiGRU_TSAM.py",
+      "sha256": "4414e48697eba61e333fd2bf2e03475f33f827311c1f8d8fceab5804d8ea6ab2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/CNN_GRU.py",
+      "sha256": "9bbb68a133a70e00da1c25c4626a6fd41e277b732e5c62a8f465d503d19b6489"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/ContrastiveModules.py",
+      "sha256": "6592b05a595cf72c663af077f88adeaf67e40b169ac28df0c9e57f59f484fc5e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/DAMCNN.py",
+      "sha256": "d979d1af9ef7bd948eae2b70428799a2a317c07df5a68cc676ed560c06432468"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/experiments.py",
+      "sha256": "f71804c3e8fb7e25a09caa31e53ffa1486ba248c3af803cc3d7746422280ab31"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/IMDSSN.py",
+      "sha256": "7411339ad52eccd968af218679ee2df0cbe1d752ae1a9b49109a29cedd857db6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/MLPMixer.py",
+      "sha256": "5feb17c123974b34353fc28eddb602e1f46f7c1dcf15a693ab58289d00e07eb2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/ResBlockModel.py",
+      "sha256": "fd7ba3ea5ce1d65e52ad7c54f38adc0e47c6e1dfb4dc6b0d3eb81a5c3093955c"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/models/RULPrediction/SimpleModels.py",
+      "sha256": "b1a683180413b3fe94f67d678ad50f45d1631c9ff73ffb0dc7663a6ec8750f12"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/readme.md",
+      "sha256": "3ca6e204dda0e4d6336498eb0e90a10627238626f8fd753b8cd6e9c7673e9740"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/SOURCE_MANIFEST.json",
+      "sha256": "45c714d4e818493e3d9c20d63489f0a957ddc6c4251d340add1250e1d0099281"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/train/__init__.py",
+      "sha256": "5afd1b6815b62629f344e5e2d527bf9306a030aa60d6c0d23cdbf8bcb4ced5b7"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/train/functions.py",
+      "sha256": "3dd9e03dbf0eea1ad887fc685ef285e984db88f49b052131a679e6d465562aff"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/dual_mixer/train/trainable.py",
+      "sha256": "573785e8f9939133c7f765ea5f79945128abc5a41dc405d927e32841532e33c5"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/args.py",
+      "sha256": "76e4339a79cf3e0255f8b0ba1eccf7e191f3e268f484553e8daacdbfb9dace58"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/data_loader_HAR.py",
+      "sha256": "77fa126c903fc7e9035143f8b1f14f739d5d75e69b9d7766c589a5c2ca5471a4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/data_loader_ISRUC.py",
+      "sha256": "338e92a7e0a947e56fa3ed4ebdf0a9862891cd26a74c2766f993d53cfe496d60"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/data_loader_RUL.py",
+      "sha256": "bdc01e2e1273ed0cef4804bf7007a026364c2ad60022b3835a6b66c8e19c4a92"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/Data_preprocessing/preprocess_ISRUC.py",
+      "sha256": "50d7bb814e88bf8fe91b0b1f0a068931181cbae4a5e5298515d288e6cdccbcf2"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/Data_preprocessing/preprocess_UCI_HAR.py",
+      "sha256": "64499c87fd0ab2742e7e0df2371afe5570c1e91e0c679a99475c7d916072438e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/main_HAR.py",
+      "sha256": "bf735e864ab23f081d7a2b04411bf4d2dd628507a2f7029716c04c060b35d6d6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/main_ISRUC.py",
+      "sha256": "5b4a459a31c8f48c08fa24856bfdc97ef8735039da77788f2567db7707b36856"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/main_RUL.py",
+      "sha256": "46dec5f773335bdbec9e91ba5441e31ec5c987f673eb70afbe5c687511dd236a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/Model.py",
+      "sha256": "88cfce7ac93d5721c73f9108c306279bd3b8bbeaa484e6462783ee12f92c9477"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/Model_Base.py",
+      "sha256": "a567ae9b928bff539f264302e311993d3ba9a61047fb0b38b39f8ac08557c1e0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/FC_STGNN/readme.md",
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/readme.md",
+      "sha256": "ac22ad814965c15f0d66f5c72d627df77fdd5ba064ac16267f429f04c4ca13b0"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/fcstgnn/SOURCE_MANIFEST.json",
+      "sha256": "5e8ad8f8fde862a407c5160407d645248a6f09bf00891458b5987cfc7f3aad07"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/bash_4datasets.sh",
+      "sha256": "e230b506912e8901a39ec2e9b0f96f92a14fcd6bbbda0f5871cf0c9449375e80"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/Benchmark.md",
+      "sha256": "5cb68ab54ccb8e1882266b988d531c859529fa9d46ecac02b72ba1bb434c0561"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/data/dataset.py",
+      "sha256": "a38414f64914ab5e4b4d5692018b1a3cf4fb04872ba70168fb247ee498ea480b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/main.py",
+      "sha256": "d1955e9ba182d4ae77acab68d1281e8c60a4689929ed4592996134b93bf37408"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/models/model_FFVE.py",
+      "sha256": "a82993950bca300c472069d12f7c31eb38764e17d1fe25ea5b3a2c030c18961f"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/predict_3D_testLine.py",
+      "sha256": "b7355004e0a8abbebe805e2060aad7c8e37179a5570f3a5bca74dca1ac3aab7e"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/README.md",
+      "sha256": "fe556232e3e6cf4b6fd35ec4a5b57b50ad14c7bb0e01007da6332e92dde6bb48"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/requirements.txt",
+      "sha256": "2128345f041cf113fca92baee3243641235159ab1444a57a1ac51e265be8a19a"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/SOURCE_MANIFEST.json",
+      "sha256": "0916d2825bfcb68d53f82a5b481ed10b1a8ab0e632d4e160f7a15b8af80b31bc"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/ffve/utils.py",
+      "sha256": "a111052922a7973fc25477c41f9bc7aaec4d16a21c2f7e41cd8323c5178632c3"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/dataset/CMAPSS/CMAPSSDataset_ft.py",
+      "sha256": "1b5caf5019e5653c5038a3f4238e10c9897696e7f384557e3edffcf5a3a4c685"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/dataset/CMAPSS/CMAPSSDataset_pre.py",
+      "sha256": "8bda850dfdc18f339301b87e759f461c76ba3e4a4588ab631bf8c16f21d536ef"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/README.md",
+      "sha256": "2534401e98e58bf7820df0f55ea32da9f78acbc4e9a26bcdd551b3a0b5892c98"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/SOURCE_MANIFEST.json",
+      "sha256": "c7cbdd3e7f31a9c053ccf1bbaa0fa28e4103cca32b86b8fb0a1abe1e167cbd16"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/Transformer_ft_model.py",
+      "sha256": "1654ae208d9f66fa8ec77022e627ffd67a9db8427143f24b9ee9ed756e8c6075"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/Transformer_ft_serialatten.py",
+      "sha256": "fd8adeb868801da6335c2df590b41b031da850500ef603b6c9a996caba203559"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/Transformer_ft_serialatten_model.py",
+      "sha256": "08d26cfce8364380467325e3357bc0733e28a09cf5dcd0a2799c35c0b9ed9797"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/Transformer_pre.py",
+      "sha256": "485720e90fde43038f7cf31f12246a6754d0e11c37e04882e42a7a6485cd570b"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/Transformer_pre_model.py",
+      "sha256": "19a3455714fb7ec9ef352924cac659c1731b1afaebcef6a808f6798fd572d1ea"
+    },
+    {
+      "path": "paper_b/baselines/open_source/upstream/two_phase/utils.py",
+      "sha256": "df5fa35839f96396ca7e463284044d4fa0ea6af224a0aa302e82218ae429a54f"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/.gitattributes",
+      "sha256": "e0d0e4a7d34d838afd5eb0a896eebb7f4a0b3b205245318784fea5c64013c1a2"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/common.py",
+      "sha256": "3ac846e9eb4000951c6eefe2740f7ea3c23c107a58ffe2608c26a101568b7bf0"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/data.py",
+      "sha256": "1be97d25fb4eaef8028e1f1c37cb2cf87c0787b813bc813784da0f6de1f378ee"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/DATASET_EXPECTED_SHA256.json",
+      "sha256": "3ead070d905bd52f0e48655024fc49f0ba5e2ee2f4f5c84550674e4c3590b89b"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/PROTOCOL.json",
+      "sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/__init__.py",
+      "sha256": "4a8cb1c400afc089649afda427096e141f323013d71a2aac2fc1eb88f4555a30"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/configs/protocol.json",
+      "sha256": "4c4c8ddaa8089f9bd73d0076136dc42f813974acf70650f3dd50850aa011409c"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/models/__init__.py",
+      "sha256": "9d7c605de4a5d870a37671198fcbc7e344f33b0d4d57cfb1760b4644b6654038"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/models/dspt.py",
+      "sha256": "4bb675b7e0378f317fad43e7291029286f17257b6d7a6eaa721ca1b3e1738c33"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/models/vanilla.py",
+      "sha256": "bf9add5b571a9b10a6f48cdf71699b46bcfa13b94fbc972ddbac58f49194c2f1"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/training/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/training/data.py",
+      "sha256": "d97d9932ace8a0e67ad9ea6720a990764751c0045c92abf9a985757979d24e4f"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/training/metrics.py",
+      "sha256": "8d70d13abbdd5c16a2169885a340e929e8ff41760979c95ec5010495c7a2cff6"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference/training/train.py",
+      "sha256": "a9c9de9940c0fd57e3c761f421179a7e9edb698ea8bfadaf2456a849d495f73b"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/reference_wrap.py",
+      "sha256": "ff13cbe131857403bf6e70c20b8cfb29d90a45e59ceb004d795bedc4aab35ca2"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/runner.py",
+      "sha256": "05d387170a576ffe57a77606f124a970fe0ccba04f514ee461f6e0b0879944c7"
+    },
+    {
+      "path": "paper_b/baselines/open_source_author_limits_20261112/SNAPSHOT_MANIFEST.json",
+      "sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a"
+    }
+  ]
+}

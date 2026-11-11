@@ -1,0 +1,15 @@
+{
+  "registered_before_official_test": true,
+  "primary_reference": "dspt_v0_cycle",
+  "auxiliary_reference": "dspt_train_defaults",
+  "primary_outcome": "official endpoint RMSE cycles; lower better",
+  "secondary_outcome": "official endpoint NASA asymmetric sum; lower better",
+  "aggregation": "per subset, all101/202/303 seeds mean, sample SD, Student-t95%CI; validation and TEST separate",
+  "comparison": "paired differences within identical subset/seed; report all baseline-minus-reference RMSE/NASA differences, mean+SD+t95CI and better-seed count",
+  "reference_selection": "fixed names; never choose reference from TEST; no ensemble",
+  "multiple_subsets": "do not count FD001/FD003 or shared seeds as independent datasets/replicates",
+  "inference_limits": "n3 seed CI conditional on fixed data; descriptive small-sample comparison, no unconditional superiority claim or pooled p-value",
+  "two_phase": "separate paired-extra-data/pretraining table, same endpoint evaluation; not equal-resource claim",
+  "budget_limits": "fixed author window and optimizer settings, zero window tuning, common40 supervisoryepochs/12patience; not exhaustive optimum/equal steps/equal compute",
+  "historical_test_exposure": true
+}
