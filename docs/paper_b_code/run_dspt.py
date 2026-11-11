@@ -15,7 +15,10 @@ def set_seed(s):
     import random
     random.seed(s); np.random.seed(s); torch.manual_seed(s); torch.cuda.manual_seed_all(s)
 
-def rul_curve(n, max_rul=125.0):
+def rul_curve(n, max_rul=125.0, legacy=False):
+    if legacy:
+        r = float(n) - np.arange(n, dtype=np.float64)
+        return np.clip(r, 0.0, max_rul)
     """True RUL at step t is n-t (cycles remaining), capped at max_rul."""
     r = float(n - 1) - np.arange(n, dtype=np.float64)
     return np.clip(r, 0.0, max_rul)
@@ -27,7 +30,7 @@ def windows_for(frame, values, labels, pop_ref, tau=2.0, max_rul=125.0, span=MAX
         seq = np.asarray(values[pos], dtype=np.float32)
         clusters = np.asarray(labels[pos], dtype=np.int64)
         cycles = g['cycle'].to_numpy(np.int64)
-        rul = rul_curve(len(seq), max_rul)
+        rul = rul_curve(len(seq), max_rul, legacy=legacy_rul)
         for t in range(len(seq)):
             end = t + 1; m = min(end, span)
             w = seq[end - m:end]
@@ -110,6 +113,11 @@ def main():
     ap.add_argument('--no-cycle', action='store_true')
     ap.add_argument('--hi-lambda', type=float, default=0.0)
     ap.add_argument('--hi-mono', type=float, default=0.0)
+    ap.add_argument('--no-ms', action='store_true')
+    ap.add_argument('--legacy-pad', action='store_true')
+    ap.add_argument('--legacy-rul', action='store_true')
+    ap.add_argument('--legacy-hi', action='store_true')
+    ap.add_argument('--no-sa', action='store_true')
     ap.add_argument('--tag', required=True)
     a = ap.parse_args()
     set_seed(a.seed)
@@ -144,9 +152,14 @@ def main():
         pop[k] = tr_s[sel].mean(axis=0) if sel.any() else tr_s.mean(axis=0)
     HI = None
     if getattr(a, 'hi_lambda', 0.0) > 0:
-        HI = fit_hi(train_units, tr, tr_s, a.split_seed)
+        if getattr(a, 'legacy_hi', False):
+            hid = pd.read_csv(ROOT/'data'/'HI'/f'hi_{a.subset}.csv')
+            HI = hid.set_index(['unit','cycle'])['hi_raw'].to_dict()
+            print('HI LEGACY global', len(HI), flush=True)
+        else:
+            HI = fit_hi(train_units, tr, tr_s, a.split_seed)
         print('HI fitted on %d TRAIN engines only: %d entries' % (len(train_units), len(HI)), flush=True)
-    TR = windows_for(tr, tr_s, lt, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI); VA = windows_for(va, va_s, lv, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI)
+    TR = windows_for(tr, tr_s, lt, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI, legacy_rul=getattr(a,'legacy_rul',False)); VA = windows_for(va, va_s, lv, pop, max_rul=a.rul_cap, span=a.span, hi_map=HI, legacy_rul=getattr(a,'legacy_rul',False))
     print('windows train %d val %d' % (len(TR[0]), len(VA[0])), flush=True)
     SW = None
     if a.wshift:
@@ -162,7 +175,7 @@ def main():
         wv = wv / (p_tr * wv).sum()
         SW = torch.from_numpy(wv[np.clip(Yr, 0, int(CAPW))].astype(np.float32)).to(dev)
         print("  wshift: weight range [%.3f, %.3f] ESS %.1f%%" % (float(wv.min()), float(wv.max()), 100*float((p_tr*wv).sum()**2/((p_tr*wv**2).sum()))), flush=True)
-    net = build(14, a.d_model, a.layers, a.dropout, instnorm=getattr(a, 'instnorm', False), max_span=a.span).to(dev)
+    net = build(14, a.d_model, a.layers, a.dropout, instnorm=getattr(a, 'instnorm', False), max_span=a.span, use_ms=not getattr(a, 'no_ms', False), use_sa=not getattr(a, 'no_sa', False), use_pad_mask=not getattr(a, 'legacy_pad', False)).to(dev)
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=a.lr, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs, eta_min=1e-5)

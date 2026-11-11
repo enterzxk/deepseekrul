@@ -23,12 +23,16 @@ def masked_mean(h: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
 
 class DSPT(nn.Module):
     def __init__(self, num_sensors=14, d_model=64, num_layers=2, dropout=0.2,
-                 pe_periods=(25.0, 50.0, 125.0, 250.0), max_span=MAX_SPAN, instnorm=False):
+                 pe_periods=(25.0, 50.0, 125.0, 250.0), max_span=MAX_SPAN, instnorm=False,
+                 use_ms=True, use_sa=True, use_pad_mask=True):
         super().__init__()
         self.num_sensors = num_sensors
         self.d_model = d_model
         self.max_span = max_span
         self.instnorm = bool(instnorm)
+        self.use_ms = bool(use_ms)
+        self.use_sa = bool(use_sa)
+        self.use_pad_mask = bool(use_pad_mask)
         self.n_feat = 4 if self.instnorm else 3
         self.sensor_in = nn.Linear(self.n_feat, d_model)
         self.multi_conv = nn.ModuleList([nn.Conv1d(d_model, d_model, k, padding=k//2, groups=d_model) for k in (3, 5, 7)])
@@ -79,8 +83,11 @@ class DSPT(nn.Module):
         feats = self._features(x, baseline, mask)
         h = self.sensor_in(feats)                                  # (B,L,N,D)
         hh = h.permute(0, 2, 3, 1).reshape(B * N, self.d_model, L)
-        ms = sum(F.gelu(c(hh)) for c in self.multi_conv) / 3.0
-        hh = self.mscale_proj(ms.transpose(1, 2)).transpose(1, 2)
+        if self.use_ms:
+            ms = sum(F.gelu(c(hh)) for c in self.multi_conv) / 3.0
+            hh = self.mscale_proj(ms.transpose(1, 2)).transpose(1, 2)
+        else:
+            hh = F.gelu(self.multi_conv[0](hh))
         conv_out = hh.reshape(B, N, self.d_model, L).permute(0, 3, 1, 2)
         h = self.time_norm(h + conv_out)                            # (B,L,N,D)
         tokens = h.permute(0, 2, 1, 3).reshape(B * N, L, self.d_model)
@@ -89,10 +96,11 @@ class DSPT(nn.Module):
         tokens = tokens + self.temporal_pe[:, dist]
         pad = ~mask.bool().unsqueeze(1).expand(B, N, L).reshape(B * N, L)
         for layer in self.layers:
-            tokens = layer(tokens, src_key_padding_mask=pad)
+            tokens = layer(tokens, src_key_padding_mask=pad) if self.use_pad_mask else layer(tokens)
         tokens = tokens.reshape(B, N, L, self.d_model).permute(0, 2, 1, 3)
         st = tokens.reshape(B * L, N, self.d_model)
-        st = self.sensor_attn(st)
+        if self.use_sa:
+            st = self.sensor_attn(st)
         tokens = st.reshape(B, L, N, self.d_model)
         score = torch.softmax(self.sensor_score(tokens).squeeze(-1), dim=-1)  # (B,L,N)
         pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)           # (B,L,D)
@@ -150,5 +158,5 @@ class DSPT(nn.Module):
                 'embedding': h_f, 'hi': hi_pool, 'hi_seq': hi_seq}
 
 
-def build(num_sensors=14, d_model=64, num_layers=2, dropout=0.2, instnorm=False, max_span=MAX_SPAN):
-    return DSPT(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers, dropout=dropout, instnorm=instnorm, max_span=max_span)
+def build(num_sensors=14, d_model=64, num_layers=2, dropout=0.2, instnorm=False, max_span=MAX_SPAN, use_ms=True, use_sa=True, use_pad_mask=True):
+    return DSPT(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers, dropout=dropout, instnorm=instnorm, max_span=max_span, use_ms=use_ms, use_sa=use_sa, use_pad_mask=use_pad_mask)
