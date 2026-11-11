@@ -15,6 +15,7 @@ they differ by construction.
 Run: ``python -m paper_b.hc.verify_loop``
 """
 import json
+import math
 import shutil
 import sys
 import tempfile
@@ -55,6 +56,47 @@ def synth(seed=0):
     return dict(train=tr, val=va,
                 train_units=list(range(1, N_ENG + 1)),
                 val_units=list(range(1, N_ENG + 1)))
+
+
+def check_a3p_equivalence(seed=0):
+    """A3p must be the frozen model, not merely similar to it.
+
+    Builds ``DSPT_HC_Frozen`` and the frozen ``build_dspt(use_cycle=True)`` with
+    identical shapes, copies one state dict into the other, feeds the same
+    batch and the same cycle scalar, and compares the predictions. A3p's whole
+    job is to be the pre-norm reference, so any difference here means the
+    injection-point control is measuring something else.
+    """
+    from paper_b.models.dspt import build_dspt
+    from paper_b.hc.model_hc import DSPT_HC_Frozen
+
+    torch.manual_seed(seed)
+    common = dict(num_sensors=NS, d_model=32, num_layers=1, dropout=0.0,
+                  max_span=SPAN, ms_mode='full', sa_mode='basic',
+                  hi_source='none', hi_mono='none', use_pad_mask=True, n_cond=3)
+    ref = build_dspt(use_cycle=True, **common).eval()
+    hc = DSPT_HC_Frozen(**common).eval()
+    missing, unexpected = hc.load_state_dict(ref.state_dict(), strict=True) \
+        if False else (None, None)
+    hc.load_state_dict(ref.state_dict(), strict=True)
+
+    g = torch.Generator().manual_seed(seed + 1)
+    n = 8
+    x = torch.randn(n, SPAN, NS, generator=g)
+    mask = torch.ones(n, SPAN)
+    base = torch.randn(n, NS, generator=g)
+    cycle_cycles = torch.rand(n, generator=g) * 250.0   # cycles, 0..250
+    cond = torch.randint(0, 3, (n,), generator=g)
+
+    with torch.no_grad():
+        p_ref = ref(x, mask=mask, baseline=base,
+                    cycle=torch.clamp(cycle_cycles, 0, 250) / 250.0, cond=cond)['prediction']
+        p_hc = hc(x, mask=mask, baseline=base, cycle=cycle_cycles, cond=cond)['prediction']
+    diff = float((p_ref - p_hc).abs().max())
+    print(f'A3p vs frozen DSPT: max |pred diff| = {diff:.3e}  params '
+          f'{sum(p.numel() for p in hc.parameters())} vs '
+          f'{sum(p.numel() for p in ref.parameters())}')
+    return diff < 1e-6
 
 
 def main():
@@ -110,9 +152,40 @@ def main():
                      if len(h_f) == len(h_h) else float('inf'))
         print(f'max |loss diff| = {loss_diff:.3e}')
         print(f'max |param diff| = {max_diff:.3e}  (worst: {worst})')
-        ok = loss_diff < 1e-6 and max_diff < 1e-6 and set(sd_f) == set(sd_h)
+
+        # --- A3a / A3p control, asserted before any training -----------------
+        # Shared init: identical backbone tensors and an identical Fourier term.
+        # The full encode is expected to differ (pre-norm vs post-norm); that
+        # difference IS the treatment, so it is printed, not asserted to zero.
+        from paper_b.hc.make_control_init import build_pair
+        a3p, a3a, sd_p, sd_a, n_shared = build_pair(101, 'FD001', SPAN)
+        a3p.eval(); a3a.eval()
+        backbone_diff = max(float((sd_p[k] - sd_a[k]).abs().max())
+                            for k in sd_p if k in sd_a)
+        x2 = torch.randn(2, SPAN, 14)
+        m2 = torch.ones(2, SPAN)
+        b2 = x2[:, 0]
+        cyc2 = torch.tensor([40.0, 250.0])
+        ang = (2.0 * math.pi) * cyc2.unsqueeze(1) / a3p.pe_periods.view(1, -1)
+        pe = torch.cat([torch.sin(ang), torch.cos(ang)], dim=1)
+        with torch.no_grad():
+            term_p = a3p.pe_proj(pe)
+            term_a = a3a.cycle_enc(cyc2)
+            full_p = a3p.encode(x2, b2, m2, cyc2, None)
+            full_a = a3a.encode(x2, b2, m2, cyc2, None)
+        term_diff = float((term_p - term_a).abs().max())
+        full_diff = float((full_p - full_a).abs().max())
+        print(f'A3p/A3a shared tensors = {n_shared}, backbone max|diff| = {backbone_diff:.3e}')
+        print(f'A3p/A3a Fourier term max|diff| = {term_diff:.3e}')
+        print(f'A3p/A3a full encode max|diff| = {full_diff:.3e} (treatment, expected > 0)')
+
+        ok = (loss_diff < 1e-6 and max_diff < 1e-6 and set(sd_f) == set(sd_h)
+              and backbone_diff < 1e-6 and term_diff < 1e-6)
         print('VERIFY_LOOP', 'PASS' if ok else 'FAIL')
-        return 0 if ok else 1
+        # A3p must be the frozen model, not merely similar to it.
+        eq = check_a3p_equivalence()
+        print('A3P_EQUIVALENCE', 'PASS' if eq else 'FAIL')
+        return 0 if (ok and eq) else 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

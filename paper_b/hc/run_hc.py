@@ -99,8 +99,10 @@ def exclusive_write(path, payload):
         fh.write(data)
 
 
-GUARD_PATHS = ['paper_b/hc', 'paper_b/training', 'paper_b/models',
-               'paper_b/configs', 'paper_b/experiments']
+# Code a run actually imports. ``paper_b/experiments`` is deliberately absent:
+# probe scripts are not imported by training, and that tree is shared with the
+# parallel s23 line whose uncommitted artifacts must not block hc runs.
+GUARD_PATHS = ['paper_b/hc', 'paper_b/training', 'paper_b/models', 'paper_b/configs']
 
 
 def _git_status(paths, untracked):
@@ -130,7 +132,7 @@ def worktree_guard():
         return None
     dirty = _git_status(['paper_b/hc'], True)
     dirty += ('\n' if dirty else '') + _git_status(
-        ['paper_b/training', 'paper_b/models', 'paper_b/configs', 'paper_b/experiments'], False)
+        ['paper_b/training', 'paper_b/models', 'paper_b/configs'], False)
     if dirty.strip():
         raise SystemExit('REFUSED: uncommitted code under paper_b/; commit first:\n' + dirty)
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
@@ -161,8 +163,11 @@ def main():
     ap.add_argument('--seed', type=int, required=True)
     ap.add_argument('--run-id', required=True)
     ap.add_argument('--span', type=int, default=None)
-    ap.add_argument('--hypothesis', default='')
+    ap.add_argument('--hypothesis', required=True,
+                    help='one-line falsifiable statement; required by the registry spec')
     ap.add_argument('--gate', default='A')
+    ap.add_argument('--baseline-version', default=None,
+                    help='registered baseline label; defaults to the code lock value')
     ap.add_argument('--data-dir', default=os.environ.get('HC_DATA', 'data/CMAPSS'))
     ap.add_argument('--out-root', default=os.environ.get('HC_OUT_ROOT', 'experiments/hc'))
     ap.add_argument('--registry-root', default=str(REPO / 'docs' / 'paper_b_hc' / 'registry'),
@@ -174,6 +179,8 @@ def main():
     ap.add_argument('--init-from', default=None,
                     help='state_dict loaded before training (shared-init control)')
     ap.add_argument('--smoke', action='store_true', help='1-epoch pipeline check; not evidence')
+    ap.add_argument('--baseline-version', default='f3142687ed6c04efcfa35173772f532b3ebb3c38',
+                    help='commit whose blobs are the code_md5 baseline (task book §1.2)')
     ap.add_argument('--force', action='store_true', help='overwrite an existing run dir')
     a = ap.parse_args()
 
@@ -189,6 +196,18 @@ def main():
               f'lock_sha1={guard["code_lock_sha1"][:12]}', flush=True)
     else:
         print(f'[hc] worktree clean at {guard["git_sha"][:12]}', flush=True)
+
+    # Fingerprint triple required by the registry spec (2026-11-11): a run must
+    # say which baseline it belongs to, and a dirty tree must never be mistaken
+    # for evidence. Both guard branches above refuse to start when dirty, so the
+    # recorded flag is False by construction -- and provably so, because the
+    # process cannot reach this line otherwise.
+    lock = {}
+    if Path(a.code_lock).exists():
+        lock = json.loads(Path(a.code_lock).read_text())
+    baseline_version = a.baseline_version or lock.get('baseline_version', 'unregistered')
+    git_sha_field = guard['git_sha'] if guard['mode'] == 'git' else 'WORKTREE'
+    worktree_dirty = False
 
     # R6 drift guard: refuse to spend GPU on a split that is not the frozen one.
     from ..training.data import load_train, split_units
@@ -210,6 +229,8 @@ def main():
     cfg['gate'] = a.gate
     cfg['smoke'] = bool(a.smoke)
     cfg['init_from'] = a.init_from
+    if a.init_from:
+        cfg['init_from_sha256'] = hashlib.sha256(Path(a.init_from).read_bytes()).hexdigest()
     if a.smoke:
         cfg['epochs'], cfg['patience'] = 1, 1
         cfg['budget_override'] = 'smoke: 1 epoch, not evidence'
@@ -231,7 +252,9 @@ def main():
         seed=a.seed, span=cfg['span'], hypothesis=a.hypothesis or '(not stated)',
         gate=a.gate, host=env_info()['host'], smoke=bool(a.smoke),
         written_by='run_hc', process_start_utc=proc_start,
-        code_md5=hashes, git_sha=guard['git_sha'], worktree=guard,
+        code_md5=hashes, git_sha=git_sha_field, worktree_dirty=worktree_dirty,
+        baseline_version=baseline_version, worktree=guard,
+        code_lock_git_sha=(lock.get('git_sha') if guard['mode'] == 'lock' else None),
         data_split=dict(split_seed=SPLIT_SEED, fold=FOLD, val_frac=VAL_FRAC,
                         val_engine_ids_hash=got),
         budget=dict(epochs=cfg['epochs'], patience=cfg['patience'],
@@ -299,21 +322,33 @@ def main():
         artifacts=['config.json', 'manifest.json', 'metrics.json', 'preds.csv',
                    'train.log', 'history.json', 'ckpt/best.pt', 'launch.json'],
         notes=('smoke run: not evidence' if a.smoke else
-               'intervention mean|d|=%.3f' % m['cycle_intervention']['mean_abs_delta']))
+               'intervention mean|d|=%.3f; init_from=%s; init_shared=%s'
+               % (m['cycle_intervention']['mean_abs_delta'],
+                  cfg.get('init_from') or 'none',
+                  'yes' if cfg.get('init_from') else 'no (independent init)')))
     (out / 'close.json').write_text(json.dumps(close, indent=1))
     (reg / 'close').mkdir(parents=True, exist_ok=True)
     (reg / 'close' / f'{a.run_id}.json').write_text(json.dumps(close, indent=1))
 
     # C2: manifest last, so it lists every artifact including close.json.
+    # provenance (task book §1.2 / test-lead): baseline_version pins the blob set
+    # the run is compared against, worktree_dirty records whether the tree moved
+    # away from that baseline at launch time.
+    provenance = launch.get('provenance', {})
     man = dict(
         run_id=a.run_id, variant=a.variant, subset=a.subset, seed=a.seed,
         smoke=bool(a.smoke),
+        baseline_version=baseline_version,
+        worktree_dirty=worktree_dirty,
+        git_sha=git_sha_field,
+        code_lock_git_sha=(lock.get('git_sha') if guard['mode'] == 'lock' else None),
         val_engine_ids_hash=got,
         code_md5=code_hashes(),
         split=_d.split_fingerprint(ds),
         env=env_info(),
         config_sha1=hashlib.sha1((out / 'config.json').read_bytes()).hexdigest(),
-        artifacts=sorted(str(p.relative_to(out)) for p in out.rglob('*') if p.is_file()),
+        artifacts=sorted(str(p.relative_to(out)) for p in out.rglob('*') if p.is_file())
+        + ['manifest.json'],
         notes='validation only; no test phase in Stage C',
     )
     (out / 'manifest.json').write_text(json.dumps(man, indent=1))

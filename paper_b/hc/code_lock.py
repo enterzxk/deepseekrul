@@ -29,10 +29,10 @@ def _blob(rel):
         raise SystemExit(f'REFUSED: {rel} is not in HEAD; commit it before generating the lock')
 
 
-def build():
+def build(baseline_version='unregistered'):
     code_md5 = {rel: hashlib.md5(_blob(rel)).hexdigest() for rel in FROZEN + OWN}
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
-    return dict(schema_version=1, git_sha=sha,
+    return dict(schema_version=1, git_sha=sha, baseline_version=baseline_version,
                 generated_utc=datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
                 definition='md5 of `git show HEAD:<path>` blob bytes',
                 code_md5=code_md5)
@@ -51,9 +51,11 @@ def main():
     g.add_argument('--write', action='store_true', help='regenerate from HEAD')
     g.add_argument('--check', action='store_true', help='verify this host')
     ap.add_argument('--out', default=str(DEFAULT))
+    ap.add_argument('--version', default='unregistered',
+                    help='registered baseline label written into the lock (e.g. v4)')
     a = ap.parse_args()
     if a.write:
-        lock = build()
+        lock = build(a.version)
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps(lock, indent=1) + '\n')
         print('wrote', a.out, 'git_sha', lock['git_sha'], 'files', len(lock['code_md5']))

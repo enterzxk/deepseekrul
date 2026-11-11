@@ -61,10 +61,16 @@ class DSPT_HC_Frozen(DSPT):
     def encode(self, x, baseline, mask, cycle, cond=None):
         if cycle is None:
             return super().encode(x, baseline, mask, None, cond)
-        # Upper bound as well as lower: anything above 250 is outside the frozen
-        # encoding's domain, and silently wrapping it would make A3p incomparable.
-        c = torch.clamp(cycle, min=0.0, max=250.0) / 250.0
-        return super().encode(x, baseline, mask, c, cond)
+        # Assert, do not clamp (test-lead ruling): A3p is declared with
+        # cycle_source='clipped', so a value above 250 means the arm is
+        # mis-specified. Clamping would silently turn a raw-cycle run into the
+        # clipped arm and hide the bug; failing loudly keeps the control honest.
+        mx = float(cycle.detach().max())
+        if mx > 250.0 + 1e-6:
+            raise ValueError(
+                f'frozen injection: cycle must be <= 250 (got max {mx:.4f}); '
+                f'A3p requires cycle_source="clipped"')
+        return super().encode(x, baseline, mask, cycle / 250.0, cond)
 
 
 class CycleOnly(nn.Module):
