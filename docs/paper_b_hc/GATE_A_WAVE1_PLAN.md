@@ -7,8 +7,15 @@
 
 ## 1. 变体集
 
-`{A0, A1, A2, A3p, A4, A5}`。**A3p ≡ V0-NoHI**（同配置），只跑一次、V0 表双向引用。
-A3a 是敏感性臂，不进第一波（已有 0030Z）；A3b/A3c 不在第一波。
+**主表（post-norm 家族）**：`{A0, A1, A2, A3a, A4, A5}` —— 编码形式比较以 **A3a** 为主臂
+（Fourier，post-norm），A2/A4/A5 为同注入点的 raw/log/spline，A1 为无 cycle 基线，A0 为年龄参考线。
+
+**A3p 是 frozen 参考臂**（pre-norm，`DSPT_HC_Frozen`）：跑 FD002/003/004 三格，
+FD001 已有 `A3p-FD001-s101-W1`（= R0 自检格，10.895096839289387）。
+A3p 只用于 V0-NoHI 引用与注入点对照，**单独一张表**，不与 A2/A4/A5 比编码形式。
+
+> 硬约束（2026-11-12 主控）：**任何把 A3p 与 A2/A4/A5 放在同一列比较编码形式的表，一律作废**。
+> 原因：A3p 是 pre-norm，其余是 post-norm，Δ 里混着「编码形式」与「注入位置」两个因子。
 
 ## 2. 初始化策略（公平性的关键）
 
@@ -65,10 +72,10 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 10 | A2 | FD002 | 101 | wave1_init_A2 | HC-C-A2-FD002-s101-W1 |
 | 11 | A2 | FD003 | 101 | wave1_init_A2 | HC-C-A2-FD003-s101-W1 |
 | 12 | A2 | FD004 | 101 | wave1_init_A2 | HC-C-A2-FD004-s101-W1 |
-| 13 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1 |
-| 14 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
-| 15 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
-| 16 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
+| 13 | A3a | FD001 | 101 | init_v9_A3p | HC-C-A3a-FD001-s101-W1 |
+| 14 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
+| 15 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
+| 16 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
 | 17 | A4 | FD001 | 101 | wave1_init_A4 | HC-C-A4-FD001-s101-W1 |
 | 18 | A4 | FD002 | 101 | wave1_init_A4 | HC-C-A4-FD002-s101-W1 |
 | 19 | A4 | FD003 | 101 | wave1_init_A4 | HC-C-A4-FD003-s101-W1 |
@@ -77,15 +84,19 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 22 | A5 | FD002 | 101 | wave1_init_A5 | HC-C-A5-FD002-s101-W1 |
 | 23 | A5 | FD003 | 101 | wave1_init_A5 | HC-C-A5-FD003-s101-W1 |
 | 24 | A5 | FD004 | 101 | wave1_init_A5 | HC-C-A5-FD004-s101-W1 |
-| 25 | A3a | FD001 | 101 | init_v9_A3p | HC-C-A3a-FD001-s101-W1 |
-| 26 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
-| 27 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
-| 28 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
 
-> 第 25–28 格是 2026-11-12 主控要求新增的 **post-norm Fourier 臂**（A3a），
-> 用于把 G2 拆成「同注入点比编码形式」与「同编码形式比注入点」两张表。
-> A3a 的 init 用 A3p 那份（`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap，
-> 与 `0030Z` 的做法一致。
+**A3p frozen 参考臂（单独一张表，不进主表）**
+
+| # | variant | subset | seed | init | run_id |
+|---|---|---|---|---|---|
+| 25 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1（R0，已完成） |
+| 26 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
+| 27 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
+| 28 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
+
+> 第 13–16 格是 2026-11-12 主控裁决后的 **post-norm Fourier 主臂**（A3a）；
+> 原 A3p×4 改列到 25–28，作 frozen 参考臂。A3a 的 init 用 A3p 那份
+> （`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap，与 `0030Z` 一致。
 
 ## 4. 并行方案
 
@@ -126,8 +137,8 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | # | 判据 | 阈值（写死） | 结论 |
 |---|---|---|---|
 | G1 | Cycle 是否有用：A2 相对 A1 | 四子集 `Δ(A1→A2)` 均值 **≥ 1.0%**，且无子集 **< −2.0%** | 过 → Cycle 有增益；否则「cycle 无可测增益」 |
-| G2a | **同注入点**（post-norm）比编码形式：A3a 相对 A2 | `Δ(A2→A3a)` 均值 **≥ 1.0%**，且至少 **3/4** 子集同号 | 过 → 在 post-norm 下 Fourier 优于线性年龄 |
-| G2b | **同编码形式**（Fourier）比注入点：A3p 相对 A3a | 只报 `Δ(A3a→A3p)` 的均值与四子集符号，**不设增益阈值** | 用于把 G2 的联合差分解成「形式」与「位置」两部分 |
+| G2 | **同注入点（post-norm）**比编码形式：A3a 相对 A2 | `Δ(A2→A3a)` 均值 **≥ 1.0%**，且至少 **3/4** 子集同号 | 过 → 在 post-norm 下 Fourier 优于线性年龄；否则按任务书 §9「不得把 Fourier 编码当创新点」 |
+| G2′ | **同 Fourier 形式**比注入点：A3p 相对 A3a | 只报 `Δ(A3a→A3p)` 的均值与四子集符号，**不设阈值** | 注入点对照，单 seed 只作 preliminary，写进 `CYCLE_DEPENDENCE_STUDY.md`，不进 Gate A 主表 |
 | G3 | 年龄捷径检查：A0 相对 A1 | `Δ(A1→A0)` **≤ −10.0%**（A0 明显更差） | 不过 → benchmark 可由年龄单独解，cycle 结论作废 |
 | G4 | 干预方向：`cycle_intervention` | 所有带 cycle 的臂 `mean_abs_delta ≥ 0.5` 且 `frac_negative ≥ 0.5`；A1 必须 `mean_abs_delta = 0` | 不过 → 该臂的 cycle 路径未被模型使用，该臂结论作废 |
 | G5 | 方向稳定性 | 四子集上 G1/G2a 的符号至少 **3/4** 一致 | 不过 → 只作子集条件陈述，不进主表 |
@@ -135,6 +146,9 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 **G4 的方向约定（写死）**：`cycle_intervention` 的 `delta` 是**加在 raw cycle 上的 +10**，
 `mean_delta = mean(pred(c+10) − pred(c))`。**负值表示预测 RUL 随年龄增加而下降**，这是物理正确方向；
 `frac_negative ≥ 0.5` 表示至少一半窗口朝正确方向移动。`mean_abs_delta` 只衡量响应幅度，不含方向。
+
+**硬约束（2026-11-12 主控）**：A3p 是 pre-norm、A2/A3a/A4/A5 是 post-norm，
+**任何把 A3p 与 A2/A4/A5 放在同一列比较编码形式的表，一律作废**；A3p 只进 G2′ 与 V0-NoHI 引用。
 
 补充规则：
 
