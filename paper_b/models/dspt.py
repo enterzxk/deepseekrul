@@ -76,8 +76,8 @@ class DSPT(nn.Module):
                  hi_mono='none', use_pad_mask=True, use_cycle=True, n_cond=6,
                  legacy_ms_pad=False, legacy_ema=False):
         super().__init__()
-        assert ms_mode in ('off', 'full', 'single_proj', 'multi_noproj', 'multi3')
-        assert sa_mode in ('off', 'basic', 'identity', 'cond', 'identity_cond')
+        assert ms_mode in ('off', 'full', 'single_proj', 'multi_noproj', 'multi3', 'linear_only')
+        assert sa_mode in ('off', 'basic', 'identity', 'cond', 'identity_cond', 'mean', 'static')
         assert hi_source in ('none', 'hf', 'hB', 'hA')
         assert hi_mono in ('none', 'correct', 'wrong')
         self.num_sensors = num_sensors
@@ -97,8 +97,9 @@ class DSPT(nn.Module):
         self.sensor_in = nn.Linear(self.n_feat, d_model)
 
         # ---- multi-scale temporal convolution --------------------------------
-        self.conv3 = nn.Conv1d(d_model, d_model, 3, padding=1, groups=d_model,
-                               padding_mode='replicate')
+        if ms_mode != 'linear_only':
+            self.conv3 = nn.Conv1d(d_model, d_model, 3, padding=1, groups=d_model,
+                                   padding_mode='replicate')
         if ms_mode in ('full', 'multi_noproj'):
             self.conv5 = nn.Conv1d(d_model, d_model, 5, padding=2, groups=d_model,
                                    padding_mode='replicate')
@@ -109,7 +110,7 @@ class DSPT(nn.Module):
                                     padding_mode='replicate')
             self.conv3c = nn.Conv1d(d_model, d_model, 3, padding=1, groups=d_model,
                                     padding_mode='replicate')
-        if ms_mode in ('full', 'single_proj', 'multi3'):
+        if ms_mode in ('full', 'single_proj', 'multi3', 'linear_only'):
             self.ms_proj = nn.Linear(d_model, d_model)
 
         self.time_norm = nn.LayerNorm(d_model)
@@ -128,7 +129,7 @@ class DSPT(nn.Module):
             for _ in range(num_layers)])
 
         # ---- cross-sensor attention (SA) ------------------------------------
-        if sa_mode != 'off':
+        if sa_mode in ('basic', 'identity', 'cond', 'identity_cond'):
             self.sensor_attn = nn.TransformerEncoderLayer(
                 d_model=d_model, nhead=2, dim_feedforward=2 * d_model, dropout=dropout,
                 activation='gelu', batch_first=True, norm_first=True)
@@ -137,7 +138,10 @@ class DSPT(nn.Module):
         if sa_mode in ('cond', 'identity_cond'):
             self.cond_emb = nn.Embedding(n_cond, d_model)
 
-        self.sensor_score = nn.Linear(d_model, 1)
+        if sa_mode in ('off', 'basic', 'identity', 'cond', 'identity_cond'):
+            self.sensor_score = nn.Linear(d_model, 1)
+        if sa_mode == 'static':
+            self.static_score = nn.Parameter(torch.zeros(num_sensors))
         self.norm = nn.LayerNorm(d_model)
         self.reg_head = nn.Sequential(nn.Linear(d_model, d_model), nn.GELU(),
                                       nn.Linear(d_model, 1))
@@ -171,6 +175,8 @@ class DSPT(nn.Module):
 
     def _ms(self, hh):
         """hh: (B*N, D, L) -> (B*N, D, L)."""
+        if self.ms_mode == 'linear_only':
+            return self.ms_proj(hh.transpose(1, 2)).transpose(1, 2)
         if self.ms_mode == 'off':
             return F.gelu(self.conv3(hh))
         if self.ms_mode == 'single_proj':
@@ -211,7 +217,7 @@ class DSPT(nn.Module):
             tokens = layer(tokens, src_key_padding_mask=pad) if self.use_pad_mask else layer(tokens)
         tokens = tokens.reshape(B, N, L, self.d_model).permute(0, 2, 1, 3)
 
-        if self.sa_mode != 'off':
+        if self.sa_mode in ('basic', 'identity', 'cond', 'identity_cond'):
             st = tokens.reshape(B * L, N, self.d_model)
             if self.sa_mode in ('identity', 'identity_cond'):
                 st = st + self.sensor_id
@@ -222,8 +228,14 @@ class DSPT(nn.Module):
             st = self.sensor_attn(st)
             tokens = st.reshape(B, L, N, self.d_model)
 
-        score = torch.softmax(self.sensor_score(tokens).squeeze(-1), dim=-1)  # (B,L,N)
-        pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)                     # (B,L,D)
+        if self.sa_mode == 'mean':
+            pooled = tokens.mean(dim=2)                                        # (B,L,D)
+        elif self.sa_mode == 'static':
+            w = torch.softmax(self.static_score, dim=0).view(1, 1, -1, 1)      # (1,1,N,1)
+            pooled = (w * tokens).sum(dim=2)                                   # (B,L,D)
+        else:
+            score = torch.softmax(self.sensor_score(tokens).squeeze(-1), dim=-1)  # (B,L,N)
+            pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)                     # (B,L,D)
         if self.use_cycle:
             c_abs = cycle * 250.0
             ang = (2.0 * math.pi) * c_abs.unsqueeze(1) / self.pe_periods.view(1, -1)

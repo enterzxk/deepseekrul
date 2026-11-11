@@ -1,99 +1,83 @@
 # Paper B current status
 
-Updated 2026-11-11 after the scope reduction to **FD001 only**. All numbers
-below come from `paper_b/results/fd001_final_table.csv` and the per-run
-`metrics.json` / `test_metrics.json` files.
+Updated 2026-11-11 after the replacement-based 2x2x2 factorial (seed 101, four
+subsets). Authoritative numbers: `results/factorial_val.csv`,
+`results/factorial_test.csv`, `results/factorial_effects_*.csv`.
 
-## 1. Where the project stands
+## 1. Scope and final model
 
 | item | state |
 |---|---|
 | branch | `punet-interval`; local commits on top of `95e729e` |
 | Paper A | untouched |
-| active code | `paper_b/models`, `paper_b/training`, `paper_b/evaluation` |
-| scope this round | **FD001 only** (multi-subset grid stopped at the user's request) |
+| ablation | 2x2x2 replacement design + 2 controls (10 cells x 4 subsets x seed 101 = 40 runs) |
+| selection | validation only: 4-subset mean RMSE -> 1% band -> NASA -> parameters |
+| **final model** | **single-scale conv (k=3) + cross-sensor attention + HI supervision** |
+| test | opened for all 40 cells at the user's request; descriptive, not selective |
 | running jobs | none |
-| final model | **MS+SA (MSSA), no HI** |
-| official test | opened once, for the frozen FD001 tags only |
 
-## 2. FD001 final results (3 seeds, 101/202/303)
+## 2. Factorial headline (seed 101)
 
-| model | validation RMSE | official test RMSE | test vs base |
-|---|---:|---:|---:|
-| DSPT base | 11.874 +- 0.258 | 11.054 +- 0.350 | - |
-| **DSPT MS+SA (final)** | **11.112 +- 0.344** | **10.598 +- 0.299** | **-4.1%** |
-| DSPT FULL | 11.132 +- 0.234 | not evaluated | - |
-| Vanilla (raw) | 13.366 +- 0.184 | 15.046 +- 1.111 | +36.1% |
-| Vanilla (features+cycle) | 12.503 +- 0.666 | 12.599 +- 0.415 | +14.0% |
-
-- MS+SA is -6.4% on validation and -4.1% on test relative to base; the two
-  directions agree.
-- FULL is tied with MS+SA on validation (0.2%, far below the seed std); the
-  simpler MS+SA is selected by the pre-registered tie-break.
-- HI alone is +0.5% (worse); adding HI to MS+SA gives no gain. HI is dropped.
-- DSPT beats the feature-matched Vanilla by 16% on test, so the architecture
-  adds value beyond the three-channel input and cycle encoding.
-
-## 2b. Single-seed scope (user correction, 2026-11-11)
-
-The requested scope is **one dataset and one random seed**. The completed runs
-already contain seed 101, so no new training is needed. Seed 101 is the
-primary seed; seeds 202/303 are retained only as an already-computed stability
-check and are not part of the headline claim.
-
-| model | val RMSE (s101) | test RMSE (s101) |
+| cell | validation mean | test mean (descriptive) |
 |---|---:|---:|
-| DSPT base | 12.166 | 11.547 |
-| DSPT MS+SA (final) | 11.599 | **10.822** |
-| DSPT FULL | 11.458 | not opened |
-| Vanilla (raw) | 13.602 | 16.606 |
-| Vanilla (features+cycle) | 13.121 | 12.322 |
+| single + attention + HI (selected) | **12.779** | **10.983** |
+| full + attention + HI (FULL) | 13.075 | 11.311 |
+| single + attention, no HI | 12.882 | 11.671 |
+| single + mean pooling, no HI | 13.632 | 11.406 |
+| full + mean pooling, no HI | 13.110 | 11.207 |
+| linear-only control | 12.957 | 11.618 |
+| static sensor weights control | 13.163 | 11.417 |
 
-Single-seed reading: MS+SA is -4.7% on validation and -6.3% on test relative
-to base; DSPT MS+SA is 12.1% better than the feature-matched Vanilla.
+Selected vs FULL: validation -2.3%, test -2.9% (better on all four subsets).
+Paired engine bootstrap vs FULL: all 95% CIs contain 0, so the correct label is
+**comparable**, with the simpler model preferred by the validation rule.
 
-**Why the final model stays MS+SA even though FULL has the lower seed-101
-validation number (11.458 vs 11.599):** the 0.14 gap is within seed noise, and
-the model was fixed by the pre-registered three-seed rule before the test was
-opened. Re-selecting FULL on one seed after seeing the MSSA test number would
-be post-hoc selection. If a strict one-seed protocol is required, the model
-must be fixed by design (MS+SA) before looking at the seed.
+## 3. Main effects (validation RMSE; negative = helps)
 
-## 3. Historical evidence status
+| subset | MS | SA | HI | MSxSA |
+|---|---:|---:|---:|---:|
+| FD001 | +0.04 | -0.52 | -0.15 | +1.33 |
+| FD002 | -0.23 | -0.07 | -0.01 | +0.41 |
+| FD003 | -0.03 | +0.01 | +0.10 | +1.00 |
+| FD004 | -0.35 | -1.00 | -0.14 | +0.20 |
+| mean | -0.14 | -0.39 | -0.05 | +0.73 |
+
+1. **Multi-scale has no robust effect**; the large positive MSxSA interaction
+   shows it is redundant with attention. The selected model uses the
+   single-scale replacement.
+2. **Attention is the largest validation effect**, concentrated on FD001 and
+   FD004; on test it is subset-dependent (helps FD001/FD002, hurts FD003).
+3. **HI is weakly positive and subset-dependent** (FD003 is worse with HI).
+4. **FULL is not the best cell**; the redundancy between multi-scale and
+   attention explains why adding modules did not help.
+
+## 4. Historical evidence status
 
 | item | status |
 |---|---|
 | Archived 32-cell table | checkpoint-consistent (corr 0.9935-0.9995); protocol-confounded, not fabricated |
-| P0-fixed recomputation | moves absolute values, does not flip the archived ranking |
 | OOF 60-cell | **INVALID** (truncation points sampled from official test RUL) |
-| Historical negative ablation | **reversed** under the fixed FD001 protocol |
+| Historical negative ablation | explained by protocol + functional redundancy, not by a single bug |
 
 Attribution (FD001/seed 101, diagnostic): global HI leakage buys 3.0% test;
 the EMA fix buys 5.8% test but looks worse on validation; removing the padding
-mask buys 5.4% test. See `ATTRIBUTION.md`.
-
-## 4. What was not run
-
-- FD002/FD003/FD004 completion (FD002 has 24 cells, FD003 18, FD004 0).
-- MS/SA/HI mechanism grids, window search, padding-mask control, cut
-  sensitivity, determinism check. These remain planned, not claimed.
+mask buys 5.4% test (`ATTRIBUTION.md`).
 
 ## 5. Decision
 
-**READY as an FD001-scope pilot; REVISE before an IEEE TIM submission.**
+**READY as a single-seed, four-subset pilot; REVISE before an IEEE TIM
+submission.**
 
-The FD001 result is internally clean and protocol-consistent. A single C-MAPSS
-subset cannot support a general claim; the minimal next round is FD002/FD004
-for MSSA/base/Vanilla (3 seeds, ~1.5-2 GPU-h). If MSSA does not hold on the
-multi-condition subsets, the paper stays FD001-scope or becomes a protocol/audit
-paper.
+The factorial is internally consistent and the selected model is simpler than
+FULL, but the gain is within noise, the test table is descriptive, and only one
+seed was run. The minimal next round is seeds 202/303 for the selected cell and
+FULL on all four subsets (16 runs), then a paired bootstrap with three seeds.
+No new module is added.
 
 ## 6. Caveats
 
-- FD001 only; no cross-subset claim.
-- n=3 seeds; the MSSA-vs-base gap is larger than the seed std, but a paired
-  test with n=3 has low power.
-- The official FD001 test set has been observed before; the freeze manifest
-  limits further selection but cannot make it pristine.
-- The mechanism explanations (SA condition heterogeneity, HI target noise, MS
-  scale redundancy) are probe-level, not ablation-confirmed in this round.
+- One seed (101), as requested; seed variance is not estimated in this round.
+- Test numbers are descriptive and were opened at the user's request.
+- The single-scale replacement uses k=3; "best scale" was not separately tuned.
+- The HI head is present in both HI levels; only the loss weight changes.
+- No claim that the selected cell is significantly better than FULL.

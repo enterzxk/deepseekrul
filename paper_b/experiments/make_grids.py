@@ -138,6 +138,25 @@ for cfg, tag in (('base', 'NM_base'), ('full', 'NM_full')):
             runs.append(dspt(tag, subset, seed, use_pad_mask=False, **CFG8[cfg]))
 dump('nomask.json', runs)
 
+# K. 2x2x2 factorial ablation (replacement-based, seed 101, all subsets)
+runs = []
+for ms in ('single_proj', 'full'):
+    for sa in ('mean', 'basic'):
+        for hi in (0.0, 0.5):
+            for subset in SUBSETS:
+                runs.append(dspt(f'F_{ms}_{sa}_hi{int(hi > 0)}', subset, 101,
+                                 ms_mode=ms, sa_mode=sa, hi_source='hf',
+                                 hi_lambda=hi, hi_mono='correct'))
+for tag, kw in {
+    'C_linear_mean_hi0': dict(ms_mode='linear_only', sa_mode='mean',
+                              hi_source='hf', hi_lambda=0.0, hi_mono='correct'),
+    'C_single_static_hi0': dict(ms_mode='single_proj', sa_mode='static',
+                                hi_source='hf', hi_lambda=0.0, hi_mono='correct'),
+}.items():
+    for subset in SUBSETS:
+        runs.append(dspt(tag, subset, 101, **kw))
+dump('factorial.json', runs)
+
 # I. same-machine reproducibility check (duplicate of two runs)
 runs = [dspt('REPRO_base', 'FD001', 101, **CFG8['base']),
         dspt('REPRO_full', 'FD001', 101, **CFG8['full'])]

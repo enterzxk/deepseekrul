@@ -1,8 +1,9 @@
 # Paper B experiment registry
 
-> Scope reduced to **FD001 only** on 2026-11-11 at the user's request. The FD001
-> 8-config ablation was already complete (24/24), so no new ablation was run.
-> Test numbers exist only for the tags in `results/FREEZE_FD001.json`.
+> The final ablation is the **replacement-based 2x2x2 factorial** (`factorial.json`),
+> seed 101, four subsets, with descriptive test evaluation of all 40 cells.
+> The earlier delete-from-FULL grids are kept as archived evidence, not as the
+> paper's module claims.
 
 Status values: PLANNED / RUNNING / DONE / INVALID / ARCHIVED.
 A run is DONE only when `paper_b/results/raw/<tag>/<subset>/s<seed>/metrics.json`
@@ -36,6 +37,7 @@ All grids: `split_seed=7`, `fold=0`, `rul_cap=125`, `epochs=40`,
 | `nomask.json` | `NM_<cfg>` | 24 | 4 | 3 | padding-mask control (attribution suggests unmasking helps) | NOT RUN (scope reduction) |
 | `sens_cuts.json` | `SENS_<cfg>` | 12 | FD001, FD004 | 3 | validation-cut sensitivity (earlier 30% cut) | NOT RUN (scope reduction) |
 | `repro.json` | `REPRO_<cfg>` | 2 | FD001 | 101 | same-machine determinism check | NOT RUN (scope reduction) |
+| `factorial.json` | `F_*`, `C_*` | 40 | 4 | 101 | 2x2x2 replacement ablation (MS x SA x HI) + linear-only/static controls | **DONE 40/40 training + 40/40 test** |
 | `window.json` | `WIN_L<L>_<cfg>` | TBD | 4 | 3 | window search after structure freeze | NOT RUN (scope reduction) |
 
 ### Grid definitions

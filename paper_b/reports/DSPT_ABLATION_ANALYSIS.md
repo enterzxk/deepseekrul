@@ -209,6 +209,102 @@ the ablation is validation-only, as pre-registered.
 - The mechanism grids were not run; SA condition-heterogeneity and MS scale
   redundancy remain probe-level explanations, not ablation-confirmed ones.
 
+## 4b. Factorial ablation (replacement-based, seed 101)
+
+This supersedes §4 for module claims. The delete-from-FULL ablation changes two
+things at once (e.g., removing multi-scale also removes its projection; removing
+SA also removes the learned pooling). The 2x2x2 replacement design fixes that
+(design: `FACTORIAL_DESIGN.md`).
+
+### Validation RMSE
+
+| cell | MS | SA | HI | FD001 | FD002 | FD003 | FD004 | mean |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| single + mean + off | single | mean | off | 11.992 | 11.986 | 12.423 | 18.126 | 13.632 |
+| single + mean + on | single | mean | on | 12.019 | 11.981 | 12.099 | 18.105 | 13.551 |
+| single + attn + off | single | attn | off | 11.060 | 11.772 | 11.697 | 16.998 | 12.882 |
+| **single + attn + on** | single | attn | on | **10.583** | **11.654** | **11.847** | **17.030** | **12.779** |
+| full + mean + off | full | mean | off | 11.381 | 11.628 | 11.595 | 17.836 | 13.110 |
+| full + mean + on | full | mean | on | 11.384 | 11.465 | 11.873 | 17.492 | 13.054 |
+| full + attn + off | full | attn | off | 11.599 | 11.555 | 12.104 | 16.878 | 13.034 |
+| full + attn + on (FULL) | full | attn | on | 11.458 | 11.808 | 12.384 | 16.648 | 13.075 |
+| linear-only + mean + off | none | mean | off | 11.530 | 11.130 | 13.593 | 15.575 | 12.957 |
+| single + static + off | single | static | off | 11.848 | 11.417 | 12.331 | 17.056 | 13.163 |
+
+### Official test RMSE (descriptive; not used for selection)
+
+| cell | FD001 | FD002 | FD003 | FD004 | mean |
+|---|---:|---:|---:|---:|---:|
+| single + mean + off | 10.847 | 11.239 | 10.666 | 12.871 | 11.406 |
+| single + mean + on | 10.890 | 10.791 | 10.525 | 12.978 | 11.296 |
+| single + attn + off | 11.144 | 11.143 | 11.425 | 12.973 | 11.671 |
+| **single + attn + on** | **10.196** | **10.258** | 11.652 | **11.827** | **10.983** |
+| full + mean + off | 11.119 | 10.893 | 10.754 | 12.062 | 11.207 |
+| full + mean + on | 11.030 | 11.254 | 10.843 | 12.013 | 11.285 |
+| full + attn + off | 10.822 | 10.848 | 10.946 | 12.653 | 11.317 |
+| full + attn + on (FULL) | 10.288 | 10.523 | 11.803 | 12.628 | 11.311 |
+| linear-only + mean + off | 11.382 | 11.390 | 11.517 | 12.182 | 11.618 |
+| single + static + off | 10.842 | 11.217 | 11.133 | 12.475 | 11.417 |
+
+### Main effects and interactions (validation RMSE; negative = module helps)
+
+| subset | MS | SA | HI | MSxSA | MSxHI | SAxHI | 3-way |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| FD001 | +0.04 | -0.52 | -0.15 | **+1.33** | +0.16 | -0.32 | +0.36 |
+| FD002 | -0.23 | -0.07 | -0.01 | +0.41 | +0.11 | +0.15 | +0.53 |
+| FD003 | -0.03 | +0.01 | +0.10 | **+1.00** | +0.37 | +0.24 | -0.47 |
+| FD004 | -0.35 | -1.00 | -0.14 | +0.20 | -0.29 | +0.08 | +0.06 |
+| mean | -0.14 | -0.39 | -0.05 | **+0.73** | +0.08 | +0.04 | +0.12 |
+
+Test main effects (descriptive, mean): MS -0.06, SA +0.02, HI -0.18,
+MSxSA +0.09, MSxHI +0.44, SAxHI -0.33, 3-way +0.49.
+
+### Paired bootstrap vs FULL (validation, 1000 engine resamples)
+
+| subset | delta RMSE (selected - FULL) | 95% CI |
+|---|---:|---|
+| FD001 | -0.84 | [-2.41, +0.47] |
+| FD002 | -0.16 | [-0.99, +0.64] |
+| FD003 | -0.50 | [-1.61, +0.69] |
+| FD004 | +0.30 | [-1.00, +1.40] |
+
+All intervals contain 0: the selected cell is **comparable** to FULL, not
+significantly better.
+
+### Findings
+
+1. **Multi-scale has no robust main effect** (-0.14 validation, -0.06 test).
+   The large positive MSxSA interaction (+0.73 mean; +1.33 on FD001, +1.00 on
+   FD003) means multi-scale and attention are redundant: adding multi-scale on
+   top of attention costs more than its standalone benefit.
+2. **SA is the largest validation main effect** (-0.39), concentrated on FD001
+   (-0.52) and FD004 (-1.00). On test it is subset-dependent: helps FD001/FD002
+   (-0.36/-0.35), hurts FD003 (+0.76), neutral FD004 (+0.04).
+3. **HI is weakly positive on validation** (-0.05) and larger on test (-0.18),
+   but subset-dependent (FD003 is +0.10 validation, +0.26 test).
+4. **The best cell is single-scale + attention + HI**, not FULL. The validation
+   rule selects it (12.779 vs 13.075, -2.3%), and its descriptive test mean is
+   also lower (10.983 vs 11.311, -2.9%), but the difference is within noise.
+5. **The temporal conv still matters**: removing it entirely (linear-only
+   control) gives validation 12.957 and test 11.618, worse than the
+   single-scale cells on test. Static sensor weights (13.163/11.417) are worse
+   than attention on validation and comparable on test.
+
+### Selection
+
+Pre-registered rule (validation only): 4-subset mean RMSE, 1% band, then NASA,
+then parameters. Selected: **single-scale conv + cross-sensor attention + HI
+supervision** (`F_single_proj_basic_hi1`). FULL is not selected.
+
+### Caveats
+
+- Single seed (101), as requested.
+- Test numbers are descriptive and were opened at the user's request; they are
+  not used for selection.
+- The HI factor keeps the head in both levels; only the loss weight changes.
+- The single-scale replacement uses k=3 (the baseline kernel); "best scale" was
+  not separately tuned.
+
 ## 5. Decision rules
 
 - A module is **supported** only if it beats its reference on at least 3 of 4

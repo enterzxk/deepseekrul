@@ -1,55 +1,57 @@
-# Supported improvements (evidence-gated)
+# Supported improvements (factorial, replacement-based)
 
-Status: in progress. An improvement is listed here only if it passes the
-pre-registered rule in `FREEZE_RULE.md`: beats its reference on >=3/4 subsets
-by >=1% mean validation RMSE and is not worse than DSPT-base overall.
+Scope: 2x2x2 factorial + two controls, seed 101, four C-MAPSS subsets.
+Selection is validation-only; test numbers are descriptive (user-requested).
+Design: `FACTORIAL_DESIGN.md`; full tables: `DSPT_ABLATION_ANALYSIS.md` §4b.
 
-## 1. Candidates under test
+## 1. Accepted
 
-| candidate | mechanism hypothesis | reference | status |
-|---|---|---|---|
-| SA + sensor identity | SA lacks sensor-role information | SA | `[RESULT]` |
-| SA + condition embedding | SA mixes sensors across operating conditions | SA | `[RESULT]` |
-| HI on h_B | HI should read the representation used by the RUL head | HI (h_f) | `[RESULT]` |
-| HI without monotone | the target violates monotonicity ~48% locally | HI (h_f) | `[RESULT]` |
-| MS single_proj | MS gain may be the projection | base | `[RESULT]` |
-| MS multi_noproj | MS gain may be multi-scale | base | `[RESULT]` |
-| MS multi3 | parameter-matched single scale | base | `[RESULT]` |
+### A1. Single-scale conv + cross-sensor attention + HI supervision
 
-## 2. Accepted improvements
+- **Validation (4-subset mean):** 12.779 vs FULL 13.075 (-2.3%); vs
+  single-scale + mean + no HI 13.632 (-6.3%).
+- **Official test (descriptive, 4-subset mean):** 10.983 vs FULL 11.311
+  (-2.9%); better on all four subsets (10.196/10.258/11.652/11.827 vs
+  10.288/10.523/11.803/12.628).
+- **Noise:** paired engine bootstrap vs FULL gives CIs that all contain 0
+  (FD001 [-2.41,+0.47], FD002 [-0.99,+0.64], FD003 [-1.61,+0.69],
+  FD004 [-1.00,+1.40]). The honest label is **comparable**, with the simpler
+  model preferred by the validation rule.
+- **Mechanism:** attention and HI carry the main effects; multi-scale does not.
 
-### A1. MS + SA (no HI) on FD001
+## 2. Rejected
 
-- **Scope:** FD001 only.
-- **Validation:** 11.112 +- 0.344 vs base 11.874 +- 0.258 (-6.4%).
-- **Official test:** 10.598 +- 0.299 vs base 11.054 +- 0.350 (-4.1%).
-- **Seeds:** 101/202/303; the gain is larger than the seed std and the
-  validation and test directions agree.
-- **Why MS+SA and not FULL:** FULL is 11.132 validation, statistically tied
-  with MS+SA; MS+SA has fewer parameters and drops the unsupported HI head.
-- **Source:** `results/fd001_final_table.csv`, `results/raw/A8_mssa_L70/FD001`.
+### R1. Multi-scale convolution as a contribution
 
-## 3. Rejected improvements (kept for the record)
+- Validation main effect -0.14 (small), test -0.06 (negligible).
+- MSxSA interaction +0.73 mean (+1.33 FD001, +1.00 FD003): multi-scale and
+  attention are redundant; adding multi-scale on top of attention costs more
+  than its standalone benefit.
+- The selected model uses the **single-scale** replacement (k=3 + the same
+  projection). Multi-scale is not claimed.
 
-### R1. HI auxiliary supervision (FD001)
+### R2. FULL as the best model
 
-HI alone is +0.5% validation (worse than base); HI added to MS+SA (FULL) gives
-no gain over MS+SA. The probe explains it: the target is noisy and largely
-redundant with RUL. HI is removed from the final model.
+FULL is 13.075 validation, worse than the selected cell (12.779) and worse than
+several other cells. It is not selected.
 
-### R2. FULL over MS+SA
+### R3. HI as a standalone module
 
-No measurable gain (11.132 vs 11.112 validation, 0.2%, far below the seed std).
-The simpler model is selected by the pre-registered tie-break.
+HI main effect is -0.05 validation and -0.18 test, but subset-dependent: FD003
+is +0.10 validation and +0.26 test. HI is retained only as part of the selected
+cell; it is not claimed as a general improvement.
 
-### R3. Mechanism grids (SA identity/condition, HI h_B/no-mono, MS controls)
+## 3. Controls
 
-Not run: the multi-subset grid was stopped at the user's request after the
-FD001 ablation was complete. The mechanism explanations remain probe-level.
+| control | validation mean | test mean | reading |
+|---|---:|---:|---|
+| linear-only (no temporal conv) | 12.957 | 11.618 | the conv still matters on test |
+| static sensor weights (no attention) | 13.163 | 11.417 | attention is better on validation; test comparable |
 
 ## 4. What is not claimed
 
-- No claim of universal superiority: any accepted improvement is stated with
-  its subset scope.
-- No claim based on a single seed.
-- No claim that uses the official test for selection.
+- No significance claim over FULL: all bootstrap CIs contain 0.
+- No cross-seed claim: one seed (101), as requested.
+- No universal module claim: effects are subset-dependent and reported per
+  subset.
+- No test-based selection: the test table is descriptive.
