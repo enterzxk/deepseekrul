@@ -889,3 +889,20 @@ RESULTS_INDEX.md 已按 aseline_version 分组：当前基线 v9 一组，历�
 
 这是今晚第三次（22:49 回填 24 行、01:1x 追加 7 行含非规范枚举、01:4x 改写单行 note）。
 **已上报主控：连续三次说明有进程或另一个 Bot 在写这个文件，仅靠"以我为准覆盖"治不了根。**
+
+### 12.10 新增 `in_gate_a_table`（37 → 38 列，2026-11-12 02:40）
+
+**问题**：`gate` 记的是**实验类型**（A=treatment，R=重复/确定性），而"能否进 Gate A 表"是**准入**，
+是两个轴。此前硬塞进 `gate` 导致同一对 run 来回改。
+
+**做法**：新增 `in_gate_a_table`（布尔，默认 `false`）。**只有** `GATE_A_WAVE1_PLAN.md` §3 的
+24 个 `HC-C-{variant}-{subset}-s101-W1` 填 `true`。**判定只看这一列**，与 `gate`/`status` 无关。
+
+具体：`A3a/A3p…0030Z` 保持 `gate=A`、`in_gate_a_table=false`（不在 24 格清单）；
+`A3a…1640Z` → `gate=R`/`superseded`/`retired=false`/`in_gate_a_table=false`；
+`R1`/`R2` → `gate=R`/`in_gate_a_table=false`。
+
+**并发控制**：写入前比对 sha256，变了即 abort；每轮登记后 `git commit` 把 registry 纳入版本控制
+（此前 `launch/`、`close/` 全是 untracked，四次越权写入没有一次进过 git）。
+
+**冻结**：本轮改完、`check_runs.py` 0 flag、提交后停手。
