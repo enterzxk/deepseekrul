@@ -233,9 +233,20 @@ def main():
     cfg['gate'] = a.gate
     cfg['smoke'] = bool(a.smoke)
     cfg['init_from'] = a.init_from
+    cfg['provenance'] = dict(code_md5=code_hashes(), git_sha=git_sha_field,
+                             baseline_version=baseline_version)
     cfg['dump_init'] = a.dump_init
     if a.init_from:
         cfg['init_from_sha256'] = hashlib.sha256(Path(a.init_from).read_bytes()).hexdigest()
+
+    if a.dump_init:
+        # Export-only mode (2026-11-11 ruling): no launch, no close, no training.
+        # The artefact is the only output; the training runs that consume it get
+        # their own launch/close records.
+        from .train_hc import dump_init as _dump
+        _dump(cfg)
+        print('[hc] init dump written; exiting without training', flush=True)
+        return
     if a.smoke:
         cfg['epochs'], cfg['patience'] = 1, 1
         cfg['budget_override'] = 'smoke: 1 epoch, not evidence'
@@ -315,6 +326,11 @@ def main():
         log(tb)
         logf.close()
         raise
+
+    if m is None:
+        log('[hc] dump-only run: initial weights written, nothing trained')
+        logf.close()
+        return
 
     close = dict(
         run_id=a.run_id, status='smoke' if a.smoke else 'ok', closed_utc=now_utc(),

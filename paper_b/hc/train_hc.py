@@ -49,6 +49,34 @@ def _now():
     return datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
+def dump_init(cfg, log=print):
+    """Export the initial weights of this configuration and stop.
+
+    Deliberately separate from training (2026-11-11 ruling): the dump run must
+    not double as a training run, otherwise the ledger cannot tell which record
+    produced the artefact and which one consumed it. The payload carries the
+    provenance needed to tie it to one code baseline: variant / subset / seed /
+    span / created_utc / code_md5 / git_sha / baseline_version.
+    """
+    set_seed(cfg['seed'])
+    net = build_hc(cfg)
+    p = Path(cfg['dump_init'])
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if p.exists():
+        raise SystemExit(f'REFUSED: init dump {p} already exists; a dump is written once')
+    payload = dict(
+        variant=cfg['variant'], subset=cfg['subset'], seed=cfg['seed'],
+        span=cfg['span'], created_utc=_now(),
+        code_md5=cfg.get('code_md5'), git_sha=cfg.get('git_sha'),
+        baseline_version=cfg.get('baseline_version'),
+        state_dict={k: v.detach().cpu().clone() for k, v in net.state_dict().items()},
+        note='initial weights only; never a trained checkpoint')
+    torch.save(payload, p)
+    sha = hashlib.sha256(p.read_bytes()).hexdigest()
+    log('  dump_init=%s variant=%s seed=%s sha256=%s' % (p, cfg['variant'], cfg['seed'], sha))
+    return p, sha
+
+
 def _t(d, dev, key):
     return torch.from_numpy(np.ascontiguousarray(d[key])).to(dev)
 
@@ -157,23 +185,6 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
 
     torch.backends.cudnn.benchmark = True
     net = build_hc(cfg).to(dev)
-    if cfg.get('dump_init'):
-        # Producer half of the shared-init control: save the weights this very
-        # process is about to train from, before the optimiser exists, with the
-        # variant/seed and a sha256 the consuming run must match.
-        p = Path(cfg['dump_init'])
-        p.parent.mkdir(parents=True, exist_ok=True)
-        if p.exists():
-            raise SystemExit(f'REFUSED: init dump {p} already exists; a dump is written once')
-        payload = dict(
-            state_dict={k: v.detach().cpu().clone() for k, v in net.state_dict().items()},
-            variant=cfg['variant'], subset=cfg['subset'], seed=cfg['seed'],
-            span=cfg['span'], created_utc=_now(),
-            note='initial weights only; never a trained checkpoint')
-        torch.save(payload, p)
-        cfg['init_sha256'] = hashlib.sha256(p.read_bytes()).hexdigest()
-        log('  dump_init=%s variant=%s seed=%s sha256=%s'
-            % (p, cfg['variant'], cfg['seed'], cfg['init_sha256']))
     if cfg.get('init_from'):
         # Shared-initialisation control (A3a vs A3p). The two variants name the
         # same Linear(8->d) differently -- ``pe_proj`` in the frozen model,
