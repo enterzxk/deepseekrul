@@ -91,32 +91,25 @@ HC-<stage>-<variant>-<subset>-s<seed>-<YYYYMMDDTHHMMZ>
 
 ### run_id 前缀
 
-格的证据必须满足 `run_id` 前缀匹配：
-
-```
-HC-C-{variant}-{subset}-s{seed}-W1
-```
-
-**允许重试后缀** `-W1r2` / `-W1r3`（上限 `r3`）。其余形态一律不算该格证据。
+**不进条件。** 主控 2026-11-12 更正：前缀是多余的——它想挡的 `1505Z` 已被 `baseline_version=v9` 挡住。
+准入只要求 `status=ok` 且 `baseline_version=v9`，`run_id` 只作句柄
+（重试后缀 `-W1r2` / `-W1r3` 因此天然被接受）。
 
 ### 选行规则
 
-1. 同一格取**第一个 `status=ok`** 的 run 作为该格证据；`failed` / `aborted` / `unclosed` 的重试**不占位**；
-2. 同格有多个 `ok` 时，按 `launched_utc` 取**最早**，其余标 `superseded`；
-3. 证据行置 `in_gate_a_table=true`，其余行一律 `false`。
+1. 同一格取**第一个 `status=ok`** 的 run 作为该格证据；`failed` / `aborted` / `unclosed` **不占位**；
+2. 同格有多个 `ok` 时，按 `close.json` 的 `closed_utc` 取**最早**，其余标 `superseded`；
+3. 标 `determinism_only` 的同 seed 重复 run **不进候选**（依 revision 42：不进任何 Gate 表）；
+4. 证据行置 `in_gate_a_table=true`，其余行一律 `false`。
 
-### 仍然排除（重要）
+### 已解决的历史问题（前缀条件已删）
 
-`0030Z` / `1640Z` 的 `run_id` 形如 `…-s101-20261112T0030Z`，**不匹配 `-W1` 前缀**，
-因此**永远不是 Gate A 证据**，`in_gate_a_table=false`，只进 `CYCLE_DEPENDENCE_STUDY.md` 的 preliminary 小节。
-
-> **注意**：这条推翻了先前批准的 `A3a-FD001 → 0030Z` 别名。若调度器的幂等跳过按
-> `(variant, subset, seed)` 判「已完成」，`A3a-FD001` 会因为有 `0030Z` 而被跳过、
-> 又因为前缀规则不被准入 —— 该格会**永久缺失**。调度器的 `cell_done()` 必须同样收窄到 `-W1` 前缀。
+一度要求 `run_id` 匹配 `-W1` 前缀，结果 `A3a-FD001` 变成死格：调度器按 `(variant, subset, seed)`
+判它已完成（`0030Z` 存在），前缀规则又拒绝 `0030Z`。删掉前缀后，`0030Z`
+（closed `16:17:15Z`，早于 `1640Z` 的 `16:19:45Z`）直接承担该格，
+调度器行为与准入规则一致，**主表 24/24 不缺格**。
 
 ---
-
-
 
 ## 4. launch 文件 schema（tmh 在启动前写）
 

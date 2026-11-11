@@ -916,12 +916,16 @@ RESULTS_INDEX.md 已按 aseline_version 分组：当前基线 v9 一组，历�
 
 **规则（已同步写入 `RESULTS_REGISTRY.md` §3.1，`4a6f703`）**
 
-1. 格 = `(baseline_version, variant, subset, seed)`；`run_id` 必须匹配前缀
-   `HC-C-{variant}-{subset}-s101-W1`，**允许 `-W1r2` / `-W1r3` 重试后缀**（上限 r3）。
-2. 同格取**第一个 `ok`**，排序用 `close.json` 的 `closed_utc`（不用字符串序）；
-   `failed` / `aborted` / `unclosed` 的重试**不占位**；多个 `ok` 取最早，其余标 `superseded`。
-3. `0030Z` / `1640Z` 形如 `…-s101-20261112T0030Z`，**不匹配 `-W1` 前缀 → 永不是 Gate A 证据**，
-   `in_gate_a_table=false`，只进 `CYCLE_DEPENDENCE_STUDY.md` preliminary 小节。
+1. 格 = `(baseline_version, variant, subset, seed)`；准入只要求 `status=ok` 且 `baseline_version=v9`。
+   **`run_id` 前缀不进条件**（主控 2026-11-12 03:0x 更正：前缀是多余的，
+   它想挡的 `1505Z` 已被 `baseline_version=v9` 挡住）。
+2. 同格取**第一个 `ok`**，排序用 `close.json` 的 `closed_utc`（不用字符串序，不用字符串序的 run_id）；
+   `failed` / `aborted` / `unclosed` **不占位**；多个 `ok` 取最早，其余标 `superseded`。
+3. 标 `determinism_only` 的同 seed 重复 run **不进准入候选**（依 revision 42：不进任何 Gate 表）。
+4. 因此 `A3a-FD001` 由 `0030Z` 承担（closed `16:17:15Z`，早于 `1640Z` 的 `16:19:45Z`），
+   调度器把它判为已完成是**正确**的，主表 24/24 不缺格。
+   `0030Z` 的 `val_engine_mean=11.3167` 因此成为该格的 Gate A 证据；
+   `1640Z` 只作确定性证据（与 `0030Z` 的 ckpt/preds 逐字节相同）。
 4. **`baseline_version` 是承重件**：省掉它，`A3a-FD001` 会按「最早 ok」选中 pre-versioning 的
    `…T1505Z`（10.5455，`audit_verdict=fail`、已 retired）而非 v9 的 `0030Z`（11.3167），差 0.77 RMSE。
 
@@ -930,12 +934,11 @@ A3p 参考臂 4 格（FD001 已完成）；**合计 28 格，待跑 27 格**。
 
 **`A3p-FD001-W1` 的 note 口径**：与 `0030Z` 逐位相同（同 init、同 seed），**非独立证据，同格只计一次**。
 
-**按本条实测的当前准入：6 / 24** —— `A0×4`（30.0986 / 26.2874 / 39.9834 / 37.1218）+
-`A1-FD001-W1r2`（11.2806）+ `A1-FD003-W1r2`（12.0306）。`A3p-FD001-W1`（10.8951）属 frozen 表，不计入主表。
+**按本条实测的当前准入：7 / 24** —— `A0×4`（30.0986 / 26.2874 / 39.9834 / 37.1218）+
+`A1-FD001-W1r2`（11.2806）+ `A1-FD003-W1r2`（12.0306）+ `A3a-FD001`（经 `0030Z`，11.3167）。
+`A3p-FD001-W1`（10.8951）属 frozen 表，不计入主表。
 
-**遗留阻塞（已报主控，待裁）**：调度器 `run_wave1.sh` 的 `cell_done()` 仍按 `(variant, subset, seed)`
-匹配**任何** v9 ok run，不要求 `-W1` 前缀。实测它会把 `A3a-FD001` 判成已完成（因为 `A3a-FD001-…T1640Z` 是 v9 ok），
-而前缀规则又不准入该 run → **该格永久缺失，主表停在 23/24**，且它正是 G2 主臂的第一格。
-需二选一：收窄 `cell_done()` 到 `-W1` 前缀（推荐），或恢复 `0030Z` 别名。
+**遗留阻塞：已解除。** 先前担心的 `A3a-FD001` 死格问题随前缀条件删除而消失——
+`0030Z` 直接承担该格，调度器的 `cell_done()` 判它已完成与准入规则一致，无需改动。
 
 **发车冻结**：`wave1_init_{A1,A2,A3a,A4,A5}` 五份 init 的骨干键两两比对通过后，才恢复发车。
