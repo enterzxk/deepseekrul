@@ -6,6 +6,22 @@
 - 审计方式：只读代码审查 + 本地只读探针（`tmp/audit_hc/test_hc_smoke.py`）+ `git diff` 对照 HEAD + 数据契约复算
 - 未修改任何 `paper_b/hc/**`、`experiments/hc/**` 文件；本文件是唯一写入
 
+> ## ⚡ 最新状态（每次更新置顶，主控请先读这一块）
+>
+> **更新时间：2026-11-12 03:25 (+08)**
+>
+> | 事项 | 状态 | 证据位置 |
+> |---|---|---|
+> | 符号约定「正 = B 优于 A」 | **已统一并落盘** | `CYCLE_DEPENDENCE_STUDY.md` 开头约定块 + 本文 §12.16；判定器代码即此约定 |
+> | `NOISE1` 投影噪声先导 | **已完成**：`\|Δ\| = 0.030123 RMSE`（0.28% of A2），落在 0.03–0.11 第二档 | 本文 §12.16；run `HC-C-A2-FD001-s101-NOISE1` |
+> | 骨干同源 | **通过**：10 对 × 57 键 × 0 不匹配 | 本文 §12.12 |
+> | G1（A1→A2，四子集） | **PASS**：+6.10 / +13.52 / +11.46 / +10.74%，均值 +10.46% | 判定器 `tmp/audit_hc/gate_a_judge.py` |
+> | G3（A1→A0） | **PASS**：四子集 −166.8 / −122.7 / −232.4 / −181.0% | 同上 |
+> | G2（A2→A3a） | **PENDING**，等 A3a 四格；单次 Δ 只能报方向 | 本文 §12.16 |
+> | 进度 | 13 格 ok / 剩 15 格，串行 | `cell_lock.py --status` |
+>
+> **NOISE1 的含义**：G2 阈值 0.106 RMSE 约为投影噪声（0.030）的 3.5 倍，但 σ 只有 1 个样本，故 **G2 的单次 Δ 只能报方向、不能报量级**；要下结论须多抽样取均值或配对比较。方向细节：`A2b = 10.5623` 比 `A2 = 10.5925` **好** 0.03。
+
 ## 0. 固定版本（本报告的结论只对这套哈希成立）
 
 | 文件 | md5 前 12 | 备注 |
@@ -265,3 +281,636 @@ variants: A0 A1 A2 A3a A3b A3c A3p A4 A5 SMOKE
 **A1/A2/B2/B3/B4 五项全部通过（只读复审），可以进入 SMOKE。** 进 Gate A 前只剩两件事：①V0 三份的代码路径要定（否则 Gate A 表缺 V0 行）；②baseline 先提交、哈希钉到 commit，再让管理员定基线。
 
 SMOKE 的验收点（我收到 run_id 后按这个核）：`launch.json` 与 `close.json` 成对且都在 registry；`manifest.code_md5` 与 §7.1 表逐字一致；`metrics.json` 同时含 `val_engine_mean_rmse` 与 `val_pooled_rmse` 且前者 ≤ 后者；`preds.csv` 行数 = 验证窗口数；`history.json` 两列齐全；`close.json.main_metric == 'val_engine_mean_rmse'`。
+
+---
+
+# 第四轮：SMOKE 验收与比值争议（2026-11-11 22:50）
+
+## 8.1 「3.94 vs 4.86」争议已解决：是总体不同，不是算错
+
+tmh 复算得 4.16/4.28/3.79/4.86，我此前报 3.28/3.17/2.55/3.94。两种都复现了，差别只在**引擎总体**：
+
+| 子集 | 验证引擎（round，封顶） | 全体引擎（round，封顶） | 验证引擎（不封顶） |
+|---|---|---|---|
+| FD001 | **3.26** | 4.16 | 4.37 |
+| FD002 | **3.17** | 4.28 | 4.85 |
+| FD003 | **2.54** | 3.79 | 3.85 |
+| FD004 | **3.93** | 4.86 | 9.79 |
+
+- 我的数 = `Σ_c min(n-c,125)²` 在**验证引擎**上的 max/min（我第一版用 `(1-f)·n` 近似，差 0.01–0.02，可忽略）。
+- tmh 的数 = 同一公式在**全体引擎**（train∪val）上的 max/min。
+- 两者都对。但 docstring 讨论的是 **validation pooled metric**，总体应是验证引擎 → 用 **3.26/3.17/2.54/3.93**，或者干脆不写比值（只留 Jensen 机制）。写"全体引擎 4.86"会把训练集的长寿引擎算进来，与 val 指标不对应。
+
+## 8.2 SMOKE 验收：**条件不通过（哈希不符）**
+
+产物侧是齐的，但 `launch/close` 记录的 `code_md5` 与当前仓库不一致：
+
+| 文件 | SMOKE 记录（a40 上实际跑的） | 当前本地（§7.1） |
+|---|---|---|
+| `model_hc.py` | `99888134af4d…` | `adcbceb901ae…` |
+| `train_hc.py` | `1e1580b189b6…` | `64b90518c42c…` |
+| `run_hc.py` | `9cb09d6010be…` | `959a490fce77…` |
+| `training/train.py` | `ef14ee21cf8d…` | `13ec2fbb75ed…` |
+| `training/metrics.py` | `a799d43f1c35…` | `39202682865d…` |
+
+`config_hc.py` / `data_hc.py` / `cycle_encoder.py` / `data.py` / `dspt.py` / `protocol.json` 六项一致。
+
+结论：**冒烟证明的是 22:31 那一版管线能跑，当前版本从未跑过。** 两个 run 的 launch 都在 22:32/22:36，本地 `model_hc` 22:34:30、`train_hc` 22:31:01 都已早于冒烟，说明 a40 在冒烟时用的是旧副本（或上传未覆盖到 hc 目录）。Gate A 前必须用当前哈希**重跑一次 SMOKE**。
+
+## 8.3 冒烟记录自身有一处矛盾
+
+`T1431Z`（崩）与 `T1436Z`（过）的 `code_md5` **完全相同**，其中 `model_hc.py` 都是 `99888134…`。但 close 注记说崩溃原因是 `model_hc.encode` 缺 `unsqueeze(1)`，而修复后重跑通过。同一个哈希不可能既缺 `unsqueeze` 又能跑通。三种解释：①修的是另一个文件而注记写错；②记录哈希时 a40 已是修复版、崩溃实际另有原因；③记录被手工改过。**不论哪种，这次冒烟的可追溯性不成立**，以一次干净重跑为准。
+
+## 8.4 失败 run 的 close 是手工补的——正好证实 P2
+
+`T1431Z` 的 `close.json` 有 `status=failed`、`artifacts` 只有三件、无 manifest。`run_hc` 在训练抛错时不会走到写 close 的分支（`run_hc.py:163-184` 无 try/except），所以这条 close 是人工补的。单次可以人工兜，**Gate A 一批 24 个 run 不能靠人工兜**；批量前把 try/except 补上。
+
+## 8.5 通过项（产物与字段侧）
+
+- launch/close 四个文件成对存在，失败 run 有 `failed` 状态与 `retry_of`/`retry_reason` 链。
+- 成功 run：`main_metric='val_engine_mean_rmse'`；`val_engine_mean_rmse=62.5931 ≤ val_pooled_rmse=63.6472`（Jensen 断言过）；`artifacts` 八件齐全；`data_split.val_engine_ids_hash=f81d7f2496c494ca` 与基准一致；`git_sha=WORKTREE`（a40 无 git，符合预期）。
+- `budget_override` 写进 config，1 epoch 明示"not evidence"。
+
+## 8.6 第四轮结论
+
+- 比值争议：**关闭**。用验证引擎的 3.26/3.17/2.54/3.93，或删掉比值。
+- SMOKE：**条件不通过**。产物与字段合格，但代码版本不是当前版本，且两条 launch 的哈希自相矛盾。
+- Gate A 放行条件：①用 §7.1 的 11 个哈希重跑一次 SMOKE，`manifest.code_md5` 逐字一致；②`run_hc` 补 try/except 写 failed close；③V0 三份的代码路径定案；④baseline 提交后哈希钉到 commit。
+
+---
+
+# 第五轮：新冒烟 T1447Z 验收（2026-11-11 22:58）
+
+tmh 在 22:47 用当前代码重跑了一次冒烟（`HC-SMOKE-FD001-s101-20261111T1447Z`）。我在 a40 上直接核对，不采信转述。
+
+## 9.1 结论：**通过**
+
+| 验收项 | 实测 | 判定 |
+|---|---|---|
+| a40 上五个关键文件 md5 | model_hc `adcbceb9`、train_hc `64b90518`、run_hc `959a490f`、train.py `13ec2fbb`、metrics.py `39202682` | 与本地、与 §7.1 逐字一致 |
+| `manifest.code_md5` | 14 项全含（含 verify_loop、snapshot_val） | 与 §7.1 一致 |
+| `preds.csv` 行数 | 101 = 表头 + 100（FD001 20 引擎 × 5 截断） | 符合 |
+| `close.json` 主指标 | `main_metric='val_engine_mean_rmse'` | 符合 |
+| Jensen | 62.593074 ≤ 63.647171 | 成立 |
+| launch/close 成对 | 两个文件都在 a40 registry | 符合 |
+| artifacts | 八件齐全 | 符合 |
+
+**Gate A 的冒烟门通过。** 22:36 那条 T1436Z 记录的是旧代码，已被 T1447Z 取代，不再作为证据。
+
+## 9.2 但 registry 出现主机间分叉（P1）
+
+| 主机 | launch/ | close/ |
+|---|---|---|
+| a40（权威运行地） | T1436Z, **T1447Z** | T1436Z, **T1447Z** |
+| 本地仓库 | **T1431Z**, T1436Z | **T1431Z**, T1436Z |
+
+- 失败 run `T1431Z` 的 launch 与 close 在 a40 上**已不存在**，只留在本地仓库里；而它的 run 目录 `experiments/hc/HC-C-SMOKE-…T1431Z/` 还在 a40 上。
+- 通过的新冒烟 `T1447Z` 的记录在 a40 上，本地还没有。
+
+后果两条：
+
+1. **O_EXCL 守卫对 T1431Z 失效**——那条 run_id 在 a40 上重新可用，而失败记录已经从审计链上消失。这跟项目"结论被推翻只追加撤回说明、不删除旧记录"的规则直接冲突。
+2. **管理员无法从单一来源登记**：按本地 registry 会漏掉 T1447Z，按 a40 会漏掉 T1431Z。
+
+建议：registry 以 a40 为权威、只追加不删除；把 T1447Z 同步回本地；T1431Z 若要作废，追加一条撤回说明而不是删文件（或恢复其 launch/close）。
+
+## 9.3 Gate A 放行状态
+
+| 门 | 状态 |
+|---|---|
+| 冒烟门 | **通过**（T1447Z） |
+| 代码门（A1/A2/B2/B3/B4） | **通过** |
+| V0 三份代码路径 | 未定（P1，`V0_TRIPLES` 仍是死配置） |
+| baseline 提交 / 哈希钉到 commit | 未做（P1） |
+| `run_hc` 失败路径 try/except | 未做（批量 24 run 前必须补） |
+| registry 主机分叉 | 未清（P1，见 9.2） |
+
+---
+
+# 第六轮：按 HEAD blob 复审（2026-11-11 23:05）
+
+主控已提交 baseline：**HEAD = `f3142687ed6c04efcfa35173772f532b3ebb3c38`（22:49:05，父 `bc75aa6`）**。§7.3 与 §9.3 里"baseline 未提交"一条**作废**。
+
+## 10.1 HEAD 与工作树的实际差异
+
+| 文件 | HEAD blob | 工作树 | 状态 |
+|---|---|---|---|
+| `hc/config_hc.py` | `0f86571997d7…` | `bffe552fefa4…` | 已改（未提交） |
+| `hc/model_hc.py` | `adcbceb901ae…` | 同 | 一致 |
+| `hc/run_hc.py` | `959a490fce77…` | `d1c4d87e9456…` | 已改（未提交） |
+| `hc/train_hc.py` | `64b90518c42c…` | `3fb058441ffe…` | 已改（未提交） |
+| `training/train.py` | `13ec2fbb75ed…` | 同 | 一致 |
+| `training/metrics.py` | `39202682865d…` | 同 | 一致 |
+
+主控 v3 表里的 `config_hc 0f865719` 与 HEAD blob 一致 ✓；但工作树已经走到 `bffe552f`。**v3 只对 `f314268` 成立。**
+
+## 10.2 A3p pre-norm 等价性复核（主控指定项）：**成立，不退化成无 cycle**
+
+按 HEAD blob 逐环核：
+
+| 环节 | 证据（HEAD 版本） | 结论 |
+|---|---|---|
+| A3p 定义 | `config_hc.py:97-99`：`cycle_mode='none', cycle_source='clipped', frozen_injection=True` | 标量与 A3a 同为 `min(c,250)` |
+| 配置传播 | `config_hc.py:152` `frozen_inj = bool(v.get('frozen_injection', False))`；`:162` 写入 cfg 顶层 | 不会被丢掉 |
+| 分支顺序 | `model_hc.py:102-103` **先判** `cfg.get('frozen_injection')` → `DSPT_HC_Frozen`；`:104` 才是 `DSPT_HC(cycle_mode=...)` | `cycle_mode='none'` 永远轮不到，A3p 不会退化成无 cycle 模型 |
+| 模型 | `model_hc.py:58` `super().__init__(use_cycle=True)`；`:62` `clamp(cycle,0)/250` | 走 frozen 的 `pe_proj` 路径 |
+| 注入点 | `dspt.py:239-244`：`c_abs = cycle*250` → `ang=2πc_abs/periods` → `pooled + pe_proj(pe).unsqueeze(1)` → `self.norm` | **pre-LayerNorm，原位置** |
+
+标量链：`min(c,250)` → `/250` → `min(c/250,1)` → frozen `*250` → `min(c,250)`，与 A3a 输入逐位同值。参数量：`pe_proj` 与 A3a 的 `FourierCycle.proj` 同为 `Linear(8,64)`=576。**A3a vs A3p 是单因子对照，成立。**
+
+## 10.3 B1 复核：已落地，无缺断言；但我上一版报告有一处写错
+
+HEAD 版 `run_hc.py`：
+
+- `:129` `raise SystemExit(f'SPLIT DRIFT on …')` —— 启动前重算并拒绝，比断言更强；
+- `:159` launch 的 `data_split.val_engine_ids_hash`；
+- `:206` manifest 的 `val_engine_ids_hash`。
+
+**更正**：§7 复审矩阵里我写"launch/close/manifest 三处都带"是错的——`close.json`（`:186-193`）没有这个字段，只有 launch 与 manifest 有。B1 本身不受影响（启动守卫 + 两处留痕足够），但我的表述要改。
+
+## 10.4 工作树三处未提交改动：不触碰已审逻辑
+
+| 文件 | 改动 | 影响 |
+|---|---|---|
+| `config_hc.py` | 新增 `injection` 字段（A3p 写 `'frozen_pre_norm'`） | 正是 P2-2，纯展示字段，不影响训练 |
+| `run_hc.py` | launch 加 `written_by='run_hc'` + `process_start_utc`；写完回读自检（code_md5/written_by 不符即 SystemExit）；`try/except` 写 `status='failed'` 的 close | 主控③ + 我 P2-1；`O_EXCL` 与 R6 守卫未动 |
+| `train_hc.py` | 仅新增注释块（字段词表统一） | 无逻辑变化 |
+
+结论：这三处提交后可直接采信，**但必须先提交再跑**；在提交前起的 run 一律按脏树处理。
+
+## 10.5 两条治理建议
+
+1. **基准要写死 commit SHA，不要写"HEAD"**。写成"基准 = `git show HEAD:<path>`"时，下一次提交会静默改变基准；应写成"v3 基准 = commit `f314268` 的 14 个 blob"，新提交显式升 v4 并登记。今天哈希表已经漂了四次，根因是基准绑在可变引用上。
+2. **a40 无 git，`git_sha` 恒为 `WORKTREE`**。主控新加的验收项"`launch.code_md5` 与 `git show <run 的 git_sha>:<path>` 一致"在 a40 上无法执行；应改成"与本地 `git show f314268:<path> | md5sum` 一致"。
+
+---
+
+# 第七轮：v9 基线、共享初始化与确定性（2026-11-12 00:40）
+
+## 11.1 v9 是第一个自洽基线
+
+- `HEAD = 6c405ad`（v9 锁，lock-only），代码提交 `d1e0527`。
+- 锁 `baseline_version=v9`、`git_sha=d1e0527`、15 文件，与 `git cat-file blob 6c405ad:<path>` **逐个一致，0 不匹配**。
+- `python -m paper_b.hc.code_lock --check` → **CODE LOCK OK，退出码 0**，且是在 Windows CRLF 工作树上跑的（`d1e0527` 的换行归一化生效）。
+- a40 已同步：`train_hc 069f8977`、`run_hc 8784311b`、`model_hc c55eb2b4`。
+
+**教训（今晚重复三次）**：所有"锁过期"的警报里至少两次是假的，根因分别是 PowerShell 管道转码、Windows CRLF、以及取 `git show HEAD:` 时 HEAD 已前进。**规矩：取 blob 一律用显式 SHA，且该 SHA 从被核对的那个锁文件里读。**
+
+## 11.2 v9 smoke 验收：通过
+
+`HC-SMOKE-FD001-s101-20261112T0045Z`：`written_by=run_hc`、`worktree_dirty=false`、`baseline_version=v9`；15 个 `code_md5` 与 v9 锁 **0 不匹配**（manifest 拷回本地比对）；`main_metric=val_engine_mean_rmse`；`62.593074 ≤ 63.647172`（Jensen）；`preds.csv` 101 行。
+
+## 11.3 共享初始化 2×2：两对逐位相同，σ = 0
+
+| variant | run | val_engine_mean_rmse |
+|---|---|---|
+| A3a | `…T1640Z` | 11.316705661052403 |
+| A3a | `…T0030Z` | 11.316705661052403 |
+| A3a | `…R1-0035Z` | 11.316705661052403 |
+| A3p | `…T1508Z`（v6） | 10.895096839289387 |
+| A3p | `…T0005Z`（v8） | 10.895096839289387 |
+| A3p | `…T0030Z`（v9） | 10.895096839289387 |
+| A3p | `…R1-0035Z` | 10.895096839289387 |
+
+- 同 seed 重复（含不同 init dump 文件、不同 run 目录）**逐位相同** → 训练确定性成立，同 seed 噪声底线 **σ = 0**。
+- A3p 在 v6/v8/v9 三个版本上数值完全一致 → 这几版改动（init remap、CRLF、锁）没有触碰 A3p 的前向与训练路径。
+
+## 11.4 Δ 方向翻转，证明初始化控制必要
+
+- v9（共享初始化）：A3a `11.3167` vs A3p `10.8951` → **A3a 差 +0.4216（3.87%）**，frozen pre-norm 注入更好。
+- v6（未共享初始化）：A3a `10.5455` vs A3p `10.8951` → A3a 好 3.2%。
+- 结论：v6 的"A3a 更好"是 `pe_proj` 导致的 RNG 流错位造成的假象，不是注入点效应。若不做共享初始化控制，论文会把结论写反。
+
+## 11.5 未闭合项
+
+- `A3p-…T1640Z` 无 `close.json`（进程已退）→ unclosed。
+- `A3p-…T0105Z`（测试负责人启动的重复，按裁定不计入）被 `pkill` 终止 → unclosed。
+- 两个 init dump（`init_A3p_FD001_s101.pt` / `init_v9_A3p_s101.pt`）sha256 不同但训练结果逐位相同；推断差异只在 payload 元数据（`created_utc`/`code_md5`），**尚未逐张量断言 state_dict 相等**。写进论文前应补一条断言，不能只靠"结果相同"反推。
+
+## 11.6 对 Gate A 的含义
+
+- 代码基准：v9（待主控签发）。
+- 主臂 A3p，敏感性臂 A3a；首条 `A3p-FD001-s101-W1` 必须复现 `10.895096839289387`，否则说明 Gate A 配置与 2×2 不一致，应停波排查而不是继续铺量。
+
+---
+
+# 第七轮：测试负责人独立实跑（2026-11-11 23:10）
+
+第六轮对 A3p 的结论是静态链路推理。本轮补**可复跑的数值证据**，并更正一处说法。
+
+## 11.1 A3p vs frozen：同权重实跑
+
+在 a40 上构造 `DSPT(use_cycle=True)` 与 `DSPT_HC_Frozen`，`load_state_dict` 同一份权重，同输入比较 `encode`（脚本经 stdin 传入，未写任何项目文件）：
+
+```
+contract c<=250 max|diff| = 0.000e+00
+435 via correct clipped path max|diff| = 0.000e+00
+435 passed raw to DSPT_HC_Frozen max|diff| = 1.812e+00
+```
+
+前两行是 A3p 的真实契约：`cycle_source='clipped'` 下 c≤250，435 的引擎被映射为 250；与 frozen `min(c/250,1)` 路径是同一串 float32 除/乘，逐位一致。第三行是反证：绕过 `cycle_vector` 直接把 raw 435 传给 `DSPT_HC_Frozen`，它不截断，与 frozen 差 1.812——这正是 11.2 要补的类内守卫。第六轮静态链结论**成立**，现在有实跑背书。
+
+## 11.2 新 P2-1：类内不强制 250 上界
+
+`DSPT_HC_Frozen.encode`（`model_hc.py:61-63`）只 `clamp(min=0)`，不 clamp 250。它假设调用方已按 `cycle_source='clipped'` 传入 ≤250；A3p 的 config 确实固定 clipped，`cycle_intervention` 也经 `cycle_vector` 重映射，所以当前无活 bug。但把 raw 435 直接传给该类会静默算 435 而非 250（与 frozen 的 1.0 输入相差 1.81）。建议类内 `torch.clamp(cycle, 0.0, 250.0)` 或 `assert cycle.max() <= 250`：等价性应由类保证，而不是靠调用方纪律。
+
+## 11.3 新 P2-2：A3a 与 A3p 同 seed 的骨干初始化流不同
+
+第六轮说“A3a vs A3p 是单因子对照”。**架构/注入点层面成立，初始化层面不成立**：
+
+- A3p：`DSPT.__init__` 在 `dspt.py:118-119` 创建 `pe_proj`，位置在 `temporal_pe`、`layers`、`sensor_attn`、`sensor_score`、`reg_head` **之前**；
+- A3a：`DSPT(use_cycle=False)` 跳过 `pe_proj`，`FourierCycle.proj` 在整个骨干**之后**创建。
+
+同 seed 下，A3p 的 `pe_proj` 消耗的 RNG 会让后续所有共享骨干权重与 A3a 不同。所以单 seed 的 A3a−A3p 差 = 注入点 + 初始化噪声。A2/A3a/A4/A5 之间没有这个问题（都先建同一个 `DSPT(use_cycle=False)`，编码器最后建），编码形式比较是干净的。建议：A3a vs A3p 对照跑 3 seed，或训练前把 A3p 的共享骨干权重显式复制给 A3a，并在 `CYCLE_DEPENDENCE_STUDY.md` 写明。
+
+## 11.4 verify_loop 仍缺 A3p 断言
+
+`verify_loop.py` 只覆盖 A1（无 cycle）的循环转录，不含 A3p/frozen 等价性。建议把 11.1 的检查（约 10 行）并入，让 Gate A 的控制臂有机器可验底座。
+
+本轮我在 a40 重跑了 `python -m paper_b.hc.verify_loop`：`VERIFY_LOOP PASS`，46 个参数张量，`max |loss diff| = 0.000e+00`、`max |param diff| = 0.000e+00`——B4 这一项是独立复现，不是转述 tmh。
+
+## 11.5 1500Z smoke 复核（v3 基线上唯一应登记的 smoke）
+
+`HC-SMOKE-FD001-s101-20261111T1500Z`：registry launch/close 成对；launch 与 manifest 的 14 个 `code_md5` **逐项相同且全等于 HEAD**（含 `config_hc 0f865719`）；artifacts 8 项齐全；`val_engine_mean_rmse=62.5931 < val_pooled_rmse=63.6472`（Jensen）；params 115586；1 epoch。B2 端到端链路在 HEAD 上成立。
+
+## 11.6 放行结论
+
+- **A1 / A2 / B2 / B3 / B4：关闭**（HEAD f314268）。
+- **A3p：契约内等价，放行**；附 11.2、11.3、11.4 三条 P2。
+- **Gate A 发车条件**：只锁 HEAD `f314268` 的 14 个 blob。工作树 `config_hc bffe552f / train_hc 3fb05844 / run_hc d1c4d87e` 未提交、未上 a40、未 smoke，若要用必须先 commit 成 v4 → 重跑 smoke → 重定 §1。
+
+---
+
+# 12. 第一波（W1）审计 · 2026-11-12 01:20–02:15
+
+（本节起 `##` 编号从 12 开始，避免与上方重复的 11.1–11.6 冲突。）
+
+## 12.1 并发是否改变数值：**不改变（逐位相同）** —— 但并发**没有吞吐收益**
+
+**问题**：`cudnn.benchmark=True` 下，同一份 init 在并发负载中可能选到不同算法，导致主表里混进「并发伪影」。G1 的阈值只有 1.0%，若并发扰动达到同量级，整张表都不可用。
+
+**做法**：在 `A2-FD001-W1r3` 正在跑（2 路负载）时，用与 `A3p-FD001-W1` **完全同源**的配置起一格探针
+`HC-C-A3p-FD001-s101-R3CONC2`（`--init-from init_v9_A3p_s101.pt`，v9 锁校验通过 `git_sha=d1e0527e8325`）。
+
+| 项 | 串行（`A3p-FD001-W1`） | 2 路并发（`R3CONC2`） |
+|---|---|---|
+| `val_engine_mean_rmse` | `10.895096839289387` | **`10.895096839289387`** |
+| `epochs_run` / `best_ep` | 36 / 24 | 36 / 24 |
+| `elapsed_s` | 201 | **954.7** |
+
+**结论一（科学侧）**：`got == ref` 逐位相等，`absdiff = 0.0`。**并发不改变数值**，主表在 2–3 路并发下跑不会引入并发伪影；`cudnn.benchmark` 的算法选择在同形状下稳定。
+
+**结论二（工程侧，与直觉相反）**：并发**不是免费的**。同一格在 2 路负载下 `elapsed_s` 从 201 s 涨到 954.7 s（**4.75×**）。两格并发总耗时 954.7 s，而串行两格只需 ~402 s —— **2 路并发的吞吐是串行的 0.42 倍，越并越慢**。
+
+所以「并发能把 8 小时压到 3 小时」这个假设是**错的**，不需要再由主控在串行/并发之间取舍：**串行是实测更优的选择**，调度器现状不用改。
+
+限定：n=1 格，并发伙伴是 A2（不同变体、不同规模），4.75× 这个倍数不可外推到 3 路；但「并发不改变数值」这条对本表是充分的，且吞吐方向的结论只需要「并发没有明显收益」就能支撑。
+
+## 12.2 A2 / A4 共享投影初始化：**已验证 60/60 逐位相同**
+
+计划要求 A2/A4 用同一次 `Linear(1,64)` 抽样，否则两臂的差里混初始化噪声。两个 init 文件 md5 不同（`deeb0d9f` vs `0071b91b`）、字节数却同为 479266，**md5 不同不能直接判「没共享」**。
+
+实测（`torch.equal` 逐张量）：`state_dict` 各 60 键，键集相同，**identical 60 / differing 0**；文件差异只来自 payload 元数据 `variant`（`'A2'` vs `'A4'`）与 `note`。**共享初始化成立。**
+
+这与 §11 的 A3p 双 dump 是同一现象：**文件级 sha 不同 ≠ 张量不同**，溯源字段会让 sha 分叉。判定一律用逐张量比较，不用文件 sha。
+
+## 12.3 `manifest.git_sha` 在标准路径下是字面量 `"WORKTREE"`，不是提交号 —— 命名陷阱
+
+`run_hc.py:213`：
+
+```python
+git_sha_field = guard['git_sha'] if guard['mode'] == 'git' else 'WORKTREE'
+```
+
+锁模式（`mode == 'lock'`，即正常路径）下，`manifest.git_sha` 被**故意**写成字面量 `WORKTREE`，真实提交号写进 `code_lock_git_sha`。而 `run_hc.py:155` 其实已经算出了锁里的 `git_sha`，第 213 行又把它覆盖掉。
+
+10 个 W1 格实测一致：
+
+```
+git_sha=WORKTREE   code_lock_git_sha=d1e0527e83   worktree_dirty=False   baseline_version=v9
+```
+
+**后果**：台账 `git_sha` 列对每个 v9 run 都显示 `WORKTREE`，看起来「无法归属到提交」。今晚两次误判（先判 `1505Z`/`1508Z` 是「脏树」，又用单个 blob 反推 v4）都踩在这个坑上：**证据本来是够的，是字段名把人引偏了**。
+
+**建议（一行修）**：把 `run_hc.py:213` 改成 `git_sha_field = guard['git_sha']`（两种模式都返回真实提交号），`code_lock_git_sha` 保持不变用于锁溯源。这样 `manifest.git_sha` 永远是真提交号，`WORKTREE` 这个值可以彻底消失。**这属于可逆改动，但 `run_hc.py` 在我写入边界外，由 tmh 执行。**
+
+## 12.4 A0 触顶 40 epoch 是否截断：**已收敛，不是截断**
+
+`A0-FD001`（`epochs_run=40, best@37`）与 `A0-FD003`（`40, best@38`）打满 epoch 上限，按「margin < patience」规则会被标为「未收敛即截断」。**这个标记是假警报**——查 `history.json` 最后三 epoch：
+
+| run | 最后三 epoch 的 `val_engine_mean_rmse` | best | 判定 |
+|---|---|---|---|
+| A0-FD001 | 30.1416 / 30.1350 / 30.1386 | 30.0986 | 曲线已平（±0.14%），**收敛** |
+| A0-FD003 | 39.9834 / 39.9849 / 39.9896 | 39.9834 | 曲线已平（±0.02%），**收敛** |
+| A0-FD002 | 26.4538 / 26.4723 / 26.4707 | 26.2874 | 正常早停（best@26, ep=38） |
+| A0-FD004 | 37.2933 / 37.3926 / 37.2580 | 37.1218 | 正常早停（best@17, ep=29） |
+
+**结论**：A0 四格都没有「还在下降就被砍断」的情况，G3 不存在「A0 被低估、差距被放大」的偏置。判据只看 `epochs_run == best_ep` 或 `margin < patience` 会误报，**必须同时看尾段斜率**。
+
+顺带：`train_hc.py:313` 的 `DONE ... ep=%d` 打印的是 **`best_ep`**，不是 `epochs_run`。日志里 `ep=10` 曾让我以为只跑了 10 epoch（实际 22）。`metrics.json` 两个字段都在，数据无损，但日志措辞会误导——建议改成 `best_ep=%d ep_run=%d`。
+
+## 12.5 早期 Gate A 读数（不作结论，仅登记方向）
+
+已 `ok` 且过完整性核对的主表格（`code_lock_git_sha=d1e0527`、`worktree_dirty=False`、v9、`preds` 行数与子集验证引擎数一致）：
+
+| 变体 | FD001 | FD002 | FD003 | FD004 |
+|---|---|---|---|---|
+| A0（纯 cycle，无传感器） | 30.0986 | 26.2874 | 39.9834 | 37.1218 |
+| A1（无 cycle） | 11.2806 | 11.8031 | 12.0306 | 13.2087 |
+| A2（cycle + 线性投影） | **10.5925** | **10.2074** | 在跑 | — |
+| A3p（Fourier，pre-norm，参考臂） | 10.8951 | — | — | — |
+
+两条已可算的判据：
+
+- **G3（A0 相对 A1 至少差 10%）**：四子集 A0/A1 = 2.67× / 2.23× / 3.32× / 2.81×，即 123%–232% 劣化，**远超 10% 阈值，四子集同向**。前提成立：这个 benchmark 不是只靠年龄就能解。
+- **G1（A1→A2 至少改善 1%）**：FD001 −6.10%、FD002 −13.52%，**两子集同向且远超阈值**。
+
+**必须提前提示的科学风险**（不是结论）：`A2-FD001 = 10.5925` **优于** `A3p-FD001 = 10.8951`。A2 与 A3p 同时差在「编码形式」和「注入位置」两个变量上，不能直接归因；但它提示一种可能：**收益来自「引入了 cycle 信息」，而不是「Fourier 编码」本身**。若 `A3a`（Fourier，post-norm）落在 A2 附近而非显著更好，则 G2（Δ(A2→A3a) ≥ 1.0%）会失败，论文主张会退化成「cycle 有用」——这既不新颖、也不是本文的机制贡献。
+
+`A3a` 四格是本波最关键、目前**一格都没跑**的部分。建议调度器在 A2 收完后**优先排 A3a 四格**，而不是按字典序排 A4/A5：A3a 的结果决定这张表还值不值得跑完，早 3 小时知道比晚 8 小时知道有价值。
+
+## 12.6 写入边界声明（我自己的动作）
+
+为做 §12.1 的探针，我在 a40 上产生了两个 run 目录与一条 registry 记录：
+
+- `experiments/hc/HC-C-A3p-FD001-s101-R3CONC`（第一次启动因 `sklearn` 缺 `GLIBCXX_3.4.29` 崩溃，`LD_LIBRARY_PATH` 未设；已删除该目录后换 id）
+- `experiments/hc/HC-C-A3p-FD001-s101-R3CONC2`（成功，`ok`，`10.895096839289387`）
+- `docs/paper_b_hc/registry/launch/HC-C-A3p-FD001-s101-R3CONC.json`（崩溃那次留下的孤儿 launch 记录，run_id 已被占用，无法复用）
+
+三条都应登记为 `gate=R`、`determinism_only=true`、`in_gate_a_table=false`；`R3CONC` 的 `close` 若存在应为 `failed`，原因是环境（`LD_LIBRARY_PATH`），不是方法。我没有改 `paper_b/hc/**` 的任何源码，也没有覆盖任何既有 run 目录。
+
+**环境教训（给所有在 a40 手工起格的人）**：`run_hc` 必须带 `LD_LIBRARY_PATH=/home/yndx/miniconda3/envs/a40_env/lib`，否则 `sklearn` 的 `_argkmin` 加载失败；调度器脚本里已经处理，手工起格容易漏。
+
+## 12.7 格级锁与调度器：读源码 + 实跑确认
+
+`experiments/hc/tmp/cell_lock.py` 的去重键只拼 `HC-C-{v}-{s}-s101-W1` 加后缀 `['', 'r2'..'r6']`，**不匹配 `…-20261112T0030Z` 这类时间戳 run_id**。所以台账里「`0030Z` 是 A3a-FD001 首个 ok」这条**不会**把 `A3a-FD001-W1` 判成已完成——实跑 `--status` 返回 `A3a FD001 free`。这条我原本担心会漏掉主表最关键的格，实测没问题。
+
+调度器 `run_wave1_sched.sh:43-44` 遍历 `A0 A1 A2 A3a A4 A5 A3p × FD001..FD004`，**A3p 参考臂三格在列**，不会漏。单实例、前台串行、起格前过 `used + 12000 ≤ 44000` 显存门。
+
+## 12.8 A3a / A3p 共用同一 init 文件：**已实证安全，我的担心是多余的**
+
+`run_wave1_sched.sh:34-35` 把 `[A3a]` 与 `[A3p]` 都指向 `init_v9_A3p_s101.pt`。两者架构不同（`DSPT_HC` post-norm vs `DSPT_HC_Frozen` pre-norm），我一开始怀疑 remap 可能静默错位。
+
+读 `train_hc.py:190-219` 后确认**不会**：remap 是**目标驱动**的（按 `net.state_dict()` 里实际有的键决定改名方向），只处理 `pe_proj` ↔ `cycle_enc.proj` 与 `pe_periods` ↔ `cycle_enc.periods` 两组，且 `load_state_dict(strict=False)` 之后**只要 missing 或 unexpected 非空就 raise**——不存在「静默丢张量、指标照跑」的路径。
+
+更强的证据是**已经在 v9 上跑通了**：
+
+| run | init 文件 | 加载行 | params | 结果 |
+|---|---|---|---|---|
+| `A3a-0030Z`（post-norm） | `init_v9_A3p_s101.pt` | `loaded=61 missing=0 unexpected=0 (remapped)` | 115586 | `11.316705661052403` |
+| `A3p-W1`（pre-norm） | **同一文件** | `loaded=60 missing=0 unexpected=0 (remapped)` | 115586 | `10.895096839289387` |
+
+61 与 60 的差是 A3a 多一个 `cycle_enc.periods` buffer（`train_hc.py:210` 的 copy 而非 pop），不是参数差异——两者 `params` 同为 115586。**A3a/A3p 的共享初始化控制是成立的**：它消除了「初始权重」这一变量。
+
+**但 G2′（A3a→A3p）不是单变量对比（主控指正，采纳）。** 两者同时差两件事：
+
+| | A3a | A3p |
+|---|---|---|
+| 循环模块 | **可训练**（`DSPT_HC`） | **冻结**（`DSPT_HC_Frozen`） |
+| 注入位置 | post-norm | pre-norm |
+
+所以 `Δ(A3a→A3p) = +3.73%`（FD001，`11.3167 → 10.8951`）**只能报数，不能归因**——不能称「注入点效应」。要单独测注入点，需要第四个臂：**可训练 + pre-norm**。
+
+## 12.9 我自己的一处误判：用中途 `best` 当结果
+
+`A2-FD003` 跑到 ep020 时 `best=12.3068@16`，我据此对主控说「FD003 相对 A1 反号 +2.30%，G1 可能破」。**这个判断是错的**——`best_ep` 是「到目前为止最好」，不是「最终」。它继续跑到 ep040：
+
+```
+ep020  best=12.3068@16
+ep030  best=11.0391@29
+ep040  best=10.6517@35   ← 最终
+```
+
+最终 `A2-FD003 = 10.6517347274`，`A1-FD003 = 12.0305702011`，**Δ = −11.46%**，与 FD001/FD002 同向。
+
+**规则（写死，后续审计照此执行）**：凡是 `close.json` 未落盘的格子，`best_*` 字段一律不作结论；判据只读 `close.json status=ok` 之后的 `metrics.json`。中途 `best` 只能用来判断「是否在收敛」。
+
+## 12.10 `A2-FD003` 触顶截断：−11.46% 是保守估计
+
+`epochs_run=40`、`best_ep=35`，margin 5 < patience 12，**早停未触发即打满上限**。所以 10.65 是**上界**，真实误差可能更低，`−11.46%` 是**保守估计**。
+
+措辞校准（tmh 指出，采纳）：**不能写「到上限时仍在刷新 best」**——`best` 在 ep35 之后再未刷新，最后几个 epoch 是走平（ep36–40：10.8499 / 10.8619 / 10.7731）。准确说法是「**到上限时早停尚未触发（patience 仅消耗 5/12），故不能排除还会下降**」。结论方向不变。
+
+这个偏置方向**对本文假设有利**，论文里必须写明，否则审稿人会问「为什么这格没收敛」。
+
+**同类触顶共 4 格，不止这一格**：
+
+| run | ep | best | margin | 性质 |
+|---|---|---|---|---|
+| A0-FD001 | 40 | 37 | 3 | 曲线已平，真收敛 |
+| A0-FD003 | 40 | 38 | 2 | 曲线已平，真收敛 |
+| **A2-FD001** | **40** | **34** | **6** | 早停未触发，**G1 的 FD001 锚点** |
+| A2-FD003 | 40 | 35 | 5 | 早停未触发 |
+
+**因此 FD001 的 −6.10% 与 FD003 的 −11.46% 同为保守值，论文中须同等标注。** A0 两格是参考线，不影响 treatment 判定。
+
+对照：A1 四格全部干净早停（margin 恰好 12），`A2-FD002` 与 `A3p-FD001` 也是。
+
+## 12.11 G1 三个子集已同向（截至 12 格 ok）
+
+| 子集 | A1 | A2 | Δ(A1→A2) |
+|---|---|---|---|
+| FD001 | 11.2806 | 10.5925 | **−6.10%** |
+| FD002 | 11.8031 | 10.2074 | **−13.52%** |
+| FD003 | 12.0306 | **10.6517** | **−11.46%** |
+| FD004 | 13.2087 | 在跑 | — |
+
+三个子集全部远超 G1 的 1.0% 阈值且同向。**但仍须四子集分开报**：G1 的判据里含「无子集劣化超过 2%」这一条，均值会掩盖单子集异常——这一点在我误判 FD003 那次已经演示过一次代价。
+
+## 12.12 五个 init 文件的骨干逐位相同：**已验证**，但 G2 有一个残留风险
+
+主控提出「G1/G2 的每一对必须同 init 文件」。**方向对，判据写错了**——A1/A2/A5/A3p 的循环模块形状不同（A1 无、A2 `Linear(1,64)`、A5 `Linear(9,64)`、A3p `Linear(8,64)`），一个文件装不下四套形状，物理上做不到「同文件」。
+
+**正确的判据是「共享骨干张量逐位相同」，实测全过**：
+
+```
+键数：A1=58  A2=60  A4=60  A5=61  A3p_v9=60
+五者共有的键：58
+逐张量 torch.equal：mismatches = 0
+```
+
+多出的键恰好是各自的循环模块：`cycle_enc.knots` 仅 A5；`cycle_enc.proj.*` 仅 A2/A4/A5；`pe_proj.*` 仅 A3p（载入 A3a 时 remap 成 `cycle_enc.proj`）。**58 个骨干键在全部五个文件里逐位相同、零不匹配**，所以 G1（A1→A2）、G2（A2→A3a）、G2′（A3a→A3p）三对的骨干是同一份，不混骨干初始化噪声。
+
+**两两矩阵（10 对全做，排除各自特有的循环模块键）**：
+
+```
+file A                     file B                      keys  mism
+wave1_init_A1_s101.pt      wave1_init_A2_s101.pt         57     0
+wave1_init_A1_s101.pt      wave1_init_A4_s101.pt         57     0
+wave1_init_A1_s101.pt      wave1_init_A5_s101.pt         57     0
+wave1_init_A1_s101.pt      init_v9_A3p_s101.pt           57     0
+wave1_init_A2_s101.pt      wave1_init_A4_s101.pt         57     0
+wave1_init_A2_s101.pt      wave1_init_A5_s101.pt         57     0
+wave1_init_A2_s101.pt      init_v9_A3p_s101.pt           57     0
+wave1_init_A4_s101.pt      wave1_init_A5_s101.pt         57     0
+wave1_init_A4_s101.pt      init_v9_A3p_s101.pt           57     0
+wave1_init_A5_s101.pt      init_v9_A3p_s101.pt           57     0
+```
+
+57 个骨干键包含主控点名担心的全部键：`temporal_pe`、`sensor_in.*`、`conv3/5/7.*`、`ms_proj.*`、`time_norm.*`、`layers.*`。**一格没漏。**
+
+另核：每个 W1 run 的 `config.json:init_from` 与预期一致（A1 的 11 个 run 全用 `wave1_init_A1`、A2 的 6 个全用 `wave1_init_A2`、A3p-FD001 用 `init_v9_A3p`、A0 四格无 init），**没有一格用错文件**。
+
+**注意**：不存在 `wave1_init_A3a_s101.pt`。A3a 与 A3p 共用 `init_v9_A3p_s101.pt`（`run_wave1_sched.sh:34-35`），靠 `train_hc.py:203-212` 的 remap 完成 `pe_proj → cycle_enc.proj`。
+
+### 残留风险：G2 的投影抽样噪声未测
+
+- A2 的 `cycle_enc.proj.weight` 形状 `(64,1)`，来自 `wave1_init_A2_s101.pt`；
+- A3a 的 `cycle_enc.proj.weight` 形状 `(64,8)`，来自 `init_v9_A3p_s101.pt` 的 `pe_proj`（remap）。
+
+形状不同 → 无法共享 → **Δ(A2→A3a) 必然含一份独立投影抽样噪声，而目前没有任何数据点能测出它的量级**。
+
+量级对照：G2 阈值 1.0%，按 A2 的 ~10.6 算约 **0.11 RMSE**；而今晚已实测「初始化能移动 0.77」（v6 A3a 无 init `10.5455` vs v9 A3a 共享 init `11.3167`）——那是骨干+投影同时更换的**上界**，不是投影单独的量级，但它说明可移动量与待检测量不必然是同一量级。
+
+**建议的先导实验（1 格，~30 min）**：用另一次投影抽样跑 `A2-FD001`，记 `A2b`，用 `|A2b − A2|` 直接估计投影抽样噪声。
+
+- ≪ 0.11 → G2 的 1% 阈值有意义；
+- ≈ 0.1–0.3 → G2 单次 Δ 不可解释，须多 seed / 多抽样取均值，判据要改。
+
+顺序上必须先有噪声底线再读效应量——这正是 σ=0 那件事给出的教训。
+
+## 12.13 已退役调度器的设计缺陷：保护条件在失败路径上不可达
+
+今晚四次 OOM 与 r2/r3 双份的根因，**不是「并发参数没调好」，是保护条件的条件写错了**。缺陷在**已退役**的 `experiments/hc/tmp/run_wave1.sh`（4996 B，3 slots），不在当前 v3（`run_wave1_sched.sh`，2852 B，串行 + 显存门）里——这一点必须写准，否则会被误读成「现役调度器有同样的洞」。
+
+两个缺陷叠加：
+
+**① brake 的触发条件在失败路径上不可达。** 该脚本第 15 行：
+
+```bash
+BRAKE_AT=900   # seconds; a single run slower than this drops us to 2 slots
+```
+
+意图是「单跑太慢就降到 2 slot 减压」。但 OOM 的失败 run 在 **0–24 秒**内返回，永远够不到 900 秒——**越失败越不降档**。这是典型的「保护条件只在正常路径可达、在最需要它的失败路径上不可达」。
+
+**② 幂等判据只看文件、不看活进程。** `run_cell` 只查 `close.json`/`launch.json`，不查「这个格现在有没有活进程」。旧调度器的 bash 子 shell 被杀后，`run_hc` 被 reparent 到 pid 1 继续跑（实测 ppid=1），文件层面看起来「这格没跑完」→ 推 `r2` → `r2` 目录已存在 → 推 `r3` → 同格两份进程。
+
+两者合起来：失败不降档 → 继续往同一张卡上加进程 → 更多 OOM → 更多重复。
+
+**当前 v3 是结构性修复，不是参数调整**：
+
+- **串行**，没有 slot 概念，`BRAKE_AT` 这类条件不存在了；
+- `cell_lock.py` 判据是「同格任一 `run_id` 有活进程（`pgrep -af paper_b.hc.run_hc` 解析 `--run-id`）→ `busy`」，直接看进程表，不看文件；
+- 起格前实查 `nvidia-smi memory.used`，`used + 12000 > 44000` 就 `WAIT`。
+
+**一条残留的不一致**：`cell_lock.py` 的 `SUFFIXES = ['', 'r2'..'r6']` 最多试到 `r6`，而准入正则是 `^HC-C-{v}-{s}-s101-W1(r\d+)?$`（任意 N）。若某格真需要 `r7`，`cell_lock` 会返回 `exhausted` 而正则仍会接受——两套规则各写一遍迟早再打架（今晚已在 `gate` / `in_gate_a_table` 上犯过一次）。建议抽成共享常量，调度器与准入同读一份。
+
+## 12.14 单点最小值口径的稳健性：G1 成立，但 FD002 的效应大幅缩水
+
+### 早停核验（回应主控对 `A1-FD002-W1r2` 只有 20 epoch 的疑问）
+
+**正常早停，不是被 kill**：`epochs_run=20`、`best_ep=8`、`8 + patience(12) = 20` 精确触发；`history.json` 长度 20、最小值在第 8 轮、与 `close.metrics.val_engine_mean_rmse` 逐位相同（`11.803124216970…`）。
+
+**但「其余全是 `epochs = best_ep + 12`」不成立——12 个 ok 格里有 4 格打满 40 上限**：
+
+| run | ep | best | margin |
+|---|---|---|---|
+| A0-FD001 | 40 | 37 | 3 |
+| A0-FD003 | 40 | 38 | 2 |
+| **A2-FD001** | **40** | **34** | **6** |
+| A2-FD003 | 40 | 35 | 5 |
+
+其中 `A2-FD001` 此前被漏报（我只标了 `A2-FD003`）。这两格的曲线在 40 上限处仍在波动，性质是「触顶截断」，与 `A0-FD001/FD003` 的「已收敛但打满上限」不同，note 不能合并写。
+
+### 平台噪声与单点最小值的偏差
+
+对每格取验证曲线**后 10 个 epoch** 的标准差与均值：
+
+| 变体 | 平台噪声 std | 平台均值 − 最优 |
+|---|---|---|
+| A0 | 0.060 | 0.13 |
+| A3p | 0.208 | 0.73 |
+| A1 | 0.738 | 1.40 |
+| A2 | 0.849 | 1.06 |
+
+**A1/A2 的验证曲线抖动（0.74 / 0.85 RMSE）与 G1 要检测的效应量（约 0.7–1.6 RMSE）同量级。** 报告的指标是「40 个 epoch 里的单点最小值」，因此每个数都带一份「从噪声曲线里挑最小点」的选择偏差，且各格偏差不同。
+
+最极端的是 `A2-FD002`：`best = 10.2074`，但后 10 epoch 均值 **12.5499**、std **1.756**——该最小值取自一条中心在 12.55 的噪声曲线。同格 `A1-FD002`：`best = 11.8031`、平台均值 13.0108。
+
+### 两种口径下的 G1
+
+| 子集 | A1 平台均值 | A2 平台均值 | 平台口径 Δ | 预注册口径 Δ |
+|---|---|---|---|---|
+| FD001 | 12.3938 | 10.8608 | **−12.4%** | −6.10% |
+| FD002 | 13.0108 | 12.5499 | **−3.5%** | −13.52% |
+| FD003 | 13.2936 | 11.2174 | **−15.6%** | −11.46% |
+
+**G1 的符号与量级在平台口径下仍然成立**（三子集全负，均值约 −10.5%），所以结论不倒。但 **FD002 从 −13.52% 缩到 −3.5%，且三子集的排序完全改变**——单点口径下 FD002 最好看，平台口径下它最差。**原口径的子集排序不可信。**
+
+### 处置建议
+
+1. **主指标保持预注册的「best epoch」，不得事后更换**——换指标即 p-hacking。
+2. **必须同时报平台口径**（后 10 epoch 均值，或 best±2 邻域均值），并说明 G1 在两种口径下是否同号、同量级。
+3. 论文不得以「−13.5%」这类单点效应量作为卖点，应报双口径或区间。
+
+判定器 `tmp/audit_hc/gate_a_judge.py` 增加平台均值列，**不改 G1 判定逻辑**，只多报一列。
+
+## 12.15 撤回：4.75× 并发惩罚的归因站不住
+
+### 我说过什么
+
+我在 §12.1 写过：2 路并发下 `A3p-FD001` 的 `elapsed_s` 从 201 s 涨到 954.7 s（**4.75×**），吞吐只有串行的 0.42 倍，据此建议保持串行。主控据此把「3 路并发」改回串行。
+
+### 为什么错了
+
+燕子指出 `elapsed_s` 不在 `close.json` 而在 `metrics.json`（我引用时没说明出处）。顺着核同一配置的**全部六次**耗时：
+
+| run | 并发度 | `elapsed_s` |
+|---|---|---|
+| `A3p-FD001-1508Z` | 串行 | 348 |
+| `A3p-FD001-0005Z` | 串行 | 200 |
+| `A3p-FD001-0030Z` | 串行 | 200.8 |
+| **`A3p-FD001-R1-0035Z`** | **串行** | **811.0** |
+| `A3p-FD001-W1` | 串行 | 201.3 |
+| `A3p-FD001-R3CONC2` | **2 路并发** | 954.7 |
+
+**`R1-0035Z` 是纯串行，也用了 811 秒**——与 `0030Z` 的 200.8 秒相差 4.0 倍，配置与结果均逐位相同。所以 a40 的墙钟时间波动主要来自**外部负载**（baselines worker、他人的 bpic 任务、常驻 math_modeling），我的探针 954.7 秒**落在串行的观测区间附近，不能归因于并发**。
+
+### 现在能说的
+
+- **成立**：并发不改变数值（`R3CONC2` 与五次串行逐位相同 = `10.895096839289387`）。
+- **不成立**：并发带来 4.75× 惩罚。
+- **正确表述**：**并发有没有吞吐收益，没有测出来。**
+
+保持串行仍然可以是对的，但理由必须换成：① 未测到收益（证据不足，非证据反对）；② OOM 风险（今晚四次 OOM 均源于并发）；③ 混条件（已完成 12 格为串行）。
+
+### 教训
+
+我把**一次观测**（探针 vs 一个伙伴）当成了因果，没有先查同配置的历史分布——而 `R1-0035Z` 的 811 秒就在同一批数据里，查一次就能发现。这正是我当晚反复提醒别人「别拿单点下结论」的那件事。**任何「A 导致 B」的墙钟断言，先拉同配置的全部历史耗时，再谈归因。**
+
+## 12.16 投影抽样噪声实测：|Δ| = 0.0301 RMSE（G2 只能报方向）
+
+### 设计
+
+G2 比较 A2（`cycle_enc.proj` 为 `Linear(1,64)`）与 A3a（同位置为 `Linear(8,64)`，由 `pe_proj` remap 而来）。**两者骨干完全共享（57 键逐位相同，见 §12.12），但循环投影形状不同、必然独立抽样**——这份噪声此前无人测过，而 G2 的阈值只有 1.0% ≈ 0.106 RMSE。
+
+探针 `HC-C-A2-FD001-s101-NOISE1`：同一 `hc_config('A2','FD001',101)` + `build_hc` + 骨干从 `init_v9_A3p_s101.pt` 覆盖，**只把 RNG seed 换成 202**，让 `cycle_enc.proj` 重新抽一次。
+
+init 验证：`wave1_init_A2_noise1_s101.pt`（sha256 `436d7449f60cb64f`）骨干 58 键与 `wave1_init_A2` **0 不匹配**；`proj.weight`/`proj.bias` 均不同（max|diff| 1.7734 / 1.8419）。
+
+### 结果
+
+| run | `val_engine_mean_rmse` |
+|---|---|
+| `A2`（原抽样） | `10.5924603632` |
+| `A2b`（NOISE1，新抽样） | `10.5623371815` |
+| **\|Δ\|** | **`0.030123` RMSE = 0.28% of A2** |
+
+`NOISE1`：`status=ok`、`epochs_run=40`、`best_ep=31`、`elapsed_s=1004`。
+
+### 判读（按主控预注册的三档表）
+
+`0.03 ≤ 0.0301 ≤ 0.11` → **第二档**：
+
+- G2 阈值 0.106 RMSE 约为噪声点估计的 **3.5 倍**，单看比值阈值有区分度；
+- **但 σ 只有 1 个样本**，0.030 本身的不确定度极大（真值可能 0.015 也可能是 0.06）。
+
+**结论：G2 的单次 Δ 只能报方向，不能报量级；要判 G2 必须多抽样取均值或配对比较。**
+
+**方向性细节**：`A2b`（10.5623）**优于** `A2`（10.5925）0.03。若 A3a 也落在同量级，**单格无法区分「Fourier 略好」与「投影抽样运气好」**。
+
+### 对 G2 的直接影响
+
+1. 单格 `A3a-FD001` 只能报「落在哪一档」，不得写成「支持/不支持 G2」的定论；
+2. G2 的判定（均值 ≥1.0% 且 ≥3/4 同号）需要四子集，且应在论文中说明投影抽样噪声量级；
+3. 若最终 Δ 的均值与 0.106 同量级，需补多抽样（至少 3 次）才能给出区间。

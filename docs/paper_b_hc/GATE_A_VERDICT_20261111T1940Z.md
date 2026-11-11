@@ -47,7 +47,7 @@ INTEGRITY: all collected cells pass baseline/written_by/preds/Jensen
 
 1. **不是噪声**：`|A3a − A2| = 0.724 RMSE`，而投影抽样噪声实测 `0.030`（`HC-C-A2-FD001-s101-NOISE1`）——效应是噪声的 **24 倍**。
 2. **跨批次可复现**：`A3a-FD001-W1 = 11.3167056611`，与 2×2 的 `0030Z = 11.316705661052403` **逐位相同**。W1 批次完整复现了 2×2，σ=0 跨批次成立。
-3. **注入点效应（G2′）**：`Δ(A3a→A3p) = +3.73%`，pre-norm 优于 post-norm 3.73%，与 `CYCLE_DEPENDENCE_STUDY.md` 的 −3.87% 同向（数值差因该处用的是 v9 2×2 的 10.8951/11.3167，本处为同一对，符号一致）。
+3. **G2′（A3a→A3p）= +3.73%，但这是两变量混杂，不得称「注入点效应」**：A3p 是 `DSPT_HC_Frozen`（`frozen_injection=True`，pre-norm、循环模块**冻结**），A3a 是 `DSPT_HC`（`frozen_injection=False`，post-norm、循环模块**可训练**）。两者同时差「冻结 vs 可训练」与「pre vs post-norm」两个变量，所以 +3.73% **只能报数，不能归因**。若要单独测注入点，需要第四个臂：可训练 + pre-norm。（本条为按主控指正修正，原先写作「注入点效应」。）
 
 ## 判定与限定
 
