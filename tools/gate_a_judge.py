@@ -21,6 +21,7 @@ Gates that lack data are reported as PENDING, never as pass.
 import argparse
 import json
 import os
+import re
 import sys
 
 VARIANTS = ['A0', 'A1', 'A2', 'A3a', 'A4', 'A5']
@@ -28,6 +29,12 @@ SUBSETS = ['FD001', 'FD002', 'FD003', 'FD004']
 REFERENCE = 'A3p'
 SUFFIXES = ['', 'r2', 'r3', 'r4', 'r5', 'r6']
 EXPECTED_ROWS = {'FD001': 101, 'FD002': 261, 'FD003': 101, 'FD004': 251}
+
+# Admission regex, pre-registered in RESULTS_AUDIT section 12.11 / GATE_A_WAVE1_PLAN.
+# Anything that does not match is not a Gate A cell: timestamped ids such as
+# -20261112T0030Z and probe runs such as -NOISE1 are excluded structurally, and
+# the assertion below makes that exclusion explicit rather than incidental.
+ADMIT_RE = re.compile(r'^HC-C-(A0|A1|A2|A3a|A4|A5|A3p)-FD00[1-4]-s101-W1(r[2-6])?$')
 
 DEFAULT_ROOT = '/media/sangfor/vdb/user/zxk/deepseek-rul/experiments/hc'
 
@@ -143,6 +150,11 @@ def evaluate(cells):
         if not cell:
             continue
         rid = cell['run_id']
+        if not ADMIT_RE.match(rid):
+            # Explicit assertion: a probe run or a timestamped id must never be
+            # admitted as a Gate A cell. If this fires, the cell-selection logic
+            # is wrong -- do not silently drop it.
+            problems.append('%s: run_id does not match the Gate A admission regex' % rid)
         if cell['baseline_version'] != 'v9':
             problems.append('%s: baseline_version=%r' % (rid, cell['baseline_version']))
         if cell['written_by'] != 'run_hc':
