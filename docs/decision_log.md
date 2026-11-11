@@ -1833,3 +1833,24 @@ Counterevidence/risks: CSV rescoring cannot recover a different best epoch
 or train on omitted prefixes; do not infer new ranking versus current DSPT.
 No new training/test inference occurred during the audit. Evidence:
 docs/paper_b_baselines/PROTOCOL_COMPARISON_20261112.md/.json.
+
+## PB-OS-006 · 2026-11-12 · Uniform rerun protocol and fixed DSPT references
+
+User explicitly requires uniform-protocol reruns then fair comparison.
+Independent high-reasoning Codex review approves84 supervised cells: five
+complete upstream methods and two predeclared DSPT source configurations.
+Primary V0-Cycle(full/basic/hf/cycle); auxiliary literal trainDEFAULTS
+(full/off/none/cycle), both reported without TEST-driven choice. Source
+snapshot9 files and execution manifest462 files are pinned before launch.
+Common all-cycle padded training, engine-mean selection,40 epochs/12patience/
+1e-4 delta; unified FP32 with runtime-disabled autocast and TF32off is a new
+precision condition, not historical BF16 equivalence. Source models/losses
+unchanged. Different window/LR/batch retain method identity, hence not equal
+compute; paired Two-Phase pretraining remains extra-data condition.
+Risk/counterevidence: old tests already observed, fixed40 may undertrain some
+methods, original padding capabilities vary; no exhaustive tuned superiority
+claim. All84 training precedes immutable freeze and official tests. One
+permanent attempt token per run, config/code/data/checkpoint hashes bind
+test reconstruction. No source/config/result of old DSPT or PaperA changed.
+Evidence/spec/restore: docs/paper_b_baselines/MATCHED_PROTOCOL_20261112.md
+and MATCHED_RESEARCH_STATE.md.

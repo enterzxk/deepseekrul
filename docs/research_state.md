@@ -914,3 +914,10 @@ Paper B baseline GitHub delivery verified: artifact commit `f96d85151e05441fa439
 on `codex/paper-b-open-source-reproduction` matches the remote ref.
 Final report: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.
 The isolated reproduction task is complete with disclosed per-method statuses.
+
+### Paper B uniform rerun authorized — 2026-11-12
+
+User requested new uniform-protocol training and fair DSPT comparison.
+Isolated84-cell preregistration/source snapshot and recovery state:
+docs/paper_b_baselines/MATCHED_RESEARCH_STATE.md. This is independent of
+PaperA/HC queues; do not modify their frozen code or stop their jobs.
