@@ -1719,3 +1719,35 @@ TIM 2025–2026 的 RUL 论文全为「新架构/新表示 + 机制消融 + 四�
 
 **执行状态**：A2 矩阵 16 次（FD002/FD004 × seed 42/7 × {R, A2, A2-NE, A2-NR}）已启动；
 C 已完成 6 次（FD002 × 2 seed × 3 臂）；B2 待 A2 结果后决定是否实现。
+
+## PB-OS-001 · 2026-11-11 · Public-source reproduction scope and protocol
+
+**Issue/options:** execute the requested five public baseline methods with
+their original rules and a DSPT-matched engine-level holdout; do not conflate
+published numbers, all-window author metrics and official engine endpoints.
+
+**Decision:** directly execute in Codex per the user's latest explicit
+instruction, without DSH. Use an isolated `codex/paper-b-open-source-reproduction`
+worktree and a new A40 root. Preserve frozen DSPT/Paper A/old results and
+three seeds101/202/303, split_seed7, cap125. Keep Two-Phase cross-subset
+pretraining as a separately flagged resource condition, excluding both
+subsets' validation engines. Keep FSGRI and FFVE variational sampling/loss.
+Window search is a preregistered singleton upstream default per method/FD.
+
+**Reason/evidence:** user task and follow-up authorize reproduction and GitHub
+push. Six pinned source manifests and three independent high-reasoning audits
+show heterogeneous author protocols: Two-Phase transductive feature scaling,
+FC-STGNN test-selected checkpoint, Dual-Mixer normalized all-window RMSE.
+Those procedures remain explicit in the author table but are removed from
+the matched comparison. Protocol: `docs/paper_b_baselines/PROTOCOL.md`.
+
+**Counterevidence/risks:** Two-Phase published RMSE/NASA could not be verified;
+AIDGN figures are from author README, not obtained full text. FFVE uses the
+author's corrected public table, not withdrawn original RMSE. A stricter
+engine protocol can differ substantially from reported author numbers. Never
+relax the holdout or simplify a model to match a target value.
+
+**Execution:** genuine author training started; source byte checks and real
+data forward/backward checks passed. Preserve failed attempts and reconciled
+export corrections as detailed in the Paper B recovery state. No reproduction
+is called SUCCESS before all required evidence/coverage gates pass.

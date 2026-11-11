@@ -1,0 +1,77 @@
+# Paper B public-source reproduction protocol
+
+Registered 2026-11-11 before any new training/test result. Scope is this
+baseline experiment only. Frozen DSPT, Paper A, previous runs and remote
+3090 jobs are read-only. Execution is directly by Codex as explicitly
+requested by the user; no DeepSeek Harness is invoked.
+
+## Two distinct experiments
+
+1. **Author protocol:** execute the upstream architecture, preprocessing,
+   objective and training/checkpoint selection rules. Document necessary
+   compatibility fixes and missing settings. Preserve test-based selection,
+   cross-subset pretraining, normalized labels and window-level evaluation
+   when upstream uses them, and flag them. Never use this table as a matched
+   DSPT comparison. Failures get real tracebacks and a bounded repair attempt.
+2. **Unified protocol:** official training engines only; `split_units` from
+   `paper_b/training/data.py`, split_seed=7, fold=0, val_frac=0.2, identical
+   engine IDs for every method and every seed. Seeds=101,202,303; RUL cap=125
+   for training/validation/test; endpoint training RUL=0; predictions in
+   cycles. Validation uses five cuts at 0.40/0.55/0.70/0.85/0.95 of each held
+   out engine's lifetime, never derived from official test labels. All
+   statistics are fitted on training engines. Use each method's complete
+   source architecture, objectives and necessary pretraining. Any paired
+   subset pretraining also excludes that subset's validation engines and is
+   explicitly identified as extra cross-subset data, in a separate table.
+
+NASA score is the **sum** over engines of exp(-d/13)-1 for d<0 and
+exp(d/10)-1 otherwise, d=prediction-truth. Store its mean separately. Official
+test has exactly one final prediction per engine; expected counts are
+100/259/100/248. Do not mix it with all-window, OOF or validation metrics.
+
+## Search, checkpoint selection and freeze
+
+Use upstream learning rates, optimizers, losses and architectural widths.
+Unified runs use training-only preprocessing; 14 selected sensors; Two-Phase
+also retains its three operating inputs. Aging input must be the author's
+causal observed-cycle aging embedding, never a function of true lifetime.
+Keep FSGRI in Dual-Mixer+FSGRI and both variational and regression losses in
+FFVE. Do not silently substitute MSE-only models.
+
+Initial window search is deliberately bounded: one upstream default per
+subset (AIDGN 50; Two-Phase 45, hardcoded by feature attention; Dual-Mixer 30;
+FFVE 30; FC-STGNN 30/50/50/50). Search range and budget therefore equal the
+singleton upstream choice, **zero window tuning trials**. More windows may
+only be registered before inspecting unified official test. This avoids
+spending a large budget on a search that was not requested as mandatory.
+
+Unified checkpoints minimize pooled engine-cut validation RMSE, with
+patience=12 (FFVE upstream patience=10, FC-STGNN fixed 41 epochs). Keep
+upstream maximum epochs (AIDGN 300, Two-Phase pretrain 20/100 and fine-tune
+200/600, Dual-Mixer 100, FFVE 100000 with stopping). No ensembling, test-based
+selection or removing difficult engines. Save a run-specific freeze manifest
+with config/source/checkpoint hashes before opening official test; evaluate
+once. Preserve negative/raw predictions unless the upstream model itself
+constrains its output; never clip predictions after seeing results.
+
+## Gates, budget and audit
+
+Before dispatch, require import/forward/backward fidelity checks and source
+blob verification. Initial budget: at most 60 A40 GPU-hours, revised only
+from measured training times. Runs use a new remote experiment root and
+exclusive per-run claims; existing jobs are not stopped. Maximum two repair
+attempts per failing cause, with different fixes and retained error evidence.
+
+SUCCESS requires all four subsets and all three seeds under both applicable
+protocols, complete checkpoints/predictions/config hashes/time/parameter
+counts, independent architecture/data/metric audit, and a defensible match
+to published metrics (relative RMSE gap <=10% per subset, without test tuning).
+PARTIAL means genuine training/evaluation is available but any required
+coverage, fidelity or numerical-match gate is incomplete. FAILED means no
+valid trained result can be obtained from the pinned implementation after
+bounded repair. A launch or synthetic forward check is never SUCCESS.
+
+Report parameter count including frozen parameters and separately trainable
+count; total training wall time includes pretraining. Aggregate all three
+seeds as mean, sample SD and Student-t 95% CI; keep per-seed rows. Missing
+published metrics remain missing, never transcribed from unrelated papers.

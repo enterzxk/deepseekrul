@@ -892,3 +892,10 @@ $lo_0=lo+\hat q$、$hi_0=hi-\hat q$；E 把扩张项换成 $q_E\cdot s$，同一
   （接近已关闭的分层路线，需谨慎）。
 - 判断：**P1 最有价值**，但依赖 SFI-STHGAT 是否可复现（未确认）。
 - 本轮未训练、未改冻结产物。
+
+## Paper B public-source baseline task — 2026-11-11
+
+Independent Paper B baseline worktree/branch and current recovery commands:
+`docs/paper_b_baselines/RESEARCH_STATE.md`. The user authorized direct Codex
+execution without DSH and GitHub push after reproduction. This entry does
+not change Paper A's stage, model, protocol or existing evidence.
