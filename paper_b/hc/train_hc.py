@@ -64,11 +64,13 @@ def dump_init(cfg, log=print):
     p.parent.mkdir(parents=True, exist_ok=True)
     if p.exists():
         raise SystemExit(f'REFUSED: init dump {p} already exists; a dump is written once')
+    prov = cfg.get('provenance') or {}
     payload = dict(
         variant=cfg['variant'], subset=cfg['subset'], seed=cfg['seed'],
         span=cfg['span'], created_utc=_now(),
-        code_md5=cfg.get('code_md5'), git_sha=cfg.get('git_sha'),
-        baseline_version=cfg.get('baseline_version'),
+        code_md5=cfg.get('code_md5') or prov.get('code_md5'),
+        git_sha=cfg.get('git_sha') or prov.get('git_sha'),
+        baseline_version=cfg.get('baseline_version') or prov.get('baseline_version'),
         state_dict={k: v.detach().cpu().clone() for k, v in net.state_dict().items()},
         note='initial weights only; never a trained checkpoint')
     torch.save(payload, p)
