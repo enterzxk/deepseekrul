@@ -47,7 +47,8 @@ def acquire(key, repo):
     out = ROOT / "upstream" / key
     out.mkdir(parents=True, exist_ok=True)
     manifest_path = out / "SOURCE_MANIFEST.json"
-    if manifest_path.exists():
+    preserve_manifest = manifest_path.exists()
+    if preserve_manifest:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         sha = manifest["commit"]
         tree = manifest["tree"]
@@ -94,8 +95,14 @@ def acquire(key, repo):
         return {"path": path, "git_blob_sha": blob, "sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}
 
     with cf.ThreadPoolExecutor(max_workers=4) as pool:
-        manifest["files"] = list(pool.map(fetch, candidates))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        verified_files = list(pool.map(fetch, candidates))
+    if preserve_manifest:
+        # Preserve the registered manifest bytes, including original newline
+        # style; Linux/Windows restoration must retain its SHA identity.
+        assert verified_files == manifest["files"], f"source manifest changed: {key}"
+    else:
+        manifest["files"] = verified_files
+        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{key} {sha} code_files={len(candidates)} total_blobs={len(tree)}", flush=True)
     return {"model": key, "repository": manifest["repository"], "commit": sha,
             "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()}
@@ -124,4 +131,8 @@ if __name__ == "__main__":
     else:
         with cf.ThreadPoolExecutor(max_workers=3) as pool:
             records = list(pool.map(lambda pair: acquire(*pair), REPOS.items()))
-        (ROOT / "sources.lock.json").write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
+        lock_path = ROOT / "sources.lock.json"
+        if lock_path.exists():
+            assert json.loads(lock_path.read_text()) == records, "registered source lock changed"
+        else:
+            lock_path.write_text(json.dumps(records, indent=2) + "\n", encoding="utf-8")
