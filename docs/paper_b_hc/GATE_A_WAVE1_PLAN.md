@@ -7,13 +7,16 @@
 
 ## 1. 变体集
 
-**第一波主表 24 格**：`{A0, A1, A2, A3p, A4, A5}` × 4 子集（已在跑）。
-其中 **A3p 是 frozen 参考臂**（pre-norm，`DSPT_HC_Frozen`），用于 V0-NoHI 引用与 G2′ 注入点对照，
-**不与 A2/A4/A5 比较编码形式**。
+**第一波主表 24 格**：`{A0, A1, A2, A3a, A4, A5}` × 4 子集。
 
-**补充 3 格**：`A3a × {FD002, FD003, FD004}`（FD001 已有 `0030Z` = 11.3167）。
-A3a 是 post-norm 的 Fourier 臂，补上后 post-norm 家族 `{A2, A3a, A4, A5}` 才完整，
-G2（编码形式）才可判。合计 24 + 3 + 1(0030Z) = 28 格。
+**A3p 是 frozen 参考臂，单列一张表，不进主表**（pre-norm，`DSPT_HC_Frozen`），用于 V0-NoHI 引用与
+G2′ 注入点对照，**不与 A2/A4/A5 比较编码形式**。
+
+A3a 是 post-norm 的 Fourier 臂，**四格全部来自 W1 批次**（`-W1` 前缀），四格同源后 post-norm 家族
+`{A2, A3a, A4, A5}` 才完整，G2（编码形式）才可判。
+
+**格数算法：24 主表（`{A0,A1,A2,A3a,A4,A5}`×4）+ 4 frozen（`A3p`×4）= 28 格。**
+`0030Z`（11.3167）与 `1640Z` 不是格，退为 preliminary、`in_gate_a_table=false`，不作任何格的别名。
 
 > 硬约束（2026-11-12 主控）：**任何把 A3p 与 A2/A4/A5 放在同一列比较编码形式的表，一律作废**。
 > 原因：A3p 是 pre-norm，其余是 post-norm，Δ 里混着「编码形式」与「注入位置」两个因子。
@@ -22,7 +25,9 @@ G2（编码形式）才可判。合计 24 + 3 + 1(0030Z) = 28 格。
 
 6 个变体的骨干必须同权重，否则跨变体差里混入初始化噪声（牢莫在 A3a/A3p 上已证）。
 做法：以 `init_v9_A3p_s101.pt`（sha256 `336074a6…`）为**骨干基准**，为每个变体生成一份
-自己的 init 文件：骨干键从 A3p 复制，变体特有的循环模块保留自身初始化（形状不同，无法共享）。
+自己的 init 文件：骨干键从 A3p 复制；**跨形状族的循环模块无法共享**（A5 是 `Linear(9,64)`，
+与 `Linear(1,64)`/`Linear(8,64)` 不同形），保留自身初始化；**同形状的 A2/A4 必须共用同一次
+`Linear(1,64)` 抽样**——两者只差 `log1p`，若各自随机，A2−A4 的差里会混进投影初始化噪声。
 
 | 变体 | 循环模块 | init 文件 |
 |---|---|---|
@@ -73,10 +78,10 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 10 | A2 | FD002 | 101 | wave1_init_A2 | HC-C-A2-FD002-s101-W1 |
 | 11 | A2 | FD003 | 101 | wave1_init_A2 | HC-C-A2-FD003-s101-W1 |
 | 12 | A2 | FD004 | 101 | wave1_init_A2 | HC-C-A2-FD004-s101-W1 |
-| 13 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1（R0，已完成） |
-| 14 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
-| 15 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
-| 16 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
+| 13 | A3a | FD001 | 101 | init_v9_A3p | HC-C-A3a-FD001-s101-W1 |
+| 14 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
+| 15 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
+| 16 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
 | 17 | A4 | FD001 | 101 | wave1_init_A4 | HC-C-A4-FD001-s101-W1 |
 | 18 | A4 | FD002 | 101 | wave1_init_A4 | HC-C-A4-FD002-s101-W1 |
 | 19 | A4 | FD003 | 101 | wave1_init_A4 | HC-C-A4-FD003-s101-W1 |
@@ -86,17 +91,18 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
 | 23 | A5 | FD003 | 101 | wave1_init_A5 | HC-C-A5-FD003-s101-W1 |
 | 24 | A5 | FD004 | 101 | wave1_init_A5 | HC-C-A5-FD004-s101-W1 |
 
-**A3a 补充 3 格（post-norm Fourier 臂；FD001 用 0030Z）**
+**frozen 参考表：`A3p` × 4（pre-norm；不进主表，只作 G2′ 与 V0-NoHI 引用）**
 
 | # | variant | subset | seed | init | run_id |
 |---|---|---|---|---|---|
-| 25 | A3a | FD002 | 101 | init_v9_A3p | HC-C-A3a-FD002-s101-W1 |
-| 26 | A3a | FD003 | 101 | init_v9_A3p | HC-C-A3a-FD003-s101-W1 |
-| 27 | A3a | FD004 | 101 | init_v9_A3p | HC-C-A3a-FD004-s101-W1 |
+| F1 | A3p | FD001 | 101 | init_v9_A3p | HC-C-A3p-FD001-s101-W1（R0，已完成 10.8951） |
+| F2 | A3p | FD002 | 101 | init_v9_A3p | HC-C-A3p-FD002-s101-W1 |
+| F3 | A3p | FD003 | 101 | init_v9_A3p | HC-C-A3p-FD003-s101-W1 |
+| F4 | A3p | FD004 | 101 | init_v9_A3p | HC-C-A3p-FD004-s101-W1 |
 
-> 第 25–27 格在主表落盘后补跑（主控 2026-11-12 裁决）；A3a 的 init 用 A3p 那份
-> （`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap，与 `0030Z` 一致。
-> FD001 的 A3a 值取 `0030Z`（11.3167，preliminary），不重复跑。
+> A3a 的 init 用 A3p 那份（`init_v9_A3p_s101.pt`），载入时 `pe_proj → cycle_enc.proj` remap。
+> `0030Z`（11.3167）与 `1640Z` 退回 preliminary，`in_gate_a_table=false`，**不作 A3a-FD001 的别名**；
+> A3a 四格全部另跑 `-W1`，与 FD002–004 同批次，避免批次效应混进 G2 的 3/4 计数。
 
 ## 4. 并行方案
 
@@ -109,14 +115,17 @@ run_id 规则：`HC-C-{variant}-{subset}-s101-W1`（确定性、可预登记、�
   把 R0 放在并发里会把「链路问题」和「并发算法选择」混在一起。
 - 墙钟：单 run 实测 200–440 s。R0 单跑约 3.5 min；其余 27 格 / 3 路 = 9 波 × ~7 min
   ≈ **65–80 min**，加启动开销约 85 min。
-- 调度：`experiments/hc/tmp/run_wave1.sh` 用 3 个槽位的信号量（`flock` 或 FIFO），
-  逐格调用 `run_hc`，每格独立日志 `logs/wave1/<run_id>.log`。
+- 调度：**唯一发射器** `/media/sangfor/vdb/user/zxk/run_wave1_sched.sh`（scheduler v3）逐格调用
+  `run_hc`，每格独立日志 `logs/wave1/<run_id>.log`。起格前必须过两道门：`cell_lock.py --pick`
+  （按格判占用：有活着的 `run_hc` 或该格 `-W1r*` 未 close 都算占用）与显存门
+  `used + 12 GiB ≤ 44 GiB`（`nvidia-smi` 实查，`used` 快照打进日志）。**禁止并行装第二个发射器。**
 
 ## 5. 失败与重试（不污染台账）
 
 1. `run_hc` 在异常路径也会写 `close.json`（`status=failed`），launch/close 成对，**不删**。
 2. 失败格重跑一律**换新 run_id**：`…-W1r2`、`…-W1r3`，绝不复用旧 id（`O_EXCL` 会拒）。
-3. 台账唯一键 = `(baseline_version, variant, subset, seed, init_sha256)`；同一格出现多个完成 run 时，
+3. 台账格键 = `(baseline_version, variant, subset, seed)` 四项（漏 `baseline_version` 会静默选中
+   retired 的 `1505Z`＝10.5455，与 `0030Z`＝11.3167 差 0.77）；同一格出现多个完成 run 时，
    保留第一个 `ok`，其余标 `duplicate`。
 4. 重试只针对失败格；成功格不重跑。若某格连续 2 次失败，停该格并报错，不无限重试。
 5. 发车前预检：`code_lock --check` 绿、`git status -- paper_b/{hc,training,models,configs}` 空、
