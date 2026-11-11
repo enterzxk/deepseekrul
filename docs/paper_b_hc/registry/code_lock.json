@@ -1,9 +1,9 @@
 {
  "schema_version": 1,
- "git_sha": null,
- "baseline_version": "v7",
- "source": "staged index (the commit that contains this file)",
- "generated_utc": "2026-11-11T15:48:35Z",
+ "git_sha": "aef910cd90209e8c764920d68b8476ce029f079e",
+ "baseline_version": "v8",
+ "source": "HEAD",
+ "generated_utc": "2026-11-11T15:51:01Z",
  "definition": "md5 of `git cat-file blob <ref>:<path>` bytes",
  "code_md5": {
   "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
@@ -17,7 +17,7 @@
   "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
   "paper_b/hc/train_hc.py": "bc24115673b8d57bbc47694b5991321b",
   "paper_b/hc/run_hc.py": "8784311bebdc6891b59058f278e8d1f8",
-  "paper_b/hc/verify_loop.py": "111c7be5106a74dc0e1152c68a69308b",
+  "paper_b/hc/verify_loop.py": "2c15fcb4293e226102e368c717ef3f3a",
   "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
   "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
   "paper_b/hc/code_lock.py": "cd492a1cdc6a812120eceea6f69f7a41"
