@@ -40,7 +40,8 @@ helps. Performance claims come only from `real-val` and `grid`.
    Shuffling `cycle` across validation engines (same marginal distribution) raises
    engine-level RMSE from 11.379 to 16.285 (+4.91). Zeroing it raises it to 22.736.
    In the Vanilla 2×2, adding the cycle encoding alone moves mean RMSE from 12.803
-   to 11.758, while adding the 3-channel representation alone *hurts* (12.897).
+   to 11.758, while adding the 3-channel representation alone does not help
+   (12.897) and has no detectable effect of its own (§5.4).
 4. **No test-set leakage was found.** The training path cannot open the official
    test files (verified by monkeypatching `load_test` to raise); the operating-condition
    scaler is fitted on training engines only and its means reproduce the training-frame
@@ -269,22 +270,45 @@ are not individually resolvable.
 | 3-channel alone: Van+raw → Van+3ch | −0.065 | +0.256 | +0.755 | −0.572 | **+0.094** |
 | 3-channel given cycle: Van+cycle → Van+3ch+cycle | −0.330 | −0.480 | +0.267 | −0.010 | −0.138 |
 
-Base's 1.491 advantage over Vanilla-raw decomposes as:
+Base's advantage over Vanilla-raw, **on the four-subset mean**, is 1.491
+(12.803 − 11.312) and decomposes as:
 
 | source | RMSE | share |
 |---|---:|---:|
 | absolute cycle feature | 1.046 | 70% |
 | architecture (conv + sensor pooling + learned PE + dual span) | 0.307 | 21% |
 | cycle × 3-channel interaction | 0.232 | 16% |
-| 3-channel input on its own | −0.094 | −6% |
+| 3-channel input on its own | +0.094 | +6% (costs) |
+
+**Scope warning — this decomposition is scope-dependent, and the shares are not
+portable across subsets.** Both rows below are engine-level (per-engine RMSE, then
+unweighted mean over engines); they differ only in which engines are averaged:
+
+| scope | total gap | cycle | architecture | 3-channel | interaction |
+|---|---:|---:|---:|---:|---:|
+| FD001 only | 1.056 | 0.317 (30%) | 0.409 (39%) | 0.065 (6%) | 0.265 (25%) |
+| four-subset mean | 1.491 | 1.046 (70%) | 0.307 (21%) | +0.094 (−6%) | 0.232 (16%) |
+
+The difference is FD002–FD004, where cycle is worth 1.15–1.90 while architecture
+is worth 0.07–0.42. So:
+
+- **"cycle is the largest single contributor" holds in both scopes.**
+- **"cycle is 70%" is a four-subset statement**; on FD001 it is 30% and the
+  architecture is 39%. Any quoted share must name its scope.
+- The 1.491 four-subset figure is **not** the pooled number. It happens to sit
+  within 0.001 of the FD001 *pooled* gap (13.366 − 11.874 = 1.492); that is a
+  coincidence, and conflating the two is exactly the error this table prevents.
 
 Three readings, in order of confidence:
 
-1. **The cycle feature is the dominant single factor**, worth ~1.0 RMSE on average
-   and up to 1.9 on FD004. It is consistent in sign on all four subsets.
-2. **The 3-channel representation is not the source of strength.** On its own it is
-   +0.09 (slightly harmful) and it flips sign across subsets; it only pays off in
-   combination with the cycle code (interaction −0.23).
+1. **The cycle feature is the largest single factor in every scope**, worth ~1.0
+   RMSE on the four-subset mean and up to 1.9 on FD004. It is consistent in sign
+   on all four subsets.
+2. **The 3-channel representation has no detectable effect of its own.** It is
+   +0.09 on the four-subset mean and −0.07 on FD001, i.e. it flips sign, and both
+   magnitudes are well below the 0.22 cross-machine floor. It cannot be called
+   "harmful"; the correct statement is "no detectable independent effect". It only
+   pays off in combination with the cycle code (interaction −0.23).
 3. **The architecture adds a real but small margin**, 0.07–0.41 per subset. Because
    that is the same order as the cross-machine floor (0.2), the honest statement is
    "≈0.3, not individually resolvable per subset", not "DSPT beats a Vanilla
@@ -312,9 +336,9 @@ Six factors, each with a measurement. They are not equally important.
    (11.118 → 22.965 and 12.423 → 23.881, 郑总's audit). Part of "strong" is a
    property of the scoring convention, not of the model.
 2. **The absolute cycle feature carries most of the gap.** It accounts for 70% of
-   Base's advantage over Vanilla-raw (§5.4), and corrupting it at inference costs
-   4.91 RMSE (§2.3). Base is, to a first approximation, a sensor model with a
-   strong engine-age prior.
+   Base's *four-subset* advantage over Vanilla-raw (30% on FD001 alone; §5.4), and
+   corrupting it at inference costs 4.91 RMSE (§2.3). Base is, to a first
+   approximation, a sensor model with a strong engine-age prior.
 3. **The architecture adds ~0.3 RMSE.** At matched 3-channel + cycle inputs, DSPT
    beats Vanilla by 0.07–0.41 per subset (§5.4). Real, consistent in sign on three
    of four subsets, but at the cross-machine reproducibility floor.
