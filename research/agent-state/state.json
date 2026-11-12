@@ -69,7 +69,7 @@
     "tmh: 修 D3 到达算子（β=1、D≥0 时 T̂_K<3.72 的解析上界），补失效/精确命中/远期到达/未命中/梯度反例测试；padding 改逐元素零检查",
     "牢莫: 复核 D3 修订的边界与反例，不新增中期寿命约束",
     "军师: D3 修完后复审训练准入；未过反例检查不放行训练",
-    "管理员: 负结果按编码选择消融登记；W2 24 格标定 dropout 缺陷记入复现性审计"
+    "管理员: 负结果按编码选择消融登记；W2 18 个 cal 格标定 dropout 缺陷记入复现性审计"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -2118,7 +2118,7 @@
       "rationale": "军师（L2 顾问）对 STAGE_D_REVIEW_PACKAGE 的只读审查发现 D3 存在解析阻断：当前 β=1 且预测损伤非负时，h_j ≥ σ(−1)，于是 T̂_K ≤ Σ_{k=0}^{K−1} σ(1)^k < 1+e ≈ 3.718，预测 RUL 恒不超过约 3.72 周期，无法覆盖 125 周期目标。现有六条测试主要验证参考递推与 A1 编码接口一致性，未覆盖到达算子，因此不能据此认定 D3 正确。另两处：K 不参与终点损伤计算，拉长 K 无法补救终点锚定；d_interface_contract 的 padding 检查只取最大值，会漏掉全负的非零 padding。裁决为返修，不因接口检查通过而放行训练。",
       "evidence": [
         "docs/paper_b_hc/STAGE_D_REVIEW_PACKAGE.md:90：危险率乘积与生存和定义",
-        "docs/paper_b_hc/STAGE_D_REVIEW_PACKAGE.md:184：初始 β=1",
+        "docs/paper_b_hc/STAGE_D_REVIEW_PACKAGE.md:184：β=1（规格写死「不搜索」，是固定常数而非初值；牢莫 889e6a4 复核）",
         "paper_b/hc/test_d_engine.py：前五项测参考递推，第六项测 A1 编码接口一致性",
         "docs/paper_b_hc/probes/d_interface_contract.py:56：padding 仅检查最大值",
         "解析推导：β=1、D̂≥0 ⇒ h_j≥σ(−1)≈0.2689 ⇒ T̂_K ≤ (1−σ(1)^K)/(1−σ(1)) < 1+e ≈ 3.718"
