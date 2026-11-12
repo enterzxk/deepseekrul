@@ -115,6 +115,33 @@ Why this is a rule and not advice: twice already two writers touched this branch
 and "which copy is real" had to be settled by hand. The failure mode is not lost
 work — it is a run recorded against code nobody can reconstruct.
 
+## Prediction-table contract (enforced in code, deliberately not restated in §6)
+
+The frozen protocol §6 states that `evaluate()` requires `unit_lifetime`, but it
+does **not** restate the prediction-table column contract. That contract is:
+
+```
+unit, cycle, y_true_raw, y_true_cap125, y_pred
+```
+
+- exactly these five columns, one row per `(unit, cycle)`;
+- **no bare `y_true` column** — that name would silently mean the capped label,
+  which is the same implicit-default trap that produced the C-MAPSS criterion
+  confusion;
+- `y_true_cap125 == min(y_true_raw, 125)` must hold, and `evaluate()` asserts it
+  before computing any score.
+
+**It is deliberately not added to §6 right now.** Any edit to §4/§6 moves the
+protocol blob and voids the freeze anchor (`7f01909` / `4458d9ea…`), and the
+compute host is about to be synchronised to exactly that anchor for the first
+LOEO batch. Moving the anchor for a prose clarification while a sync is in
+flight is precisely how a batch ends up invalid.
+
+The contract is enforced in two places that cannot drift: the code (hard
+rejection at the entry point) and `registry/SCHEMA.md` v5 (column 28). Once the
+first LOEO batch lands, it gets folded into §6 as a recorded decision, with a new
+anchor and an explicit note that the old one is void.
+
 ## Environment pinning
 
 - Python environment and package versions must be recorded per batch
