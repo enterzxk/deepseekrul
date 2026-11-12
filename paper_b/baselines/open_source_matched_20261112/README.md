@@ -1,78 +1,133 @@
-# DSPT-matched confirmation batch — 2026-11-12
+# DSPT-matched public baseline experiment, 2026-11-12
 
-This batch replaces the old pooled-selection/complete-window table only for
-comparison to the current DSPT data and selection protocol. Historical
-experiments, frozen DSPT/model source and Paper A remain untouched.
+The completed comparison is in
+`docs/paper_b_baselines/MATCHED_COMPARISON_REPORT_20261112.md`.
+Artifacts: `paper_b/experiments/open_source_matched_20261112/`.
+This experiment preserves the historical author-protocol and earlier unified
+results; those are different conditions and must not be merged into this one.
 
-The target source is captured byte-exact in `reference/` (nine files), with
-its observed source HEAD and file hashes in SNAPSHOT_MANIFEST.json. The live
-desktop worktree may continue changing; this batch never imports it. The
-original DSPT trainer is called in its own snapshot package. A documented
-runtime context disables autocast for training/validation/TEST; TF32 is off
-for every method. This is a new common FP32 condition, not the historical
-BF16 training trajectory. No DSPT architecture or objective is rewritten.
+Five full upstream methods plus two fixed DSPT references, FD001–FD004,
+seeds101/202/303. Primary condition: method-author epoch ceilings with common
+engine-mean validation selection/patience12/min_delta1e-4; fixed40 is a
+sensitivity condition. There are94 physical supervised trainings,168 logical
+condition results,91 actual whole-TEST prediction passes and3 proven reuses.
+Mini-batches within a single dataset prediction are not counted as separate
+whole-TEST passes. Two-Phase paired-subset pretraining is an extra-data
+condition and is reported separately.
 
-Primary reference: DSPT-V0-Cycle-FP32 (`full/basic/hf`, cycle on), fixed from
-the existing taskbook. Auxiliary reference: DSPT-TrainDefaults-FP32
-(`full/off/none`, cycle on). Both always appear in results; no TEST selection
-between them. Their difference changes SA and HI together, not an isolated
-HI effect. Five public baselines use the complete pinned upstream models and
-core objectives from the previous source audit, with author windows and
-optimizer/LR/batch. Original author-protocol results remain a separate table.
+## Frozen source and data
 
-Common supervised protocol: split_seed7/fold0,80/20 engine IDs; seeds101/202/303;
-cap125; validation cuts40/55/70/85/95%; all-cycle training, including early
-left-zero-padded prefixes; engine-mean validation RMSE selects checkpoint
-and early stop with improvement >1e-4, max40 epochs/patience12. Pooled
-validation RMSE is recorded separately. Single-endpoint official TEST uses
-standard cross-engine RMSE and NASA sum. Each run saves its actual weights,
-validation/TEST predictions, per-epoch per-engine SSE, chosen state-content
-hash, raw logs, parameter counts, times, config/code/data hashes.
+`PROTOCOL.json` is the initial40epoch registration. The explicit validation-only
+amendment before any newTEST is `AUTHOR_LIMIT_POLICY.json`, with scheduler
+equivalence proof in `AUTHOR_LIMIT_EQUIVALENCE.json`. Both conditions and all
+94selected weights were frozen together before the first newTEST.
+`ANALYSIS_PLAN.json` fixes both DSPT references and all paired comparisons.
 
-Each method retains its window and optimizer/batch settings; this is equal
-supervised-epoch budget, not equal gradient steps, equal compute or a claim
-of exhaustive best tuning. Window tuning budget is zero. Models without
-native padding masks receive the same padded sample universe without adding
-new mask modules. FFVE preserves causal smoothing and actual stochastic
-reparameterization. Two-Phase retains operating inputs and the prior frozen
-whole-pipeline seed policy, plus paired-subset pretraining20/100 epochs;
-both validation sets are excluded. Its extra data, pretraining time and
-sample counts are reported in a separate resource-condition table.
+Training source manifests:
 
-84 supervised cells are registered: seven fixed configurations x four
-subsets x three seeds. All are trained before any new official TEST is
-opened. Training Guard intercepts builtins/io opens. An immutable all-run
-BATCH_FREEZE binds source/config/data/checkpoint identities after replaying
-per-engine-SSE/min_delta proofs. A permanent TEST_ATTEMPT consumes one
-attempt even if evaluation fails; no generic retry releases the quota.
-Old official TEST exposure is declared; this is not a pristine blind test.
+- Initial462files: SHA256 `3bbb4c5a6e5d48551adc75089eb4c8de5582ee7ff2c9a7dc65beaa63fac3ef9a`.
+- Author-ceiling460files: SHA256 `f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a`.
+- Actual evaluation7files: SHA256 `7eab55f3ed72f47d163cf502e3698d035690f8eae5d1d1ffb2d736f8e6405a9b`.
 
-Budget: at most60 A40 GPU-hours, with measured times/peak memory reported.
-Failures retain their attempt and traceback; at most two cause-specific
-repairs, in fresh attempts, without model substitution or TEST tuning.
-Existing other GPU jobs are not stopped. Remote isolated deployment:
-`/media/sangfor/vdb/user/zxk/paper_b_matched_baselines_20261112`.
+`reference/` contains the byte-exact9file DSPT snapshot; the running main
+workspace is never imported. No frozen DSPT model, PaperA or old experiment
+was modified. The common runtime is FP32/autocastoff/TF32off; do not combine
+with historical BF16 results as the same precision condition.
 
-Execution source was independently audited before first training. Added
-identity guards re-check train bytes including paired data before freeze
-and TEST; official test bytes are checked against prior recorded canonical
-fingerprints only after unlock. The immutable dataset hashes are metadata,
-not labels used to choose validation cuts. All original failed/preflight
-attempts are preserved. Main code is frozen after preflight and before the
-first training process. Reporting-only modules may be added later.
-
-Commands (from the isolated deployment/repository root):
+Restore the exact upstream code (six pinned commits, unmodified trees):
 
 ```bash
-python -m paper_b.baselines.open_source_matched_20261112.preflight \
- --data-dir /path/to/CMAPSS --out experiments/preflight.json
-python -u -m paper_b.baselines.open_source_matched_20261112.orchestrate \
- --phase train --root experiments --data-dir /path/to/CMAPSS --workers 3
-python -m paper_b.baselines.open_source_matched_20261112.orchestrate \
- --phase freeze --root experiments --data-dir /path/to/CMAPSS
-python -u -m paper_b.baselines.open_source_matched_20261112.orchestrate \
- --phase test --root experiments --data-dir /path/to/CMAPSS --workers 2
+python paper_b/baselines/open_source/acquire.py
+python paper_b/baselines/open_source/acquire.py --verify
 ```
 
-Do not overwrite or relabel the old120-run batch as this new experiment.
-Final artifacts: `paper_b/experiments/open_source_matched_20261112/`.
+The fetcher and manifests avoid redistributing upstream code without a
+license. Per-run `environment.json` records the actual Python3.9/A40/PyTorch
+environment; upstream optional plotting imports are excluded by the recorded
+adapters. Place official C-MAPSS train/test/RUL files in an external directory.
+`DATASET_EXPECTED_SHA256.json` pins all12 files. Normalization fits training
+engines only. The source guards reject training access to TEST/RUL files.
+
+## Reproduction in fresh output directories
+
+Use a new project checkout on Linux/A40, with the upstream code restored.
+Keep all sealed source bytes unchanged. Set the library path for your own
+CUDA/PyTorch environment if necessary. The actual environment and versions
+are archived per run. These commands use new output roots, not the recorded
+experiment directories.
+
+```bash
+mkdir -p /path/to/new40 /path/to/newauthor
+python -u -m paper_b.baselines.open_source_matched_20261112.preflight \
+  --data-dir /path/to/CMAPSS --out /path/to/new40/preflight.json
+python -u -m paper_b.baselines.open_source_matched_20261112.combined_queue \
+  --root /path/to/new40 --author-root /path/to/newauthor \
+  --data-dir /path/to/CMAPSS --workers 3 --budget-mib 36000
+python -u -m paper_b.baselines.open_source_matched_20261112.joint \
+  --phase freeze --root /path/to/new40 --author-root /path/to/newauthor \
+  --data-dir /path/to/CMAPSS
+python -u -m paper_b.baselines.open_source_matched_20261112.joint \
+  --phase test --root /path/to/new40 --author-root /path/to/newauthor \
+  --data-dir /path/to/CMAPSS
+```
+
+The finite queue runs all84fixed40 cases and exactly the validation-qualified
+fresh author-ceiling extensions. It preserves method loss/LR/batch/windows,
+shared split and the frozen seed policy. It does not continue model-only
+checkpoints or tune on officialTEST. The memory admission budget covers the
+total shared GPU use; never signal another project's jobs to make room.
+
+`joint --phase test` is the supported batch entrypoint and requires full
+READY, both complete component batches, all94physical identity checks and an
+exclusive controller. Permanent per-run `TEST_ATTEMPT` prevents a repeated
+forward even after failure. There is no automatic quota reset.
+
+The original sealed per-run `runner --phase test` and `test_instrumented`
+CLIs are retained for execution provenance; they only enforce their component
+batch and are **not supported standalone entrypoints** for a joint experiment.
+Post-experiment hardening adds `guarded_test.py`: it first validates joint
+READY and the requested physical record. For example, this validates a
+completed case without a newforward:
+
+```bash
+python -m paper_b.baselines.open_source_matched_20261112.guarded_test \
+  --root /path/to/new40 --author-root /path/to/newauthor \
+  --namespace fixed40 --model aidgn --subset FD001 --seed 101 \
+  --data-dir /path/to/CMAPSS --audit-only
+```
+
+The production batch actually executed the sealed joint code, after a valid
+READY. The new wrapper is not retroactively described as its executed source.
+Arbitrary Python access to a frozen legacy module is not a security boundary;
+the supported orchestration and recorded access audits establish this run's
+evaluation order.
+
+## Collection and CPU-only acceptance
+
+After the global `JOINT_TEST_COMPLETE.json` and every output seal exist:
+
+```bash
+python -m paper_b.baselines.open_source_matched_20261112.collect_joint \
+  --root /path/to/new40 --author-root /path/to/newauthor \
+  --data-dir /path/to/CMAPSS \
+  --target paper_b/experiments/open_source_matched_20261112 \
+  --docdir docs/paper_b_baselines
+python -m paper_b.baselines.open_source_matched_20261112.verify_joint \
+  --root paper_b/experiments/open_source_matched_20261112
+```
+
+The standalone verifier uses only the Python standard library and performs
+no model inference. It binds allphysical/logical rows, source/config/checkpoint
+file hashes, actual outputs/reuse proofs, official labels, engine-SSE selection
+state machine, same splits/cuts/sample counts and all summary/paired numbers.
+The collector additionally loads every checkpoint on CPU, checking tensor
+finiteness and canonical state hashes, and compares labels to the raw official
+files. `official_truth.csv` is a capped endpoint-label extract for offline
+acceptance; its source fingerprints remain in the dataset manifest.
+
+`SUCCESS` in this new artifact is execution/evidence acceptance under the
+registered common rules. Historical original-author reproduction statuses
+remain AIDGN/Two-Phase/Dual-Mixer PARTIAL, FFVE/FC-STGNN SUCCESS; candidate CPT
+FAILED. No test-selected tuning, seed selection, ensembles or simplified
+networks were used. Three-seed confidence intervals are descriptive and
+conditional on this fixed split. OfficialTEST has historical exposure.

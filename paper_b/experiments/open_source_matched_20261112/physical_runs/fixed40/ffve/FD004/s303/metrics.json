@@ -1,0 +1,46 @@
+{
+  "model": "ffve",
+  "subset": "FD004",
+  "seed": 303,
+  "best_epoch": 14,
+  "epochs_run": 26,
+  "validation_engine_mean_rmse": 12.811183932376725,
+  "validation_pooled_rmse": 15.875393499759808,
+  "params": 412273,
+  "trainable_params": 412273,
+  "training_time_s": 221.76554822921753,
+  "n_train_windows": 48691,
+  "n_validation_cuts": 250,
+  "config_sha256": "cc0d338289a66a037e5b0514d94c493f3178234f021bcdb99efb8727784cbc67",
+  "checkpoint_sha256": "190647fbb3692c41e59bb292cb9026253ea9d7fd516fa418e29726585b58d094",
+  "state_content_sha256": "d3045c1e774a32df4e1fe4547fa1add038d6e8ab8ed29b15221f8314bed32ab8",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "rmse": 13.233067213142144,
+  "mae": 9.019229206346697,
+  "nasa_sum": 991.7655306046457,
+  "nasa_mean": 3.9990545588897004,
+  "bias": 0.7704261099138567,
+  "late_frac": 0.4717741935483871,
+  "severe_late": 0.18951612903225806,
+  "max_late": 51.10424041748047,
+  "n": 248,
+  "protocol": "matched_20261112",
+  "evaluation_unit": "official_test_engine",
+  "test_forward_passes": 1,
+  "batch_freeze_sha256": "8f2c7fee01683a38dbe0d0ed38a38ca11f7381f7a3de8109a0a328196db2d1aa",
+  "test_runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "official_test_data_sha256": {
+    "test": "1dc675fff0624bac10786927c6715b37d1297657137400d2b1a3138d777a3ba5",
+    "RUL": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "replaced_pid": 1883851,
+  "reason": "validation-only registered author-ceiling condition added; single memory budget/max3 across both; oldworkers adopted",
+  "adopt_running": [
+    {
+      "path": "experiments/matched/two_phase/FD004/s101",
+      "pid": 1927496
+    },
+    {
+      "path": "experiments/matched/dspt_v0_cycle/FD002/s101",
+      "pid": 1869092
+    },
+    {
+      "path": "experiments/matched/dual_mixer/FD004/s101",
+      "pid": 1934266
+    }
+  ],
+  "no_training_workers_signalled": true,
+  "old_execution_manifest_sha256": "3bbb4c5a6e5d48551adc75089eb4c8de5582ee7ff2c9a7dc65beaa63fac3ef9a",
+  "author_execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "launcher_path": "combined_queue.py",
+  "launcher_sha256": "cd7d2f85f4ae88dcd6234a2281cde7a3842eb08f93bd514b92d87c4484854690",
+  "policy_sha256": "b5463cafcabe50529e4d95ad0178be44f7c711d5c127671af54a231e482612f0",
+  "created_unix": 1794420959.8398066
+}

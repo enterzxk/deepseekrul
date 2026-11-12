@@ -693,3 +693,21 @@ training windows. Do not use its unified table as current-DSPT matched
 evidence. Dataset/protocol constants match. Dated analysis and all old
 results: docs/paper_b_baselines/PROTOCOL_COMPARISON_20261112.md.
 No historical prediction/config/checkpoint or numerical result was changed.
+
+## Paper B · 2026-11-12 · Current-DSPT matched public baselines
+
+New independent namespace: paper_b/experiments/open_source_matched_20261112/.
+Five fullpublic methods plus twofixedDSPTrefs; fourFDs andseeds101/202/303.
+All94actualtrainings/168logicalconditioncases complete;91actualofficialTEST
+predictions+3proof-boundreuses,0failures. FullindependentCPUmetric/rawlabel/
+checkpoint/quota/input-outputseal auditPASS. Oldauthor/oldunified/OOFresults
+are unchanged and mustnot be pooled. Primaryauthor-ceiling and40epoch
+sensitivity tables are separate, withTwoPhaseextra-data marked.
+
+Authoritative newnumeric source: artifact logical_runs.csv, summary.json and
+paired_comparisons.json. Humanreport:
+docs/paper_b_baselines/MATCHED_COMPARISON_REPORT_20261112.md.
+DSPT-V0 haslowermeanRMSE onallfourFDs inthisregisteredcondition; FD004
+FC-STGNN meanNASA islower thanprimaryDSPT. No universalmetric/seed or
+exhaustivelytuned superiority claim. Originalauthorreplicationstatuses remain
+AIDGN/TwoPhase/DualPARTIAL,FFVE/FCSUCCESS; newmatchedexecutionallSUCCESS.

@@ -1,0 +1,152 @@
+{
+  "finite": true,
+  "canonical_state_sha256": "f96c98dce38cfc8e831c96da257009ece39fb14bf8c24c84af60003326f2b584",
+  "checkpoint_sha256": "b2dfe19a983aa7f44ddb7c5815cd18ee8d7fea94203be9e00557eb07d962d985",
+  "tensor_shapes": {
+    "net.ll1.0.weight": {
+      "shape": [
+        10,
+        50
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.ll1.0.bias": {
+      "shape": [
+        10
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.ll2.0.weight": {
+      "shape": [
+        10,
+        50
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.ll2.0.bias": {
+      "shape": [
+        10
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.m_gate1.0.0.weight": {
+      "shape": [
+        1,
+        60
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.m_gate1.0.0.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.m_gate2.0.0.weight": {
+      "shape": [
+        1,
+        60
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.m_gate2.0.0.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.gconv.0.mlp.mlp.weight": {
+      "shape": [
+        64,
+        100,
+        1,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.gconv.0.mlp.mlp.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.project.weight": {
+      "shape": [
+        10,
+        50
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.project.bias": {
+      "shape": [
+        10
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.temporal_agg.0.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.temporal_agg.0.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.decoder.0.weight": {
+      "shape": [
+        256,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.decoder.0.bias": {
+      "shape": [
+        256
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.decoder.2.weight": {
+      "shape": [
+        1,
+        256
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.decoder.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.channel_decoder.0.weight": {
+      "shape": [
+        56,
+        14
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.channel_decoder.0.bias": {
+      "shape": [
+        56
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.channel_decoder.2.weight": {
+      "shape": [
+        1,
+        56
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.channel_decoder.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    }
+  }
+}

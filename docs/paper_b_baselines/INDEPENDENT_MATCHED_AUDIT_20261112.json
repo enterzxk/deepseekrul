@@ -1,0 +1,33 @@
+{
+  "reviewer": "/root/audit_secondary_sources",
+  "role": "independent read-only high-reasoning Codex audit",
+  "status": "PASS",
+  "scope": "actual remote training freeze and completed official evaluation, not a new training or inference run",
+  "physical_training_runs": 94,
+  "logical_condition_results": 168,
+  "finite_checkpoint_and_state_hash_passes": 94,
+  "training_official_TEST_reads": 0,
+  "identical_first40_extension_trajectories": 10,
+  "identical_epoch_pairs_checked": 400,
+  "actual_official_TEST_prediction_passes": 91,
+  "explicit_prediction_reuses": 3,
+  "permanent_quota_and_output_seals_checked": 94,
+  "independent_prediction_metric_and_raw_label_checks": 94,
+  "maximum_RMSE_recalculation_difference": 8.39e-09,
+  "maximum_NASA_recalculation_difference": 1.423e-06,
+  "earliest_official_access_seconds_after_READY": 262.3558,
+  "failures": 0,
+  "reviewer_final_report": "最终独立审计 PASS，0项失败。全程CPU只读，无新forward、训练或文件修改。94项闭环：91次真实TEST + 3次明确复用；94份永久quota、输出及输入封印全部匹配，无失败残留。3次复用为Dual-Mixer FD001/s101、FC-STGNN FD003/s101、AIDGN FD004/s303；权重、来源封印、预测CSV及输入三向hash均一致，明确标记forward0。94份保存预测独立重算RMSE/NASA，核对完整唯一engine IDs、原始官方RUL cap125及数据文件SHA，全部通过。最大重算差：RMSE 8.39e-9，NASA 1.42e-6。全部访问晚于READY，最早晚262.36秒；完成记录的唯一forward91与实物一致。历史裸CLI入口缺口未影响此次实际生产路径；新增受控入口应保持所有已封印源码不变。",
+  "limitation": "This file records the reviewer's delivered findings; raw artifact checks and seals remain the primary machine-verifiable evidence. A different integrity reviewer exhausted tool quota before final review and is not represented as having issued this PASS.",
+  "independent_fairness_report_audit": {
+    "reviewer": "/root/audit_priority_sources",
+    "status": "PASS",
+    "new_P1_P2_findings": 0,
+    "summary_groups_recomputed": 56,
+    "paired_groups_recomputed": 80,
+    "primary_mapping": "10 fresh author-ceiling extensions + 74 original identity references",
+    "total_actual_training_process_hours": 18.82199276367823,
+    "report_tables_and_statistical_claims": "PASS",
+    "reviewer_final_report": "最终只读审计 PASS；无新增 P1/P2。可以交付。未训练、未执行任何新前向、未写文件。独立脚本经 ssh a40 python3 -B - 执行，退出0。84个主条件按统一资格规则对应10次扩展重训＋74次原物理训练引用；扩展前40轮共400对权重内容hash、engine SSE、验证指标和选模状态全部一致。独立重算56个summary组的均值、样本SD、Student-t 95% CI，以及80个配对组的逐seed差值、CI和胜出计数，全部匹配。主表、Two-Phase单列表、固定40轮表的RMSE/NASA显示值逐格匹配工件。两个DSPT参考均保留固定40配置及原物理身份。数量、成本及参数正确。唯一主条件尚未触发patience而撞cap者为FC-STGNN FD003/s101：41轮、best30。报告已充分限定结论；SUCCESS仅指共同协议执行与证据完整，旧作者数字复现的PARTIAL未被抹去。"
+  }
+}

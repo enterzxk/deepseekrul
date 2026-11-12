@@ -1,0 +1,23 @@
+{
+  "old40_modules_byte_equal": {
+    "data.py": true,
+    "reference_wrap.py": true,
+    "SNAPSHOT_MANIFEST.json": true,
+    "DATASET_EXPECTED_SHA256.json": true
+  },
+  "runner_AST_equal_except_metadata_protocol_label": true,
+  "max_epoch_read_sites_in_runner": [
+    [
+      136,
+      "for epoch in range(1,cfg[\"epochs\"]+1):"
+    ]
+  ],
+  "max_independent_schedulers": [
+    "constant Adam",
+    "StepLR10gamma0.1",
+    "ReduceLROnPlateau"
+  ],
+  "native_Cosine_Tmax40_unchanged": true,
+  "new_condition_uses_exact_same_upstream_adapter": true,
+  "new_TEST_read": false
+}

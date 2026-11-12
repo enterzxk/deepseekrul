@@ -1,0 +1,24 @@
+{
+  "phase": "test_prediction_reuse_input_audit",
+  "official_test_unlocked": true,
+  "official_test_reads": [
+    {
+      "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD003.txt",
+      "unix": 1794461842.4505088
+    },
+    {
+      "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/RUL_FD003.txt",
+      "unix": 1794461842.4527628
+    },
+    {
+      "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD003.txt",
+      "unix": 1794461842.6230965
+    },
+    {
+      "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD003.txt",
+      "unix": 1794461842.8600132
+    }
+  ],
+  "violations": [],
+  "nonfinite_replacements": 0
+}

@@ -1,0 +1,23 @@
+{
+  "replaced_pid": 1838748,
+  "reason": "charge each active job max(reservation,observed_memory); existing live training adopted unchanged",
+  "adopt_running": [
+    {
+      "path": "experiments/matched/two_phase/FD002/s101",
+      "pid": 1839082
+    },
+    {
+      "path": "experiments/matched/dspt_v0_cycle/FD002/s101",
+      "pid": 1869092
+    },
+    {
+      "path": "experiments/matched/dual_mixer/FD003/s101",
+      "pid": 1879800
+    }
+  ],
+  "no_training_workers_signalled": true,
+  "execution_manifest_sha256": "3bbb4c5a6e5d48551adc75089eb4c8de5582ee7ff2c9a7dc65beaa63fac3ef9a",
+  "launcher_path": "memory_queue_v2.py",
+  "launcher_sha256": "1bd6c406c09dcbea994146fc6df2c0e2b25cf42938b524cd375be722e8816a05",
+  "created_unix": 1794419409.0104291
+}

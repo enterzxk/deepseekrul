@@ -1,0 +1,95 @@
+{
+  "registration_date": "2026-11-12",
+  "registration_timing": "after40-condition validation evidence; before any new official TEST",
+  "decision": "keep fixed40 condition; author-ceiling condition primary strong-baseline comparison",
+  "old40_protocol_sha256": "2d8dc6143c6ac83030e671b00ce39c122f41a7ea59a9eb410b606096be64fa22",
+  "old40_execution_manifest_sha256": "3bbb4c5a6e5d48551adc75089eb4c8de5582ee7ff2c9a7dc65beaa63fac3ef9a",
+  "author_protocol_sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a",
+  "author_execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "models": [
+    "aidgn",
+    "two_phase",
+    "dual_mixer",
+    "ffve",
+    "fcstgnn",
+    "dspt_v0_cycle",
+    "dspt_train_defaults"
+  ],
+  "subsets": [
+    "FD001",
+    "FD002",
+    "FD003",
+    "FD004"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "ceilings": {
+    "aidgn": [
+      300,
+      300,
+      300,
+      300
+    ],
+    "two_phase": [
+      200,
+      600,
+      200,
+      600
+    ],
+    "dual_mixer": [
+      100,
+      100,
+      100,
+      100
+    ],
+    "ffve": [
+      100000,
+      100000,
+      100000,
+      100000
+    ],
+    "fcstgnn": [
+      41,
+      41,
+      41,
+      41
+    ],
+    "dspt_v0_cycle": [
+      40,
+      40,
+      40,
+      40
+    ],
+    "dspt_train_defaults": [
+      40,
+      40,
+      40,
+      40
+    ]
+  },
+  "qualification": {
+    "epochs_run_equal": 40,
+    "remaining_patience_rule": "40-best_epoch<12",
+    "ceiling_greater_than": 40
+  },
+  "scheduler_independence": {
+    "aidgn": "ReduceLROnPlateau: no max-epoch dependency",
+    "two_phase": "constant Adam LR and fixed20/100 pretraining: no max-epoch dependency",
+    "dual_mixer": "constant Adam LR: no max-epoch dependency",
+    "ffve": "StepLR(step10,gamma0.1): no max-epoch dependency",
+    "fcstgnn": "constant Adam LR: no max-epoch dependency",
+    "dspt_v0_cycle": "CosineTmax40; do not extend",
+    "dspt_train_defaults": "CosineTmax40; do not extend"
+  },
+  "all_settings_except_ceiling_unchanged": true,
+  "all_eligible_retrained_fresh": true,
+  "no_optimizer_state_available_in_old_checkpoint": true,
+  "all_condition_weights_frozen_before_TEST": true,
+  "test_forward_dedup": "only if canonical state hash, source model bytes, data, eval seed and prediction contract identical; otherwise evaluate each unique trained run once",
+  "time_budget_a40_hours": 60,
+  "two_phase_extra_resource_condition": true,
+  "do_not_claim_mathematical_convergence": true
+}

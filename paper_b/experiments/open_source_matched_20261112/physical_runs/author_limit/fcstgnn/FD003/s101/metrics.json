@@ -1,0 +1,58 @@
+{
+  "model": "fcstgnn",
+  "subset": "FD003",
+  "seed": 101,
+  "best_epoch": 30,
+  "epochs_run": 41,
+  "validation_engine_mean_rmse": 11.941988036668496,
+  "validation_pooled_rmse": 14.0560727189068,
+  "params": 592989,
+  "trainable_params": 592989,
+  "training_time_s": 790.6139469146729,
+  "n_train_windows": 20486,
+  "n_validation_cuts": 100,
+  "config_sha256": "c5038d67d0128bb4f4b93293aaddc9245f0d9a8320c5bc7ee762bb9f608a7bf0",
+  "checkpoint_sha256": "388a203234aab1b74ab65c750bd6de7c96839b4a81f9f2471f53ff924b49dfae",
+  "state_content_sha256": "5080dd5bea0bb9021dee82f4e9aa6cb3c10e54a2ee2769fc0a9876a9e6d232c1",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "rmse": 13.603790451215648,
+  "mae": 9.90138744354248,
+  "nasa_sum": 316.525344492421,
+  "nasa_mean": 3.1652534449242102,
+  "bias": 0.4758757972717285,
+  "late_frac": 0.49,
+  "severe_late": 0.16,
+  "max_late": 39.66454315185547,
+  "n": 100,
+  "official_test_data_sha256": {
+    "test": "299babd63c8d987cef079c4a425429f33b3a34797d803bbe2ad48c29dbd0d790",
+    "RUL": "df1e0566306b174a2de41c67a3e7a51877889598b78643fc3e5685259091b7cb"
+  },
+  "evaluation_unit": "official_test_engine",
+  "protocol": "author_limits_20261112",
+  "test_forward_passes": 0,
+  "test_prediction_reused_from": "fixed40/fcstgnn/FD003/s101",
+  "source_prediction_sha256": "b070a7926fd0f16207cfa87e9d0e35e9cbbce716bf57e362950aa25ad2df347d",
+  "batch_freeze_sha256": "e2fd2f8dadfbbab8319e0020a3344bc381b477ddc26d64e5c432007c2be357e5",
+  "joint_freeze_sha256": "a95029260ecfcb888c89845321625cbbf992ed976b3fca63fc5deae72e6fc817",
+  "test_runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "reuse_input_arrays_equal": {
+    "x": true,
+    "age": true,
+    "y": true,
+    "unit": true,
+    "cut": true
+  },
+  "reuse_evaluation_seed": 200101,
+  "source_output_seal_sha256": "50af94816823a48f366b904c3d2d0f21dfea40bfe278b98f10b60823054ff30d"
+}

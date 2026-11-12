@@ -1903,3 +1903,38 @@ Risks: maximum ceiling is not mathematical convergence, different compute
 not equalresource; report budget truncation/actualepochs/time and both tables.
 Evidence AUTHOR_LIMIT_POLICY.json / AUTHOR_LIMIT_EQUIVALENCE.json and new
 package paper_b/baselines/open_source_author_limits_20261112/.
+
+## PB-OS-010 · 2026-11-12 · Completed matched evaluation acceptance
+
+Decision: accept94physical training runs/168logical condition results after
+full CPU checkpoint/config/source/selection checks and independent final
+read-only Codex audit. Production joint READY precedes allofficial access;
+91actual whole-TEST predictions plus3proved identical-state/input reuses,
+94permanent quota records,0failures. No further model/config/window/LR/seed
+changes or official inference are authorized by observed results.
+
+Evidence: JOINT_COMPARISON_FREEZE, JOINT_TEST_COMPLETE, actualinput/output
+seals,400identical first40 extension epoch state pairs, archived metrics
+independently recomputed against raw capped official labels. Independent
+review maximum RMSE/NASA differences8.39e-9/1.423e-6. Report author-ceiling
+condition as primary; fixed40 sensitivity remains complete. Both DSPT
+references fixed; TwoPhaseextra-data table separate. Historical author
+reproduction statuses remain unchanged; newSUCCESS is protocol execution
+and evidence acceptance, not original-number replication/tuned optimality.
+
+Counterevidence/risks: n3conditional seed CIs, onefixed split, historicalTEST
+exposure, singleton windows and method-specific compute remain. FC-STGNN
+FD003/s101 hitsauthor41epochcap before patience; do not claim convergence.
+DSPT-V0 lower meanRMSE onfourFDs does not imply everyseed/metric victory;
+FC-STGNN FD004 meanNASA lower than primaryDSPT.
+
+Engineering: preserve allsealed learning/evaluation source. A legacy single
+runCLI could bypassjointREADY in hypothetical unsupported use, while actual
+production jointpath validated it. Add newguarded_test entrypoint after
+evaluation, fullREADY+physicalidentity validation and completed-no-forward/
+missingREADY/unregisteredtuple/duplicateidentity checksPASS. Never present
+this wrapper as the sourceactuallyexecuted. Retain reviewer finding and
+newentry acceptance; original quotas/results unchanged.
+
+Execution: collect/verify newartifact only, preserve PaperA/frozenDSPT/old120,
+final review+hash-check+authorizedGitHubpush onisolatedPaperBbranch.

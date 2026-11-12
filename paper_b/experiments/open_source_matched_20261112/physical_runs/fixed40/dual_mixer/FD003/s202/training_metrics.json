@@ -1,0 +1,23 @@
+{
+  "model": "dual_mixer",
+  "subset": "FD003",
+  "seed": 202,
+  "best_epoch": 24,
+  "epochs_run": 36,
+  "validation_engine_mean_rmse": 12.411959807715203,
+  "validation_pooled_rmse": 14.198254157073272,
+  "params": 64123,
+  "trainable_params": 64123,
+  "training_time_s": 633.8008313179016,
+  "n_train_windows": 20486,
+  "n_validation_cuts": 100,
+  "config_sha256": "5bfef75fcdf47647d4d7fe5fbd4170fc172a9afa10c15ed5cce59ecc07bf1235",
+  "checkpoint_sha256": "794a29d1078176d1a87b29716facfc340f79dd40ca09babf140cf6c34253a9d4",
+  "state_content_sha256": "066e3f223d2796147be368a711a9cb72df7b674e142fb968dcfc304214b48ff2",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 40,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "protocol": "matched_20261112",
+  "model": "ffve",
+  "subset": "FD001",
+  "seed": 303,
+  "data_dir": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "window": 30,
+  "window_tuning_trials": 0,
+  "execution_manifest_sha256": "3bbb4c5a6e5d48551adc75089eb4c8de5582ee7ff2c9a7dc65beaa63fac3ef9a",
+  "protocol_sha256": "2d8dc6143c6ac83030e671b00ce39c122f41a7ea59a9eb410b606096be64fa22",
+  "snapshot_manifest_sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a",
+  "training_windows": "all_cycle_left_padded",
+  "checkpoint_selection": "val_engine_mean_rmse",
+  "tf32": false,
+  "training_data_sha256": {
+    "FD001": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8"
+  },
+  "source": {
+    "model": "ffve",
+    "repository": "https://github.com/LLerDagu/RUL-FFVE",
+    "commit": "dd74264d8bb034e74ed7bc0133325f4e05ecebdf",
+    "manifest_sha256": "0916d2825bfcb68d53f82a5b481ed10b1a8ab0e632d4e160f7a15b8af80b31bc"
+  },
+  "batch": 128,
+  "lr": 0.005,
+  "weight_decay": 0.01,
+  "ffve_blocks": 1,
+  "ffve_long_residual": false,
+  "config_sha256": "3e147eb92b5a32c56e90ed23215aee644339cdca68facc148496fc92ee953c7a"
+}

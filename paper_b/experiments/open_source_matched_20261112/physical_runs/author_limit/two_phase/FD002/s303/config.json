@@ -1,0 +1,50 @@
+{
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 600,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "protocol": "author_limits_20261112",
+  "model": "two_phase",
+  "subset": "FD002",
+  "seed": 303,
+  "data_dir": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "window": 45,
+  "window_tuning_trials": 0,
+  "execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "protocol_sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a",
+  "snapshot_manifest_sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a",
+  "training_windows": "all_cycle_left_padded",
+  "checkpoint_selection": "val_engine_mean_rmse",
+  "tf32": false,
+  "training_data_sha256": {
+    "FD002": "dac6c4dbc4e7c1bdeb5747da3d313d05c395bb99801b44a002b26a2ba13d788f",
+    "FD004": "27ef6160b6a1dcb2613a88de9c239f763b223f02cdc41dc5cdedc5dc189b6218"
+  },
+  "budget_condition": "method_author_epoch_limits_after_validation_registration",
+  "source": {
+    "model": "two_phase",
+    "repository": "https://github.com/mjliu-advertising/RUL",
+    "commit": "5bd33b2b1bb044ab4be1a8cb67fdf8a5d96d1d0a",
+    "manifest_sha256": "c7cbdd3e7f31a9c053ccf1bbaa0fa28e4103cca32b86b8fb0a1abe1e167cbd16"
+  },
+  "batch": 256,
+  "lr": 0.0001,
+  "weight_decay": 0.0,
+  "paired_pretraining_subset": "FD004",
+  "pretraining_epochs": 100,
+  "seed_policy": "whole-pipeline FT-before-PRE; no phase reseed",
+  "extra_data_condition": "paired subset training engines; both validation sets excluded",
+  "config_sha256": "d29d3d8c99103885565f92d46a244e493fd0a96012947530062b35ab7f7172c0"
+}

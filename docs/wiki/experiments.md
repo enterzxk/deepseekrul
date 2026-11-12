@@ -89,3 +89,15 @@ per-run config hashes/checkpoints/predictions and evaluation gates:
 Source/training/final metric audits are indexed in
 `docs/paper_b_baselines/INDEPENDENT_AUDIT.md`; authoritative numeric tables
 are generated in OPEN_SOURCE_REPRODUCTION_REPORT.md, not duplicated here.
+
+## PB-OS-MATCHED-20261112 · complete
+
+Purpose: rerun complete public methods under currentDSPT allprefix/engine-mean
+selection, commonFP32/cap125/split andofficialendpoint rules. Registered
+models/seeds/windows andvalidation-onlyauthor-ceiling amendment in
+paper_b/baselines/open_source_matched_20261112/{PROTOCOL,AUTHOR_LIMIT_POLICY}.json.
+Evidence/decision: PB-OS-006–010;94physical/168logical, independentauditPASS.
+Primaryauthor-ceiling and40sensitivity separate; extra-dataTwoPhase separate.
+Numeric source/report: paper_b/experiments/open_source_matched_20261112/ and
+docs/paper_b_baselines/MATCHED_COMPARISON_REPORT_20261112.md.
+No changes toPaperA/DSPT/oldresults.

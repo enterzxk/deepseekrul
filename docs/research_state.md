@@ -921,3 +921,22 @@ User requested new uniform-protocol training and fair DSPT comparison.
 Isolated84-cell preregistration/source snapshot and recovery state:
 docs/paper_b_baselines/MATCHED_RESEARCH_STATE.md. This is independent of
 PaperA/HC queues; do not modify their frozen code or stop their jobs.
+
+## Paper B public baselines: matched rerun completion (isolated branch, 2026-11-12)
+
+This note belongs to codex/paper-b-open-source-reproduction only; PaperA
+phase fields and experiments are unchanged. User requested currentDSPT
+uniform reruns and authorized GitHubsubmission without DSH. All94physical
+trainings and168logical conditions complete;91actualofficialTEST+3proved
+reuses; independent read-only CPU auditPASS. Primaryauthor-ceiling and40epoch
+sensitivity results, bothfixedDSPTrefs andextra-dataTwoPhase are separate.
+Canonicalrestore: docs/paper_b_baselines/MATCHED_RESEARCH_STATE.md.
+Report: docs/paper_b_baselines/MATCHED_COMPARISON_REPORT_20261112.md.
+Artifacts: paper_b/experiments/open_source_matched_20261112/.
+Remaining atthischeckpoint: finalreport review, transfer/local+stagedhash
+acceptance, commitandpush authorizedisolatedbranch. No furthertraining/TEST.
+
+PaperB closeout: bothindependent auditsPASS; finalremote+local2313-hash
+artifactacceptancePASS. Allscientificworkcomplete; deliveryfiles andGit
+closeout areonisolatedcodex/paper-b-open-source-reproduction. See latest
+Finaldeliveryacceptance inMATCHED_RESEARCH_STATE.md; nofurthertraining/TEST.

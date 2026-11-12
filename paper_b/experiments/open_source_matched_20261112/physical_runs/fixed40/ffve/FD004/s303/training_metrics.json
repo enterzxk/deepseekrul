@@ -1,0 +1,23 @@
+{
+  "model": "ffve",
+  "subset": "FD004",
+  "seed": 303,
+  "best_epoch": 14,
+  "epochs_run": 26,
+  "validation_engine_mean_rmse": 12.811183932376725,
+  "validation_pooled_rmse": 15.875393499759808,
+  "params": 412273,
+  "trainable_params": 412273,
+  "training_time_s": 221.76554822921753,
+  "n_train_windows": 48691,
+  "n_validation_cuts": 250,
+  "config_sha256": "cc0d338289a66a037e5b0514d94c493f3178234f021bcdb99efb8727784cbc67",
+  "checkpoint_sha256": "190647fbb3692c41e59bb292cb9026253ea9d7fd516fa418e29726585b58d094",
+  "state_content_sha256": "d3045c1e774a32df4e1fe4547fa1add038d6e8ab8ed29b15221f8314bed32ab8",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  }
+}

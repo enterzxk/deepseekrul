@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "closed output validates without new forward",
+    "unregistered physical tuple rejected",
+    "missing joint READY rejected before predictor",
+    "duplicate physical identity rejected"
+  ],
+  "new_neural_forward_calls": 0,
+  "source_training_or_actual_evaluation_files_changed": false,
+  "scope": "post-evaluation entry hardening only"
+}

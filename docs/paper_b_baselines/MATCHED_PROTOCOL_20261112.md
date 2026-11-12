@@ -76,3 +76,14 @@ python -u -m paper_b.baselines.open_source_matched_20261112.orchestrate \
 
 Do not overwrite or relabel the old120-run batch as this new experiment.
 Final artifacts: `paper_b/experiments/open_source_matched_20261112/`.
+
+
+## Completed validation-only amendment and final scope
+
+The initial40epoch registration above remains historical. Before any new
+officialTEST, PB-OS-009 added author-ceiling primary comparison and retained
+fixed40 sensitivity. AUTHOR_LIMIT_POLICY.json defines exactuniformeligibility;
+10fresh fullretrainings qualify. All94physicaltrainings/168logicalcases were
+jointlyfrozen before newTEST. Complete results and limitations are in
+[MATCHED_COMPARISON_REPORT_20261112.md](MATCHED_COMPARISON_REPORT_20261112.md).
+Do not describe the amendedbudget as preregistered before initialvalidation.

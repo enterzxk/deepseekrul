@@ -1,0 +1,45 @@
+{
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 100,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "protocol": "author_limits_20261112",
+  "model": "dual_mixer",
+  "subset": "FD001",
+  "seed": 101,
+  "data_dir": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "window": 30,
+  "window_tuning_trials": 0,
+  "execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "protocol_sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a",
+  "snapshot_manifest_sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a",
+  "training_windows": "all_cycle_left_padded",
+  "checkpoint_selection": "val_engine_mean_rmse",
+  "tf32": false,
+  "training_data_sha256": {
+    "FD001": "963b5e22825b34d8b21c69e1aeb4af3e647050eb672ee8834ba4b5d91d2de0f8"
+  },
+  "budget_condition": "method_author_epoch_limits_after_validation_registration",
+  "source": {
+    "model": "dual_mixer",
+    "repository": "https://github.com/fuen1590/PhmDeepLearningProjects",
+    "commit": "727c020cabba2c6ae96e8f0e28f7f0121b292e81",
+    "manifest_sha256": "45c714d4e818493e3d9c20d63489f0a957ddc6c4251d340add1250e1d0099281"
+  },
+  "batch": 204,
+  "lr": 0.001,
+  "weight_decay": 0.0,
+  "config_sha256": "d8a56cc6b87b6038549418d2f9b2c6173054038c2892ba257f07deae7400dd72"
+}

@@ -1,0 +1,45 @@
+{
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 300,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "protocol": "author_limits_20261112",
+  "model": "aidgn",
+  "subset": "FD004",
+  "seed": 303,
+  "data_dir": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "window": 50,
+  "window_tuning_trials": 0,
+  "execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "protocol_sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a",
+  "snapshot_manifest_sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a",
+  "training_windows": "all_cycle_left_padded",
+  "checkpoint_selection": "val_engine_mean_rmse",
+  "tf32": false,
+  "training_data_sha256": {
+    "FD004": "27ef6160b6a1dcb2613a88de9c239f763b223f02cdc41dc5cdedc5dc189b6218"
+  },
+  "budget_condition": "method_author_epoch_limits_after_validation_registration",
+  "source": {
+    "model": "aidgn",
+    "repository": "https://github.com/TCCofWANG/AIDGN-RUL",
+    "commit": "d1ac173b13659af1854cf500a9b1cba8367353fe",
+    "manifest_sha256": "c18ccb46d71266d5f2435e0f8eed8f0e0caaa0689186ea7dccd2b81c79ff63ce"
+  },
+  "batch": 128,
+  "lr": 0.001,
+  "weight_decay": 0.0,
+  "config_sha256": "da5ace2ccf1173c6428cb3849858e81f9df8f198f3b93f72ca676e2a1cf920ee"
+}

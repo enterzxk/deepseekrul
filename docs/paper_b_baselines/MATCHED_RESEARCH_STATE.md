@@ -150,3 +150,59 @@ state/input/source/seed contracts; collect authorlimits primary plus40
 sensitivity, both DSPT references, extra-data TwoPhase separate; strict
 logical/physical counts/hash/metrics/paired-summary validation; download,
 verify stagedbytes/frozenboundaries, finalreport and GitHubpush.
+
+## Completed training and official evaluation
+
+All94actual supervised trainings finished;168logical condition cases. CPU
+freeze accepts allfinite weights/config/source/data/engine-SSE/selection.
+All10fresh extensions exactly reproduce the first40epochs of their original
+same-seed runs:400state hashes identical, validation difference0.
+Both84-entry component batches finalized before joint READY, SHA256
+a95029260ecfcb888c89845321625cbbf992ed976b3fca63fc5deae72e6fc817.
+Actual evaluation source7files sealed at Git7fdb913977792218be5cffb0c4fe33e3e117a70e,
+manifest SHA7eab55f3ed72f47d163cf502e3698d035690f8eae5d1d1ffb2d736f8e6405a9b.
+Production joint controllerPID3095821 finished naturally:91actual TEST
+prediction passes+3identical-state/input/source sealed reuses,0failures.
+Permanent94TEST_ATTEMPT records retained. Never restart or clear these slots.
+
+Independent secondary high-reasoning Codex final read-only CPU audit PASS:
+94closures/quotas/output-input seals, full official engine IDs/rawcappedRUL,
+dataSHA and independent RMSE/NASA formulas. Maximum metric differences
+8.39e-9/1.423e-6; earliestofficial access262.3558s after READY. Actual historical
+tests were already exposed, so this is not described as a fresh blind test.
+Reviewer findings recorded in INDEPENDENT_MATCHED_AUDIT_20261112.json.
+The other integrity reviewer hit tool quota, not falsely credited a finalPASS.
+
+Sealed legacy single-run CLIs only check their component batch. Actualjoint
+production fully checked READY before launch, no premature-access evidence.
+Preserve executed source exactly; newguarded_test.py hardens supported single
+entry with full jointready/physicalrecord checks. Completed audit-only/noNN,
+missingREADY, unregisteredtuple and duplicateidentity checks PASS. This is
+post-evaluation engineering, not a retroactive source identity change.
+
+Initial jointcollect/stdlibacceptance PASS2311hashes,94physical/168logical,
+91forward+3reuse. New artifacts are in remote paper_b/experiments/
+open_source_matched_20261112. Mainreport generated with author-ceiling table,
+fixed40sensitivity, bothfixedDSPTrefs, extra-dataTwoPhase, pairedCIs and costs.
+Remain: final report independent review; gather final audit/docs/source
+metadata, finalarchive/local+Gitbyteverification; append indexes; commit/push
+authorized codex/paper-b-open-source-reproduction. No further training orTEST.
+
+## Final delivery acceptance
+
+Final remote and local standard-library acceptance PASS:2313artifact hashes,
+94physicaltrainings/168logicalcases,91actualTEST+3provenreuses, allmetrics/
+source/config/checkpointbytes/engine-SSEselection/splits/cuts/summary/paired
+comparisons. Scopedtransport SHA256
+4759a8a5424c1248d106c013a0c2066bf82fdd7f88fe758e70c49e35417ab2b9.
+Second independentfairness/report auditPASS, noP1/P2;56summary/80pairedgroups
+andallreportcells/costs checked. Both audits recorded in
+INDEPENDENT_MATCHED_AUDIT_20261112.json andnewartifact evidence.
+
+Scientific work complete: no remaining training/test ordecision dependency.
+Artifacts andfullreport reside locally inthisisolatedworktree; frozen
+PaperA/DSPT/source-model paths andold120-run artifact namespace byteunchanged
+relative topublishedc06bc257. Delivery branch
+codex/paper-b-open-source-reproduction; publication authorized byuser.
+FinalGitacceptance checks stagedartifactbytes againstallmanifestentries and
+checks remoteHEAD matches pushedcommit. Do notrerun anyrecordedTEST slot.

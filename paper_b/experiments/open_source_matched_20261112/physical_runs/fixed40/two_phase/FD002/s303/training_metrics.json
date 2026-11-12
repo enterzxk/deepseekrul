@@ -1,0 +1,23 @@
+{
+  "model": "two_phase",
+  "subset": "FD002",
+  "seed": 303,
+  "best_epoch": 40,
+  "epochs_run": 40,
+  "validation_engine_mean_rmse": 23.988597313351494,
+  "validation_pooled_rmse": 24.876478926289916,
+  "params": 24289,
+  "trainable_params": 1649,
+  "training_time_s": 1060.270114183426,
+  "n_train_windows": 43251,
+  "n_validation_cuts": 260,
+  "config_sha256": "294faa07b485f680b37f19a6c43a2b5780ffa0c4f12800c4d8ca2df9c246144a",
+  "checkpoint_sha256": "b5be6db977bad0d98aa9d5c6193e657dd8f1ff5fa710875d5bb0ac4921ebaeaf",
+  "state_content_sha256": "49422cdb8daa16885f9d00bd362905e16e7e128962d1663cb0667eab81eb1a11",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  }
+}

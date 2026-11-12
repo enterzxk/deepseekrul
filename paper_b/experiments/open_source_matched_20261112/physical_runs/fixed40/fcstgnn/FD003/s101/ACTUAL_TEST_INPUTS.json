@@ -1,0 +1,18 @@
+{
+  "phase": "immediately_before_actual_TEST_prediction",
+  "namespace": "fixed40",
+  "model": "fcstgnn",
+  "subset": "FD003",
+  "seed": 101,
+  "arrays": {
+    "x": "94065655267ccf20d6781bf5e58649c52a8b9696b97ba3134aaf1e183aa6d018",
+    "age": "931d201aab1faf6a8a7533ac1d34e1059906025cf6537d4938444366521a4354",
+    "y": "3c7e462dd31b4da7c144cafa902fbf630cc4133f536eac99759b5a4f85ff45ac",
+    "unit": "f8073cd32c7d9f4ac6ce7b3801d56ec0973992d0a7fcdf02aab316aca65b27da",
+    "cut": "e36fe301f15928cbaae27f46c5c130011a0715096e895880e64e466f52579e6b"
+  },
+  "predict_function_sha256": "bad11bddfd483a13629015048bc6000b38aad349ce195879b135166a13b79fbe",
+  "evaluation_seed": 200101,
+  "model_was_replaced": false,
+  "checkpoint_sha256": "388a203234aab1b74ab65c750bd6de7c96839b4a81f9f2471f53ff924b49dfae"
+}

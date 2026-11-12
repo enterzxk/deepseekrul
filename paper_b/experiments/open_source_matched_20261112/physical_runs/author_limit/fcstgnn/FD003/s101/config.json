@@ -1,0 +1,45 @@
+{
+  "split_seed": 7,
+  "fold": 0,
+  "val_frac": 0.2,
+  "cuts": [
+    0.4,
+    0.55,
+    0.7,
+    0.85,
+    0.95
+  ],
+  "rul_cap": 125,
+  "n_cond": 6,
+  "epochs": 41,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
+  "protocol": "author_limits_20261112",
+  "model": "fcstgnn",
+  "subset": "FD003",
+  "seed": 101,
+  "data_dir": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS",
+  "window": 50,
+  "window_tuning_trials": 0,
+  "execution_manifest_sha256": "f58a0d523decb5626a8b3822ec6d9ccefc63161a21e41f221e027bbf50112c1a",
+  "protocol_sha256": "e36830241fd1cbd7e99a2e7f1064b35fa433484307254a03aeff8bf214f1556a",
+  "snapshot_manifest_sha256": "07a1e972bc8838ad9930a69fbb5d5d9c9a0b87f9424a9627dfc4315923a15d4a",
+  "training_windows": "all_cycle_left_padded",
+  "checkpoint_selection": "val_engine_mean_rmse",
+  "tf32": false,
+  "training_data_sha256": {
+    "FD003": "2abbe9968cc5e8eb091980f51b20f62bb4127336d3482cb52071d53bf23329e2"
+  },
+  "budget_condition": "method_author_epoch_limits_after_validation_registration",
+  "source": {
+    "model": "fcstgnn",
+    "repository": "https://github.com/Frank-Wang-oss/FCSTGNN",
+    "commit": "93f2387feff4457b17016b33931a7dc6ec757719",
+    "manifest_sha256": "5e8ad8f8fde862a407c5160407d645248a6f09bf00891458b5987cfc7f3aad07"
+  },
+  "batch": 100,
+  "lr": 0.001,
+  "weight_decay": 0.0,
+  "config_sha256": "c5038d67d0128bb4f4b93293aaddc9245f0d9a8320c5bc7ee762bb9f608a7bf0"
+}

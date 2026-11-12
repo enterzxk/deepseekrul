@@ -50,3 +50,10 @@ Report: `docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md`.
 PaperA, frozen DSPT and old experiment artifacts were not changed.
 Publication proceeds on `codex/paper-b-open-source-reproduction`; status
 limits and exact provenance are documented rather than hidden.
+
+## 2026-11-12 · Paper B uniform public-baseline reruns
+
+Completed complete-source training, jointpreTESTfreeze, once-onlyofficial
+evaluation andindependentCPUaudits. Conditions/coverage/evidence indexed at
+PB-OS-MATCHED-20261112 inexperiments.md. Finalrestorefile:
+docs/paper_b_baselines/MATCHED_RESEARCH_STATE.md. PaperA stage unchanged.

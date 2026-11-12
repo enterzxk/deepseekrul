@@ -1,0 +1,212 @@
+{
+  "repository": "https://github.com/fuen1590/PhmDeepLearningProjects",
+  "commit": "727c020cabba2c6ae96e8f0e28f7f0121b292e81",
+  "commit_date": "2024-11-25T19:43:50+08:00",
+  "tree": [
+    {
+      "path": ".assets/FSGRI.png",
+      "sha": "81c62a6af23da5fb5fe08c03e258423686706a08"
+    },
+    {
+      "path": ".assets/layer_structure.png",
+      "sha": "12938425b0b4131c4c37a8b367fa22827fb74192"
+    },
+    {
+      "path": ".assets/model_structure.png",
+      "sha": "5553657d0d44eb4f64deed69fe6aeb072a14f1ba"
+    },
+    {
+      "path": "LICENSE",
+      "sha": "f9653ee5a8ec032861eb6d02660623f02fa978a7"
+    },
+    {
+      "path": "dataset/__init__.py",
+      "sha": "139597f9cb07c5d48bed18984ec4747f4b4f3438"
+    },
+    {
+      "path": "dataset/cmapss.py",
+      "sha": "c6b900f439f857a6b0891aeed47ed1ff760ff3a6"
+    },
+    {
+      "path": "dataset/utils.py",
+      "sha": "71eb4d401096cf5b2584ea67b52562d5ccd883e9"
+    },
+    {
+      "path": "models/RULPrediction/BiGRU_TSAM.py",
+      "sha": "fb7e69eb926928437dde3824b044027c0fc58ba7"
+    },
+    {
+      "path": "models/RULPrediction/CNN_GRU.py",
+      "sha": "a1f58552d4bd0077e3ef71bc5f92dc56091b2073"
+    },
+    {
+      "path": "models/RULPrediction/ContrastiveModules.py",
+      "sha": "dd91b35bfd1524efb91d5d12cea9f37ecf188b08"
+    },
+    {
+      "path": "models/RULPrediction/DAMCNN.py",
+      "sha": "015fb1e3dc328771251ee23c0519b6e2b11fa27d"
+    },
+    {
+      "path": "models/RULPrediction/IMDSSN.py",
+      "sha": "ece47f044a80c34d51f9474d2b6b8a560b5f8a64"
+    },
+    {
+      "path": "models/RULPrediction/MLPMixer.py",
+      "sha": "44b5136ab48279af919dc99b2561e2e0e6ba26fc"
+    },
+    {
+      "path": "models/RULPrediction/ResBlockModel.py",
+      "sha": "909e23798dfe1b59c0dc0ac2ab776e0c4f09a749"
+    },
+    {
+      "path": "models/RULPrediction/SimpleModels.py",
+      "sha": "d25b3eb03e8b4df522bbb941aad24c4a508e0aa6"
+    },
+    {
+      "path": "models/RULPrediction/__init__.py",
+      "sha": "bd2f12912b5ed62297bd1bc115d27bb0e6c79e04"
+    },
+    {
+      "path": "models/RULPrediction/experiments.py",
+      "sha": "c1d19927f6b6e1af758d3701509a426d265bec1d"
+    },
+    {
+      "path": "models/__init__.py",
+      "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "readme.md",
+      "sha": "b2b29dc7ac20c47652aafc718aac9b60357a8bd7"
+    },
+    {
+      "path": "train/__init__.py",
+      "sha": "38d5dfd2851b73e4fdb82231dc21a1a1fc89cf48"
+    },
+    {
+      "path": "train/functions.py",
+      "sha": "2d7fbd1642c7f3860987d5423dd069c40efe12a5"
+    },
+    {
+      "path": "train/trainable.py",
+      "sha": "e8c03c82881722c384fa4958f5feec8c66ccb4b7"
+    }
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "git_blob_sha": "f9653ee5a8ec032861eb6d02660623f02fa978a7",
+      "sha256": "ffe553f0fc41bb7de1f015632a84db0bf0e9456b7dc5104d0d86f205fbb16ca6",
+      "size": 1065
+    },
+    {
+      "path": "dataset/__init__.py",
+      "git_blob_sha": "139597f9cb07c5d48bed18984ec4747f4b4f3438",
+      "sha256": "75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070",
+      "size": 2
+    },
+    {
+      "path": "dataset/cmapss.py",
+      "git_blob_sha": "c6b900f439f857a6b0891aeed47ed1ff760ff3a6",
+      "sha256": "c364b9095c22514c8080fc38f7b74f7d000979b9be17af561f975989277dea2f",
+      "size": 16706
+    },
+    {
+      "path": "dataset/utils.py",
+      "git_blob_sha": "71eb4d401096cf5b2584ea67b52562d5ccd883e9",
+      "sha256": "4cb6c1efa4feb53fef71b1b5c43b68420f9f6720cc9ccb2d2a347a5f395d08d1",
+      "size": 1620
+    },
+    {
+      "path": "models/RULPrediction/BiGRU_TSAM.py",
+      "git_blob_sha": "fb7e69eb926928437dde3824b044027c0fc58ba7",
+      "sha256": "4414e48697eba61e333fd2bf2e03475f33f827311c1f8d8fceab5804d8ea6ab2",
+      "size": 2784
+    },
+    {
+      "path": "models/RULPrediction/CNN_GRU.py",
+      "git_blob_sha": "a1f58552d4bd0077e3ef71bc5f92dc56091b2073",
+      "sha256": "9bbb68a133a70e00da1c25c4626a6fd41e277b732e5c62a8f465d503d19b6489",
+      "size": 5033
+    },
+    {
+      "path": "models/RULPrediction/ContrastiveModules.py",
+      "git_blob_sha": "dd91b35bfd1524efb91d5d12cea9f37ecf188b08",
+      "sha256": "6592b05a595cf72c663af077f88adeaf67e40b169ac28df0c9e57f59f484fc5e",
+      "size": 9625
+    },
+    {
+      "path": "models/RULPrediction/DAMCNN.py",
+      "git_blob_sha": "015fb1e3dc328771251ee23c0519b6e2b11fa27d",
+      "sha256": "d979d1af9ef7bd948eae2b70428799a2a317c07df5a68cc676ed560c06432468",
+      "size": 6646
+    },
+    {
+      "path": "models/RULPrediction/IMDSSN.py",
+      "git_blob_sha": "ece47f044a80c34d51f9474d2b6b8a560b5f8a64",
+      "sha256": "7411339ad52eccd968af218679ee2df0cbe1d752ae1a9b49109a29cedd857db6",
+      "size": 15979
+    },
+    {
+      "path": "models/RULPrediction/MLPMixer.py",
+      "git_blob_sha": "44b5136ab48279af919dc99b2561e2e0e6ba26fc",
+      "sha256": "5feb17c123974b34353fc28eddb602e1f46f7c1dcf15a693ab58289d00e07eb2",
+      "size": 8795
+    },
+    {
+      "path": "models/RULPrediction/ResBlockModel.py",
+      "git_blob_sha": "909e23798dfe1b59c0dc0ac2ab776e0c4f09a749",
+      "sha256": "fd7ba3ea5ce1d65e52ad7c54f38adc0e47c6e1dfb4dc6b0d3eb81a5c3093955c",
+      "size": 3745
+    },
+    {
+      "path": "models/RULPrediction/SimpleModels.py",
+      "git_blob_sha": "d25b3eb03e8b4df522bbb941aad24c4a508e0aa6",
+      "sha256": "b1a683180413b3fe94f67d678ad50f45d1631c9ff73ffb0dc7663a6ec8750f12",
+      "size": 5931
+    },
+    {
+      "path": "models/RULPrediction/__init__.py",
+      "git_blob_sha": "bd2f12912b5ed62297bd1bc115d27bb0e6c79e04",
+      "sha256": "9ec2126125554eae88964fb34011ff9b2d532433db8761820f5397cd157aaf7a",
+      "size": 158
+    },
+    {
+      "path": "models/RULPrediction/experiments.py",
+      "git_blob_sha": "c1d19927f6b6e1af758d3701509a426d265bec1d",
+      "sha256": "f71804c3e8fb7e25a09caa31e53ffa1486ba248c3af803cc3d7746422280ab31",
+      "size": 3941
+    },
+    {
+      "path": "models/__init__.py",
+      "git_blob_sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "readme.md",
+      "git_blob_sha": "b2b29dc7ac20c47652aafc718aac9b60357a8bd7",
+      "sha256": "3ca6e204dda0e4d6336498eb0e90a10627238626f8fd753b8cd6e9c7673e9740",
+      "size": 3402
+    },
+    {
+      "path": "train/__init__.py",
+      "git_blob_sha": "38d5dfd2851b73e4fdb82231dc21a1a1fc89cf48",
+      "sha256": "5afd1b6815b62629f344e5e2d527bf9306a030aa60d6c0d23cdbf8bcb4ced5b7",
+      "size": 64
+    },
+    {
+      "path": "train/functions.py",
+      "git_blob_sha": "2d7fbd1642c7f3860987d5423dd069c40efe12a5",
+      "sha256": "3dd9e03dbf0eea1ad887fc685ef285e984db88f49b052131a679e6d465562aff",
+      "size": 147
+    },
+    {
+      "path": "train/trainable.py",
+      "git_blob_sha": "e8c03c82881722c384fa4958f5feec8c66ccb4b7",
+      "sha256": "573785e8f9939133c7f765ea5f79945128abc5a41dc405d927e32841532e33c5",
+      "size": 12516
+    }
+  ],
+  "policy": "All code/config/notebook/README/license files <=2MB; no datasets/checkpoints/images. Full upstream tree is recorded."
+}

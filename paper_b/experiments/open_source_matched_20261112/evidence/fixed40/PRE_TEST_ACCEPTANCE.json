@@ -1,0 +1,38 @@
+{
+  "new_training": false,
+  "model_TEST_forward": false,
+  "official_file_reads": 0,
+  "real_weights_or_configs_modified": false,
+  "checks": [
+    {
+      "case": "real_READY_94physical_168logical",
+      "result": "PASS",
+      "physical": 94,
+      "logical": 168
+    },
+    {
+      "case": "freeze_idempotence",
+      "result": "PASS"
+    },
+    {
+      "case": "missing_author_batch",
+      "result": "REJECTED_BEFORE_TEST"
+    },
+    {
+      "case": "duplicate_batch_key",
+      "result": "REJECTED_BEFORE_TEST"
+    },
+    {
+      "case": "prepared_not_ready",
+      "result": "REJECTED_BEFORE_TEST"
+    },
+    {
+      "case": "wrong_component_hash",
+      "result": "REJECTED_BEFORE_TEST"
+    },
+    {
+      "case": "shared_atomic_quota_reuse_vs_forward",
+      "result": "SECOND_OWNER_REJECTED"
+    }
+  ]
+}

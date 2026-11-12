@@ -1,0 +1,23 @@
+{
+  "model": "dspt_train_defaults",
+  "subset": "FD001",
+  "seed": 303,
+  "best_epoch": 15,
+  "epochs_run": 27,
+  "validation_engine_mean_rmse": 10.678483201030287,
+  "validation_pooled_rmse": 11.53372320739385,
+  "params": 82114,
+  "trainable_params": 82114,
+  "training_time_s": 394.60975408554077,
+  "n_train_windows": 16762,
+  "n_validation_cuts": 100,
+  "config_sha256": "7d67e89c1d9ecd1c6708020bc0a8c055b9c9bb41e7ae456f9d9573b1eb4633fe",
+  "checkpoint_sha256": "f92d1597f5968866865f4162977a38d9e94ca6dc00ea378da6fb0db3f08a6e84",
+  "state_content_sha256": "134d1eaf6e015234cfad316ef00c7b800865358470332fd697cb25d94a2517cd",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": true
+  }
+}

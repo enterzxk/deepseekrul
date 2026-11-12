@@ -1,0 +1,20 @@
+{
+  "phase": "immediately_before_actual_TEST_prediction",
+  "namespace": "fixed40",
+  "model": "dspt_train_defaults",
+  "subset": "FD004",
+  "seed": 202,
+  "arrays": {
+    "x": "c0bd549d26aa16e706ae8855803ad52247c1b79344d1e90cef186e640e57a46c",
+    "y": "e4a47a6339731dab8bfc2b273e1c79db77000c336333a24a9e5ab995798f3ec8",
+    "mask": "e3e2049b208c812a21ce37ee130a98a29ef8e6da74ba1841e0b09c93249238df",
+    "baseline": "0f9d85431d7df09c922199ddaeb46a30c2e0a0b6eeedd2174cd8997673843257",
+    "cycle": "6860730cbe15ab632e98c1657e5d03c4938d9acae8f25a2c39272692171e588f",
+    "cond": "14b5f235b47f2fe87e5143588902bba501403d5397dc2aa5312c58f4f91298e0",
+    "unit": "c5e7f15f979d1c2a0c7fa7fc250d5b3b3622b64ccce6d908dc7176fdf4f37f5c"
+  },
+  "predict_function_sha256": "164f4932d86415b16ff8efe99249448123276a887ce50778bbc0742b642aeabc",
+  "evaluation_seed": null,
+  "model_was_replaced": false,
+  "checkpoint_sha256": "48c7f2990815cfa4d760b639442d6323e7e37f2970c2dd8a6077f5b45542775a"
+}

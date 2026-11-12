@@ -1,0 +1,406 @@
+{
+  "finite": true,
+  "canonical_state_sha256": "ae03e9707826498087aaf905d37332a745c9e36dcc5422cf2fe95227817c3cf2",
+  "checkpoint_sha256": "6bf401cd2de4baacb6a30e2510343fa7cd73581bb3988649ee12803720839b7e",
+  "tensor_shapes": {
+    "temporal_pe": {
+      "shape": [
+        1,
+        70,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "pe_periods": {
+      "shape": [
+        4
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_in.weight": {
+      "shape": [
+        64,
+        3
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_in.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv3.weight": {
+      "shape": [
+        64,
+        1,
+        3
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv3.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv5.weight": {
+      "shape": [
+        64,
+        1,
+        5
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv5.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv7.weight": {
+      "shape": [
+        64,
+        1,
+        7
+      ],
+      "dtype": "torch.float32"
+    },
+    "conv7.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "ms_proj.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "ms_proj.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "time_norm.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "time_norm.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "pe_proj.weight": {
+      "shape": [
+        64,
+        8
+      ],
+      "dtype": "torch.float32"
+    },
+    "pe_proj.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.self_attn.in_proj_weight": {
+      "shape": [
+        192,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.self_attn.in_proj_bias": {
+      "shape": [
+        192
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.self_attn.out_proj.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.self_attn.out_proj.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.linear1.weight": {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.linear1.bias": {
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.linear2.weight": {
+      "shape": [
+        64,
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.linear2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.norm1.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.norm1.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.norm2.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.0.norm2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.self_attn.in_proj_weight": {
+      "shape": [
+        192,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.self_attn.in_proj_bias": {
+      "shape": [
+        192
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.self_attn.out_proj.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.self_attn.out_proj.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.linear1.weight": {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.linear1.bias": {
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.linear2.weight": {
+      "shape": [
+        64,
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.linear2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.norm1.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.norm1.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.norm2.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "layers.1.norm2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.self_attn.in_proj_weight": {
+      "shape": [
+        192,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.self_attn.in_proj_bias": {
+      "shape": [
+        192
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.self_attn.out_proj.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.self_attn.out_proj.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.linear1.weight": {
+      "shape": [
+        128,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.linear1.bias": {
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.linear2.weight": {
+      "shape": [
+        64,
+        128
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.linear2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.norm1.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.norm1.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.norm2.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_attn.norm2.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_score.weight": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "sensor_score.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "norm.weight": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "norm.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "reg_head.0.weight": {
+      "shape": [
+        64,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "reg_head.0.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "reg_head.2.weight": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "reg_head.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    "hi_head.weight": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "torch.float32"
+    },
+    "hi_head.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    }
+  }
+}

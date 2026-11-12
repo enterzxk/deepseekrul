@@ -1,0 +1,348 @@
+{
+  "finite": true,
+  "canonical_state_sha256": "6b8e94d416bc84694736a55b07a059c073a5aff048e45ad69ef85ecfd39f6fb7",
+  "checkpoint_sha256": "83de17874b1224ea8d788f2e89ac96d716d4a1c9bbddbddcbbfe2c9227130088",
+  "tensor_shapes": {
+    "net.pos_embedding": {
+      "shape": [
+        1,
+        45,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.linear.weight": {
+      "shape": [
+        16,
+        17
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.linear.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.query.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.query.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.key.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.key.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.value.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.value.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn.in_proj_weight": {
+      "shape": [
+        48,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn.in_proj_bias": {
+      "shape": [
+        48
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn.out_proj.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn.out_proj.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn2.in_proj_weight": {
+      "shape": [
+        135,
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn2.in_proj_bias": {
+      "shape": [
+        135
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn2.out_proj.weight": {
+      "shape": [
+        45,
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.attn2.out_proj.bias": {
+      "shape": [
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.norm1.weight": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.norm1.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.fc1.weight": {
+      "shape": [
+        32,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.fc1.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.fc2.weight": {
+      "shape": [
+        16,
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.fc2.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.norm2.weight": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.0.norm2.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.query.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.query.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.key.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.key.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.value.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.value.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn.in_proj_weight": {
+      "shape": [
+        48,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn.in_proj_bias": {
+      "shape": [
+        48
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn.out_proj.weight": {
+      "shape": [
+        16,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn.out_proj.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn2.in_proj_weight": {
+      "shape": [
+        135,
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn2.in_proj_bias": {
+      "shape": [
+        135
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn2.out_proj.weight": {
+      "shape": [
+        45,
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.attn2.out_proj.bias": {
+      "shape": [
+        45
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.norm1.weight": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.norm1.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.fc1.weight": {
+      "shape": [
+        32,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.fc1.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.fc2.weight": {
+      "shape": [
+        16,
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.fc2.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.norm2.weight": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.encoder.1.norm2.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.0.weight": {
+      "shape": [
+        32,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.0.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.2.weight": {
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.2.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.3.weight": {
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    "net.out.mlp.3.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    }
+  }
+}

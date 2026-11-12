@@ -1,0 +1,58 @@
+{
+  "model": "aidgn",
+  "subset": "FD004",
+  "seed": 303,
+  "best_epoch": 35,
+  "epochs_run": 47,
+  "validation_engine_mean_rmse": 12.534560031276587,
+  "validation_pooled_rmse": 15.70333230771327,
+  "params": 30070,
+  "trainable_params": 30070,
+  "training_time_s": 394.6473026275635,
+  "n_train_windows": 48691,
+  "n_validation_cuts": 250,
+  "config_sha256": "da5ace2ccf1173c6428cb3849858e81f9df8f198f3b93f72ca676e2a1cf920ee",
+  "checkpoint_sha256": "4a7b729580ad1baef1b5b7bac1cb434d76efa6bdf9e538108fc2a46d3935599a",
+  "state_content_sha256": "7c25301e817aadf6d64d85282b919c4c69081c2bcf422983479b01f26d76ac49",
+  "runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "rmse": 12.65965741094776,
+  "mae": 8.159877230863898,
+  "nasa_sum": 905.1447624394546,
+  "nasa_mean": 3.6497772679010265,
+  "bias": -0.21581357122669298,
+  "late_frac": 0.4596774193548387,
+  "severe_late": 0.12903225806451613,
+  "max_late": 53.26628112792969,
+  "n": 248,
+  "official_test_data_sha256": {
+    "test": "1dc675fff0624bac10786927c6715b37d1297657137400d2b1a3138d777a3ba5",
+    "RUL": "196b836b85a95ac7fdbbf29c5fdf1657382eafa445644d114ffaaf50dc2975e1"
+  },
+  "evaluation_unit": "official_test_engine",
+  "protocol": "author_limits_20261112",
+  "test_forward_passes": 0,
+  "test_prediction_reused_from": "fixed40/aidgn/FD004/s303",
+  "source_prediction_sha256": "de4bdde2e8ddfc5bcc63155acd50428d6b647edcbe1409564098e0c28927afad",
+  "batch_freeze_sha256": "e2fd2f8dadfbbab8319e0020a3344bc381b477ddc26d64e5c432007c2be357e5",
+  "joint_freeze_sha256": "a95029260ecfcb888c89845321625cbbf992ed976b3fca63fc5deae72e6fc817",
+  "test_runtime_flags": {
+    "matmul_tf32": false,
+    "cudnn_tf32": false,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false
+  },
+  "reuse_input_arrays_equal": {
+    "x": true,
+    "age": true,
+    "y": true,
+    "unit": true,
+    "cut": true
+  },
+  "reuse_evaluation_seed": 200303,
+  "source_output_seal_sha256": "c0b2550577b79d40a4aeb93f1b76e5303cf18a50b60e329c456f0113d3cf426a"
+}

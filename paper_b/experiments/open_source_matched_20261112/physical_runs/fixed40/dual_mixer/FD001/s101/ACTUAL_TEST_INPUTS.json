@@ -1,0 +1,18 @@
+{
+  "phase": "immediately_before_actual_TEST_prediction",
+  "namespace": "fixed40",
+  "model": "dual_mixer",
+  "subset": "FD001",
+  "seed": 101,
+  "arrays": {
+    "x": "f29399d75cab5aad425b0a696b2ff36d14668c8f26be5f7e92b823ce49cfbf6f",
+    "age": "cc04a907477e3bed4a9339d6e10bf686d4722b0c83004979f7fc6d406e510677",
+    "y": "441e558f04b8f5b6e9b90ac6b7c90df2be5def299f6800b577d2cabb9ff491e6",
+    "unit": "f8073cd32c7d9f4ac6ce7b3801d56ec0973992d0a7fcdf02aab316aca65b27da",
+    "cut": "c853307f51d99e0719459f84e1337fc6864e31cf6a6bb74e2c8929c4d4027573"
+  },
+  "predict_function_sha256": "bad11bddfd483a13629015048bc6000b38aad349ce195879b135166a13b79fbe",
+  "evaluation_seed": 200101,
+  "model_was_replaced": false,
+  "checkpoint_sha256": "a698227c96b078638810a7b81917141e5e5ea33feb938ffed77a57d613936277"
+}

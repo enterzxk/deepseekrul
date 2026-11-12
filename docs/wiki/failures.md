@@ -153,3 +153,15 @@ probe is FAILED, no simplified regression substitute was trained.
 Historical own-launcher source gaps survive explicitly in
 `evidence/EXECUTION_PROVENANCE.json`; original configs/results are intact.
 See the independent audit/report for all protocol risks and limitations.
+
+## 2026-11-12 · Paper B fairness and legacy evaluation entrypoints
+
+Fixed40 undertrains low-LR TwoPhase oncomplexFDs; validation-only amendment
+PB-OS-009 adds fresh fullauthor-ceiling runs, retains40sensitivity, before
+anynewTEST. No test-tuned replacement or network simplification.
+Independentreview found sealed legacy single-run CLI checks itscomponent
+batch butnot jointREADY. Actual productionjointpath hadvalidjointREADY
+before allaccess, noearlyTEST breach. Preserve actualsealedsource/results;
+newguarded_test.py requires fulljointgate+physicalidentity. Negativeentry
+checks andcompleted-no-new-forward checkPASS. RecordaslimitedlegacyAPI,
+notretroactively executed hardening. Evidence innewartifact, report§9.

@@ -1,0 +1,28 @@
+{
+  "new_training": false,
+  "new_test_forward": false,
+  "official_file_reads": 0,
+  "real_training_files_modified": false,
+  "checks": [
+    {
+      "case": "real_trained_history",
+      "result": "PASS"
+    },
+    {
+      "case": "stale_engine_score",
+      "result": "REJECTED"
+    },
+    {
+      "case": "wrong_accepted_state",
+      "result": "REJECTED"
+    },
+    {
+      "case": "premature_stop",
+      "result": "REJECTED"
+    },
+    {
+      "case": "collector_before_all_tests_complete",
+      "result": "REJECTED_BEFORE_LABELS"
+    }
+  ]
+}

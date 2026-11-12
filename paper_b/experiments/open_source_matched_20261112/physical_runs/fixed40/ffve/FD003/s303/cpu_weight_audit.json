@@ -1,0 +1,163 @@
+{
+  "finite": true,
+  "canonical_state_sha256": "580853af0459b73045ba498cb87502473e09d21c7484700b89639598a67c0032",
+  "checkpoint_sha256": "a14185e6515f8f6875288a860d382aa4d937121ddd113e987fb594b8804a30e2",
+  "tensor_shapes": {
+    "encoder.mlp_blocks.0.tokens_mixing.fc1.weight": {
+      "shape": [
+        210,
+        30
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.tokens_mixing.fc1.bias": {
+      "shape": [
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.tokens_mixing.fc2.weight": {
+      "shape": [
+        90,
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.tokens_mixing.fc2.bias": {
+      "shape": [
+        90
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.tokens_mixing.fc3.weight": {
+      "shape": [
+        30,
+        90
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.tokens_mixing.fc3.bias": {
+      "shape": [
+        30
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc1.weight": {
+      "shape": [
+        2,
+        14
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc1.bias": {
+      "shape": [
+        2
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc2.weight": {
+      "shape": [
+        7,
+        2
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc2.bias": {
+      "shape": [
+        7
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc3.weight": {
+      "shape": [
+        14,
+        7
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.mlp_blocks.0.channels_mixing.channel_mixing.fc3.bias": {
+      "shape": [
+        14
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_mu.0.weight": {
+      "shape": [
+        210,
+        420
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_mu.0.bias": {
+      "shape": [
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_mu.3.weight": {
+      "shape": [
+        3,
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_mu.3.bias": {
+      "shape": [
+        3
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_logvar.0.weight": {
+      "shape": [
+        210,
+        420
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_logvar.0.bias": {
+      "shape": [
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_logvar.3.weight": {
+      "shape": [
+        3,
+        210
+      ],
+      "dtype": "torch.float32"
+    },
+    "encoder.fc_logvar.3.bias": {
+      "shape": [
+        3
+      ],
+      "dtype": "torch.float32"
+    },
+    "decoder.regressor.0.weight": {
+      "shape": [
+        200,
+        3
+      ],
+      "dtype": "torch.float32"
+    },
+    "decoder.regressor.0.bias": {
+      "shape": [
+        200
+      ],
+      "dtype": "torch.float32"
+    },
+    "decoder.regressor.2.weight": {
+      "shape": [
+        1,
+        200
+      ],
+      "dtype": "torch.float32"
+    },
+    "decoder.regressor.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    }
+  }
+}

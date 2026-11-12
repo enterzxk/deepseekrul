@@ -1,0 +1,61 @@
+{
+  "arrays": {
+    "x": {
+      "origin_sha256": "d14790226e100607995c3b316c7df2f9b00ef6545357cd3a05d4d5e9acfbf6f5",
+      "candidate_sha256": "d14790226e100607995c3b316c7df2f9b00ef6545357cd3a05d4d5e9acfbf6f5",
+      "actual_origin_forward_sha256": "d14790226e100607995c3b316c7df2f9b00ef6545357cd3a05d4d5e9acfbf6f5"
+    },
+    "age": {
+      "origin_sha256": "c03b85924ebe7777d313093c56ec4f2784f40caff868ce0f2b83e119a027592b",
+      "candidate_sha256": "c03b85924ebe7777d313093c56ec4f2784f40caff868ce0f2b83e119a027592b",
+      "actual_origin_forward_sha256": "c03b85924ebe7777d313093c56ec4f2784f40caff868ce0f2b83e119a027592b"
+    },
+    "y": {
+      "origin_sha256": "e4a47a6339731dab8bfc2b273e1c79db77000c336333a24a9e5ab995798f3ec8",
+      "candidate_sha256": "e4a47a6339731dab8bfc2b273e1c79db77000c336333a24a9e5ab995798f3ec8",
+      "actual_origin_forward_sha256": "e4a47a6339731dab8bfc2b273e1c79db77000c336333a24a9e5ab995798f3ec8"
+    },
+    "unit": {
+      "origin_sha256": "c5e7f15f979d1c2a0c7fa7fc250d5b3b3622b64ccce6d908dc7176fdf4f37f5c",
+      "candidate_sha256": "c5e7f15f979d1c2a0c7fa7fc250d5b3b3622b64ccce6d908dc7176fdf4f37f5c",
+      "actual_origin_forward_sha256": "c5e7f15f979d1c2a0c7fa7fc250d5b3b3622b64ccce6d908dc7176fdf4f37f5c"
+    },
+    "cut": {
+      "origin_sha256": "525ad5b99aeb4df7e88e92ea022076406e349b1d383f35b61a33245b69f6a8c8",
+      "candidate_sha256": "525ad5b99aeb4df7e88e92ea022076406e349b1d383f35b61a33245b69f6a8c8",
+      "actual_origin_forward_sha256": "525ad5b99aeb4df7e88e92ea022076406e349b1d383f35b61a33245b69f6a8c8"
+    }
+  },
+  "equal": {
+    "x": true,
+    "age": true,
+    "y": true,
+    "unit": true,
+    "cut": true
+  },
+  "guard": {
+    "phase": "test_prediction_reuse_input_audit",
+    "official_test_unlocked": true,
+    "official_test_reads": [
+      {
+        "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD004.txt",
+        "unix": 1794461857.6703916
+      },
+      {
+        "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/RUL_FD004.txt",
+        "unix": 1794461857.675873
+      },
+      {
+        "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD004.txt",
+        "unix": 1794461857.9771914
+      },
+      {
+        "path": "/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS/test_FD004.txt",
+        "unix": 1794461858.3901255
+      }
+    ],
+    "violations": [],
+    "nonfinite_replacements": 0
+  },
+  "source_output_seal_sha256": "c0b2550577b79d40a4aeb93f1b76e5303cf18a50b60e329c456f0113d3cf426a"
+}
