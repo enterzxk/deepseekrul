@@ -327,32 +327,42 @@ def asymmetric_loss(pred, y):
     return e.square().mean() + 0.5 * torch.where(e > 0, 1.8, 1.0).mul(e.square()).mean()
 
 
-def load_subset(path, train_units, cfg, root=ROOT, subset=None):
-    """Build features, operating-condition ids and windows for one N-CMAPSS subset.
+def load_split(path, train_units, cfg, split='dev', subset=None, fitted=None):
+    """Build features, condition ids and windows for one split of one subset.
 
-    ``path`` may be any of DS01..DS08: the development split is read from the
-    file's own ``A_dev`` array, never from a unit list stored in code, so the
-    same call works for every subset. ``subset`` is only a label carried into
-    the returned dict for provenance.
+    ``fitted`` carries ``(CondEncoder, AgeScaler)`` already fitted on the
+    training engines. On the dev split they are fitted here, on ``train_units``
+    only, so every LOEO fold is fold-local. The test split must be handed the
+    transforms fitted on all six dev engines: standardising test features with a
+    statistic computed on the test rows themselves would leak the test set into
+    the input pipeline, which no amount of "we never looked at the labels" fixes.
 
-    Fitting happens on ``train_units`` only: the age scale and the k-means are
-    both fold-local. Flights with too few 1 Hz samples are dropped explicitly
-    and counted.
+    Returns ``(data, fitted)`` so a caller can reuse the transforms on another
+    split of the same subset.
     """
     from .data import load_aux, load_features, load_labels
-    f = load_features(path, 'dev')
-    a = load_aux(path, 'dev')
-    y = load_labels(path, 'dev')
+    from .data import unit_lifetime as _lifetime
+    f = load_features(path, split)
+    a = load_aux(path, split)
+    y = load_labels(path, split)
     A = np.stack([a['unit'], a['cycle'], a['Fc'], a['hs']], axis=1)
-    tr_row = np.isin(a['unit'], list(train_units))
-    ce = CondEncoder(cfg['n_cond'], seed=cfg['seeds'][0]).fit(f['W'][tr_row])
+    if fitted is None:
+        fd = load_features(path, 'dev')
+        ad = load_aux(path, 'dev')
+        tr_row = np.isin(ad['unit'], list(train_units))
+        ce = CondEncoder(cfg['n_cond'], seed=cfg['seeds'][0]).fit(fd['W'][tr_row])
+    else:
+        ce = fitted[0]
     lab = ce.labels(f['W'])
     tbl = flight_table(f['W'], f['X_s'], A, cond_labels=lab, n_cond=cfg['n_cond'])
     y_flight = y[tbl['row_index']]          # one label per flight
     tbl, drop_info = filter_low_confidence(tbl)
     y_flight = y_flight[drop_info['keep']]
-    tr = np.isin(tbl['unit'], list(train_units))
-    scaler = AgeScaler().fit(tbl['cycle'][tr])
+    if fitted is None:
+        tr = np.isin(tbl['unit'], list(train_units))
+        scaler = AgeScaler().fit(tbl['cycle'][tr])
+    else:
+        scaler = fitted[1]
     X = build_matrix(tbl, scaler)
     d = make_windows(X, tbl['unit'], tbl['cycle'], y=y_flight)
     d['cond'] = tbl['cond']
@@ -360,8 +370,18 @@ def load_subset(path, train_units, cfg, root=ROOT, subset=None):
     d['cond_labels'] = lab
     d['is_train'] = np.isin(tbl['unit'], list(train_units))
     d['subset'] = subset or Path(path).stem
-    from .data import unit_lifetime as _lifetime
-    d['unit_lifetime'] = _lifetime(path, 'dev')
+    d['split'] = split
+    d['unit_lifetime'] = _lifetime(path, split)
+    return d, (ce, scaler)
+
+
+def load_subset(path, train_units, cfg, root=ROOT, subset=None):
+    """Development split of one subset, transforms fitted on ``train_units`` only.
+
+    This is the fold-local entry point: the age scale and the k-means are fitted
+    inside the fold, so nothing from the held-out engine reaches the features.
+    """
+    d, _ = load_split(path, train_units, cfg, split='dev', subset=subset)
     return d
 
 
@@ -390,7 +410,7 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
 
 def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
              normalize_target=True, early_stop=False, max_epochs=400,
-             min_epochs=20, patience=12, snapshot_at=None):
+             min_epochs=20, patience=12, snapshot_at=None, no_holdout=False):
     """Train one rung and return ``(net, report)``.
 
     ``early_stop=True`` is used only by the **inner** selection folds, whose
@@ -404,6 +424,13 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
     inner-selection ``epoch*`` and the fixed 200-pass endpoint) without
     retraining, which would let a reviewer attribute the difference to two
     different fits instead of two different stopping points.
+
+    ``no_holdout=True`` is for the test phase, where the model is trained on all
+    six dev engines and there is therefore no held-out engine inside the training
+    split. The per-epoch validation loss is recorded as NaN and early stopping is
+    disabled. The test split is never passed in as the holdout: a validation curve
+    computed on the test engines would put a test-derived quantity in the artifact
+    and invite selecting on it later.
     """
     torch.manual_seed(seed)
     net = build(rung, cfg).to(device)
@@ -417,7 +444,7 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
     is_train = torch.from_numpy(np.asarray(data['is_train'], bool)).to(device)
     tr_idx = torch.nonzero(is_train, as_tuple=False).flatten()
     va_idx = torch.nonzero(~is_train, as_tuple=False).flatten()
-    if len(tr_idx) == 0 or len(va_idx) == 0:
+    if len(tr_idx) == 0 or (len(va_idx) == 0 and not no_holdout):
         raise ValueError('need at least one training and one held-out unit')
     # target standardisation, fitted on the training fold only
     if normalize_target:
@@ -453,9 +480,14 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
             total += float(loss.detach())
             nb += 1
         tr_loss = total / max(nb, 1)
-        # diagnostic on an outer fold; the selection signal only on an inner fold
-        va_loss = _loss_on(net, x[va_idx], mask[va_idx], cond[va_idx], y[va_idx],
-                           bs, device, train=False)
+        # diagnostic on an outer fold; the selection signal only on an inner fold.
+        # With no_holdout there is no validation engine inside the split at all,
+        # so the curve is NaN rather than borrowed from the sealed test engines.
+        if no_holdout:
+            va_loss = float('nan')
+        else:
+            va_loss = _loss_on(net, x[va_idx], mask[va_idx], cond[va_idx], y[va_idx],
+                               bs, device, train=False)
         hist.append(dict(epoch=ep, train_loss=tr_loss, holdout_loss=va_loss))
         if va_loss < best_va - 1e-4:
             best_va, best_ep = va_loss, ep
@@ -463,7 +495,7 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
             # CPU copies: these are written to disk as checkpoints, and a GPU
             # tensor would make the file unloadable on a host without that card
             snaps[ep] = {k: v.detach().cpu().clone() for k, v in net.state_dict().items()}
-        if early_stop and ep >= min_epochs and ep - best_ep >= patience:
+        if early_stop and not no_holdout and ep >= min_epochs and ep - best_ep >= patience:
             break
     net.eval()
     with torch.no_grad():

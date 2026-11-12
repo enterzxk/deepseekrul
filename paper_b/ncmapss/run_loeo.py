@@ -83,7 +83,7 @@ import torch
 from .data import official_split
 from .evaluation import loeo_folds
 from .features import SPAN
-from .train import build, fit_rung, load_frozen, load_subset
+from .train import build, fit_rung, load_frozen, load_split, load_subset
 
 RUNGS = ('N0', 'N1', 'N2', 'N3')
 #: diagnostic arm, never part of the 60-cell grid: vanilla + the operating
@@ -154,7 +154,11 @@ def _rmse(e):
 
 
 def metrics(y_true_raw, y_pred, lifetime):
-    """Provisional metrics; evaluation.py recomputes the authoritative table."""
+    """Provisional metrics; evaluation.py recomputes the authoritative table.
+
+    ``lifetime`` is the relative-segment denominator: a scalar for a single-engine
+    fold, or one value per row for a split with several engines (the test split).
+    """
     y = np.asarray(y_true_raw, np.float64)
     p = np.asarray(y_pred, np.float64)
     e = p - y
@@ -168,7 +172,8 @@ def metrics(y_true_raw, y_pred, lifetime):
         bias_cap125_unit=float(ec.mean()), nasa_cap125_unit=_nasa(ec),
         rmse_raw_flightpooled=_rmse(e), rmse_cap125_flightpooled=_rmse(ec),
     )
-    frac = y / np.maximum(lifetime, 1e-9)
+    life = np.broadcast_to(np.asarray(lifetime, np.float64), y.shape)
+    frac = y / np.maximum(life, 1e-9)
     for name, mask in (('early', frac > SEG_REL[1]), ('mid', (frac > SEG_REL[0]) & (frac <= SEG_REL[1])),
                        ('late', frac <= SEG_REL[0])):
         for crit, err in (('capped', ec), ('raw', e)):
@@ -467,6 +472,154 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
     return rows
 
 
+def _dev_epoch_star(dev_ledger, rung, seed):
+    """Stopping point for a full-dev fit, taken from the dev LOEO grid.
+
+    When all six dev engines train the model there is no inner validation engine,
+    so ``epoch*`` does not exist at test time. It is taken instead from the dev
+    grid: the mean of that (rung, seed)'s six per-fold ``epoch*`` values, rounded
+    half-up. Pure dev data, mechanically recomputable, and the test engines play
+    no part in it.
+
+    The number is not tight -- DS05 N3 seed 303 spans 20..110 across folds -- so
+    the fixed 200-pass column is the primary test evidence and this column is
+    reported with that caveat attached.
+    """
+    want = '' if rung == 'N0' else str(seed)
+    rows = [r for r in csv.DictReader(open(dev_ledger, encoding='utf-8'))
+            if r['rung'] == rung and r['selection_rule'] == 'inner_val'
+            and r['seed'] == want and r['status'] == 'ok']
+    vals = [int(r['epochs_run']) for r in rows if r['epochs_run']]
+    if len(vals) != 6:
+        raise RuntimeError(f'{rung} seed {want!r}: expected 6 dev folds in '
+                           f'{dev_ledger}, got {len(vals)}')
+    mean = sum(vals) / len(vals)
+    return int(np.floor(mean + 0.5)), vals
+
+
+def run_test_cell(rung, cfg, path, dev_units, test_units, out_root, ledger, pre,
+                  data_sha, subset, dev_ledger):
+    """Train on all six dev engines and score the sealed test engines.
+
+    No test row influences anything: the stopping points come from the dev grid,
+    the feature transforms are fitted on dev only, and the test split is never
+    used as a validation signal (``no_holdout=True`` records a NaN curve).
+    """
+    rows = []
+    seeds = (N0_SEED,) if rung == 'N0' else SEEDS
+    dev_data, fitted = load_split(path, dev_units, cfg, split='dev', subset=subset)
+    test_data, _ = load_split(path, dev_units, cfg, split='test', subset=subset,
+                              fitted=fitted)
+    n_train = int(np.asarray(dev_data['is_train'], bool).sum())
+    batch = min(BATCH, n_train)
+    test_unit = np.asarray(test_data['unit'])
+    life_per_row = np.array([test_data['unit_lifetime'][int(u)] for u in test_unit],
+                            np.float64)
+    dev_ = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    for sd in seeds:
+        ep_iv, fold_epochs = _dev_epoch_star(dev_ledger, rung, sd)
+        base_id = f'{rung}_TEST' + ('' if rung == 'N0' else f'_s{sd}')
+        run_id = f'{subset}_{base_id}'
+        row_template = {c: '' for c in LEDGER_COLS}
+        row_template.update(phase='test', rung=rung, model=MODEL_NAMES[rung],
+                            fold='TEST', held_out_engine='',
+                            n_train_engines=len(dev_units),
+                            seed=(sd if rung != 'N0' else ''),
+                            git_sha=pre['git_sha'], protocol_blob=pre['protocol_blob'],
+                            train_plan_sha256=_sha256(cfg['_root'] / 'paper_b/configs/protocol.json'),
+                            feature_set='WS14+W4+CYC',
+                            feature_list=';'.join(['Xs_mean', 'Xs_std', 'Xs_slope',
+                                                   'W_mean', 'W_std', 'age_scaled']),
+                            kmeans_fit_units='' if rung in ('N0', 'N1') else
+                            ';'.join(str(u) for u in dev_units),
+                            kmeans_seed='' if rung in ('N0', 'N1') else cfg['seeds'][0],
+                            pred_instant='flight_end', n_units=len(test_units),
+                            seg_boundaries=json.dumps({'relative': list(SEG_REL),
+                                                       'absolute': list(SEG_ABS)}),
+                            independent_unit='engine', status='running')
+        if rung == 'N3':
+            row_template.update(freeze_source='paper_b/results/FREEZE_ABLATION_SEED101.json;'
+                                             'paper_b/configs/protocol.json',
+                                freeze_source_sha256=json.dumps(cfg['provenance']))
+        try:
+            points = [('inner_val', ep_iv, 'iv'),
+                      (f'fixed_passes:{FIXED_EVAL_PASSES}', FIXED_EVAL_PASSES, 'f200')]
+            net, res = fit_rung(rung, dev_data, cfg, seed=sd, device=dev_,
+                                epochs=max(ep for _, ep, _ in points), batch=batch,
+                                no_holdout=True,
+                                snapshot_at=sorted({ep for _, ep, _ in points}))
+            snaps = res['snapshots']
+            y_raw = np.asarray(test_data['y'], np.float64)
+            cyc = np.asarray(test_data['cycle'])
+            hist = res['history']
+            import pandas as pd
+            for rule, ep, tag in points:
+                if ep not in snaps:
+                    raise RuntimeError(f'no snapshot at epoch {ep}')
+                d = Path(out_root) / f'{run_id}_{tag}'
+                d.mkdir(parents=True, exist_ok=True)
+                pred = _predict_held_out(rung, cfg, test_data, dev_, snaps[ep],
+                                         res['target_mu'], res['target_sd'])
+                if len(pred) != len(y_raw):
+                    raise RuntimeError(f'prediction/label length mismatch '
+                                       f'{len(pred)} vs {len(y_raw)}')
+                ckpt = d / f'ckpt_{tag}.pt'
+                torch.save(snaps[ep], ckpt)
+                pd.DataFrame(dict(unit=test_unit, cycle=cyc, y_true_raw=y_raw,
+                                  y_true_cap125=np.minimum(y_raw, CAP),
+                                  y_pred=pred)).to_csv(d / 'pred.csv', index=False)
+                (d / 'unit_lifetime.json').write_text(json.dumps(test_data['unit_lifetime'], indent=1))
+                pd.DataFrame(hist).to_csv(d / 'curve.csv', index=False)
+                (d / 'config.json').write_text(json.dumps(
+                    {**{k: v for k, v in cfg.items() if not k.startswith('_')},
+                     'phase': 'test', 'target_norm': 'fold_local',
+                     'target_mu': res['target_mu'], 'target_sd': res['target_sd'],
+                     'passes_trained': int(res['epochs']),
+                     'epoch_evaluated': int(ep), 'selection_rule': rule,
+                     'batch_effective': res['batch'],
+                     'dev_units': list(dev_units), 'test_units': list(test_units)},
+                    indent=1, default=str))
+                m = metrics(y_raw, pred, life_per_row)
+                m['epoch_evaluated'] = int(ep)
+                m['selection_rule'] = rule
+                m['passes_trained'] = int(res['epochs'])
+                m['batch_effective'] = int(res['batch'])
+                m['epoch_star'] = int(ep_iv)
+                m['epoch_star_rule'] = 'mean_of_six_dev_loeo_epochs'
+                m['epoch_star_fold_values'] = list(fold_epochs)
+                (d / 'metrics.json').write_text(json.dumps(m, indent=1))
+                row = dict(row_template)
+                row.update(m, status='ok', run_id=f'{run_id}_{tag}',
+                           epochs_run=int(ep), best_epoch=int(ep),
+                           selection_rule=rule,
+                           ckpt_path=str(ckpt), ckpt_sha256=_sha256(ckpt),
+                           preds_path=str(d / 'pred.csv'),
+                           config_path=str(d / 'config.json'),
+                           config_sha256=_sha256(d / 'config.json'),
+                           registry_note=f'phase=test; rule={rule}; '
+                                         f'epoch_star={ep_iv} '
+                                         f'(mean of dev LOEO epochs {fold_epochs}); '
+                                         f'trained_on=all {len(dev_units)} dev engines; '
+                                         f'no_holdout=true (test never used as validation); '
+                                         f'batch_effective={res["batch"]}; '
+                                         f'target_norm=fold_local mu={res["target_mu"]:.3f} '
+                                         f'sd={res["target_sd"]:.3f}; '
+                                         'fixed_passes:200 is the primary test column')
+                _write_ledger(ledger, row)
+                rows.append(row)
+                print(f'{run_id}_{tag}: ok  rmse_raw={m["rmse_raw_unit"]:.3f}  rule={rule}')
+        except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden
+            row = dict(row_template)
+            row.update(run_id=run_id, status='failed',
+                       registry_note=f'{type(exc).__name__}: {exc}', epochs_run='')
+            (Path(out_root) / run_id).mkdir(parents=True, exist_ok=True)
+            (Path(out_root) / run_id / 'error.txt').write_text(traceback.format_exc())
+            _write_ledger(ledger, row)
+            rows.append(row)
+            print(f'{run_id}: failed  {type(exc).__name__}: {exc}')
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--h5', default='')
@@ -481,6 +634,12 @@ def main():
     ap.add_argument('--rungs', default=','.join(RUNGS),
                     help=f'comma-separated rungs (main grid: {",".join(RUNGS)}; '
                          f'diagnostics: {",".join(DIAG_RUNGS)})')
+    ap.add_argument('--phase', choices=('dev', 'test'), default='dev',
+                    help='dev = leave-one-engine-out on the dev engines; '
+                         'test = train on all dev engines, score the sealed test engines')
+    ap.add_argument('--dev-ledger', default='',
+                    help='dev ledger used for epoch* in the test phase '
+                         '(default: <out-root>/<subset>/runs_dev.csv)')
     a = ap.parse_args()
     cfg = load_frozen()
     cfg['_root'] = Path(__file__).resolve().parents[2]
@@ -502,11 +661,28 @@ def main():
     dev_units, test_units = official_split(p)
     subset = a.subset or _subset_name(p)
     out_root = Path(a.out_root) / subset
-    ledger = a.ledger or str(out_root / 'runs_dev.csv')
+    ledger = a.ledger or str(out_root / ('runs_test.csv' if a.phase == 'test'
+                                         else 'runs_dev.csv'))
     print(f'subset {subset}: dev {list(dev_units)}  test {list(test_units)}  '
-          f'out {out_root}')
+          f'phase {a.phase}  out {out_root}')
     if not a.synthetic:
         _write_subset_audit(p, subset, out_root, dev_units, test_units)
+    data_sha = a.data_sha256 or ('SYNTHETIC' if a.synthetic else _sha256(p))
+
+    if a.phase == 'test':
+        dev_ledger = a.dev_ledger or str(out_root / 'runs_dev.csv')
+        print(f'test phase: ledger {ledger}  epoch* from {dev_ledger}')
+        all_rows = []
+        for rung in [r.strip() for r in a.rungs.split(',') if r.strip()]:
+            if rung in DIAG_RUNGS:
+                raise SystemExit(f'{rung} is a diagnostic arm; the test phase is '
+                                 'only for the pre-registered rungs')
+            all_rows += run_test_cell(rung, cfg, p, dev_units, test_units,
+                                      str(out_root), ledger, pre, data_sha,
+                                      subset, dev_ledger)
+        ok = sum(r['status'] == 'ok' for r in all_rows)
+        print(f'done: {ok}/{len(all_rows)} ok, ledger {ledger}')
+        return
 
     # one fold-construction authority: evaluation.loeo_folds, fed with the two
     # lists read from the file. The runner keeps no unit list of its own.
