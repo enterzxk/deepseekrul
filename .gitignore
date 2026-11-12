@@ -10,6 +10,14 @@
 data/
 !data/README.md
 
+# ---- N-CMAPSS DS02: 15.8 GB official archive, never committed ------------
+# This repository is public. The HDF5 archive, the extracted flight tables and
+# any derived parquet live only on the GPU host. Listed explicitly even though
+# `data/` already covers them, so a future edit to the rule above cannot
+# silently let 15.8 GB through.
+data/NCMAPSS/
+experiments/ncmapss/
+
 # ---- calibration staging (rebuilt by scripts/cal/make_dev_preds.py) ------
 _calstage/
 cal_assets.tgz
