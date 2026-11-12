@@ -5,6 +5,7 @@ Checks that the runner's manifest gate accepts exactly the run it should accept
 and refuses the ways a manifest could be too narrow. It calls official_split()
 (unit ids only) and never loads Y_test.
 """
+import json
 import sys
 from pathlib import Path
 
