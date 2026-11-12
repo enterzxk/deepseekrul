@@ -17,16 +17,18 @@ R2  The evaluation unit is the **flight**, i.e. one row per (unit, cycle) at the
 R3  ``capped`` (label = min(RUL, 125)) and ``raw`` (label = RUL) are two
     criteria. Every result carries ``criterion`` and ``rul_cap``, and
     ``assert_single_criterion`` refuses a ranking that mixes them.
-R4  Official test engines [11, 14, 15] stay closed until ``assert_test_allowed``
-    finds them in a frozen manifest.
+R4  The official test engines stay closed until ``assert_test_allowed`` finds the
+    run in a frozen manifest. Which engines are sealed comes from the file
+    (``official_split``): DS02 seals [11, 14, 15], DS05/06/07 seal [7, 8, 9, 10].
 
 Typical use
 -----------
->>> folds = loeo_folds()
+>>> dev, test = official_split(path)          # read from the HDF5, not a constant
+>>> folds = loeo_folds(dev, test)
 >>> for fold in folds:
 ...     assert_fold_discipline(fold, fit_units=fold.train_units)
 ...     pred = my_model_fit_predict(fold.train_units, fold.val_units)
-...     res = evaluate(pred, criterion="capped")
+...     res = evaluate(pred, criterion="raw", unit_lifetime=lifetime)
 >>> summary = aggregate_seeds([r1, r2, r3])
 
 Run ``python -m paper_b.ncmapss.evaluation --self-test`` to check the module
@@ -47,8 +49,13 @@ import pandas as pd
 # --------------------------------------------------------------------------
 # Protocol constants (do not change without a new freeze manifest)
 # --------------------------------------------------------------------------
-DEV_UNITS: tuple[int, ...] = (2, 5, 10, 16, 18, 20)
-TEST_UNITS: tuple[int, ...] = (11, 14, 15)
+#: DS02 defaults. These are **not** the authority for a real run: the official
+#: split lives in the HDF5 (`A_dev` / `A_test` groups) and must be read from the
+#: file by the data layer, then passed in. The constants exist so the self-test
+#: can run without a dataset; DS05/DS06/DS07 use dev [1..6] / test [7..10] and
+#: would be silently mis-scored if anyone took these as a default.
+DS02_DEV_UNITS: tuple[int, ...] = (2, 5, 10, 16, 18, 20)
+DS02_TEST_UNITS: tuple[int, ...] = (11, 14, 15)
 RUL_CAP: float = 125.0
 
 #: Segment rules. Two are always reported, never one alone:
@@ -118,13 +125,24 @@ class Fold:
         return self.train_units
 
 
-def loeo_folds(dev_units: Sequence[int] = DEV_UNITS) -> list[Fold]:
-    """Leave-one-engine-out folds over the dev engines, in sorted order."""
+def loeo_folds(dev_units: Sequence[int], test_units: Sequence[int]) -> list[Fold]:
+    """Leave-one-engine-out folds over ``dev_units``, in sorted order.
+
+    Both lists come from the dataset file (``official_split(path)`` in the data
+    layer). They are required arguments on purpose: DS02 uses dev
+    ``[2,5,10,16,18,20]`` / test ``[11,14,15]`` while DS05/06/07 use
+    ``[1..6]`` / ``[7..10]``, so a module-level default would silently score the
+    wrong engines on three of the four subsets.
+    """
     units = tuple(sorted(int(u) for u in dev_units))
+    test = tuple(sorted(int(u) for u in test_units))
     if len(units) < 2:
         raise ValueError("LOEO needs at least two dev engines")
-    if set(units) & set(TEST_UNITS):
-        raise ValueError(f"dev units overlap the official test set: {sorted(set(units) & set(TEST_UNITS))}")
+    if not test:
+        raise ValueError("test_units is empty; pass the official test list read from the file")
+    overlap = sorted(set(units) & set(test))
+    if overlap:
+        raise ValueError(f"dev units overlap the official test set: {overlap}")
     return [
         Fold(index=i, val_unit=u, train_units=tuple(x for x in units if x != u))
         for i, u in enumerate(units)
@@ -146,9 +164,15 @@ def assert_fold_discipline(fold: Fold, fit_units: Iterable[int]) -> None:
         )
 
 
-def assert_no_test_units(units: Iterable[int], context: str = "") -> None:
-    """Dev-side code must never touch the official test engines."""
-    bad = sorted(set(int(u) for u in units) & set(TEST_UNITS))
+def assert_no_test_units(units: Iterable[int], test_units: Sequence[int], context: str = "") -> None:
+    """Dev-side code must never touch the official test engines.
+
+    ``test_units`` is passed in rather than read from a module constant so the
+    same call protects every subset: DS02 seals ``[11,14,15]``, DS05/06/07 seal
+    ``[7,8,9,10]``.
+    """
+    sealed = set(int(u) for u in test_units)
+    bad = sorted(set(int(u) for u in units) & sealed)
     if bad:
         raise ValueError(f"official test engines {bad} used in {context or 'a dev-side call'}")
 
@@ -519,15 +543,15 @@ def assert_test_allowed(freeze_manifest: str | Path | None, tag: str, seed: int)
 # Self-test (no DS02 data needed)
 # --------------------------------------------------------------------------
 def _self_test() -> int:
-    folds = loeo_folds()
+    folds = loeo_folds(DS02_DEV_UNITS, DS02_TEST_UNITS)
     assert len(folds) == 6
-    assert [f.val_unit for f in folds] == list(DEV_UNITS)
+    assert [f.val_unit for f in folds] == list(DS02_DEV_UNITS)
     assert all(f.val_unit not in f.train_units for f in folds)
     assert all(len(f.train_units) == 5 for f in folds)
 
     # fold discipline: exact train units pass, anything else fails
     assert_fold_discipline(folds[0], folds[0].train_units)
-    for bad in (DEV_UNITS, (*folds[0].train_units, folds[0].val_unit)):
+    for bad in (DS02_DEV_UNITS, (*folds[0].train_units, folds[0].val_unit)):
         try:
             assert_fold_discipline(folds[0], bad)
         except ValueError:
@@ -535,8 +559,29 @@ def _self_test() -> int:
         else:
             raise AssertionError("fold discipline check failed to reject a leaky fit set")
 
+    # the other three subsets share dev [1..6] / test [7..10]; the same calls
+    # must work without any module constant being involved
+    other_dev, other_test = tuple(range(1, 7)), (7, 8, 9, 10)
+    other_folds = loeo_folds(other_dev, other_test)
+    assert [f.val_unit for f in other_folds] == list(other_dev)
+    assert_no_test_units(other_dev, other_test)
     try:
-        assert_no_test_units([2, 11])
+        assert_no_test_units([1, 7], other_test)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("DS05-shaped test unit 7 was not blocked")
+
+    # test_units is required: a missing split must not fall back to DS02's
+    try:
+        loeo_folds(DS02_DEV_UNITS)  # type: ignore[call-arg]
+    except TypeError:
+        pass
+    else:
+        raise AssertionError("loeo_folds accepted a missing test_units")
+
+    try:
+        assert_no_test_units([2, 11], DS02_TEST_UNITS)
     except ValueError:
         pass
     else:
@@ -545,14 +590,14 @@ def _self_test() -> int:
     # synthetic flights: 6 units, 12 flights each, RUL 120 -> 10
     rng = np.random.default_rng(0)
     recs = []
-    for u in DEV_UNITS:
+    for u in DS02_DEV_UNITS:
         n = 12
         for c in range(n):
             true = float((n - c) * 10)
             recs.append(dict(unit=u, cycle=c + 1, y_true_raw=true,
                              y_true_cap125=min(true, RUL_CAP), y_pred=true + rng.normal(0, 3)))
     rows = pd.DataFrame(recs)
-    lifetime = {int(u): 120.0 for u in DEV_UNITS}
+    lifetime = {int(u): 120.0 for u in DS02_DEV_UNITS}
 
     frame = flight_frame(rows, "raw")
     assert len(frame) == len(rows)
@@ -640,7 +685,7 @@ def _self_test() -> int:
 
     # a lifetime smaller than an observed RUL belongs to another unit
     bad_lifetime = dict(lifetime)
-    bad_lifetime[int(DEV_UNITS[0])] = 10.0
+    bad_lifetime[int(DS02_DEV_UNITS[0])] = 10.0
     try:
         evaluate(frame, "raw", unit_lifetime=bad_lifetime)
     except ValueError as e:
