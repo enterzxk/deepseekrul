@@ -20,9 +20,9 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "922a2d1",
+    "freeze_commit": "e7ad15f",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1",
+    "known_protocol_blob_at_freeze": "35b40d8bce8e2b6ee39408c2e36e39482462f05e",
     "superseded_anchor": [
       {
         "freeze_commit": "5b228ad",
@@ -33,6 +33,11 @@
         "freeze_commit": "7f01909",
         "protocol_blob": "4458d9ea05c965251aabb782bba9765304ebf686",
         "reason": "按实测文件在跑前改两处：训练预算 40 epochs→1000 优化步（实测每 epoch 仅 1 步）、capped 口径实测失效（最长 dev 89 < 125）。"
+      },
+      {
+        "freeze_commit": "922a2d1",
+        "protocol_blob": "ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1",
+        "reason": "对齐量从「优化步数」改为「过数据遍数」：1000 步在单折 380 窗口、batch=380 下等于 1000 遍，是 C-MAPSS 40 遍的 25 倍，会让四档全部评在过拟合最深点。改为 epochs=40、batch=min(64,N)。"
       }
     ],
     "n3_scope": {
@@ -229,19 +234,21 @@
     "sha256": null,
     "shared_by_all_rungs": true,
     "values": {
-      "epochs": null,
+      "epochs": 40,
       "patience": 12,
-      "batch": "min(512, N_train)",
+      "batch": "min(64, N_train)",
       "lr": 0.001,
       "weight_decay": 0.0001,
       "d_model": 64,
       "layers": 2,
       "dropout": 0.2,
-      "epochs_note": "not used on DS02; see epochs_overridden"
+      "epochs_note": "40 passes; the number matches C-MAPSS but the meaning is aligned on passes, not steps"
     },
     "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。",
-    "epochs_overridden": "1000 optimizer steps",
-    "epochs_rule": "epochs = ceil(1000 / ceil(N_train / batch))，四档一致；protocol.json 的 epochs=40 在 DS02 侧不使用"
+    "epochs_overridden": "40 passes (same number as C-MAPSS, different meaning: passes not epochs)",
+    "epochs_rule": "epochs = 40（过数据遍数，对齐 C-MAPSS）；batch = min(64, N_train) = 64 → 每遍 6 次更新，共 240 次更新",
+    "batch_overridden": "min(64, N_train)",
+    "updates_total_expected": 240
   },
   "condition_encoding": {
     "n_cond": 6,
@@ -311,7 +318,17 @@
     "test_dispersion": "test set has 3 engines only: report seed mean ± seed sd per unit (n=3 seeds, 1 unit). Do NOT write a cross-engine 95% CI; minimum two-sided sign-test p with 3 units is 0.25",
     "insufficient_power_rule": "三台测试机全部改善仍不足以证明总体优越（独立对称符号检验双侧最小 p=0.25）；未拒绝差异不得表述为等效",
     "capped_criterion": "inactive (no unit exceeds the cap)",
-    "capped_note": "最长 dev 89 周期、test 76，全部 < 125，故 y_true_cap125 == y_true_raw 处处成立；pred.csv 两列照写，但结果表标 inactive，不得与 raw 并排当两个独立口径比较，也不得称 capped 更严格"
+    "capped_note": "最长 dev 89 周期、test 76，全部 < 125，故 y_true_cap125 == y_true_raw 处处成立；pred.csv 两列照写，但结果表标 inactive，不得与 raw 并排当两个独立口径比较，也不得称 capped 更严格",
+    "diagnostics": {
+      "fields": [
+        "holdout_min",
+        "holdout_min_epoch"
+      ],
+      "location": "metrics.json (not a ledger column)",
+      "label": "diagnostic only - not used for model selection",
+      "why": "不做早停、报分取最后一轮；固定预算只有在曲线也藏起来的时候才藏得住过拟合。报最小值能看出终点停在斜坡还是平台。",
+      "ledger": "台账不加列，registry_note 记一句 holdout_min 见 metrics.json"
+    }
   },
   "runs_to_evaluate": [],
   "checkpoints": [],
@@ -351,6 +368,8 @@
     "max_dev_cycle": 89,
     "max_test_cycle": 76,
     "rows_per_cycle_note": "unit 14 每周期 1,912 行（Fc=1）、unit 15 为 6,381（Fc=2），其余 11k–13k；飞行时长差约 6 倍，slope 守卫（<10 样本置 NaN）会在这些机上真实触发，不是异常",
-    "source": "experiments/ncmapss/ds02_audit.json（inspect_ds02 实测）"
+    "source": "experiments/ncmapss/ds02_audit.json（inspect_ds02 实测）",
+    "updates_per_pass": 6,
+    "updates_total": 240
   }
 }
