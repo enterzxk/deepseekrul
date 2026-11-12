@@ -68,8 +68,24 @@ DEFAULT_SEGMENT_RULES: tuple[str, ...] = ("relative", "absolute")
 
 COL_UNIT = "unit"
 COL_CYCLE = "cycle"
-COL_TRUE = "y_true"
 COL_PRED = "y_pred"
+
+#: The prediction CSV carries **both** label variants under explicit names and
+#: no bare ``y_true``. A column called ``y_true`` that silently holds
+#: ``min(RUL, 125)`` is a hidden capped default: exactly the failure mode that
+#: produced the C-MAPSS mix-up (pooled read as engine-level, capped read as the
+#: literature convention). The criterion is chosen by ``evaluate()``, not by
+#: which column happened to be named "the truth".
+COL_TRUE_RAW = "y_true_raw"
+COL_TRUE_CAP = "y_true_cap125"
+#: Internal canonical label, set by ``flight_frame(rows, criterion)`` from the
+#: stored column the criterion names. It is deliberately NOT called ``y_true``:
+#: a column with that name is always rejected at the input boundary, so a frame
+#: can never be fed back in with an ambiguous label.
+COL_LABEL = "y_label"
+#: The name that is always refused: it hides the convention it holds.
+COL_TRUE_LEGACY = "y_true"
+LABEL_COLUMNS: tuple[str, ...] = (COL_TRUE_RAW, COL_TRUE_CAP)
 
 #: A prediction later than the truth by more than this many cycles counts as a
 #: "severe late" error. It is a reporting convention, not a protocol threshold:
@@ -140,11 +156,34 @@ def assert_no_test_units(units: Iterable[int], context: str = "") -> None:
 # --------------------------------------------------------------------------
 # Flight-level frame
 # --------------------------------------------------------------------------
-def flight_frame(rows: pd.DataFrame) -> pd.DataFrame:
-    """Validate and return a flight-level frame.
+def verify_capped_column(df: pd.DataFrame, rul_cap: float = RUL_CAP) -> None:
+    """Check that the stored cap column really is ``min(y_true_raw, rul_cap)``.
 
-    Three things are enforced, each aimed at one specific way of getting the
-    unit of analysis wrong:
+    The capped label is **stored, not computed** here, so that raw and capped
+    have a single source and cannot drift apart. That makes the stored column a
+    trusted input, which is exactly why it gets checked: a producer that capped
+    at a different value, or a hand edit, is caught before any score is
+    computed rather than silently shifting every capped number.
+    """
+    expected = np.minimum(df[COL_TRUE_RAW].to_numpy(dtype=float), float(rul_cap))
+    got = df[COL_TRUE_CAP].to_numpy(dtype=float)
+    bad = ~np.isclose(got, expected, atol=1e-6)
+    if bad.any():
+        raise ValueError(
+            f"{int(bad.sum())} rows where {COL_TRUE_CAP} != min({COL_TRUE_RAW}, {rul_cap}): "
+            "the stored capped label does not match the declared cap"
+        )
+
+
+def flight_frame(rows: pd.DataFrame, criterion: str, rul_cap: float = RUL_CAP) -> pd.DataFrame:
+    """Validate a flight-level frame and pick the label the criterion names.
+
+    The criterion selects a **stored** column: ``raw`` -> ``y_true_raw``,
+    ``capped`` -> ``y_true_cap125``. Nothing is recomputed here, so the label
+    the table shows and the label the score used come from the same place.
+
+    Four things are enforced, each aimed at one specific way of getting the
+    unit of analysis or the label convention wrong:
 
     1. Exactly one prediction per (unit, cycle). Duplicates mean somebody handed
        us 1 Hz samples, which would silently reweight the score by flight length.
@@ -152,12 +191,25 @@ def flight_frame(rows: pd.DataFrame) -> pd.DataFrame:
     3. ``cycle`` strictly increases within each unit. A 1 Hz sample index passed
        off as a cycle number fails here as soon as the flights are collapsed,
        because the surviving values are spaced by the flight length, not by one.
+    4. The labels arrive as ``y_true_raw`` + ``y_true_cap125`` and there is no
+       bare ``y_true``; the cap column is verified against ``min(raw, rul_cap)``.
     """
-    need = {COL_UNIT, COL_CYCLE, COL_TRUE, COL_PRED}
+    if criterion not in ("capped", "raw"):
+        raise ValueError(f"criterion must be 'capped' or 'raw', got {criterion!r}")
+    need = {COL_UNIT, COL_CYCLE, COL_PRED, *LABEL_COLUMNS}
     missing = need - set(rows.columns)
     if missing:
-        raise ValueError(f"prediction frame is missing columns: {sorted(missing)}")
-    df = rows.loc[:, [COL_UNIT, COL_CYCLE, COL_TRUE, COL_PRED]].copy()
+        raise ValueError(
+            f"prediction frame is missing columns: {sorted(missing)}; expected "
+            f"{[COL_UNIT, COL_CYCLE, COL_TRUE_RAW, COL_TRUE_CAP, COL_PRED]}"
+        )
+    if COL_TRUE_LEGACY in rows.columns:
+        raise ValueError(
+            "a bare 'y_true' column is not accepted: it hides which label convention it "
+            "holds. Provide 'y_true_raw' and 'y_true_cap125' and let evaluate(criterion=...) "
+            "choose between them."
+        )
+    df = rows.loc[:, [COL_UNIT, COL_CYCLE, COL_TRUE_RAW, COL_TRUE_CAP, COL_PRED]].copy()
     for c in (COL_UNIT, COL_CYCLE):
         raw = df[c].to_numpy()
         if not np.issubdtype(df[c].dtype, np.integer):
@@ -167,14 +219,15 @@ def flight_frame(rows: pd.DataFrame) -> pd.DataFrame:
                     "sample index or timestamp is being passed as a flight cycle"
                 )
         df[c] = df[c].astype(int)
-    for c in (COL_TRUE, COL_PRED):
+    for c in (*LABEL_COLUMNS, COL_PRED):
         df[c] = df[c].astype(float)
     if df.empty:
         raise ValueError("prediction frame is empty")
-    if not np.isfinite(df[[COL_TRUE, COL_PRED]].to_numpy()).all():
-        raise ValueError("non-finite values in y_true/y_pred")
+    if not np.isfinite(df[[*LABEL_COLUMNS, COL_PRED]].to_numpy()).all():
+        raise ValueError("non-finite values in the label/prediction columns")
     if (df[COL_CYCLE] < 0).any():
         raise ValueError("negative cycle values")
+    verify_capped_column(df, rul_cap)
     dup = df.duplicated([COL_UNIT, COL_CYCLE]).sum()
     if dup:
         raise ValueError(
@@ -188,6 +241,7 @@ def flight_frame(rows: pd.DataFrame) -> pd.DataFrame:
                 f"unit {unit}: cycle is not strictly increasing; a non-monotonic cycle "
                 "usually means a 1 Hz sample index is being used as the cycle number"
             )
+    df[COL_LABEL] = df[COL_TRUE_RAW] if criterion == "raw" else df[COL_TRUE_CAP]
     return df.sort_values([COL_UNIT, COL_CYCLE]).reset_index(drop=True)
 
 
@@ -247,21 +301,6 @@ def score(pred, true) -> dict[str, float]:
     )
 
 
-def apply_criterion(df: pd.DataFrame, criterion: str, rul_cap: float = RUL_CAP) -> pd.DataFrame:
-    """Return a copy whose ``y_true`` follows the requested criterion.
-
-    ``capped`` -> min(RUL, rul_cap); ``raw`` -> RUL unchanged. Predictions are
-    never clipped, matching the C-MAPSS convention so the two datasets stay
-    comparable in shape.
-    """
-    if criterion not in ("capped", "raw"):
-        raise ValueError(f"criterion must be 'capped' or 'raw', got {criterion!r}")
-    out = df.copy()
-    if criterion == "capped":
-        out[COL_TRUE] = np.minimum(out[COL_TRUE], float(rul_cap))
-    return out
-
-
 def segment_labels(
     df: pd.DataFrame,
     rule: str = "relative",
@@ -299,7 +338,7 @@ def segment_labels(
             denom = float(unit_lifetime[unit])
             if not np.isfinite(denom) or denom <= 0:
                 raise ValueError(f"unit {unit}: lifetime must be a positive number, got {denom}")
-            block = df.loc[idx, COL_TRUE].to_numpy()
+            block = df.loc[idx, COL_LABEL].to_numpy()
             if block.size and block.max() > denom + 1e-9:
                 raise ValueError(
                     f"unit {unit}: RUL {block.max():.3f} in the evaluated frame exceeds the "
@@ -309,7 +348,7 @@ def segment_labels(
         labels = np.where(frac < lo, "late", np.where(frac < hi, "mid", "early"))
     else:
         hi, lo = float(edges_abs[0]), float(edges_abs[1])  # (75, 25)
-        y = df[COL_TRUE].to_numpy()
+        y = df[COL_LABEL].to_numpy()
         labels = np.where(y < lo, "late", np.where(y < hi, "mid", "early"))
 
     return pd.Series(labels, index=df.index, name="segment")
@@ -339,14 +378,14 @@ def evaluate(
     table under **both** segment rules, every block stamped with the criterion
     it used and each segment row stamped with the rule that produced it.
     """
-    df = apply_criterion(flight_frame(rows), criterion, rul_cap)
+    df = flight_frame(rows, criterion, rul_cap)
 
-    overall = score(df[COL_PRED], df[COL_TRUE])
+    overall = score(df[COL_PRED], df[COL_LABEL])
     overall.update(criterion=criterion, rul_cap_used=(criterion == "capped"), rul_cap=float(rul_cap))
 
     per_engine = []
     for unit, block in df.groupby(COL_UNIT):
-        m = score(block[COL_PRED], block[COL_TRUE])
+        m = score(block[COL_PRED], block[COL_LABEL])
         m.update(unit=int(unit), criterion=criterion, rul_cap_used=(criterion == "capped"))
         per_engine.append(m)
     per_engine = pd.DataFrame(per_engine).sort_values("unit").reset_index(drop=True)
@@ -359,7 +398,7 @@ def evaluate(
             block = block_df[block_df["segment"] == name]
             if block.empty:
                 continue
-            m = score(block[COL_PRED], block[COL_TRUE])
+            m = score(block[COL_PRED], block[COL_LABEL])
             m.update(segment=name, segment_rule=SEGMENT_RULES[rule], criterion=criterion,
                      rul_cap_used=(criterion == "capped"))
             seg_tables.append(m)
@@ -482,17 +521,41 @@ def _self_test() -> int:
         n = 12
         for c in range(n):
             true = float((n - c) * 10)
-            recs.append(dict(unit=u, cycle=c + 1, y_true=true, y_pred=true + rng.normal(0, 3)))
+            recs.append(dict(unit=u, cycle=c + 1, y_true_raw=true,
+                             y_true_cap125=min(true, RUL_CAP), y_pred=true + rng.normal(0, 3)))
     rows = pd.DataFrame(recs)
     lifetime = {int(u): 120.0 for u in DEV_UNITS}
 
-    frame = flight_frame(rows)
+    frame = flight_frame(rows, "raw")
     assert len(frame) == len(rows)
+    assert COL_TRUE_LEGACY not in frame.columns and COL_LABEL in frame.columns
+
+    # a bare y_true column must be refused: it hides the label convention
+    legacy = rows.copy()
+    legacy[COL_TRUE_LEGACY] = legacy[COL_TRUE_CAP]
+    try:
+        flight_frame(legacy, "raw")
+    except ValueError as e:
+        assert "bare 'y_true'" in str(e)
+    else:
+        raise AssertionError("a bare y_true column was accepted")
+
+    # a producer that caps at the wrong value must be caught (needs RUL > 125
+    # for the two caps to disagree at all)
+    wrong_cap = rows.copy()
+    wrong_cap.loc[wrong_cap[COL_UNIT] == 2, COL_TRUE_RAW] += 60.0
+    wrong_cap[COL_TRUE_CAP] = np.minimum(wrong_cap[COL_TRUE_RAW], 130.0)
+    try:
+        flight_frame(wrong_cap, "raw")
+    except ValueError as e:
+        assert "does not match the declared cap" in str(e)
+    else:
+        raise AssertionError("a mismatched cap column was accepted")
 
     # 1 Hz rows must be rejected
     dup = pd.concat([rows, rows.iloc[[0]]], ignore_index=True)
     try:
-        flight_frame(dup)
+        flight_frame(dup, "raw")
     except ValueError as e:
         assert "flight-level" in str(e)
     else:
@@ -554,7 +617,8 @@ def _self_test() -> int:
 
     # a unit with RUL above the cap must differ between criteria
     long_rows = frame.copy()
-    long_rows.loc[long_rows[COL_UNIT] == 2, COL_TRUE] += 40.0
+    long_rows.loc[long_rows[COL_UNIT] == 2, COL_TRUE_RAW] += 40.0
+    long_rows[COL_TRUE_CAP] = np.minimum(long_rows[COL_TRUE_RAW], RUL_CAP)
     lifetime_long = dict(lifetime)
     lifetime_long[2] = 160.0
     c2 = evaluate(long_rows, "capped", unit_lifetime=lifetime_long)
@@ -581,7 +645,7 @@ def _self_test() -> int:
     bad = frame.copy()
     bad[COL_CYCLE] = bad[COL_CYCLE].astype(float) + 0.5
     try:
-        flight_frame(bad)
+        flight_frame(bad, "raw")
     except ValueError as e:
         assert "integer-valued" in str(e)
     else:
@@ -590,14 +654,14 @@ def _self_test() -> int:
     # a collapsed 1 Hz index leaves gaps; non-monotonic input must be rejected
     gap = frame.copy()
     gap.loc[gap[COL_UNIT] == 2, COL_CYCLE] = gap.loc[gap[COL_UNIT] == 2, COL_CYCLE] * 100
-    prov_gap = cycle_provenance(flight_frame(gap))
+    prov_gap = cycle_provenance(flight_frame(gap, "raw"))
     assert int(prov_gap.loc[prov_gap["unit"] == 2, "gaps"].iloc[0]) > 0
 
     nonmono = frame.copy()
     idx = nonmono.index[nonmono[COL_UNIT] == 5]
     nonmono.loc[idx[1], COL_CYCLE] = nonmono.loc[idx[0], COL_CYCLE]  # duplicate cycle
     try:
-        flight_frame(nonmono)
+        flight_frame(nonmono, "raw")
     except ValueError:
         pass
     else:
