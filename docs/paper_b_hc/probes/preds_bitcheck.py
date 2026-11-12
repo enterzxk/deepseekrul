@@ -1,4 +1,4 @@
-"""Bitwise preds check: new code must reproduce every canonical checkpoint's preds.
+﻿"""Bitwise preds check: new code must reproduce every canonical checkpoint's preds.
 
 Before a wave launches, the patched code must be shown not to change the
 predictions of the runs that are already evidence. For every ledger-admitted
@@ -57,10 +57,11 @@ def main():
     want = set(a.subsets.split(','))
     runs = {k: v for k, v in ledger_runs().items() if k[1] in want}
 
-    print('%-6s %-6s %-30s %12s %12s' %
-          ('arm', 'subset', 'run', 'max|p1-p2|', 'max|p-csv|'))
+    print('%-6s %-6s %-30s %12s %12s %6s' %
+          ('arm', 'subset', 'run', 'max|p1-p2|', 'max|p-csv|', 'd32'))
     worst_pair = worst_csv = 0.0
     n_ok = n_bad = 0
+    n_float32_diff = 0
     for (v, s), rid in sorted(runs.items()):
         run = OUT / rid
         cfg = json.loads((run / 'config.json').read_text())
@@ -77,13 +78,22 @@ def main():
         ref = np.loadtxt(run / 'preds.csv', delimiter=',', skiprows=1,
                          usecols=4) if (run / 'preds.csv').exists() else None
         d_pair = float(np.abs(p1 - p2).max())
-        d_csv = float(np.abs(p1 - ref).max()) if (ref is not None and len(ref) == len(p1)) else float('nan')
+        # Compare at the model's own output precision. The CSV stores numpy's
+        # shortest round-tripping float32 repr, so parsing it as float64 and
+        # diffing against the widened float32 shows a spurious <=5e-9 residual
+        # (root-caused in preds_diffroot.py: 4970/4970 identical at float32).
+        if ref is not None and len(ref) == len(p1):
+            same32 = int((np.float32(ref) == p1.astype(np.float32)).sum())
+            d_csv = 0.0 if same32 == len(p1) else float(np.abs(p1 - ref).max())
+            n32 = len(p1) - same32
+        else:
+            d_csv, n32 = float('nan'), -1
         worst_pair = max(worst_pair, d_pair)
         worst_csv = max(worst_csv, 0.0 if np.isnan(d_csv) else d_csv)
         bad = (d_pair > 0) or (not np.isnan(d_csv) and d_csv > 0)
         n_bad += int(bad)
         n_ok += int(not bad)
-        print('%-6s %-6s %-30s %12.3e %12.3e' % (v, s, rid, d_pair, d_csv))
+        print('%-6s %-6s %-30s %12.3e %12.3e %6d' % (v, s, rid, d_pair, d_csv, n32))
 
     print('\n%d cells: %d exact, %d with a non-zero diff' % (len(runs), n_ok, n_bad))
     print('worst pass1-vs-pass2 %.3e ; worst preds-vs-csv %.3e' % (worst_pair, worst_csv))
