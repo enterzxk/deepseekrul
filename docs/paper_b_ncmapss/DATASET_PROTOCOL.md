@@ -306,14 +306,21 @@ All computed at flight level with `n` flights and `d = y_hat - y`.
 
 | metric | definition | unit | criterion-sensitive | note |
 |---|---|---|---|---|
-| RMSE | `sqrt(mean(d^2))` | cycles | yes | primary |
+| RMSE (pooled) | `sqrt(mean(d^2))` over all flights | cycles | yes | **supplementary**: reported beside the primary number, never instead of it |
 | MAE | `mean(|d|)` | cycles | yes | read with RMSE to see tail dominance |
 | NASA sum | `sum s_i`, `s_i = exp(-d/13)-1` if `d<0` else `exp(d/10)-1` | dimensionless | strongly | **not comparable across datasets**, see 6.7 |
 | NASA mean | `sum s_i / n` | dimensionless | strongly | the only comparable form when point counts differ |
 | Bias | `mean(d)` | cycles | yes | positive = late (dangerous side) |
 | segment RMSE | per segment, two rules, see 6.4 | cycles | yes | early/mid/late shape |
-| per-engine RMSE | within each unit | cycles | yes | guards against one broken engine hiding in the mean |
+| per-engine RMSE | within each unit, then equal weight per engine | cycles | yes | **primary**: D043 fixes per-engine equal weight as the headline number; also guards against one broken engine hiding in the mean |
+| late_frac / severe_late | fraction of flights with `d > 0` / with `d > SEVERE_LATE_CYCLES` | fraction | yes | `SEVERE_LATE_CYCLES = 10` cycles is a named reporting convention, not a protocol threshold |
 | seed aggregate | `mean +- sample sd (ddof=1)`, `n_seeds >= 3` | inherited | inherited | fewer than 3 seeds is refused |
+
+**Primary vs supplementary.** The per-engine equal-weight RMSE is the headline
+number (D043); the flight-pooled RMSE is reported beside it as a supplement.
+They are not interchangeable: by Jensen the pooled value is at least the
+per-engine mean, so quoting whichever happens to be smaller is a reporting
+error. Every table states which column is which.
 
 The NASA score is non-linear and amplifies the tail: a single `d = +40` term is
 `exp(4) - 1 ~= 53.6`. It can therefore order models differently from RMSE; when
@@ -323,8 +330,18 @@ the two disagree, the text says so rather than quoting the flattering one.
 
 | rule | definition | tag | role |
 |---|---|---|---|
-| relative | `frac = RUL / max(RUL of that unit)`; `late < 1/3`, `mid < 2/3`, `early >= 2/3` | `relative_thirds_primary` | **primary**: scale-free across units with different lifetimes |
+| relative | `frac = RUL / L_unit`, where `L_unit` is the max RUL over that unit's **full label trajectory** supplied by the data layer; `late < 1/3`, `mid < 2/3`, `early >= 2/3` | `relative_thirds_primary` | **primary**: scale-free across units with different lifetimes |
 | absolute | fixed cut points in cycles: `early >= 75`, `mid 25-75`, `late < 25` | `absolute_rul_supplementary` | **supplementary**: the rule the C-MAPSS tables use, needed to align early/mid/late *shapes* across datasets |
+
+**The relative scale must come from the unit's lifetime, not from the frame
+being scored.** Deriving it as the maximum RUL of the evaluated rows works on
+the dev folds, where a unit contributes its whole trajectory, but it silently
+breaks on the official test set: the frozen protocol scores one flight per test
+unit, so that maximum equals the single row's own RUL, every fraction becomes
+1.0, and the entire test set is labelled `early` with no error raised.
+`evaluate()` therefore requires `unit_lifetime`; omitting it raises, and a
+lifetime smaller than an observed RUL raises as well (that would mean the
+lifetime belongs to a different unit).
 
 Both are always produced, and every segment row carries `segment_rule`. Table
 captions state which rule is primary. The absolute cut points are frozen in
