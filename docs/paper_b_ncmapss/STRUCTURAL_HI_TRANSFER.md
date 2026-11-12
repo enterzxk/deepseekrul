@@ -54,10 +54,12 @@ That is the prior this section must test, not assume.
 - Reporting a HI gain without a paired, per-fold comparison against the identical
   model without the head.
 
-## Test to run (after the data dictionary is fixed)
+## Test to run (N4/N5, after the C-MAPSS mechanism is frozen)
 
-The same ablation as C-MAPSS, on the frozen N3 configuration: N3-with-HI versus
-N3-without-HI, identical seeds, identical folds, paired per fold.
+The same ablation as C-MAPSS, run as **N4 = N3 + the HI head** against **N3**
+(the frozen no-HI arm), with identical seeds, identical folds and a paired
+per-fold comparison. N3 is not modified to create the comparison: the HI arm is
+added on top of it, so the only difference between the two arms is the head.
 
 Report: paired delta per fold, mean, dispersion, and whether the sign is
 consistent. If the sign flips across folds, the answer is "no detectable
@@ -65,8 +67,8 @@ effect" — the same conclusion C-MAPSS reached, and a legitimate one.
 
 ## Falsification criteria
 
-- If N3-with-HI fails to beat N3-without-HI in at least 5 of 6 folds, the
-  transfer claim for the HI head is rejected.
+- If N4 (N3 + HI) fails to beat N3 in at least 5 of 6 folds, the transfer claim
+  for the HI head is rejected.
 - If the gain appears only under one label convention (capped vs raw), it is a
   convention artefact and is reported as such.
 - If the HI target turns out to be a monotone function of the label, the whole
