@@ -5,7 +5,7 @@
 适用范围：`docs/paper_b_ncmapss/registry/` —— **与 C-MAPSS 的 `docs/paper_b_hc/registry/` 完全独立**，
 不共享文件、不共享 run_id 空间、不互相引用行。
 
-写入人：`runs.csv` 只由实验结果管理员写；`launch/`、`close/` 由 3090 上的训练进程写。
+写入人：`runs_<subset>.csv` 只由实验结果管理员写；`launch/`、`close/` 由 3090 上的训练进程写。
 
 ---
 
@@ -13,6 +13,13 @@
 
 | 版本 | 日期 | 改了什么 | 为什么 |
 |---|---|---|---|
+| **v15** | 2026-11-13 | 四个子集全部封存：`runs_DS05/06/07.csv` 各 120 行、64 列，`audit_verdict=pass`；`SUBSETS.md` 记录四份文件 sha256、`git_sha`、`protocol_blob` 与审计结论。封表前做了**480 行全量机械审计**（ckpt sha256、`rmse_raw_unit` 从 `pred.csv` 复算、`n_flights`），0 失败。另记一条**跨批次复现**：DS02 试点批（`49f6939`，无 ckpt）与四子集批（`b889bd2`，有 ckpt）的 480 个指标值逐位相同，最大差 0.0。 | 封表前的全量审计是「能不能给 pass」的依据——DS02 试点批因为没存权重只能给 `partial`，四子集存了权重且全部核对通过，才够 `pass`。跨批次复现比单批内部检查更强，值得单独留档。 |
+| **v14** | 2026-11-13 | ① 列数 63 → **64**：新增 `subset`（放 `run_id` 之后），台账改为**每子集一张** `runs_<subset>.csv`，`runs.csv` 退役；新增 `SUBSETS.md` 索引（含 `protocol_blob`、行数、sha256、状态）。② `run_id` 格式改成**从产物反推的正则** `^(N0|N1|N1c|N2|N3)_LOEO-<engine>(_s<seed>)?_ev<stop>$`，不再用带时间戳的 `NCM-…`。③ `audit_verdict` 增加 `partial`：指标可复算、权重不可验（无 checkpoint）。④ 登记流程加**出汇总前的 seed 数硬门禁**。⑤ 活规则引用全部改为 `runs_<subset>.csv`；历史变更记录不动，v13 行加一句消歧。 | ① 范围是开放的（后续可能加 DS01/03/04），一张表意味着每加一个子集都要重写证据文件，已封存子集的哈希就不稳定；而规则要求已跑完子集的证据此后一个字节都不动。② `preds_path` 里嵌着 run_id（120/120），改名要动 120 个路径与目录名；改 schema 是零风险。③ DS02 试点批没存权重，若标 `pass` 会被读成完全通过。④ 116/120 行时用中间数据出表，1 seed 的均值与 3 seed 的均值在表里长得一样，只有断言能拦。 |
+| **v13** | 2026-11-12 | ① 冻结模板 `max_dev_cycle: 89` / `max_test_cycle: 76` 拆成 `max_dev_flights: 89` + `max_dev_rul: 88`、`max_test_flights: 76` + `max_test_rul: 75`；② `capped_note` 与 §3.5 的「89/76 周期」改为「89/76 飞行，`max(Y)` = 88/75」，并加口径区分说明；③ 顺带修正 `measured_scale.updates_total` 的过期值 240 → **1200**（200 遍 × 6 次/遍）。列数仍 63。 | `unit_lifetime()` 返回的是 `max(Y)`（`data.py:184`），相对三分位的分母也是它（`evaluation.py:359`）；官方标签在最后一个飞行上是 0，所以飞行数 89 对应 `max(Y)` 88。**一个叫 `max_dev_cycle: 89` 的字段，谁读都会拿 89 去和 `rul_cap=125` 比——比得过，但量不对。** `updates_total` 同理：协议改到 200 遍之后它还是 240，是漏改。 |（v14 补注：v13 之前的变更记录里出现的 `runs.csv` 指当时唯一的那张表；v14 起为 `runs_<subset>.csv`。）
+| **v12** | 2026-11-12 | ① `coincident` **删掉 `n/a`**，只留 `true`/`false`；§1.6 关闭「N0 是否有内层划分」的活扣。② `N1c` 不进 `runs.csv`，改落 `experiments/ncmapss/diag/runs_diag.csv`（同 63 列，`phase=diag`）。③ `phase` 枚举加 `diag`；§1.6 显式写「test 路径尚未实现，本批不产生 test 行」，并把 test 模型来源写死为「全 6 台 dev 重训、每 seed 一 ckpt」。④ 锚链统一表述为 **13 代**，并注明审计早期写的「五次前移」是错的。⑤ 写入 `REGISTRY_NOTES` 单一写入者规则（owner = 实验结果管理员）。列数仍 63。 | ① 代码对 N0 也产出两个评价点，`n/a` 是不可达值——留着等于给写入端一个错的合法值，审计会放它过去。② `runs.csv` 是冻结网格的证据表，加一个「不进网格」的诊断臂会让主表包含非预注册行。③ 180 行是模型不是现状，不写清会让人以为已经能跑。④ 锚链有缺口就没法证明某个 run 用的是哪版协议。⑤ 两次撞车都是靠事后发现版本号不对才暴露的。 |
+| **v11** | 2026-11-12 | ① 新增 `coincident` 列（62 → **63 列**），落地「双评价点必须同时存在且可区分」的机械检查；② `run_id` 增加 `<stop>` 段（`iv`/`f200`），一次训练产出两行，新增 §1.6 说明 120 + 60 = 180 行的行模型；③ 新增 §3.7：作废用 `status=superseded` + `audit_verdict=fail` + `registry_note` 以 `VOID:` 开头，**不新增枚举值**；④ §3.6 按 `9ac1744` 的现行口径重写（200 遍 + 内层早停），此前写的 40 遍已过时；⑤ 冻结锚历史改为**从 git 重建的 13 代**（此前审计只记了五代，中间有缺口）。 | ① 「两列都必须存在」原来是承诺，`coincident` 让它在文件层面可检查——巧合与漏报在表里长得一样；② 双评价点让「一个 run 一行指标」的假设失效；③ 作废各写各的，读者就看不到这个对照存在过；④ 台账与协议正文对齐；⑤ 锚链有缺口就没法证明某个 run 用的是哪版协议。 |
+| **v10** | 2026-11-12 | 补记（据 commit `9ac1744`）：`epoch*` 改为取 **5 条内层曲线均值的 argmin**，不再取各折最小值的 median（后者会塌到 1–2 遍）。锚前移到 `9ac1744` / `a3c40c63…`（当前）。 | median of per-split minima 在个别折塌陷时会被拉低，均值曲线稳得多；实测 N2 因此从 5.29 掉到 18.09 的失效形态被消除。 |
+| **v9** | 2026-11-12 | 补记（据 commit `7e9415e`）：训练预算从固定 200 遍改为**内层验证早停**——`epoch*` 由 5 条内层曲线决定，外层留出机不再参与选停止点；内层训练上限 400 遍，`patience 12` 记录但不作为停止规则。锚随协议正文前移到 `7e9415e` / `21af549e…`。 | 固定预算只能报「训练停在哪」，报不出「模型能达到什么」；而拿外层留出机早停等于用留出机选模型。 |
 | **v8** | 2026-11-12 | 锚前移到 `1c76b37` / `443462ca…`；训练预算 40 → **200 遍**（200 × 6 ≈ 1200 次参数更新，与 C-MAPSS 的 ~1560 同量级）；新增**折内目标标准化**（`target_norm: fold_local_zscore`，`y` 用训练折 mean/std 标准化，预测反变换回周期后才写 `pred.csv`）；审计第 19 条改为核 `epochs_run == 200`；模板 `train_plan.values` 加 `target_norm` / `target_norm_note` | 40 遍只有 240 次更新，四档全部欠训练：fold 1 实测 N0 15.23 / N1 21.71，而同特征线性 ridge 是 5.19；加目标标准化后**同样 40 遍** N0 就到 2.45。800 遍开始记忆化（N2 6.81 → 13.99），故取 200 遍。两项都是跑前按诊断定的，不是看结果调参 |
 | **v7** | 2026-11-12 | ① 冻结锚第三次前移到 `e7ad15f` / `35b40d8b…`（`922a2d1` / `ebfbfcb8…` 进 `superseded_anchor`，现共三条）。② 训练预算改为 **`epochs=40`（遍数，对齐 C-MAPSS）、`batch=min(64,N_train)=64` → 每遍 6 次更新、共 240 次**；`selection_rule` 记 `fixed_passes:40`；审计第 19 条按新公式核。新增 §3.6 说明「对齐遍数不对齐步数」。③ 新增两个**诊断字段** `holdout_min` / `holdout_min_epoch`，进 `metrics.json` 不进台账，标 `diagnostic only`。列数仍 62。 | ① 1000 个优化步在单折 380 窗口、batch=380 下等于 **1000 遍**过数据，是 C-MAPSS 40 遍的 25 倍——四档公平但问的问题从「谁预测更准」变成「谁过拟合得慢」。决定泛化的是遍数不是步数，所以对齐量换掉、batch 缩到 64 让一遍不是一次更新。② 不做早停就必须把曲线一起报，否则过拟合被固定终点藏起来。**这是开跑前最后一次锚前移**，之后直到第一批 LOEO 出结果不再动 §4/§6。 |
 | **v6** | 2026-11-12 | ① 冻结锚前移到 `922a2d1` / `ebfbfcb8…`（旧 `7f01909` / `4458d9ea…` 进 `superseded_anchor`）。② `analysis_rule.capped_criterion = "inactive (no unit exceeds the cap)"`，新增 §3.5：capped 不并排、不称更严格、差异算标签属性不算模型属性。③ `train_plan.epochs_overridden = 1000 optimizer steps`，`protocol.json` 的 `epochs: 40` 在 DS02 侧不使用；审计加第 19 条按 `ceil(1000/ceil(N_train/batch))` 核对。④ 实测规模（dev 446 飞行 / test 202 飞行 / 单折 380 窗口 / unit 14 每周期 1,912 行）写进冻结模板 `measured_scale`。列数仍 62。 | 两条都是**按实测文件、在跑之前**做的决定，不是看结果调参：40 epochs 在 380 窗口上等于 40 个梯度步，等于没训练；capped 因最长 dev 仅 89 周期而处处等于 raw。**故意不加 `n_train_windows` 列**——开跑在即，加列会让写入端与台账错位，该值从 `config.json` 取即可。 |
@@ -28,6 +35,7 @@
 
 ## 1. 规则
 
+- **单一写入者（2026-11-12 裁定）**：`docs/paper_b_ncmapss/registry/` 下四个文件（`runs_<subset>.csv`、`SUBSETS.md`、`REGISTRY_NOTES.md`、`SCHEMA.md`、`FREEZE_TEMPLATE.json`）**只由实验结果管理员写**。其他人**提 patch 或口述**，不直接改文件。此前发生过两次并发撞车（v9/v10 未进变更记录），靠事后发现版本号不对才发现，代价太大。
 - **一个 run 一行，只追加不删。** 作废用 `status=superseded`，不删行。
 - `run_id` 格式见 [SCHEMA.md](SCHEMA.md) §2。**同一 run_id 不得重跑**；重跑换时间戳，
   并在 `registry_note` 写「重跑原因 + 前一次 run_id」。
@@ -56,7 +64,7 @@
 
 ## 3. 同步方向
 
-- 台账（`runs.csv`、本文件、`freeze/`）以**本地仓库为准**，单向镜像到 3090 同一相对路径。
+- 台账（`runs_<subset>.csv`、本文件、`freeze/`）以**本地仓库为准**，单向镜像到 3090 同一相对路径。
 - `launch/`、`close/` 在 3090 上产生，单向拉回本地。
 - 两边都不双向写。C-MAPSS 台账出现过两个写入者同时改同一文件，这条就是为了避免重演。
 
@@ -65,7 +73,7 @@
 对着 `HEAD` 比 blob **不能**拦住第二个写入者——两个写入者读到同一份工作区时看到的是同一个 HEAD，
 两边都会通过。真正的互斥靠锁。写回按三层执行：
 
-1. **独占锁**：`runs.csv.lock` 以 `O_CREAT|O_EXCL` 创建，整段读—改—写持有；抢不到直接 abort。
+1. **独占锁**：`runs_<subset>.csv.lock` 以 `O_CREAT|O_EXCL` 创建，整段读—改—写持有；抢不到直接 abort。
 2. **双锚校验**：写入前重新比对「读到的 blob」与「HEAD blob」，任一变化即 abort；
    HEAD blob 记入日志（落后于工作区时可见）。
 3. **写后回读**：`os.replace` 后重读，字节与刚写的不一致则留 `.conflict` 副本并 abort。

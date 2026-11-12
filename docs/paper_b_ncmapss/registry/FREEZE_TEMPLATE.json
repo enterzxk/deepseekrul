@@ -25,19 +25,64 @@
     "known_protocol_blob_at_freeze": "a3c40c634da7a3bb44ace788f74896b17e51c3fb",
     "superseded_anchor": [
       {
+        "freeze_commit": "c481289",
+        "protocol_blob": "2e4df8dd4fc4895f4395d0a50758d9bac33d5826",
+        "subject": "ncmapss: DS02 branch skeleton - protocol discipline, baseline ladder, commit path"
+      },
+      {
+        "freeze_commit": "4bfa5d8",
+        "protocol_blob": "386b13a574c8e325fc3848d1c3513602d6afa964",
+        "subject": "ncmapss: DS02 data dictionary from the official tables + observability boundary"
+      },
+      {
+        "freeze_commit": "7cc5824",
+        "protocol_blob": "1fa8ec4cae30223b00ab5137ef9bbee3eddec1b0",
+        "subject": "ncmapss: evaluation protocol section (6.1-6.9) - unit of analysis, LOEO discipline, dual segment rules, criterion hygiene, test gate"
+      },
+      {
+        "freeze_commit": "e1de832",
+        "protocol_blob": "2e3f36b08847d56e74c3c5e5d1b4703c1a6b86d9",
+        "subject": "ncmapss: freeze the 51-column flight feature contract and the span=70 window - information matching across N1/N2/N3"
+      },
+      {
+        "freeze_commit": "c69db46",
+        "protocol_blob": "668c98a9e64fe4ae2b3314a54da45571ac6e38d0",
+        "subject": "ncmapss: freeze the training plan (protocol.json verbatim) and the k=6 W-cluster conditioning - no information advantage for the DSPT arms"
+      },
+      {
+        "freeze_commit": "d9e49af",
+        "protocol_blob": "dc347037629e589000c154c01e3dd005f71607fd",
+        "subject": "ncmapss: split schedule from label construction - rul_cap/val_cuts not inherited, no early stopping on the held-out engine"
+      },
+      {
         "freeze_commit": "5b228ad",
         "protocol_blob": "6c184bbfe395325c367b1e460689b178ae48f1f3",
-        "reason": "协议在开跑前修正三处：§6.3 主指标标注、§6.4 相对分段分母改为该机全寿命、HI 范围收窄。"
+        "subject": "ncmapss: bound the 'same core structure' claim - stopping rule differs by design, patience unused"
       },
       {
         "freeze_commit": "7f01909",
         "protocol_blob": "4458d9ea05c965251aabb782bba9765304ebf686",
-        "reason": "按实测文件在跑前改两处：训练预算 40 epochs→1000 优化步（实测每 epoch 仅 1 步）、capped 口径实测失效（最长 dev 89 < 125）。"
+        "subject": "ncmapss: eval protocol corrections before any run - primary=engine_mean_rmse, relative segment denominator from full lifetime"
       },
       {
         "freeze_commit": "922a2d1",
         "protocol_blob": "ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1",
-        "reason": "对齐量从「优化步数」改为「过数据遍数」：1000 步在单折 380 窗口、batch=380 下等于 1000 遍，是 C-MAPSS 40 遍的 25 倍，会让四档全部评在过拟合最深点。改为 epochs=40、batch=min(64,N)。"
+        "subject": "ncmapss: amend the epoch budget to 1000 optimizer steps and mark the 125 cap inactive - both decided from the measured file before any run"
+      },
+      {
+        "freeze_commit": "e7ad15f",
+        "protocol_blob": "35b40d8bce8e2b6ee39408c2e36e39482462f05e",
+        "subject": "ncmapss: fix the budget on passes not steps (40 passes, batch 64 -> 240 updates) and report the holdout curve as a diagnostic"
+      },
+      {
+        "freeze_commit": "1c76b37",
+        "protocol_blob": "443462ca03087d5aff2058778de2d47b3331728c",
+        "subject": "ncmapss: fold-local target standardisation and a 200-pass budget (1200 updates, C-MAPSS order) - 40 passes left every rung undertrained"
+      },
+      {
+        "freeze_commit": "7e9415e",
+        "protocol_blob": "21af549e448415113ee2ac61f11a5679400eddac",
+        "subject": "ncmapss: replace the fixed budget with inner-validation early stopping - a single budget reports where training stopped, not what a model reaches"
       }
     ],
     "n3_scope": {
@@ -51,7 +96,8 @@
       "why": "用户 §七 的设计：HI 属于 N4（DSPT+Structural HI）/ N5（DSPT-HC），需等 C-MAPSS 核心 HI 结构冻结后才跑正式对照。",
       "guard": "台账不得出现任何暗示 N3 测过 HI 的表述；出现即视为伪造证据",
       "hi_in_scope": false
-    }
+    },
+    "anchor_history_note": "从 git 重建：协议正文在本分支共产生过 13 个不同 blob，不是五次。只记最后几次会让「哪个 run 用哪版协议」出现缺口。"
   },
   "data": {
     "path": null,
@@ -234,25 +280,25 @@
     "sha256": null,
     "shared_by_all_rungs": true,
     "values": {
-      "epochs": "inner_val_median",
-      "patience": 12,
+      "epochs": 200,
+      "patience": "12 (recorded, not used as a stopping rule)",
       "batch": "min(64, N_train)",
       "lr": 0.001,
       "weight_decay": 0.0001,
       "d_model": 64,
       "layers": 2,
       "dropout": 0.2,
-      "epochs_note": "the stopping epoch is chosen on an INNER split (5 training engines rotated, median of the 5 best epochs), then the model is retrained on all 5 for exactly epoch* passes; the outer held-out engine never contributes",
+      "epochs_note": "200 passes; replaces protocol.json's epochs",
       "early_stop": "epoch* = argmin of the mean of the 5 inner validation curves, floored at 20 passes; max 400 passes; the median of per-split minima was rejected because it collapses to 1-2 epochs",
       "outer_early_stop": false,
       "target_norm": "fold_local_zscore",
       "target_norm_note": "y is standardised with the training-fold mean/std and inverted back to cycles before pred.csv is written"
     },
     "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。",
-    "epochs_overridden": "inner-validation median epoch; a single fixed budget was rejected because N0 converged at 11 while N1/N2/N3 were still descending at 200",
-    "epochs_rule": "epochs = epoch*（过数据遍数，对齐 C-MAPSS）；batch = min(64, N_train) = 64 → 每遍 6 次更新，共 240 次更新",
+    "epochs_overridden": "200 passes",
+    "epochs_rule": "epochs = 200（遍数）；batch = min(64, N_train) = 64 → 每遍 6 次更新，共 ≈1200 次",
     "batch_overridden": "min(64, N_train)",
-    "updates_total_expected": 240
+    "updates_total_expected": 1200
   },
   "condition_encoding": {
     "n_cond": 6,
@@ -322,7 +368,7 @@
     "test_dispersion": "test set has 3 engines only: report seed mean ± seed sd per unit (n=3 seeds, 1 unit). Do NOT write a cross-engine 95% CI; minimum two-sided sign-test p with 3 units is 0.25",
     "insufficient_power_rule": "三台测试机全部改善仍不足以证明总体优越（独立对称符号检验双侧最小 p=0.25）；未拒绝差异不得表述为等效",
     "capped_criterion": "inactive (no unit exceeds the cap)",
-    "capped_note": "最长 dev 89 周期、test 76，全部 < 125，故 y_true_cap125 == y_true_raw 处处成立；pred.csv 两列照写，但结果表标 inactive，不得与 raw 并排当两个独立口径比较，也不得称 capped 更严格",
+    "capped_note": "最长 dev 89 飞行（max(Y)=88）、test 76 飞行（max(Y)=75），全部 < 125，故 y_true_cap125 == y_true_raw 处处成立；pred.csv 两列照写，但结果表标 inactive，不得与 raw 并排当两个独立口径比较，也不得称 capped 更严格",
     "diagnostics": {
       "fields": [
         "holdout_min",
@@ -369,11 +415,88 @@
     "dev_flights": 446,
     "test_flights": 202,
     "train_windows_per_fold": 380,
-    "max_dev_cycle": 89,
-    "max_test_cycle": 76,
     "rows_per_cycle_note": "unit 14 每周期 1,912 行（Fc=1）、unit 15 为 6,381（Fc=2），其余 11k–13k；飞行时长差约 6 倍，slope 守卫（<10 样本置 NaN）会在这些机上真实触发，不是异常",
     "source": "experiments/ncmapss/ds02_audit.json（inspect_ds02 实测）",
     "updates_per_pass": 6,
-    "updates_total": 240
-  }
+    "updates_total": 1200,
+    "max_dev_flights": 89,
+    "max_dev_rul": 88,
+    "max_test_flights": 76,
+    "max_test_rul": 75,
+    "lifetime_definition_note": "89/76 是飞行数；max(Y)=88/75 才是相对三分位的分母（官方 Y 在最后一个飞行上为 0）。结果表列名用 max_rul，飞行数另列 n_flights。"
+  },
+  "dual_evaluation": {
+    "points": [
+      "inner_val",
+      "fixed_passes:200"
+    ],
+    "rows_per_training": 2,
+    "pairing_key": [
+      "phase",
+      "rung",
+      "fold",
+      "seed"
+    ],
+    "run_id_stop_segment": {
+      "iv": "inner_val",
+      "f200": "fixed_passes:200"
+    },
+    "checks": [
+      "同一 (phase,rung,fold,seed) 恰好两行",
+      "两行 selection_rule 不同",
+      "数值相同 → coincident=true；不同 → false（无 n/a：N0 也是两行）"
+    ],
+    "counts": {
+      "dev_rows": 120,
+      "test_rows": 60,
+      "total_rows": 180
+    },
+    "open_question": "已关闭：代码对 N0 也产出两个评价点，故 coincident 只有 true/false",
+    "diag_arm": {
+      "rung": "N1c",
+      "purpose": "vanilla + cond，查 N1 是否缺通路",
+      "ledger": "experiments/ncmapss/diag/runs_diag.csv",
+      "schema": "同一套 63 列，phase=diag",
+      "rule": "不进主台账：主台账是冻结网格的证据表，不含非预注册行；论文里只出现在诊断附录"
+    },
+    "test_status": {
+      "implemented": false,
+      "rows_this_batch": 0,
+      "model_source_when_implemented": "在全部 6 台 dev 机上重训，每 seed 一个 checkpoint；不拿任何一折的模型评 test"
+    }
+  },
+  "stopping_rule": {
+    "rule": "inner-validation early stopping, never on the held-out engine",
+    "epoch_star": "argmin of the mean of the 5 inner validation curves, floored at 20 passes",
+    "inner_max_passes": 400,
+    "retrain": "retrain on all 5 training engines for exactly epoch* passes, no early stopping",
+    "patience": "12 recorded but unused",
+    "reported_points": [
+      "inner_val (epoch*)",
+      "fixed_passes:200"
+    ],
+    "why_two_points": "epoch* lands at 20-94 while the outer optimum is 157-198 (systematic ~2x mismatch); the 5 inner minima spread 13-19x. A single point hides that the stopping time is neither estimable nor transferable."
+  },
+  "phase_values": [
+    "dev",
+    "test",
+    "diag"
+  ],
+  "ledger_layout": {
+    "mode": "one_file_per_subset",
+    "files": "docs/paper_b_ncmapss/registry/runs_<subset>.csv",
+    "index": "docs/paper_b_ncmapss/registry/SUBSETS.md",
+    "columns": 64,
+    "sealed_rule": "封存后只许追加 status=superseded 的更正行，不许改已有行",
+    "why": "范围开放；已封存子集的证据文件必须保持字节稳定，protocol_blob 是逐行字段所以不会被后来的锚改写"
+  },
+  "audit_verdict_values": [
+    "pass",
+    "partial",
+    "fail",
+    "n/a"
+  ],
+  "partial_definition": "指标可从产物复算、但权重不可验（无 checkpoint）；不得读成完全通过",
+  "run_id_regex": "^(N0|N1|N1c|N2|N3)_LOEO-<engine>(_s<seed>)?_ev<stop>$",
+  "seed_gate": "出汇总前断言：N0 每格恰 1 seed，N1/N2/N3 每格恰 3 seed；不齐拒绝出表"
 }
