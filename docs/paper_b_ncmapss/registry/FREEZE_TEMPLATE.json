@@ -165,11 +165,12 @@
     {
       "rung": "N0",
       "model": "age_only",
-      "params": 0,
+      "params": 4353,
       "seed_axis": false,
       "config_path": null,
       "config_sha256": null,
-      "note": "cumulative cycle only; deterministic; no checkpoint"
+      "note": "age-only 小 MLP（4,353 参数），无 seed 轴：固定 seed 101，每折 1 格，给定数据可复现。保留小 MLP 而非零参数时钟，是为了不把时钟基线稻草人化。",
+      "fixed_seed": 101
     },
     {
       "rung": "N1",
@@ -306,5 +307,16 @@
     "freeze_commit_sha": null,
     "eval_log_first_line_sha256": null,
     "ordering_proof": "eval_start_utc must be strictly greater than freeze_ts_utc; first evaluation log kept unedited"
+  },
+  "pred_csv_schema": {
+    "columns": [
+      "unit",
+      "cycle",
+      "y_true_raw",
+      "y_true_cap125",
+      "y_pred"
+    ],
+    "rule": "恰好 5 列，每 (unit,cycle) 一行；不得出现裸 y_true（= min(raw,125)，隐式 capped 口径），也不用 engine_id / flight_cycle",
+    "criterion": "由 evaluate(criterion=...) 显式选择，CSV 只提供两个标好名的标签"
   }
 }

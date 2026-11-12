@@ -1,6 +1,6 @@
 # N-CMAPSS DS02 实验台账 schema
 
-版本：**v4** · 2026-11-12
+版本：**v5** · 2026-11-12
 状态：**schema 已定，0 run**（等数据接入后按此登记）
 最后更新：2026-11-12 21:15 (+08)
 维护人：实验结果管理员
@@ -28,7 +28,7 @@
 | 算法 | 结果 | 为什么错 |
 |---|---:|---|
 | 6 台 × 6 折 × 3 seed × 4 rung | 432 | **重复计数**。LOEO 的「6 折」就是「6 台各留出一次」，乘起来等于把每台算了 6 遍 |
-| 6 折 × 3 seed × 4 rung | 72 | **N0 没有 seed 轴**。age-only 是 `y = f(cycle)`，无参数、无初始化、无训练随机性，3 个 seed 得到同一组数 |
+| 6 折 × 3 seed × 4 rung | 72 | **N0 没有 seed 轴**。N0 是 age-only 小 MLP（4,353 参数），内部**固定 seed 101**、每折 1 格，所以 3 个 seed 只会得到同一组数 |
 
 ### 1.2 正确算法
 
@@ -36,7 +36,7 @@
 
 | rung | 折数 | seed 数 | 行数 | 说明 |
 |---|---:|---:|---:|---|
-| N0 age-only | 6 | **—** | **6** | 无参数，无 seed 轴；每折 1 行（预测被留出的那台） |
+| N0 age-only | 6 | **—** | **6** | **无 seed 轴（固定 seed 101）；模型为单输入小 MLP，4,353 参数**；每折 1 行（预测被留出的那台）。保留 MLP 是刻意的——时钟基线越强，DSPT 赢它才有意义 |
 | N1 vanilla | 6 | 3 | **18** | 每折每 seed 训练 1 次 |
 | N2 DSPT Base | 6 | 3 | **18** | 同上 |
 | N3 frozen DSPT | 6 | 3 | **18** | MS/SA/HI 用 C-MAPSS 冻结值，**不许因 DS02 结果改** |
@@ -46,7 +46,7 @@
 
 | rung | seed 数 | 单位数 | 行数 | 说明 |
 |---|---:|---:|---:|---|
-| N0 age-only | — | 3 | **3** | 无 checkpoint |
+| N0 age-only | — | 3 | **3** | 小 MLP，固定 seed 101；是否存 checkpoint 见 §3.1 第 26–27 列 |
 | N1 / N2 / N3 | 3 | 3 | **9 each = 27** | 每个 rung 在**全部 6 台开发机**上重训 3 个 seed，再用这 3 个 checkpoint 各评 3 台测试机 |
 | **测试合计** | | | **30** | 冻结进入测试的 checkpoint = 9 个 |
 
@@ -138,7 +138,7 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 | 5 | `fold` | `LOEO-<留出机号>` / `ALLDEV` |
 | 6 | `held_out_engine` | 该行预测的是哪台机；`phase=test` 时填测试机号 |
 | 7 | `n_train_engines` | dev 折 = 5，test 重训 = 6 |
-| 8 | `seed` | `101/202/303`；**N0 留空** |
+| 8 | `seed` | `101/202/303`；**N0 留空**（N0 内部固定 seed 101，不构成 seed 轴，所以台账不记 seed） |
 | 9 | `git_sha` | 训练时工作区 SHA；`WORKTREE` 必须同时有 `code_md5` |
 | 10 | `code_md5` | 关键文件 md5 的 JSON：`model` / `train` / `data` / `metrics` / `protocol` |
 | 11 | `data_sha256` | 所用 HDF5 的 sha256 |
@@ -153,12 +153,12 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 | 20 | `config_sha256` | 上述 config 的 sha256 |
 | 21 | `freeze_source` | N3 冻结参数来源：`paper_b/results/FREEZE_ABLATION_SEED101.json` + `paper_b/configs/protocol.json`；非 N3 留空。**N3 = MS+SA，`hi_source=none`，本批不含 HI 臂**（见 §3.3） |
 | 22 | `freeze_source_sha256` | 上述两份文件的内容哈希，JSON `{path: sha256}`。**不许手抄参数值** |
-| 23 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_epochs:<n>` / `none`（N0） |
+| 23 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_epochs:<n>` / `none`。**N0 是训练出来的小 MLP，不是无参数映射**，按 `fixed_epochs:40` 记，不许写 `none` |
 | 24 | `epochs_run` | 实际跑完的 epoch 数 |
 | 25 | `best_epoch` | 选轮得到的 epoch；`selection_rule=none` 时留空 |
-| 26 | `ckpt_path` | `experiments/ncmapss/<run_id>/ckpt/best.pt`；N0 留空 |
-| 27 | `ckpt_sha256` | checkpoint 的 sha256；N0 留空。冻结清单逐条列出 |
-| 28 | `preds_path` | 逐发动机预测 `preds.csv`（`engine_id, flight_cycle, y_true_raw, y_true_cap125, y_pred`） |
+| 26 | `ckpt_path` | `experiments/ncmapss/<run_id>/ckpt/best.pt`。**N0 也有 4,353 参数，应当存 checkpoint**；若实现不存，必须在 `registry_note` 写明原因，不能留空不说 |
+| 27 | `ckpt_sha256` | checkpoint 的 sha256；冻结清单逐条列出。N0 同上，留空须在 `registry_note` 说明 |
+| 28 | `preds_path` | 逐发动机预测 `preds.csv`，**固定 5 列**：`unit, cycle, y_true_raw, y_true_cap125, y_pred`。**不得出现裸 `y_true`**——它等于 `min(raw,125)`，是一个默认走 capped 的隐式口径；口径由 `evaluate(criterion=...)` 显式选，CSV 只提供两个标好名的标签。列名用数据集自己的 `unit` / `cycle`，不用 `engine_id` / `flight_cycle` |
 | 29 | `pred_instant` | 预测时刻，固定 `flight_end` |
 | 30 | `n_units` | 该行涉及的发动机数（dev 折 = 1，test = 1） |
 | 31 | `n_flights` | 该行涉及的飞行段数（预测点个数） |
@@ -354,7 +354,7 @@ docs/paper_b_ncmapss/registry/
 6. 无测试集调参：`phase=test` 的行必须有 `freeze_id`，且 `eval_start_utc > freeze_ts_utc`。
 7. 预算一致：同 rung 各折的 epochs/patience/batch/lr 一致，差异必须有 `registry_note`。
 8. 代码没漂移：`git_sha` + `code_md5` 与 `config_sha256` 对应的那份一致。
-9. 种子真实：`seed` 与 `metrics.json`、日志里的 seed 一致；N0 必须为空。
+9. 种子真实：`seed` 与 `metrics.json`、日志里的 seed 一致；**N0 的 `seed` 列为空**，但实现内部必须固定 seed 101（日志里要能看到），且不得出现 seed 202/303 的 N0 行。
 10. 重复检查：同 `(phase, rung, fold, seed)` 是否已有 `ok` 行；重复标 `superseded` 并说明。
 11. **测试行不含 LOEO checkpoint**：`phase=test` 的 `ckpt_sha256` 必须能在冻结清单的 9 个
     「全开发机重训」checkpoint 里找到；命中任何 LOEO checkpoint → `fail`，冻结作废。
@@ -373,6 +373,9 @@ docs/paper_b_ncmapss/registry/
     一致。不一致 → `fail`，该 run 视为在未知协议下产出（commit 可被 amend，blob 不会）。
     **核验必须在仓库内跑 `git rev-parse`，不得拿工作区文件算 sha256 去比**：`.gitattributes`
     把 `*.md/*.json/*.csv` 定为 `eol=lf`，工作区里一次 CRLF 重存就会让字节变而内容看起来没变。
+18. **`preds.csv` 无裸口径列**：列必须恰好是 `unit, cycle, y_true_raw, y_true_cap125, y_pred`；
+    出现裸 `y_true`、`engine_id`、`flight_cycle` 任一 → `fail`。裸 `y_true` 等于 `min(raw,125)`，
+    是隐式的 capped 默认口径，和「池化当发动机级」是同一类错误。
 
 ---
 
