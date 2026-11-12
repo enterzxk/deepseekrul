@@ -365,11 +365,14 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
     return total / max(nb, 1)
 
 
-def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None):
+def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None):
     """Train one rung for a **fixed** number of epochs and return ``(net, report)``.
 
+    ``epochs``/``batch`` override the frozen schedule for the DS02 budget rule
+    (40 passes, batch=min(64,N)); the override is recorded by the caller.
+
     No early stopping: the held-out unit is never used to pick a stopping point
-    (protocol §4.2). The per-epoch curves are recorded so under-training is
+    (protocol 4.2). The per-epoch curves are recorded so under-training is
     visible; it is a finding, not a reason to change the schedule.
     """
     torch.manual_seed(seed)
@@ -387,7 +390,7 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None):
     if len(tr_idx) == 0 or len(va_idx) == 0:
         raise ValueError('need at least one training and one held-out unit')
     n = len(tr_idx)
-    bs = min(int(cfg['batch']), n)
+    bs = min(int(batch if batch is not None else cfg['batch']), n)
     epochs = int(cfg['epochs'] if epochs is None else epochs)
     hist = []
     for ep in range(1, epochs + 1):

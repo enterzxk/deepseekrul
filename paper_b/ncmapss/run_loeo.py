@@ -54,6 +54,14 @@ N0_SEED = 101
 CAP = 125.0
 SEG_REL = (1 / 3, 2 / 3)
 SEG_ABS = (75.0, 25.0)          # early >= 75, mid >= 25, late < 25 (RUL cycles)
+# DS02 budget (protocol 4.2): align on passes over the data, not optimizer steps.
+# 40 passes with batch=min(64,N) gives 6 updates per pass on a 380-window fold.
+PASSES = 40
+BATCH = 64
+#: frozen protocol anchor; checked by content hash so it works on a host that
+#: cannot reach GitHub (3090 currently cannot).
+EXPECTED_PROTOCOL_BLOB = '35b40d8bce8e2b6ee39408c2e36e39482462f05e'
+PROTOCOL_PATH = 'docs/paper_b_ncmapss/DATASET_PROTOCOL.md'
 
 LEDGER_COLS = """run_id phase rung model fold held_out_engine n_train_engines seed
 git_sha code_md5 data_sha256 split_hash protocol_blob train_plan_sha256 feature_set feature_list
@@ -117,13 +125,22 @@ def _write_ledger(path, row):
 
 
 def _preflight(root):
-    """Record the protocol anchor and the working-tree state before any cell runs."""
+    """Record the working-tree state and verify the frozen protocol anchor.
+
+    The anchor is checked with ``git hash-object`` on the file itself, not with
+    ``git rev-parse HEAD:<path>``: the compute host may be unable to fetch, and
+    a content hash answers the question that matters (is this the frozen text?)
+    without depending on the checkout's commit.
+    """
     import subprocess
     def run(*a):
         return subprocess.run(a, cwd=root, capture_output=True, text=True).stdout.strip()
-    return dict(git_sha=run('git', 'rev-parse', 'HEAD'),
-                protocol_blob=run('git', 'rev-parse',
-                                  'HEAD:docs/paper_b_ncmapss/DATASET_PROTOCOL.md'))
+    blob = run('git', 'hash-object', PROTOCOL_PATH)
+    if blob != EXPECTED_PROTOCOL_BLOB:
+        raise SystemExit(
+            f'protocol anchor mismatch: {PROTOCOL_PATH} has blob {blob}, '
+            f'frozen anchor is {EXPECTED_PROTOCOL_BLOB}. Refusing to run.')
+    return dict(git_sha=run('git', 'rev-parse', 'HEAD'), protocol_blob=blob)
 
 
 def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha):
@@ -155,7 +172,10 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                        freeze_source_sha256=json.dumps(cfg['provenance']))
         try:
             dev = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-            net, res = fit_rung(rung, data, cfg, seed=sd, device=dev)
+            n_train = int(np.asarray(data['is_train'], bool).sum())
+            batch = min(BATCH, n_train)
+            net, res = fit_rung(rung, data, cfg, seed=sd, device=dev,
+                                epochs=PASSES, batch=batch)
             d.mkdir(parents=True, exist_ok=True)
             # predictions on the held-out unit
             ho = ~np.asarray(data['is_train'], bool)
@@ -184,12 +204,22 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             (d / 'config.json').write_text(json.dumps(
                 {k: v for k, v in cfg.items() if not k.startswith('_')}, indent=1, default=str))
             m = metrics(y_raw, pred, data['unit_lifetime'][int(held_out)])
+            # diagnostic only: the fixed 40-pass endpoint is what gets reported;
+            # the curve minimum shows whether that endpoint sits on a slope or a plateau
+            hist = res['history']
+            best = min(hist, key=lambda h: h['holdout_loss'])
+            m['holdout_min'] = float(best['holdout_loss'])
+            m['holdout_min_epoch'] = int(best['epoch'])
+            m['passes'] = int(res['epochs'])
+            m['batch_effective'] = int(res['batch'])
             (d / 'metrics.json').write_text(json.dumps(m, indent=1))
             row.update(m, status='ok', epochs_run=res['epochs'],
-                       selection_rule=f"fixed_epochs:{res['epochs']}",
+                       selection_rule=f'fixed_passes:{PASSES}',
                        preds_path=str(d / 'pred.csv'), config_path=str(d / 'config.json'),
                        config_sha256=_sha256(d / 'config.json'),
-                       registry_note='metrics provisional; recompute with evaluation.py')
+                       registry_note=f'batch_effective={res["batch"]}; '
+                                     'holdout_min is diagnostic only, not used for selection; '
+                                     'metrics provisional, recompute with evaluation.py')
         except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden
             row.update(status='failed',
                        registry_note=f'{type(exc).__name__}: {exc}',
