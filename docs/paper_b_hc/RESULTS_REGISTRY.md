@@ -237,6 +237,37 @@ HC-C-{variant}-{subset}-s{seed}-W2(r\d+)?
 
 ---
 
+### 3.4.6 Wave 2 批一结果（FD001，2026-11-12 19:5x）
+
+| run_id | status | ep / best | `val_engine_mean` | manifest |
+|---|---|---|---|---|
+| `HC-C-A1-FD001-s202-W2` | ok | 34 / 22 | **11.353972188685571** | ✅ |
+| `HC-C-A1-FD001-s303-W2` | ok | 36 / 24 | **11.442163300493988** | ✅ |
+| `HC-C-A2cal-FD001-s101-W2` | **failed** | 0 / — | — | ❌（有 `close.json`，无 manifest/metrics） |
+
+**A1 FD001 三 seed 带宽（后续 A2cal vs A3bcal 的噪声底）**
+
+| seed | run | `val_engine_mean` |
+|---|---|---|
+| 101 | `HC-C-A1-FD001-s101-W1r2` | 11.2806 |
+| 202 | `HC-C-A1-FD001-s202-W2` | 11.3540 |
+| 303 | `HC-C-A1-FD001-s303-W2` | 11.4422 |
+
+**跨度 0.162（相对 s101 为 1.43%）。** 三 seed 共用同一份 init（§3.4.4），
+所以这个跨度是**训练随机性的下界**，不是 init 噪声。
+
+**失败格原因（已登记，非环境问题）**
+
+`RuntimeError: init_from mismatch: missing=['cycle_gain']`——`train_hc` 内联了一份与
+`scale_align.load_shared_init()` 重复的 remap，那份没有排除 `cycle_gain`。
+cal 臂建出的模型带 `cycle_gain`、init 文件里没有，严格断言即炸。
+**影响面**：批二 5 格全是 cal 臂，会以同一原因全灭。
+
+**预留**：`HC-C-A2cal-FD001-s101-W2r2`（v11 修复后的重试，失败那条**不覆盖**）。
+按 §3.1 的格键 + 最早 `closed_utc` 规则，W2r2 成功即成为该格证据，`-W2` 的 failed 行不占位。
+
+---
+
 ## 4. launch 文件 schema（tmh 在启动前写）
 
 ```json

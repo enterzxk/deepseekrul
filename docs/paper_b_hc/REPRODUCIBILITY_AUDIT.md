@@ -86,6 +86,13 @@ a40 侧另可跑 `python -m paper_b.hc.code_lock --check`，退出码 0。
 - 判"代码改动是否改变数值"时，阈值取 bf16 粒度（≥1e-3），**不要用 1e-9**；
 - 报告 Δ 时，低于该粒度的差异一律记为 0。
 
+**逐位校验必须在模型输出精度上做。** 用更高精度（float64）去比模型输出（float32/bf16）
+会**系统性产生假阳性**：CSV 存的是 float32 的最短往返十进制（8 位有效数字），
+用 float64 读回会与加宽后的 float32 差「半个末位」（实测 5.000e-09 / 2.813e-10）。
+实测 28 格中 4 格出现此类残差，把读回值转回 float32 再比，**4970/4970 逐位相同**。
+因此 `preds_bitcheck.py` 一律在 **float32**（模型自身精度）上比对，重跑结果
+`28 cells: 28 exact, 0 with a non-zero diff`。
+
 **证据**：28 个 canonical checkpoint 重算 preds，24 格逐位相同、4 格差 ≤5e-9；
 而同一份代码 pass1 vs pass2 **全部 0.000e+00**（排除 kernel 非确定性）。
 
@@ -128,6 +135,9 @@ a40 侧另可跑 `python -m paper_b.hc.code_lock --check`，退出码 0。
 | 9 | 本地 `all_runs.csv` 的 A8 族只有 78 行 | 本地聚合滞后，权威源在 lab3090 | 统计一律取 lab3090 产物（96/96）；已在 `ABLATION_RESULTS.md` §0 标注 |
 | 10 | 文件名与论文对不上（`Enhanced…` ≠ SFI-STHGAT） | 本地 PDF 文本层命名误导 | 建「文件名→论文」对应表，**以标题为准** |
 | 11 | 「作者必裁测试标签」推论 | 训练标签 cap 不约束推理期输出 | 两处文档追加撤回（保留原文），主表改称「本工作冻结口径」 |
+
+| 12 | a40 上 `train_hc.py` / `run_hc.py` 变成 CRLF，`run_hc` 启动守卫拒跑（`REFUSED: code differs from the committed lock`），但 `code_lock --check` 报 OK | **两条校验路径口径不一致**：`code_lock.check()` 做换行规范化，`run_hc` 的守卫比原始字节；Windows→a40 同步即复发 | `sed -i 's/\r$//'` 转回 LF（备份 `experiments/hc/tmp/crlf_backup_194641/`），验证 **16/16 原始字节 md5 与锁相等**；根治：`run_hc` 守卫同口径规范化 + `.gitattributes`（`*.py text eol=lf`） |
+| 13 | `train_hc` 内联了一份与 `scale_align.load_shared_init()` 重复的 remap | **代码重复**：函数版排除了 `cycle_gain`，内联版没有，cal 臂在 ep=0 即炸 `missing=['cycle_gain']` | 删内联、改调函数（单一真相源）；cal 臂冒烟补进发车前检查 |
 
 ---
 
