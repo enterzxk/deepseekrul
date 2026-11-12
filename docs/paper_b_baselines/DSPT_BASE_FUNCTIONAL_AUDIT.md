@@ -301,9 +301,11 @@ is worth 0.07–0.42. So:
 
 Three readings, in order of confidence:
 
-1. **The cycle feature is the largest single factor in every scope**, worth ~1.0
-   RMSE on the four-subset mean and up to 1.9 on FD004. It is consistent in sign
-   on all four subsets.
+1. **The cycle feature is the largest single factor on the four-subset mean and on
+   FD002–FD004**, worth ~1.0 RMSE on the four-subset mean and up to 1.9 on FD004.
+   It is consistent in sign on all four subsets. **On FD001 alone the architecture
+   term is slightly larger** (0.409 vs 0.317), so even "which factor dominates" is
+   a scope statement.
 2. **The 3-channel representation has no detectable effect of its own.** It is
    +0.09 on the four-subset mean and −0.07 on FD001, i.e. it flips sign, and both
    magnitudes are well below the 0.22 cross-machine floor. It cannot be called
