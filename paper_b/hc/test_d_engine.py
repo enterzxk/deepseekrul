@@ -481,22 +481,71 @@ def test_arrival_gradient_structure():
         'an increment after the crossing must not move T')
 
 
-def test_arrival_soft_matches_hard():
-    """D-G4 as an implementation consistency check, not a modelling claim.
+def reference_first_passage(d0, nu):
+    """Independent per-trajectory reference: scan the nodes, then interpolate.
 
-    The operator is exact for piecewise-linear paths, so the differentiable form
-    and the hard argmax must agree to within one cycle on random monotone paths
-    -- the one cycle is float/vectorisation tolerance, not a modelling slack.
+    Deliberately a different algorithm from the production vectorised form
+    (per-trajectory loop, node scan, then one interpolation) so that agreement
+    is evidence about the implementation rather than a tautology. It is a
+    REFERENCE for verification, not a second production path.
     """
-    rng = np.random.default_rng(101)
-    B, K = 256, 120
-    d0 = rng.uniform(0.0, 1.5, size=(B, 1))
+    d0 = np.asarray(d0, np.float64).reshape(-1)
+    nu = np.asarray(nu, np.float64)
+    B, K = nu.shape
+    out = np.empty(B, np.float64)
+    for b in range(B):
+        D = np.concatenate([[d0[b]], d0[b] + np.cumsum(nu[b])])
+        if D[0] >= 1.0:
+            out[b] = 0.0
+            continue
+        hit = np.flatnonzero(D >= 1.0)
+        if hit.size == 0:
+            out[b] = float(K)
+            continue
+        j = int(hit[0]) - 1
+        seg = D[j + 1] - D[j]
+        f = 0.0 if seg <= 0.0 else min(max((1.0 - D[j]) / seg, 0.0), 1.0)
+        out[b] = j + f
+    return out
+
+
+def test_arrival_matches_independent_reference():
+    """Production output must match an independent interpolation to 1e-12.
+
+    This is the precision check. It is what the soft-vs-hard comparison was
+    mistakenly doing: that one only verifies a rounding relation and passes even
+    for an implementation that returns integer node indices.
+    """
+    rng = np.random.default_rng(2026)
+    B, K = 512, 80
+    d0 = rng.uniform(-0.1, 1.6, size=(B, 1))
+    nu = rng.uniform(0.0, 4e-2, size=(B, K))
+    nu[rng.random((B, K)) < 0.1] = 0.0            # zero increments included
+    got = arrival(d0, nu)
+    want = reference_first_passage(d0, nu)
+    worst = float(np.abs(got - want).max())
+    assert worst <= 1e-12, 'production vs reference differ by %.3e' % worst
+
+
+def test_arrival_rounding_relation():
+    """T_hard (first node index with D>=1) and T_soft differ by exactly 1-f.
+
+    This is an implementation relation, NOT a precision or mechanism check: it
+    holds for any correct interpolating operator and also for an operator that
+    simply returns ceil(), which is why it cannot be a gate. 牢莫 measured
+    max|diff| = 0.99995 over 20000 trajectories -- 100% pass, i.e. no
+    discrimination.
+    """
+    rng = np.random.default_rng(7)
+    B, K = 256, 60
+    d0 = rng.uniform(0.0, 1.2, size=(B, 1))
     nu = rng.uniform(1e-3, 3e-2, size=(B, K))
     soft = arrival(d0, nu)
     hard = hard_arrival(d0, nu)
-    worst = float(np.abs(soft - hard).max())
-    assert worst <= 1.0, 'soft vs hard disagree by %.3f cycles' % worst
-    # exact agreement is expected for interior crossings; report the worst case
+    # exact relation: hard = ceil(soft) for interior crossings, hard = soft at nodes
+    expect = np.where(np.abs(soft - np.round(soft)) < 1e-12, soft, np.ceil(soft))
+    worst = float(np.abs(hard - expect).max())
+    assert worst <= 1e-9, 'rounding relation broken by %.3e' % worst
     assert np.all(soft >= 0.0) and np.all(soft <= K), 'T outside [0, K]'
 
 
