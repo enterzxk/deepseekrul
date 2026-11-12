@@ -32,6 +32,13 @@ selects anything.
 and appends one row per evaluation point to
 ``docs/paper_b_ncmapss/registry/runs.csv``.
 
+**Diagnostic arms are routed elsewhere.** ``DIAG_RUNGS`` (currently ``N1c``) are
+not pre-registered and therefore never enter that frozen-grid table: their rows
+go to ``experiments/ncmapss/diag/runs_diag.csv`` with ``phase=diag`` and their
+artifacts under ``experiments/ncmapss/diag/``. The routing is applied in
+``main()`` from the rung name, not from a flag, so no invocation can put a
+diagnostic arm into the main ledger by accident.
+
 A failing cell is recorded as ``status=failed`` with the reason in
 ``registry_note`` and the grid continues; nothing is retried until it succeeds,
 because "which cells succeeded" must stay visible.
@@ -256,14 +263,15 @@ def _predict_held_out(rung, cfg, data, dev, state, target_mu, target_sd):
     return pred * target_sd + target_mu
 
 
-def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha):
+def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha,
+             phase='dev'):
     seed = N0_SEED if rung == 'N0' else None
     seeds = (N0_SEED,) if rung == 'N0' else SEEDS
     rows = []
     for sd in seeds:
         run_id = f'{rung}_LOEO-{held_out}_s{sd}' if rung != 'N0' else f'{rung}_LOEO-{held_out}'
         row_template = {c: '' for c in LEDGER_COLS}
-        row_template.update(phase='dev', rung=rung,
+        row_template.update(phase=phase, rung=rung,
                             model=MODEL_NAMES[rung],
                             fold=f'LOEO-{held_out}', held_out_engine=held_out,
                             n_train_engines=5, seed=(sd if rung != 'N0' else ''),
@@ -420,8 +428,19 @@ def main():
         print(f'fold {k}/{len(folds)}: holdout {held}, train {train_units}, '
               f'{data["x"].shape[0]} flights, drops {data["drop_info"]["n_dropped"]}')
         for rung in [r.strip() for r in a.rungs.split(',') if r.strip()]:
-            all_rows += run_fold(rung, k, held, cfg, data, a.out_root, a.ledger, pre,
-                                 a.data_sha256 or ('SYNTHETIC' if a.synthetic else _sha256(p)))
+            # A diagnostic arm never enters the frozen-grid evidence table: it was
+            # not pre-registered, so it goes to experiments/ncmapss/diag/ with
+            # phase=diag and its own ledger. This is enforced here rather than
+            # left to the caller, so no invocation can pollute runs.csv by accident.
+            if rung in DIAG_RUNGS:
+                out_root = str(Path(a.out_root) / 'diag')
+                ledger = str(Path(a.out_root) / 'diag' / 'runs_diag.csv')
+                phase = 'diag'
+            else:
+                out_root, ledger, phase = a.out_root, a.ledger, 'dev'
+            all_rows += run_fold(rung, k, held, cfg, data, out_root, ledger, pre,
+                                 a.data_sha256 or ('SYNTHETIC' if a.synthetic else _sha256(p)),
+                                 phase=phase)
     ok = sum(r['status'] == 'ok' for r in all_rows)
     print(f'done: {ok}/{len(all_rows)} ok, ledger {a.ledger}')
 
