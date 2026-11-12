@@ -200,6 +200,30 @@ seeing results.
 
 Label: `Y` at the prediction flight, in both raw and capped-at-125 form (§7).
 
+### 4.2 Training plan and conditioning (frozen)
+
+The training plan is `paper_b/configs/protocol.json` used **verbatim**: 40 epochs,
+patience 12, batch `min(512, N_train)`, lr 1e-3, weight decay 1e-4, d_model 64,
+2 layers, dropout 0.2, seeds 101 / 202 / 303. Only the input width changes (51
+columns instead of the C-MAPSS sensor block).
+
+No rung gets a different schedule. If a rung fails to converge under this plan,
+that is a reported finding, not a licence to retune — the same rule that keeps N3
+frozen.
+
+Operating-condition conditioning: the DSPT arms receive a cluster embedding, as
+on C-MAPSS (`n_cond = 6`). For DS02 the clusters are k-means (k = 6) over the `W`
+block, **fitted on the training folds of the current LOEO fold only**. This adds
+no information that N1 lacks: the same `W` statistics are already columns 43–50
+of the shared matrix, and the embedding is only a different encoding of them. Any
+change that would give the DSPT arms a strictly richer input is a protocol
+violation, not an architecture choice.
+
+N3 reads the frozen C-MAPSS configuration from `paper_b/results/FREEZE_ABLATION_SEED101.json`
+and `paper_b/configs/protocol.json`. It does not carry a hand-written copy of those
+values on the DS02 side: a copied parameter is not evidence that anything was
+frozen.
+
 ## 5. Splits (immutable)
 
 - dev units: `[2, 5, 10, 16, 18, 20]`
