@@ -19,14 +19,18 @@ Both are forbidden as model inputs. ``load_features`` enforces this with an
 allow-list and raises rather than silently dropping a column, so a config that
 asks for ``X_v`` fails loudly instead of producing a leaky result.
 
-Splits are the official ones and are not parameters:
+Splits are **read from the file, never stored here**:
 
-    dev  = [2, 5, 10, 16, 18, 20]
-    test = [11, 14, 15]
+    dev, test = official_split(path)
+
+The HDF5 files ship the official Development/Test split as data (the ``A_dev``
+and ``A_test`` arrays). A second hand-written copy of the unit lists is how two
+lists drift apart, so this package keeps none: :func:`official_split` is the only
+authority, and it raises if the file's two splits share a unit.
 
 Usage
 -----
-    from paper_b.ncmapss.data import load_features, load_aux, verify
+    from paper_b.ncmapss.data import load_features, load_aux, official_split, verify
 
     d = load_features(path, 'dev')        # {'W': ..., 'X_s': ..., 'cols': ...}
     a = load_aux(path, 'dev')             # unit / cycle / Fc / hs, never features
@@ -37,10 +41,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-
-# ---- official split (dataset paper, Figure 3 caption; immutable) -----------
-DEV_UNITS = (2, 5, 10, 16, 18, 20)
-TEST_UNITS = (11, 14, 15)
 
 # ---- arrays (Table 3) ------------------------------------------------------
 SPLIT_ARRAYS = {
@@ -166,6 +166,26 @@ def load_labels(path, split):
 def load_health_parameters(path, split):
     """Ground-truth theta. Diagnostics only; never call this from training."""
     return load_raw(path, split, arrays=('T',))['T']
+
+
+def official_split(path):
+    """``(dev_units, test_units)`` read from the file's own A_dev / A_test arrays.
+
+    The HDF5 files ship the official Development/Test split as data. Keeping a
+    second hand-written copy in code is exactly how two lists drift apart, so
+    this function is the only authority and no unit list is stored anywhere.
+
+    Raises if the two splits share a unit: that would mean the file does not
+    carry a clean official split and every LOEO fold downstream would be
+    contaminated, which is worth failing loudly for.
+    """
+    dev = tuple(sorted(int(u) for u in np.unique(load_aux(path, 'dev')['unit'])))
+    test = tuple(sorted(int(u) for u in np.unique(load_aux(path, 'test')['unit'])))
+    overlap = set(dev) & set(test)
+    if overlap:
+        raise AssertionError(f'dev and test share units {sorted(overlap)}; '
+                             'the file does not carry a clean official split')
+    return dev, test
 
 
 def unit_lifetime(path, split):

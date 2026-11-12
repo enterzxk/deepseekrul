@@ -6,7 +6,7 @@ Runs without the 15.8 GB download: builds a miniature HDF5 that mimics
   * the column names are read from ``*_var`` rather than assumed by position;
   * ``Y`` is accepted as a label and refused as a feature;
   * ``X_v`` and ``T`` are refused as features with a loud error;
-  * the official unit split is asserted, not silently accepted;
+  * the official unit split is read from the file, not from a list in code;
   * ``Y`` being constant within a flight cycle is detected.
 
     python -m paper_b.ncmapss.test_contract
@@ -18,15 +18,16 @@ from pathlib import Path
 
 import numpy as np
 
-from .data import (A_COLS, DEV_UNITS, T_COLS, TEST_UNITS, W_COLS, X_S_COLS,
-                   X_V_COLS, load_aux, load_features, load_labels, verify)
+from .data import (A_COLS, T_COLS, W_COLS, X_S_COLS, X_V_COLS, load_aux,
+                   load_features, load_labels, official_split, verify)
 
 
-def _write_fake(path, units, cycles=12, rows_per_cycle=8, seed=0):
+def _write_fake(path, dev_units, test_units=(), cycles=12, rows_per_cycle=8, seed=0):
     import h5py
 
     rng = np.random.default_rng(seed)
-    n = len(units) * cycles * rows_per_cycle
+    all_units = tuple(dev_units) + tuple(test_units)
+    n = len(all_units) * cycles * rows_per_cycle
     A = np.zeros((n, 4), np.float64)
     Y = np.zeros((n, 1), np.float64)
     W = rng.normal(size=(n, 4))
@@ -34,7 +35,7 @@ def _write_fake(path, units, cycles=12, rows_per_cycle=8, seed=0):
     Xv = rng.normal(size=(n, 14))
     T = rng.normal(size=(n, 10))
     i = 0
-    for u in units:
+    for u in all_units:
         for c in range(1, cycles + 1):
             rul = float(cycles - c)
             for _ in range(rows_per_cycle):
@@ -42,6 +43,9 @@ def _write_fake(path, units, cycles=12, rows_per_cycle=8, seed=0):
                 Y[i, 0] = rul
                 i += 1
     assert i == n
+    n_dev = len(dev_units) * cycles * rows_per_cycle
+    dev = slice(0, n_dev)
+    test = slice(n_dev, n)
     with h5py.File(path, 'w') as f:
         f['W_var'] = np.array([s.encode() for s in W_COLS])
         f['X_s_var'] = np.array([s.encode() for s in X_S_COLS])
@@ -49,15 +53,16 @@ def _write_fake(path, units, cycles=12, rows_per_cycle=8, seed=0):
         f['T_var'] = np.array([s.encode() for s in T_COLS])
         f['A_var'] = np.array([s.encode() for s in A_COLS])
         f['W_dev'], f['X_s_dev'], f['X_v_dev'], f['T_dev'], f['Y_dev'], f['A_dev'] = (
-            W, Xs, Xv, T, Y, A)
+            W[dev], Xs[dev], Xv[dev], T[dev], Y[dev], A[dev])
+        # a file with no test units still needs the array to exist (empty split)
         f['W_test'], f['X_s_test'], f['X_v_test'], f['T_test'], f['Y_test'], f['A_test'] = (
-            W[:10], Xs[:10], Xv[:10], T[:10], Y[:10], A[:10])
+            W[test], Xs[test], Xv[test], T[test], Y[test], A[test])
 
 
 def main():
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / 'fake_ds02.h5'
-        _write_fake(p, units=DEV_UNITS[:2])
+        _write_fake(p, dev_units=(2, 5), test_units=(11, 14))
 
         # 1. columns are read, not assumed
         d = load_features(p, 'dev')
@@ -69,6 +74,20 @@ def main():
         a = load_aux(p, 'dev')
         assert y.shape == (len(a['unit']),)
         assert a['cycle'].min() == 1
+
+        # 2b. the split comes from the file, and is the file's, not ours
+        dev_units, test_units = official_split(p)
+        assert dev_units == (2, 5), dev_units
+        assert test_units == (11, 14), test_units
+        # a file whose two splits share a unit must be refused, not silently used
+        q = Path(td) / 'overlap.h5'
+        _write_fake(q, dev_units=(2, 5), test_units=(5,))
+        try:
+            official_split(q)
+        except AssertionError as exc:
+            assert 'share units' in str(exc), exc
+        else:
+            raise AssertionError('overlapping dev/test units were accepted')
 
         # 3. forbidden arrays are refused as features
         from .data import load_raw
@@ -84,10 +103,10 @@ def main():
 
         # 4. audit detects Y constant within cycle and the unit list
         rep = verify(p)
-        assert rep['arrays']['W_dev']['shape'] == [len(DEV_UNITS[:2]) * 12 * 8, 4]
+        assert rep['arrays']['W_dev']['shape'] == [2 * 12 * 8, 4]
         assert rep['arrays']['T_dev']['n_cols'] == 10
 
-        # 5. a wrong unit set is detectable (the official split is asserted, not assumed)
+        # 5. the inspection entry point still imports
         from .inspect_ds02 import main as _  # noqa: F401 - import must not fail
         print('contract test: PASS')
 

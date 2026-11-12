@@ -24,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .train import build, fit_rung, load_ds02, load_frozen
+from .train import build, fit_rung, load_subset, load_frozen
 
 DEV = [2, 5, 10, 16, 18, 20]
 
@@ -62,7 +62,7 @@ def main():
     cfg = load_frozen()
     dev = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     train_units = [u for u in DEV if u != a.holdout]
-    data = load_ds02(Path(a.h5), train_units, cfg)
+    data = load_subset(Path(a.h5), train_units, cfg)
     y = np.asarray(data['y'], np.float64)
     tr = np.asarray(data['is_train'], bool)
     print(f'fold holdout={a.holdout}  y_train mean={y[tr].mean():.2f} sd={y[tr].std():.2f} '

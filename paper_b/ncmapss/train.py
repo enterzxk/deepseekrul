@@ -327,8 +327,13 @@ def asymmetric_loss(pred, y):
     return e.square().mean() + 0.5 * torch.where(e > 0, 1.8, 1.0).mul(e.square()).mean()
 
 
-def load_ds02(path, train_units, cfg, root=ROOT):
-    """Build features, operating-condition ids and windows for one split.
+def load_subset(path, train_units, cfg, root=ROOT, subset=None):
+    """Build features, operating-condition ids and windows for one N-CMAPSS subset.
+
+    ``path`` may be any of DS01..DS08: the development split is read from the
+    file's own ``A_dev`` array, never from a unit list stored in code, so the
+    same call works for every subset. ``subset`` is only a label carried into
+    the returned dict for provenance.
 
     Fitting happens on ``train_units`` only: the age scale and the k-means are
     both fold-local. Flights with too few 1 Hz samples are dropped explicitly
@@ -354,6 +359,7 @@ def load_ds02(path, train_units, cfg, root=ROOT):
     d['drop_info'] = drop_info
     d['cond_labels'] = lab
     d['is_train'] = np.isin(tbl['unit'], list(train_units))
+    d['subset'] = subset or Path(path).stem
     from .data import unit_lifetime as _lifetime
     d['unit_lifetime'] = _lifetime(path, 'dev')
     return d
@@ -522,13 +528,13 @@ def main():
         from .test_contract import _write_fake
         td = tempfile.mkdtemp()
         p = Path(td) / 'fake_ds02.h5'
-        _write_fake(p, units=(2, 5, 10), cycles=80, rows_per_cycle=12)
-        data = load_ds02(p, [2, 10], cfg)
+        _write_fake(p, dev_units=(2, 5, 10), test_units=(11,), cycles=80, rows_per_cycle=12)
+        data = load_subset(p, [2, 10], cfg)
         _self_check(data, cycles=80)
     else:
         if not a.h5:
             raise SystemExit('--h5 is required unless --synthetic')
-        data = load_ds02(Path(a.h5), [int(u) for u in a.train_units.split(',')], cfg)
+        data = load_subset(Path(a.h5), [int(u) for u in a.train_units.split(',')], cfg)
 
     print(f'windows {data["x"].shape}  mask mean {data["mask"].mean():.3f}  '
           f'y [{data["y"].min():.1f},{data["y"].max():.1f}]  device {device}')

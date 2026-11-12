@@ -17,8 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
-from .data import (A_COLS, DEV_UNITS, T_COLS, TEST_UNITS, W_COLS, X_S_COLS,
-                   X_V_COLS, load_raw, verify)
+from .data import (A_COLS, T_COLS, W_COLS, X_S_COLS, X_V_COLS, load_raw,
+                   official_split, verify)
 
 
 def _summary(a):
@@ -51,8 +51,13 @@ def main():
         )
 
     # ---- per-split unit / cycle / label structure ----------------------
+    # the official split is whatever the file says; nothing is assumed here
+    dev_units, test_units = official_split(path)
+    official = {'dev': dev_units, 'test': test_units}
+    rep['official_split'] = {'dev': list(dev_units), 'test': list(test_units)}
     rep['splits'] = {}
-    for split, expected_units in (('dev', DEV_UNITS), ('test', TEST_UNITS)):
+    for split in ('dev', 'test'):
+        expected_units = official[split]
         d = load_raw(path, split, arrays=('A', 'Y'))
         A, Y = d['A'], d['Y']
         cols = d['A_cols']

@@ -66,9 +66,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .data import DEV_UNITS
+from .data import official_split
 from .features import SPAN
-from .train import build, fit_rung, load_ds02, load_frozen
+from .train import build, fit_rung, load_frozen, load_subset
 
 RUNGS = ('N0', 'N1', 'N2', 'N3')
 #: diagnostic arm, never part of the 60-cell grid: vanilla + the operating
@@ -263,13 +263,68 @@ def _predict_held_out(rung, cfg, data, dev, state, target_mu, target_sd):
     return pred * target_sd + target_mu
 
 
+def _subset_name(path):
+    """``N-CMAPSS_DS05.h5`` -> ``DS05``; falls back to the file stem."""
+    import re
+    m = re.search(r'(DS\d+)', Path(path).stem, re.I)
+    return m.group(1).upper() if m else Path(path).stem
+
+
+def _write_subset_audit(path, subset, out_root, dev_units, test_units):
+    """Per-subset data audit, written before any training happens.
+
+    The dataset table in the paper needs a machine-readable source produced by
+    the same run that used the numbers: the official split, flights, rows, rows
+    per flight and the label range, all read from the file rather than retyped.
+    ``capped_active`` is derived, not assumed: it says whether any unit's raw RUL
+    exceeds the cap, which is what decides if the capped criterion is a second
+    criterion or the same one under another name.
+    """
+    from .data import load_aux, load_labels
+    out_root = Path(out_root)
+    out_root.mkdir(parents=True, exist_ok=True)
+    rep = {'subset': subset, 'h5': str(path), 'sha256': _sha256(path),
+           'dev_units': list(dev_units), 'test_units': list(test_units),
+           'splits': {}, 'capped_active': False}
+    for split, units in (('dev', dev_units), ('test', test_units)):
+        a = load_aux(path, split)
+        y = load_labels(path, split)
+        per_unit, n_rows, n_flights, max_rul = {}, 0, 0, 0.0
+        for u in units:
+            m = a['unit'] == u
+            rows = int(m.sum())
+            flights = int(len(np.unique(a['cycle'][m])))
+            unit_max = float(np.max(y[m])) if rows else 0.0
+            per_unit[str(int(u))] = {
+                'rows': rows, 'flights': flights,
+                'rows_per_flight': round(rows / max(flights, 1), 1),
+                'max_rul': unit_max,
+            }
+            n_rows += rows
+            n_flights += flights
+            max_rul = max(max_rul, unit_max)
+        rep['splits'][split] = {'n_units': len(units), 'n_flights': n_flights,
+                                'n_rows': n_rows, 'max_rul': max_rul,
+                                'per_unit': per_unit}
+        rep['capped_active'] = bool(rep['capped_active'] or max_rul > CAP)
+    (out_root / 'audit.json').write_text(json.dumps(rep, indent=1))
+    print(f'audit: {out_root / "audit.json"}  capped_active={rep["capped_active"]}  '
+          f'dev_flights={rep["splits"]["dev"]["n_flights"]}  '
+          f'test_flights={rep["splits"]["test"]["n_flights"]}')
+    return rep
+
+
 def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha,
-             phase='dev'):
+             phase='dev', subset='DS02', dev_units=()):
     seed = N0_SEED if rung == 'N0' else None
     seeds = (N0_SEED,) if rung == 'N0' else SEEDS
     rows = []
     for sd in seeds:
-        run_id = f'{rung}_LOEO-{held_out}_s{sd}' if rung != 'N0' else f'{rung}_LOEO-{held_out}'
+        base_id = (f'{rung}_LOEO-{held_out}_s{sd}' if rung != 'N0'
+                   else f'{rung}_LOEO-{held_out}')
+        # the subset is part of the id because four subsets share one schema and
+        # the same fold/seed names; without it a merged table has duplicate ids
+        run_id = f'{subset}_{base_id}'
         row_template = {c: '' for c in LEDGER_COLS}
         row_template.update(phase=phase, rung=rung,
                             model=MODEL_NAMES[rung],
@@ -281,7 +336,7 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                             feature_list=';'.join(['Xs_mean', 'Xs_std', 'Xs_slope',
                                                    'W_mean', 'W_std', 'age_scaled']),
                             kmeans_fit_units='' if rung in ('N0', 'N1') else
-                            ';'.join(str(u) for u in DEV_UNITS if u != held_out),
+                            ';'.join(str(u) for u in dev_units if u != held_out),
                             kmeans_seed='' if rung in ('N0', 'N1') else cfg['seeds'][0],
                             pred_instant='flight_end', n_units=1,
                             seg_boundaries=json.dumps({'relative': list(SEG_REL),
@@ -397,7 +452,10 @@ def main():
     ap.add_argument('--synthetic', action='store_true')
     ap.add_argument('--folds', type=int, default=0, help='limit folds for a plumbing check')
     ap.add_argument('--out-root', default='experiments/ncmapss')
-    ap.add_argument('--ledger', default='docs/paper_b_ncmapss/registry/runs.csv')
+    ap.add_argument('--ledger', default='',
+                    help='default: <out-root>/<subset>/runs_dev.csv')
+    ap.add_argument('--subset', default='',
+                    help='subset label, e.g. DS05 (default: parsed from the h5 name)')
     ap.add_argument('--data-sha256', default='')
     ap.add_argument('--rungs', default=','.join(RUNGS),
                     help=f'comma-separated rungs (main grid: {",".join(RUNGS)}; '
@@ -412,37 +470,48 @@ def main():
         import tempfile
         from .test_contract import _write_fake
         p = Path(tempfile.mkdtemp()) / 'fake_ds02.h5'
-        _write_fake(p, units=tuple(DEV_UNITS) + (11, 14, 15), cycles=80, rows_per_cycle=12)
+        _write_fake(p, dev_units=(1, 2, 3, 4, 5, 6), test_units=(7, 8),
+                    cycles=80, rows_per_cycle=12)
     else:
         if not a.h5:
             raise SystemExit('--h5 is required unless --synthetic')
         p = Path(a.h5)
 
-    folds = list(DEV_UNITS)
+    # the split is read from the file, never from a list in this package
+    dev_units, test_units = official_split(p)
+    subset = a.subset or _subset_name(p)
+    out_root = Path(a.out_root) / subset
+    ledger = a.ledger or str(out_root / 'runs_dev.csv')
+    print(f'subset {subset}: dev {list(dev_units)}  test {list(test_units)}  '
+          f'out {out_root}')
+    if not a.synthetic:
+        _write_subset_audit(p, subset, out_root, dev_units, test_units)
+
+    folds = list(dev_units)
     if a.folds:
         folds = folds[:a.folds]
     all_rows = []
     for k, held in enumerate(folds, 1):
-        train_units = [u for u in DEV_UNITS if u != held]
-        data = load_ds02(p, train_units, cfg)
+        train_units = [u for u in dev_units if u != held]
+        data = load_subset(p, train_units, cfg, subset=subset)
         print(f'fold {k}/{len(folds)}: holdout {held}, train {train_units}, '
               f'{data["x"].shape[0]} flights, drops {data["drop_info"]["n_dropped"]}')
         for rung in [r.strip() for r in a.rungs.split(',') if r.strip()]:
             # A diagnostic arm never enters the frozen-grid evidence table: it was
-            # not pre-registered, so it goes to experiments/ncmapss/diag/ with
-            # phase=diag and its own ledger. This is enforced here rather than
-            # left to the caller, so no invocation can pollute runs.csv by accident.
+            # not pre-registered, so it goes to <subset>/diag/ with phase=diag and
+            # its own ledger. This is enforced here rather than left to the caller,
+            # so no invocation can pollute runs_dev.csv by accident.
             if rung in DIAG_RUNGS:
-                out_root = str(Path(a.out_root) / 'diag')
-                ledger = str(Path(a.out_root) / 'diag' / 'runs_diag.csv')
+                out_dir = str(out_root / 'diag')
+                led = str(out_root / 'diag' / 'runs_diag.csv')
                 phase = 'diag'
             else:
-                out_root, ledger, phase = a.out_root, a.ledger, 'dev'
-            all_rows += run_fold(rung, k, held, cfg, data, out_root, ledger, pre,
+                out_dir, led, phase = str(out_root), ledger, 'dev'
+            all_rows += run_fold(rung, k, held, cfg, data, out_dir, led, pre,
                                  a.data_sha256 or ('SYNTHETIC' if a.synthetic else _sha256(p)),
-                                 phase=phase)
+                                 phase=phase, subset=subset, dev_units=dev_units)
     ok = sum(r['status'] == 'ok' for r in all_rows)
-    print(f'done: {ok}/{len(all_rows)} ok, ledger {a.ledger}')
+    print(f'done: {ok}/{len(all_rows)} ok, ledger {ledger}')
 
 
 if __name__ == '__main__':
