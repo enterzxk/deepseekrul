@@ -40,12 +40,20 @@ because that is what the C-MAPSS audit found to dominate there.
 
 ## Results table (PENDING)
 
+Every cell is run with **≥3 model seeds**; the cell holds the seed-mean and the
+seed standard deviation is reported alongside (a single-seed fold is not a
+result). Per-fold seed spread and cross-fold spread are both reported, and the
+two are never conflated.
+
 | rung | fold 1 | fold 2 | fold 3 | fold 4 | fold 5 | fold 6 | mean | sd |
 |---|---|---|---|---|---|---|---|---|
 | N0 age-only | | | | | | | | |
 | N1 vanilla | | | | | | | | |
 | N2 DSPT Base | | | | | | | | |
 | N3 frozen DSPT | | | | | | | | |
+
+Secondary table (same folds, same seeds): MAE, Bias, NASA score, and
+early/mid/late lifetime segment errors, each with the label convention named.
 
 ## What would falsify the transfer claim
 

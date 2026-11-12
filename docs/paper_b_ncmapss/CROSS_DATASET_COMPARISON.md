@@ -7,9 +7,11 @@ produced before both sides have a frozen analysis rule.
 
 The C-MAPSS audit established two facts that make naive comparison invalid:
 
-1. C-MAPSS test labels are **clipped at 125**, and that is the
-   literature-consistent convention. Raw-label numbers are a stricter, separate
-   criterion (§2b of the audit).
+1. C-MAPSS test labels are **clipped at 125** in our own runs, and raw-label
+   numbers are a stricter, separate criterion (§2b of the audit). It is **not**
+   established that published numbers use the same convention — that inference
+   was retracted in `D041` — so every cross-paper comparison carries the
+   assumption explicitly.
 2. C-MAPSS performance is dominated by the cycle axis and the benchmark is
    saturated: the whole method space spans ~1.9 RMSE on FD001.
 
