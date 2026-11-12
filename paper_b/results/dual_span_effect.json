@@ -1,0 +1,19 @@
+{
+ "run_dir": "/tmp/audit_runs/A8_base_L70/FD001/s101",
+ "subset": "FD001",
+ "seed": 101,
+ "note": "A8_base config re-trained on a40 because the frozen artifacts do not include model.pt; inference-time ablations only, no retraining for the ablations themselves.",
+ "val_eng_dual": 11.378790756522708,
+ "val_eng_long": 11.305731155408548,
+ "val_eng_short": 11.612472097706032,
+ "val_eng_dual_minus_long": 0.07305960111415999,
+ "val_eng_dual_minus_short": -0.23368134118332407,
+ "pred_dual_vs_long_max_abs": 4.1875,
+ "pred_dual_vs_short_max_abs": 2.6875,
+ "val_eng_cycle_zeroed": 22.73632890230226,
+ "val_eng_cycle_delta": 11.357538145779554,
+ "pred_cycle_max_abs_shift": 37.5,
+ "pred_cycle_mean_abs_shift": 19.037813186645508,
+ "val_eng_cycle_shuffled": 16.28483232823443,
+ "val_eng_cycle_shuffle_delta": 4.906041571711722
+}
