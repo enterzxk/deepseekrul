@@ -65,10 +65,10 @@
     }
   ],
   "next_actions": [
-    "交互答疑导师: 完整结果定稿——正文写约 8–9%，脚注给 −7.76% 的出处与 md5",
-    "管理员: 脚注中注明 −8.16% 属被撤回批次永不引用",
-    "tmh: 继续 D 的训练循环",
-    "主控: 该版本作为对外完整结果"
+    "主控: 批三 24 格跑完后封口 G2，四子集补齐前不得引用",
+    "tmh: D 按正确性/非坍缩/与直接回归公平比较三条验收，不追性能",
+    "牢莫: D 通过后才设计并运行 E",
+    "管理员: 负结果按编码选择消融登记，不建核心贡献条目"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -1954,6 +1954,160 @@
         "若 FD001 批次问题最终判定 12.142 才对，则 −7.76% 需替换为 −8.16%"
       ],
       "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:58:48.978Z",
+      "level": "L3",
+      "decision": "continue",
+      "selected_option": "按用户指令推送到 origin/punet-interval；提交前显式挑选文件，排除临时脚本与数据集",
+      "rationale": "上传到 GitHub 属于对外可见动作（AGENTS.md §0.0.1 第 5 类），须由用户授权；本次为用户在群内明确指令『上传到github上』，授权成立。推送前已核对远端、分支、待提交内容，确认无凭据、无大文件，且临时脚本与数据集均未纳入，因此执行。推送后远端与本地 HEAD 逐位一致。",
+      "evidence": [
+        "git remote: https://github.com/enterzxk/deepseekrul.git；分支 punet-interval",
+        "推送前本地领先 8 个提交；本次新增提交 4261bc6（8 files changed, 403 insertions）",
+        "git push 结果：570b0a0..4261bc6  punet-interval -> punet-interval，退出码 0",
+        "git ls-remote 显示远端 refs/heads/punet-interval = 4261bc68b539ae6818959e578c0b82a04a31a347，与本地 HEAD 一致",
+        "推送前检查：48 个未跟踪文件中无 >1MB 文件，凭据模式扫描无命中"
+      ],
+      "rejected_options": [
+        {
+          "option": "连 48 个临时脚本一起提交",
+          "reason": "不属于成果，且会在公开仓库留下无意义文件"
+        },
+        {
+          "option": "推送前先 squash 历史",
+          "reason": "违反历史不可重写约定"
+        },
+        {
+          "option": "推送到新分支",
+          "reason": "用户未要求新分支，punet-interval 是既有工作分支"
+        }
+      ],
+      "scientific_risks": [
+        "公开仓库会暴露未完成与 preliminary 的结果，可能被误读为定论",
+        "后续若需撤回某结论，公开历史无法删除，只能追加更正"
+      ],
+      "falsification_criteria": [
+        "若远端 HEAD 与本地不一致，则推送未完成，需重新推送",
+        "若后续发现推送内容含凭据或误提交数据文件，需立即撤回并改历史"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T09:26:10.656Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "确认 L2 通道通过直连 codex 二进制恢复；仅在裁决点调用；G2 咨询待实测数补齐后发起",
+      "rationale": "L2 通道此前被判定不可用是因为 MCP 找不到 codex 可执行文件，而实际二进制存在且可直连运行；这意味着 G4 判据与 Fourier 归属两项 PENDING-L2 可以补审。但单次调用开销大且网络不稳，因此把调用限制在真正的裁决点，并先补齐待裁决问题的实测证据，避免用未核实数字换取低质量裁决。",
+      "evidence": [
+        "codex 可执行文件位于 C:\\Users\\20562\\AppData\\Local\\OpenAI\\Codex\\bin\\9e1da79431da526b\\codex.exe，codex-cli 0.167.0-alpha.4.1，--version 退出码 0",
+        "codex exec --skip-git-repo-check --sandbox read-only 实测返回 OK，退出码 0，session 01a1cf12-0a0b-7751-9ac2-7ad6efcd68e1",
+        "单次调用消耗 24,794 tokens、约 2 分钟，期间 WebSocket 重连 5 次后回退 HTTPS",
+        "L2_CONSULT_G2_20261112.md 为 UTF-16 编码，内容为 codex 配额报错（配额上限 40），非逻辑失败",
+        "mcp__codex__codex 仍报 WinError 2（PATH 中无 codex），但直连二进制可用"
+      ],
+      "rejected_options": [
+        {
+          "option": "继续用 mcp__codex__codex",
+          "reason": "仍报 WinError 2，PATH 中无 codex，无法启动"
+        },
+        {
+          "option": "立即发起 G2 的 L2 咨询",
+          "reason": "尺度数字尚未实测，裁决会建立在未核实的前提上"
+        },
+        {
+          "option": "把 codex 加入 PATH 后重启 MCP",
+          "reason": "修改环境变量属配置变更，且直连已可用，无必要"
+        }
+      ],
+      "scientific_risks": [],
+      "falsification_criteria": [
+        "若直连 codex 再次报配额上限，则 L2 仍不可用，按降级规则处理",
+        "若单次调用耗时超过 10 分钟或持续重连失败，则不用于非裁决性问题"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-12T09:27:03.635Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "暂停原 G2/G1 结论的引用，把尺度实测与五个待裁问题送 L2；期间只做可逆的对齐实现准备，不跑训练",
+      "rationale": "A2 的 cycle 项达到骨干表示的 41–51 倍，意味着该臂的预测主要由年龄项决定，传感器分支只提供很小的修正；在这种结构下把 A2 与 A3a 的 RMSE 差归因于编码形式，等于把一个量级差当成形式差。更严重的是 G1 的 +10.46% 同样产生于该结构，其「cycle 提供额外信息」的解释需要重新检验。两项均属论文主张取舍，按 §0.5 交 L2 裁决。",
+      "evidence": [
+        "tmh c892455：A2 投影输出 std 70.7/70.5/96.2/86.2，A3a 0.518/0.522/0.545/0.534，比值 115–136×",
+        "tmh：‖term‖/‖h‖ 为 A2 41–51×、A3a 0.397–0.408、A4 2.13–2.26、A5 0.78–0.84",
+        "tmh：cycle 项加在 encode() 之后且无 norm，输出端即注入端",
+        "tmh：‖∂L/∂out‖ 相当（A2 0.14–0.27，A3a 0.11–0.24），但 ‖∂L/∂W_proj‖ 差 100–300×（A2 2693–6243，A3a 17–51）；FD004 的 A2 仅 101",
+        "用户 2026-11-12 指令：Scalar 与 Fourier 的尺度混杂使当前 A2/A3a 结果不能直接证明编码形式优劣"
+      ],
+      "rejected_options": [
+        {
+          "option": "直接接受原 G2 结论（Fourier 更差）",
+          "reason": "尺度差 115–136 倍，归因不成立"
+        },
+        {
+          "option": "直接按尺度对齐结果覆盖原结论",
+          "reason": "对齐方案本身需要外部审阅，且 ρ 取值会影响结论"
+        },
+        {
+          "option": "先跑对齐实验再问 L2",
+          "reason": "若无对齐方案的独立审阅，可能用错误方案跑完 16 格"
+        }
+      ],
+      "scientific_risks": [
+        "ρ 对齐会改变各臂的有效容量，可能引入新的混杂",
+        "A2 若确为 cycle 主导，则其 val RMSE 不能代表传感器建模能力",
+        "FD004 的 A2 梯度异常可能指示该子集训练不稳定"
+      ],
+      "falsification_criteria": [
+        "若尺度对齐后 A2 仍显著优于 A3a，则编码形式差异成立，原 G2 可部分恢复",
+        "若尺度对齐后 A1→A2 的增益大幅缩水，则 G1 的原始解释被推翻",
+        "若 ρ 对齐后各臂的 term/h 均在 0.3–3 区间而排序不变，则尺度不是主因"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-12T12:37:05.015Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "G2 判 FAILED（限 FD001 / 3 seed / 本实现，不外推）；论文工作标题改为《面向剩余寿命预测的结构化累积损伤与阈值到达建模》；D 的预期降为正确性/非坍缩/与直接回归公平比较；E 仅在 D 通过后检验；负结果进编码选择消融，不单列核心贡献",
+      "rationale": "军师（L2 顾问）依预注册规则裁定 G2 FAILED：A2cal 9.995760 vs A3bcal 10.564818，Δ = −0.569058，相对 A2cal 为 −5.69%，精确 Welch df=3.675（t_crit=2.8760），95% CI [−8.85%, −2.54%]（RMSE [−0.884374, −0.253743]），区间不含 0。此前记的 [−8.86%, −2.53%] 用的 t=2.8841，系在 1/df 上做线性插值所得，小自由度处误差偏大，**已作废**（2.8760 由不完全 Beta 反解，同一段代码在 ν=3/4/5/10/30 上复现 3.1824/2.7764/2.5706/2.2281/2.0423）。该裁决同时把 Fourier 从当前贡献主张中撤出、raw 标量降为后续 cycle 基线、D 定为待验证核心假设、E 后置。本会话只做记录与执行，不改裁决内容。作用域必须写死：仅 FD001、仅 3 seed、仅本实现；批三 24 格在发，四子集补齐前任何 G2 结论都不得引用。",
+      "evidence": [
+        "经理 2026-11-12 转述军师裁决：G2（FD001）A2cal 9.995760 vs A3bcal 10.564818，差 −0.569058（−5.69%），Welch df=3.675（t_crit=2.8760），95% CI [−8.85%, −2.54%]（t=2.8841 给出的 [−8.86%, −2.53%] 系 1/df 线性插值误差，已作废）",
+        "state.json revision 77：next_actions 已写入 G2 FAILED 作用域、工作标题、D/E 验收口径与负结果登记方式",
+        "docs/paper_b_hc/METHOD_SPECIFICATION.md D1–D8（D 的规格已定稿，E 未开工）",
+        "既有 96 格 A8 与 24 格 s23 证据：MS/SA/HI 无稳定独立增益，sa 在 FD004 随口径翻号"
+      ],
+      "rejected_options": [
+        {
+          "option": "把 G2 FAILED 外推到四子集",
+          "reason": "只有 FD001 / 3 seed / 本实现的证据，四子集尚未补齐"
+        },
+        {
+          "option": "保留 Fourier 作为核心贡献",
+          "reason": "预注册判据已判 FAILED，继续主张属事后挑选"
+        },
+        {
+          "option": "把 D 仍按性能优势验收",
+          "reason": "D 是待验证的机制假设，预期应为正确性/非坍缩/与直接回归公平比较"
+        },
+        {
+          "option": "提前跑 E",
+          "reason": "E 依赖 D 成立，D 未通过前跑 E 无法解释结果"
+        }
+      ],
+      "scientific_risks": [
+        "四子集补齐后 G2 结论可能改变，当前 FAILED 只对 FD001 成立",
+        "把负结果降级为编码选择消融，若消融本身设计不当，会失去「为什么不好」的信息",
+        "工作标题改为结构化累积损伤与阈值到达后，若 D 未通过，标题将失去支撑，需再改",
+        "D 的三条验收标准（正确性/非坍缩/公平比较）若阈值定得过松，会让一个无解释力的模型过关"
+      ],
+      "falsification_criteria": [
+        "若批三四子集补齐后 A2cal 与 A3bcal 的差值在多数子集上反向或落入噪声，则 G2 的 FAILED 判定需重述为「FD001 特例」",
+        "若 D 在三条验收标准下均通过，但 E 不产生任何可区分证据，则 D 不能作为核心机制主张",
+        "若把 Fourier 作为编码选择消融重新评估后仍显示系统性劣势，则该消融本身构成一条可发表的负结果",
+        "若工作标题所指的机制在 D 通过前就被写入正文主张，则该表述越权，需撤回"
+      ],
+      "reviewer": "codex-subagent"
     }
   ],
   "experiment_queue": [],
@@ -1963,6 +2117,6 @@
   "blocked_reason": null,
   "resume_instructions": "Blocked on human authorization. Keep executing every reversible task that does not depend on the blocked decision, and record results; do not idle waiting for an answer.",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-12T08:45:45.177Z",
-  "revision": 73
+  "updated_at": "2026-11-12T12:37:05.020Z",
+  "revision": 78
 }
