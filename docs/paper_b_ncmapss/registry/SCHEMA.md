@@ -438,13 +438,19 @@ docs/paper_b_ncmapss/registry/
   runs_<subset>.csv      # 每子集一张台账（本管理员写）
   REGISTRY_NOTES.md      # 规则与逐次登记记录（append-only）
   FREEZE_TEMPLATE.json   # 冻结清单模板（见 §6）
-  freeze/<freeze_id>.json# 实际冻结清单
+  freeze/<freeze_id>.json# 当前 live 冻结清单（**有且仅有一份**）
+  freeze/superseded/     # 作废的清单，字节不动，只移动路径（见 freeze/INDEX.md）
+  freeze/INDEX.md        # 清单状态表与复算方式
   launch/<run_id>.json   # 训练进程启动时写（O_CREAT|O_EXCL，独占创建）
   close/<run_id>.json    # 结束后写
 
 <workdir>/experiments/ncmapss/<run_id>/
   config.json  manifest.json  metrics.json  preds.csv  train.log  ckpt/
 ```
+
+**不变量**：`freeze/*.json` 恰好一份。作废的清单移到 `freeze/superseded/`——移动不改内容，
+摘要照样按签名时的规则可复算，所以「哪份算数」一条 `ls` 就能回答，闸门不必去猜 `status` 字段
+（往已签清单里加字段会让它自己的摘要失效，那是禁止的）。
 
 **写入边界**：本管理员只写 `docs/paper_b_ncmapss/registry/` 下的 `runs_<subset>.csv`、
 `REGISTRY_NOTES.md`、`freeze/*.json`、`SCHEMA.md`。**不写** `paper_b/ncmapss/`、
@@ -589,6 +595,9 @@ python scripts/nc_freeze.py verify docs/paper_b_ncmapss/registry/freeze/<active>
 
 # 4. 台账锁没有残留
 test ! -e docs/paper_b_ncmapss/registry/runs_<subset>.csv.lock
+
+# 5. 清单唯一性：freeze/ 根目录恰好一份 json（作废的在 freeze/superseded/）
+test "$(ls -1 docs/paper_b_ncmapss/registry/freeze/*.json | wc -l)" -eq 1
 ```
 
 **第 1 条是最便宜、也最容易漏的一条**：一条 `git rev-parse` 就能证明协议正文在冻结后没被动过
