@@ -479,6 +479,34 @@ Every CSV carries its own `criterion` / `rul_cap_used` (and `segment_rule` for
 the segment tables), so a file lifted out of context still cannot be merged
 into a table of the other criterion.
 
+### 6.10 `epoch*` for the full-device test model
+
+The test stage trains on all six development engines, so there is no inner
+validation split and **`epoch*` is not selected** — it is estimated from the
+development LOEO results and frozen before the test set is opened:
+
+```
+epoch*(subset, rung, seed) = round_half_up( mean of the six LOEO epoch* values )
+```
+
+The six fold values are written to `metrics.json` as
+`epoch_star_fold_values`, so the estimate is recomputable without the ledger.
+
+Two consequences that must be reported, not smoothed over:
+
+1. **`fixed_passes:200` is the primary evidence column.** The spread of the six
+   fold values is large — DS05 N3 s303 ranges 20–110, mean 54.7 — so the
+   `epoch*` column is reported with that caveat attached, never alone.
+2. **N0's `epoch*` is a floor hit, not a selection.** Five of the six DS02 folds
+   sit exactly on the floor of 20 (`[20,20,20,22,20,20]`), and 20 of all 24
+   folds do. N0's `inner_val` column therefore means "stopped at the floor",
+   not "chose an epoch".
+
+Validation curves during the test stage are recorded as **NaN**. Under no
+circumstance may a validation curve be computed on a test engine — doing so
+writes test information into the artifacts, and the first person to reach for
+that curve will use it to select a model.
+
 ## 7. Label convention
 
 C-MAPSS reports in this project are capped at 125. **We do not know which
