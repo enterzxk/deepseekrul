@@ -65,9 +65,10 @@
     }
   ],
   "next_actions": [
-    "在 a40 跑 VAN_raw_cycle_L70 与 VAN_dsp_L70 各 12 格",
-    "汇总 4 臂 x 4 子集 x 3 seed 的 engine-level 验证 RMSE 与配对差",
-    "写入 DSPT_BASE_FUNCTIONAL_AUDIT.md"
+    "交互答疑导师: 完整结果定稿——正文写约 8–9%，脚注给 −7.76% 的出处与 md5",
+    "管理员: 脚注中注明 −8.16% 属被撤回批次永不引用",
+    "tmh: 继续 D 的训练循环",
+    "主控: 该版本作为对外完整结果"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -1656,6 +1657,303 @@
         "若 Vanilla 任一臂在子集内稳定优于 DSPT-Base，则「结构贡献」被证伪"
       ],
       "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T07:22:48.540Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "立即重启 Stage D 实现：先落 revision 64 两项，再测试先行（D7.2 四条断言），通过后写 engine_batch 与训练循环；论文表述继续等 L2",
+      "rationale": "项目当前的真实阻塞只有 L2 通道，其余停摆是派工粒度问题：规格已定稿却未转成可执行的下一步，导致实现侧空转。D 的实现不依赖 GPU，也不依赖 L2 的裁决（裁决只影响论文表述与 cycle 形态），因此可以立即并行推进。先测试后实现，是因为 D7.2 的四条断言正是『窗口不许重置 D』这一核心主张的可执行形式，断言不过则实现无意义。",
+      "evidence": [
+        "docs/paper_b_hc/METHOD_SPECIFICATION.md 已 264 行、D1–D8 完成，经三轮复核（8ee9c68 为 v3）",
+        "revision 64 尚有两项未落：S_0 在 B0–B3 共用并设 1e-12 下限；rmse_uncapped 只在 r_t≤K 上算",
+        "paper_b/hc/ 仍无 engine_batch 接口与 D 分支实现，D 代码未开工",
+        "L2 通道仍不可用：codex 可执行缺失；G4 判据与 Fourier 取舍维持 PENDING-L2",
+        "state.next_actions 显示 tmh 当前在跑基线功能审计的 Vanilla 2×2 格"
+      ],
+      "rejected_options": [
+        {
+          "option": "等 L2 恢复后再启动 D 实现",
+          "reason": "L2 卡的是论文表述，不是代码；空等会让主干继续延后"
+        },
+        {
+          "option": "等 tmh 做完 Vanilla 2×2 再派 D",
+          "reason": "D 的实现不需要 GPU，与 a40 上的实验不冲突"
+        },
+        {
+          "option": "先写完整实现再补断言",
+          "reason": "核心主张的可执行形式若不过，实现全部作废"
+        }
+      ],
+      "scientific_risks": [
+        "测试先行的四条断言若设计过宽，可能放过真正的窗口重置缺陷",
+        "D 与基线审计两条线并行，tmh 的上下文切换成本会拖慢两边",
+        "L2 长期不可用会让 D 的 cycle 形态与论文表述持续悬空"
+      ],
+      "falsification_criteria": [
+        "若 D7.2 四条断言无法在现有数据接口上通过，则 engine_batch 设计需重做",
+        "若一周内 D 代码仍未产出可跑断言，则说明派工粒度不够，需拆成单文件任务"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:02:20.540Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "接受军师裁决：追加撤回『作者必裁测试标签』的推断与『capped 为文献同口径』的结论；主表保留 capped 但改称本工作冻结口径；撤下 MS/SA/HI 模块级稳定增益主张，负结果按『未检出』表述",
+      "rationale": "该推断把一个只对『输出被截断』成立的算术下界，当成对所有模型成立的普适下界，从而把『作者也裁标签』从一种可能升格为唯一解释。这直接决定了主表口径的正当性叙述，属于论文方法学争议。军师同时给出的口径处理（保留系统级性能、撤下模块级机制主张、未检出不等于无效）与既有 96 格证据一致：sa 仅在 FD001–FD003 同号且幅度与 seed 波动同量级，hi 近零，ms 混杂，因此不能写成机制。",
+      "evidence": [
+        "PAPER_PROTOCOL_MATRIX.md §5（行 87-125）：从『作者报告值低于输出≤125+raw 标签的 RMSE 下界（18.317/19.529）』推出『作者必裁测试标签』",
+        "PAPER_PROTOCOL_MATRIX.md 行 10-11、187-188 把该推断写成『决定性证据』与『唯一自洽解释』",
+        "BASELINE_PROTOCOL_AUDIT.md §8（行 117）据此断言 capped 是 literature-consistent criterion，并据此定主表口径",
+        "军师：训练标签 cap 不蕴含推理期输出 ≤125；raw 标签 + 外推预测同样自洽，故该推断不成立",
+        "DSPT_BASE_FUNCTIONAL_AUDIT.md §6.4/§7：96 格无稳定独立增益，sa 仅 FD001–FD003 同号且与 seed 波动同量级，FD004 按 capped/raw 翻号，hi 稳定近零"
+      ],
+      "rejected_options": [
+        {
+          "option": "维持『capped 与文献同口径』表述",
+          "reason": "推断依赖未言明的前提（输出饱和），一旦审稿人指出即失守"
+        },
+        {
+          "option": "改主表为 raw 口径",
+          "reason": "冻结协议与历史数字均为 capped，改口径会作废既有对照；且 raw 只是更严的敏感性分析"
+        },
+        {
+          "option": "为让消融显著而换 seed 或加实验",
+          "reason": "未检出不等于无效，为显著性重采样属于选择性报告"
+        }
+      ],
+      "scientific_risks": [
+        "五篇文献的口径若确实各自不同，则『优于五篇』只能逐篇限定，不能给统一结论",
+        "撤下同口径主张后，系统级性能优势的说服力下降，需要靠同信息输入对齐来补",
+        "capped 主表在 raw 口径下的敏感性结果可能翻转 FD004 的 sa 结论"
+      ],
+      "falsification_criteria": [
+        "若能核实五篇论文中任一明确写了测试标签裁剪，则该篇的 capped 可比性恢复，但仍不能推广到其余",
+        "若实测模型在 raw 标签训练下输出确实饱和于 125，则原下界论证对其成立，可部分恢复该推断"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:05:40.339Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "确认四轴核查结果；对无 cycle 输入的两篇撤下架构级优势表述；消融改为『在 40 epoch 预算下未检出独立增益』并注明预算混杂；对比表加三条脚注",
+      "rationale": "cycle 是否进入输入是信息集差异，不是架构差异；两篇明确不喂 cycle、一篇把 cycle 当输出，因此本项目在这些对照上多一个通道，任何性能优势都不能归因于结构。调参预算差异（40 vs 100/120 epoch）同时影响两个结论：对性能方向使我们的结果更保守，对消融方向则构成混杂——小预算可能压平模块差异，因此『未检出』必须限定预算条件。这两条都不改变『未检出』的结论等级，但改变它可以被引用到多广的范围。",
+      "evidence": [
+        "燕子：文件名与论文对不上——A_Condition-Aware… 实为 SFI-STHGAT（TIM 75,2026,2520317），Enhanced… 实为 ST-KDFormer（TIM 74,2025,2550316）",
+        "燕子：SFI-STHGAT 原文『segregated the input features, including engine ID, cycles, three OCs, and 21 sensor readings』后仅保留 OCs 与 14 个传感器 → cycle 不进输入",
+        "燕子：ST-KDFormer『M is the number of sensors』→ 只有传感器；STGATN『Cycle = f(S_t)』→ cycle 是输出",
+        "燕子：HDA-GNN 与 DCCG-Mamba 的 cycle 输入未核实",
+        "燕子：五篇训练 cap 均 125（DCCG 按子集 125/130/125/135），测试标签是否裁剪五篇全部未写",
+        "燕子：评估单位只有 DCCG-Mamba 写『N is the number of test engines』，其余四篇写 samples",
+        "燕子：ST-KDFormer 100 epoch、DCCG-Mamba 120 epoch + 逐子集 DA-MT-MFBO 调参；本项目 40 epoch/patience 12"
+      ],
+      "rejected_options": [
+        {
+          "option": "维持『优于五篇』的架构级表述",
+          "reason": "信息集不同，架构归因不成立"
+        },
+        {
+          "option": "把消融结论升级为『模块无效』",
+          "reason": "小预算构成混杂，未检出不能推出无效"
+        },
+        {
+          "option": "为对齐预算把本项目跑到 100 epoch",
+          "reason": "会作废既有 40 epoch 对照，且预算对齐不能弥补信息集差异"
+        }
+      ],
+      "scientific_risks": [
+        "HDA-GNN 与 DCCG-Mamba 的 cycle 输入未核实，结论可能再变",
+        "评估单位若确为全窗平均，则四篇的 RMSE 与本项目发动机级口径不可直接比",
+        "预算混杂若成立，提高预算后模块差异可能仍不显著，需预留该负结果"
+      ],
+      "falsification_criteria": [
+        "若核实到某篇确实把 cycle 作为输入，则该篇的架构级比较可部分恢复",
+        "若在某篇正文/附录找到测试标签裁剪声明，则该篇的 capped 可比性恢复",
+        "若把预算提到 100 epoch 后模块差异仍不显著，则预算混杂解释被排除"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:07:35.058Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "并行补齐三份不依赖 L2 的交付物：RELATED_WORK_GAP（燕子）、ABLATION_RESULTS 与 REPRODUCIBILITY_AUDIT（管理员）；tmh 继续 D 实现",
+      "rationale": "三份缺失交付物都不依赖 L2 裁决：RELATED_WORK_GAP 依赖刚核完的文献四轴，ABLATION_RESULTS 依赖已落盘的 96 格与 28 格证据，REPRODUCIBILITY_AUDIT 依赖台账与事故记录。先把这三份补齐，能让论文的 Related Work、Experiments、Reproducibility 三节在 L2 恢复后直接成文，避免所有写作都压到裁决之后。",
+      "evidence": [
+        "docs/manuscripts/ 下只有 Paper A 的 manuscript.tex，Paper B 无正文稿",
+        "任务书要求的 8 份交付物中已存在：METHOD_SPECIFICATION.md、CYCLE_DEPENDENCE_STUDY.md；缺失 RELATED_WORK_GAP.md、ABLATION_RESULTS.md、REPRODUCIBILITY_AUDIT.md、STRUCTURAL_HI_RESULTS.md、HEALTH_CYCLE_COUPLING.md、PAPER_B_RESEARCH_DECISION.md",
+        "管理员 49ca491：PAPER_PROTOCOL_MATRIX 增 §3.1 文件名映射、§3.2 四轴、§3.3 脚注 F1–F4",
+        "tmh 323abcc：DSPT_BASE_FUNCTIONAL_AUDIT §6.3 补具体论文映射并写明 no architecture-level advantage；§6.4 加预算作用域",
+        "燕子已核完五篇的 cycle 输入、标签裁剪、评估单位、调参预算四轴"
+      ],
+      "rejected_options": [
+        {
+          "option": "等 L2 恢复后一次性写全部 8 份",
+          "reason": "三份与裁决无关，空等会让写作全部串行化"
+        },
+        {
+          "option": "先开写论文正文",
+          "reason": "主表口径与创新点归属仍挂 PENDING-L2，正文会返工"
+        },
+        {
+          "option": "由 tmh 同时写这三份",
+          "reason": "tmh 正做 D 的实现，串行会拖慢主干"
+        }
+      ],
+      "scientific_risks": [],
+      "falsification_criteria": [
+        "若 RELATED_WORK_GAP 写成模块罗列而无机制差异与可证伪 gap，则退回重写",
+        "若 ABLATION_RESULTS 与 DSPT_BASE_FUNCTIONAL_AUDIT 出现两套数字，则需合并为单一真相"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:12:51.309Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "以 lab3090 权威产物为准复核 §5.3；复核前所有引用改为『同向改善、幅度约 8–9%』，不写绝对值",
+      "rationale": "同一组对比在两套产物上给出同向但绝对值不同的结果，说明差异来自聚合口径或 run 集合，而不是方向性错误。此时引用具体绝对值会把一个未对齐的口径写成事实；先统一到权威产物，再决定是补注口径还是重写表格，是唯一不会产生两套真相的做法。在复核完成前用『同向改善、约 8–9%』表述，既不损失结论方向，也不锁定错误数字。",
+      "evidence": [
+        "DSPT_BASE_FUNCTIONAL_AUDIT.md 行 253-254：Vanilla raw 四子集 12.142/12.672/12.353/14.046，行均值 12.803；Vanilla+cycle 11.824/11.526/11.529/12.151，行均值 11.758",
+        "管理员在 lab3090 权威产物上复现不出 12.803/11.758；VAN 族只有 rmse 字段，实测 14.8312 → 13.4281（−9.46%，四子集同向）",
+        "管理员：本地 all_runs.csv 的 A8 族只有 78 行，权威源 lab3090 为 96/96，本地聚合丢 18 个 FD004 格",
+        "管理员：A8 主效应 MS −0.80%（2/4 同号）、SA −0.04%（3/4，FD004 +3.83% 反向）、HI +0.08%（与噪声同阶）；epochs_run 中位数 26、best_ep 中位数 14",
+        "tmh 92f7536：engine_batch 落新模块 data_d.py，6/6 断言通过，含 100 个 val 窗口的接口一致性（h 差 ≤1e-6）"
+      ],
+      "rejected_options": [
+        {
+          "option": "直接采用 12.803→11.758",
+          "reason": "在权威产物上无法复现，引用即不可复算"
+        },
+        {
+          "option": "直接改用 14.8312→13.4281",
+          "reason": "尚未确认聚合口径，且审计表已有 per-subset 明细，贸然替换会造成两套数字"
+        },
+        {
+          "option": "三处文档先删掉这条对比",
+          "reason": "方向性结论（只加 cycle 有改善）仍然成立且重要，删掉会丢掉唯一公平比较"
+        }
+      ],
+      "scientific_risks": [
+        "两族若为不同 run 集合，其对比本身不可合并",
+        "四子集行均值与 pooled 在样本量不均时会给出不同结论",
+        "本地 all_runs.csv 缺 18 格的问题可能不止 A8 族"
+      ],
+      "falsification_criteria": [
+        "若 §5.3 的四个 per-subset 值能在权威产物上复现，则只需补注口径，不改数字",
+        "若不能复现，则按权威产物重写该表并标注更正，历史值保留为已撤回",
+        "若复核后两族数字仍无法互相对上，则说明 run 集合不同，需在文档中列出各自 run 清单"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:14:28.525Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "以 a40 48 格为准；§5.3 的 FD001 两格标为另一批次不引用，12.803/11.619 永久不引，11.758/12.897 可引；tag 名不作 run 身份",
+      "rationale": "两格不符且集中在同一子集，配合 §5.3 自注的『re-run』说明，差异来源是批次而非计算；在没有 run_id 级对应关系时猜测哪批正确，会把不确定性写进结论。因此按批次隔离处理：整行复现的 11.758/12.897 可引，含不符格的行均值永久不引，方向性结论用幅度表述。同名 tag 跨批次复用是本次暴露的系统性风险，必须用 run_id 或产物 hash 作为身份。",
+      "evidence": [
+        "管理员 272839b：8 个 per-subset 单元格中 6 个逐位复现，2 个不符且都在 FD001——Vanilla raw 12.142±0.440 vs 重算 11.918±0.068；Vanilla +3ch+cycle 11.494±0.873 vs 11.448±0.815",
+        "管理员：Vanilla +cycle 与 Vanilla +3ch 整行复现，故行均值 11.758 与 12.897 成立；12.803 与 11.619 各含一个不符格",
+        "管理员：§5.3 自注『the two original FD001 arms were re-run there』，CSV 存的 FD001 为另一批（±sd 0.068 vs 0.440）",
+        "管理员：lab3090 同名 tag VAN_raw_L70/VAN_dsp_cycle_L70 为另一批 run、pooled 口径 14.8312→13.4281（−9.46%）",
+        "三处文档已按裁定改为『同向改善、约 8–9%』，DSPT_BASE_FUNCTIONAL_AUDIT §5.3 追加 append-only 更正块"
+      ],
+      "rejected_options": [
+        {
+          "option": "采用重算的 11.918±0.068 覆盖 §5.3",
+          "reason": "无法证明该批与其余六格同源，替换会破坏表格内部一致性"
+        },
+        {
+          "option": "保留 12.142 并注明两批",
+          "reason": "行均值仍不可复现，引用时会再次出错"
+        },
+        {
+          "option": "把这条对比整体删除",
+          "reason": "方向性结论两批一致，是可用的公平比较"
+        }
+      ],
+      "scientific_risks": [
+        "FD001 两批差异可能影响 FD001 上的任何纵向比较，不止 §5.3",
+        "同名 tag 若在其他族也存在，跨批次混用会静默发生",
+        "幅度表述 8–9% 在不同聚合口径下仍需注明"
+      ],
+      "falsification_criteria": [
+        "若日后找到 FD001 两批的 run_id 与配置差异，可判定哪批应引用，届时恢复具体数值",
+        "若发现其他 tag 名也存在跨批次复用，则需全仓按 run_id 重新对齐"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:44:56.955Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "G5 改列描述性 preliminary；Vanilla 只写『约 8–9%』，−7.76% 待管理员核源后再定",
+      "rationale": "G5 是 G1/G2 符号一致性的描述统计，其证据基础就是 G1/G2 本身；把描述统计放进『已确认』会造成它独立成立的错觉。Vanilla 的 −7.76% 若出自已判定不可复现的同一张表，则继承同一缺陷，必须先定位来源再决定能否引用。",
+      "evidence": [
+        "交互答疑导师：完整结果已出，含 28 格主表、六条判据、A8 96 格主效应、Vanilla 幅度、D/E 未跑",
+        "管理员：独立重算 G1/G2/G2′/G3/G5 与 GATE_A_BRANCHES.md 逐位一致",
+        "交互答疑导师把 G5 列入『已确认』，但 G5 描述的是 G1/G2 的方向一致性，而 G1/G2 为 preliminary",
+        "交互答疑导师引 Vanilla『a40 48 格 engine-level −7.76%』，此前 12.803 行均值已判永久不引，−7.76% 来源未核"
+      ],
+      "rejected_options": [
+        {
+          "option": "保留 G5 在已确认",
+          "reason": "与 G1/G2 的 preliminary 状态冲突，会给读者错误印象"
+        },
+        {
+          "option": "直接采用 −7.76%",
+          "reason": "来源未核，可能是被撤回表格的派生量"
+        }
+      ],
+      "scientific_risks": [
+        "完整结果若带一处不可引数字，整份可信度受损",
+        "G5 的归类若宽松，后续引用会把它当独立证据"
+      ],
+      "falsification_criteria": [
+        "若 −7.76% 可由 a40 48 格独立算出，则可作为幅度下界引用并注明来源",
+        "若 −7.76% 依赖 §5.3 不可复现的 FD001 格，则永久不引"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T08:45:45.173Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "正文写『同向改善、约 8–9%』；脚注给 a40 48 格的 −7.76% 及其 CSV md5 与算式，lab3090 的 −9.46% 作交叉印证；−8.16% 永不引用",
+      "rationale": "−7.76% 与 −8.16% 的唯一差异是 FD001 一格（11.918 vs 12.142），聚合方式相同；前者用已判定为权威的 a40 批次，且 CSV 的 md5 在本地与 a40 逐字节一致，因此可作锚点引用。但两批两口径给出 7.76% 与 9.46%，用区间表述比单点更诚实，故正文写幅度、脚注给可复算锚点。",
+      "evidence": [
+        "管理员：−7.76% 来源为 paper_b/results/vanilla_engine_level.csv（md5 d741ff4927ce1ce47ef1e68ec236e7c2，本地与 a40 逐字节一致）",
+        "管理员：VAN_raw_L70 四子集 11.9175/12.6725/12.3527/14.0461 行均值 12.7472；VAN_raw_cycle_L70 11.8243/11.5257/11.5287/12.1514 行均值 11.7575",
+        "管理员：(11.7575−12.7472)/12.7472 = −7.76%；FD001 用 11.918 而非 §5.3 的 12.142",
+        "交互答疑导师：三个数分别来自 a40 48 格（−7.76%）、§5.3（−8.16%，不引）、lab3090 pooled（−9.46%，交叉印证）",
+        "交互答疑导师：G5 已移入 preliminary，与 G1/G2 的证据基础一致"
+      ],
+      "rejected_options": [
+        {
+          "option": "正文直接写 −7.76%",
+          "reason": "单点会让读者误判精度，且与 lab3090 的 −9.46% 并列时口径不一致"
+        },
+        {
+          "option": "完全不引具体数值",
+          "reason": "丢掉唯一可复算的锚点，读者无法核对"
+        },
+        {
+          "option": "改用 −9.46%",
+          "reason": "lab3090 为不同批次且 pooled 口径，不能当主口径"
+        }
+      ],
+      "scientific_risks": [
+        "脚注给单点可能仍被断章取义为结论值",
+        "FD001 批次争议未最终裁定，锚点存在被替换的可能"
+      ],
+      "falsification_criteria": [
+        "若 vanilla_engine_level.csv 的 md5 在后续被改动，则 −7.76% 的锚点失效需重算",
+        "若 FD001 批次问题最终判定 12.142 才对，则 −7.76% 需替换为 −8.16%"
+      ],
+      "reviewer": "none"
     }
   ],
   "experiment_queue": [],
@@ -1665,6 +1963,6 @@
   "blocked_reason": null,
   "resume_instructions": "Blocked on human authorization. Keep executing every reversible task that does not depend on the blocked decision, and record results; do not idle waiting for an answer.",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-12T06:08:30.997Z",
-  "revision": 65
+  "updated_at": "2026-11-12T08:45:45.177Z",
+  "revision": 73
 }
