@@ -83,6 +83,7 @@ def within(groups, c, v):
 def main():
     dev = torch.device('cuda:0')
     runs = evidence_runs()
+    recs = []
     print('%-4s %-6s %5s %6s %6s %7s %7s %7s %7s'
           % ('arm', 'subset', 'nwin', 'nunit', 'y_mean', 'pool_c_y',
              'within_c_y', 'pool_c_p', 'within_c_p'))
@@ -111,7 +112,15 @@ def main():
             print('%-4s %-6s %5d %6d %6.1f %7.2f %7.2f %7.2f %7.2f'
                   % (v, s, len(raw), nunit, y.mean(), spear(raw, y),
                      wy, spear(raw, p), wp))
+            recs.append(dict(variant=v, subset=s, run=run.name, n_win=int(len(raw)),
+                             n_unit=int(nunit), y_mean=float(y.mean()),
+                             within_c_y=wy, within_c_p=wp,
+                             pooled_c_y=spear(raw, y), pooled_c_p=spear(raw, p)))
             agg.setdefault(v, []).append((wy, wp))
+
+    out = Path('/media/sangfor/vdb/user/zxk/deepseek-rul/experiments/hc/tmp')
+    (out / 'g4_within.json').write_text(json.dumps(recs, indent=1))
+    print('\nwrote %s (%d rows)' % (out / 'g4_within.json', len(recs)))
 
     print('\n== per-arm mean of within-engine Spearman ==')
     print('%-4s %12s %12s' % ('arm', 'within_c_y', 'within_c_p'))
