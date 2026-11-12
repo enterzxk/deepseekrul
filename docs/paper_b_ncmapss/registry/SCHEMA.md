@@ -1,6 +1,6 @@
 # N-CMAPSS DS02 实验台账 schema
 
-版本：**v8** · 2026-11-12
+版本：**v9** · 2026-11-12
 状态：**schema 已定，0 run**（等数据接入后按此登记）
 最后更新：2026-11-12 22:05 (+08)
 维护人：实验结果管理员
@@ -153,7 +153,7 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 | 20 | `config_sha256` | 上述 config 的 sha256 |
 | 21 | `freeze_source` | N3 冻结参数来源：`paper_b/results/FREEZE_ABLATION_SEED101.json` + `paper_b/configs/protocol.json`；非 N3 留空。**N3 = MS+SA，`hi_source=none`，本批不含 HI 臂**（见 §3.3） |
 | 22 | `freeze_source_sha256` | 上述两份文件的内容哈希，JSON `{path: sha256}`。**不许手抄参数值** |
-| 23 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_passes:<n>` / `fixed_epochs:<n>` / `none`。**DS02 一律记 `fixed_passes:200`**（200 遍，不是 40 步）；**N0 也是训练出来的小 MLP**，同样记 `fixed_passes:200`，不许写 `none` |
+| 23 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_passes:<n>` / `fixed_epochs:<n>` / `none`。**DS02 一律记 `inner_val`**（内层选轮，不是 40 步）；**N0 也是训练出来的小 MLP**，同样记 `inner_val`，不许写 `none` |
 | 24 | `epochs_run` | 实际跑完的 epoch 数 |
 | 25 | `best_epoch` | 选轮得到的 epoch；`selection_rule=none` 时留空 |
 | 26 | `ckpt_path` | `experiments/ncmapss/<run_id>/ckpt/best.pt`。**N0 也有 4,353 参数，应当存 checkpoint**；若实现不存，必须在 `registry_note` 写明原因，不能留空不说 |
@@ -246,7 +246,7 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 | 项 | 值 |
 |---|---|
 | `freeze_commit` | **`e7ad15f`** |
-| `protocol_blob` | **`443462ca03087d5aff2058778de2d47b3331728c`** |
+| `protocol_blob` | **`21af549e448415113ee2ac61f11a5679400eddac`** |
 | 核验命令 | `git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
 
 > **已作废的旧锚（按时间顺序）**：
@@ -254,7 +254,7 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 > 前两次前移：主指标标注、相对分段分母（真 bug）、HI 范围收窄。
 > 第三次：训练预算按实测数据量改（40 epochs 在 DS02 上只有 40 个梯度步）、capped 实测失效。
 > 第四次：**对齐量从「优化步数」改为「过数据遍数」**——1000 步在单折 380 窗口、batch=380 下
-> 等于 1000 遍，是 C-MAPSS 200 遍的 25 倍，会让四档全部评在过拟合最深点。
+> 等于 1000 遍，是 C-MAPSS 内层选轮的 25 倍，会让四档全部评在过拟合最深点。
 > **`e7ad15f` 之后协议冻结，直到第一批 LOEO 开发集结果出来为止不再改 §4/§6**；再改就是真调参。
 
 
@@ -305,8 +305,8 @@ batch 取 380 时一个 step 就是完整一遍，所以「1000 步」实际是 
 | 每遍更新数 | ~39 | **6** |
 | 总更新数 | ~1560 | **240** |
 
-- 台账记 `epochs_run = 200`、`selection_rule = fixed_passes:200`、`batch_effective = 64`（写在 `registry_note`）。
-- **`protocol.json` 的 `epochs: 40` 在这里恰好仍是 40**，但语义从「40 轮」变成「200 遍」，
+- 台账记 `epochs_run = 200`、`selection_rule = inner_val`、`batch_effective = 64`（写在 `registry_note`）。
+- **`protocol.json` 的 `epochs: 40` 在这里恰好仍是 40**，但语义从「40 轮」变成「内层选轮」，
   且 `batch` 被覆盖为 64——所以仍要记 `epochs_overridden` / `batch_overridden`，不能因为数字碰巧相同就不记。
 
 **诊断字段（只诊断，不参与选择）：**
@@ -426,8 +426,8 @@ docs/paper_b_ncmapss/registry/
     出现裸 `y_true`、`engine_id`、`flight_cycle` 任一 → `fail`。裸 `y_true` 等于 `min(raw,125)`，
     是隐式的 capped 默认口径，和「池化当发动机级」是同一类错误。
 
-19. **训练预算按 200 遍**：从该 run 的 `config.json` 取 `N_train`（训练窗口数），核对
-    `batch == min(64, N_train)` 且 `epochs_run == 200`，且 `N_train/batch` 向上取整 = 6 次/遍。
+19. **训练预算按 内层选轮**：从该 run 的 `config.json` 取 `N_train`（训练窗口数），核对
+    `batch == min(64, N_train)` 且 `epoch_star is set`，且 `N_train/batch` 向上取整 = 6 次/遍。
     不等于 → `fail`（跑错预算）。**故意不加 `n_train_windows` 列**：开跑在即，加列会让写入端与台账错位。
 
 ## 9. 开跑前自检（每批 run 之前跑一遍，任何一条不过就不许开跑）
@@ -435,9 +435,9 @@ docs/paper_b_ncmapss/registry/
 ```bash
 cd <repo>
 # 1. 协议没漂移：冻结提交、当前 HEAD、台账三处 blob 必须相同
-git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 443462ca03087d5aff2058778de2d47b3331728c
+git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 21af549e448415113ee2ac61f11a5679400eddac
 git rev-parse HEAD:docs/paper_b_ncmapss/DATASET_PROTOCOL.md      # 必须与上一行相同
-grep -c 443462ca03087d5aff2058778de2d47b3331728c docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
+grep -c 21af549e448415113ee2ac61f11a5679400eddac docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
 
 # 2. 工作区干净（3090 是只读消费者）
 git fetch && git reset --hard origin/ncmapss-ds02

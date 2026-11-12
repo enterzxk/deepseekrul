@@ -20,9 +20,9 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "1c76b37",
+    "freeze_commit": "7e9415e",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "443462ca03087d5aff2058778de2d47b3331728c",
+    "known_protocol_blob_at_freeze": "21af549e448415113ee2ac61f11a5679400eddac",
     "superseded_anchor": [
       {
         "freeze_commit": "5b228ad",
@@ -234,7 +234,7 @@
     "sha256": null,
     "shared_by_all_rungs": true,
     "values": {
-      "epochs": 200,
+      "epochs": "inner_val_median",
       "patience": 12,
       "batch": "min(64, N_train)",
       "lr": 0.001,
@@ -242,13 +242,15 @@
       "d_model": 64,
       "layers": 2,
       "dropout": 0.2,
-      "epochs_note": "200 passes x 6 updates ~= 1200 parameter updates, the same order as C-MAPSS's ~1560; 40 passes (240 updates) left every rung under-trained and 800 starts memorising",
+      "epochs_note": "the stopping epoch is chosen on an INNER split (5 training engines rotated, median of the 5 best epochs), then the model is retrained on all 5 for exactly epoch* passes; the outer held-out engine never contributes",
+      "early_stop": "inner validation, patience 12, min 20 passes, max 400",
+      "outer_early_stop": false,
       "target_norm": "fold_local_zscore",
       "target_norm_note": "y is standardised with the training-fold mean/std and inverted back to cycles before pred.csv is written"
     },
     "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。",
-    "epochs_overridden": "200 passes (1200 updates); 40 was the C-MAPSS pass count and left every rung under-trained",
-    "epochs_rule": "epochs = 200（过数据遍数，对齐 C-MAPSS）；batch = min(64, N_train) = 64 → 每遍 6 次更新，共 240 次更新",
+    "epochs_overridden": "inner-validation median epoch; a single fixed budget was rejected because N0 converged at 11 while N1/N2/N3 were still descending at 200",
+    "epochs_rule": "epochs = epoch*（过数据遍数，对齐 C-MAPSS）；batch = min(64, N_train) = 64 → 每遍 6 次更新，共 240 次更新",
     "batch_overridden": "min(64, N_train)",
     "updates_total_expected": 240
   },
