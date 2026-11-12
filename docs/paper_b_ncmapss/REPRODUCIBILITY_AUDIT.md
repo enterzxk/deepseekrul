@@ -52,18 +52,37 @@ and leaves the main evidence table.
 
 | anchor | blob | status | why it moved |
 |---|---|---|---|
-| `5b228ad` | `6c184bbf…` | void | initial freeze |
+| `c481289` | `2e4df8dd…` | void | branch skeleton: protocol discipline, baseline ladder, commit path |
+| `4bfa5d8` | `386b13a5…` | void | DS02 data dictionary from the official tables + observability boundary |
+| `7cc5824` | `1fa8ec4c…` | void | evaluation protocol §6.1–6.9: unit of analysis, LOEO discipline, dual segment rules, criterion hygiene, test gate |
+| `e1de832` | `2e3f36b0…` | void | froze the 51-column flight feature contract and the `span=70` window (information matching across N1/N2/N3) |
+| `c69db46` | `668c98a9…` | void | froze the training plan (`protocol.json` verbatim) and the k=6 W-cluster conditioning (no information advantage for the DSPT arms) |
+| `d9e49af` | `dc347037…` | void | split schedule from label construction: `rul_cap`/`val_cuts` not inherited, no early stopping on the held-out engine |
+| `5b228ad` | `6c184bbf…` | void | **first freeze** — bounded the "same core structure" claim (stopping rule differs by design, patience unused) |
 | `7f01909` | `4458d9ea…` | void | §6.3 named the primary metric; §6.4 fixed the relative-segment denominator bug; HI scope narrowed |
 | `922a2d1` | `ebfbfcb8…` | void | the 125 cap measured inactive; the epoch budget was restated as optimizer steps |
 | `e7ad15f` | `35b40d8b…` | void | the budget's alignment quantity was wrong: 1000 steps on 380 windows is 1000 passes, 25x the C-MAPSS budget |
+| `1c76b37` | `443462ca…` | void | fold-local target standardisation and a 200-pass budget: 40 passes left every rung undertrained |
 | `7e9415e` | `21af549e…` | void | a fixed budget was replaced by inner-validation stopping |
 | **`9ac1744`** | **`a3c40c63…`** | **current** | the median of per-split minima collapsed to 1–2 passes, so stopping moved to the argmin of the mean inner curve, floored at 20 |
 
-**These five moves are not equally defensible, and the record should say so.**
-The first three were taken from the measured file with no run in existence —
-unambiguous setup decisions. The last two came **after smoke runs** exposed a
-failure in the stopping rule, which is a weaker position: they are setup
-decisions made in the presence of diagnostic runs, not in their absence.
+**Correction (2026-11-12):** an earlier version of this table listed only five
+moves, and that was wrong. `git log --follow -- docs/paper_b_ncmapss/DATASET_PROTOCOL.md`
+returns **13 commits with 13 distinct blobs**. The five-row version silently
+omitted the six drafting generations and `1c76b37` — the generation that
+introduced fold-local target standardisation, i.e. exactly the kind of change
+someone would later want to trace a run back to. A five-row table cannot answer
+"which protocol did this run use", so the table is rebuilt in full above.
+
+**These twelve moves are not equally defensible, and the record should say so.**
+Six were drafting, taken before the text was frozen at all: nothing could be
+invalidated by them. Three were setup moves made before the first grid run
+(`7f01909`, `922a2d1`, `e7ad15f`), taken from the measured file with no run in
+existence — unambiguous. The last three came **after diagnostic runs**
+(`1c76b37` after the probe showing 40 passes left every rung undertrained,
+`7e9415e` and `9ac1744` after smoke runs exposed the stopping rule failing),
+which is a weaker position: they are setup decisions made in the presence of
+diagnostic runs, not in their absence.
 
 What makes them defensible is the shape of the failure. The median-of-minima
 rule collapsed `epoch*` to 1–2 passes and produced visibly untrained models
@@ -73,10 +92,11 @@ points are now reported side by side** (`inner_val` and `fixed_passes:200`), so
 the choice is visible instead of hidden.
 
 **The distinction that has to be written down, because it is the only line
-between fixing an instrument and picking a result:** both late moves were
-*triggered* by smoke numbers that looked wrong, but they were *justified* by a
-failure of measurement — `epoch*` collapsing to 1–2 passes, N2 dropping from
-5.29 to 18.09. A trigger is "the number was not what we expected"; a criterion is
+between fixing an instrument and picking a result:** all three late moves were
+*triggered* by numbers that looked wrong, but they were *justified* by a failure
+of measurement — 40 passes leaving N0 at 15.23 against a 5.19 ridge on the same
+features (the training loop could not reach the scale of its own labels),
+`epoch*` collapsing to 1–2 passes, N2 dropping from 5.29 to 18.09. A trigger is "the number was not what we expected"; a criterion is
 "the instrument could not measure". Only the second licenses a change. Any future
 change whose only justification is that the numbers were disappointing crosses
 the line, and after the full batch starts every change does.
@@ -236,6 +256,38 @@ able to see that a contrast existed, why it was withdrawn, and what replaced it.
   file without a SHA is treated as unattributed and cannot enter a results table.
 - The dataset archive hash is recorded once, before any run, and re-checked when
   the extracted tables are rebuilt.
+
+## Cross-run reproduction: one fit, two snapshots, two historical runs
+
+The first cells of the full batch reproduce two independent historical runs
+**exactly**, from a single training run each:
+
+| cell | fixed-budget run (historical) | this run, `fixed_passes:200` | v4 smoke (historical) | this run, `inner_val` |
+|---|---|---|---|---|
+| N1 s101 | 18.05 | **18.05** | 21.58 | **21.58** |
+| N1 s202 | 22.21 | **22.21** | 21.75 | **21.75** |
+| N1 s303 | 21.41 | **21.41** | 23.11 | **23.11** |
+| N2 s101 | 8.01 | **8.01** | 8.20 | **8.20** |
+
+Two things follow, and both are load-bearing.
+
+1. **No environment drift between the two historical runs.** Bit-level agreement
+   across four cells is not something a change in torch, cuDNN, the HDF5 tables
+   or the feature construction survives. The two earlier runs were made under
+   different code, days apart, on the same host; they agree to the last printed
+   digit.
+2. **The two-point implementation introduces no numerical difference of its own.**
+   Both snapshots come from the same weights of the same fit, so the gap between
+   the two columns is **where training stopped**, not retraining variance.
+
+This closes the obvious reviewer question — "are the two columns two independent
+trainings, so the difference could be initialisation?" — with a measurement
+rather than an assurance: one fit, two snapshots.
+
+Scope, stated so the claim is not overread: this is 4 of 60 cells, N1/N2 only,
+one host, one dataset. It is evidence of stability, not a proof that the batch is
+reproducible end to end. The end-to-end check is the paired-column comparison
+once all 120 rows exist.
 
 ## What must never be committed
 
