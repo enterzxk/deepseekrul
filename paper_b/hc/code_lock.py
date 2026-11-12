@@ -52,8 +52,23 @@ def check(lock_path=DEFAULT):
     working tree with ``core.autocrlf=true`` has CRLF, and a40 has LF again.
     Comparing raw bytes therefore reports two false mismatches on Windows (v9
     fix; the md5 in the lock always refers to the LF blob).
+
+    A lock with no ``git_sha`` also fails. A ``--from-index`` lock cannot name
+    the commit that contains it, so it records ``null``; the md5s are still
+    correct, but ``md5(blob@git_sha)`` can no longer be replayed and the run's
+    ``git_sha`` column is empty -- the same defect that made 24 cal rows
+    unreplayable. Reporting CODE LOCK OK on such a lock would let the hole pass
+    silently, which is why it is a failure here and not a warning.
     """
     lock = json.loads(Path(lock_path).read_text())
+    if lock.get('git_sha') in (None, ''):
+        raise SystemExit(
+            'REFUSED: %s has no git_sha (built with --from-index). Regenerate it '
+            'in HEAD mode as a separate commit: a lock cannot name the commit '
+            'that contains it.' % lock_path)
+    if 'index' in str(lock.get('source', '')):
+        raise SystemExit('REFUSED: %s was built from the staged index (%s); '
+                         'regenerate from HEAD' % (lock_path, lock.get('source')))
     got = {rel: hashlib.md5((REPO / rel).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
            for rel in lock['code_md5']}
     return {k: (got[k], v) for k, v in lock['code_md5'].items() if got[k] != v}
