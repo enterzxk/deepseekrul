@@ -49,6 +49,36 @@ HI_ARMS = ('B1', 'B2', 'B3')
 ARRIVAL_ARMS = ('B2', 'B3')
 
 
+def code_fingerprint():
+    """sha256 over the modules that decide the numbers in a Stage D run.
+
+    Recorded per run so a metrics.json can be tied to one code state even though
+    a40 has no git. config_hc is included because it carries the protocol
+    constants; arrival/hi_d/data_d/train_d are the four that change numerics.
+    """
+    here = Path(__file__).parent
+    names = ('arrival.py', 'hi_d.py', 'data_d.py', 'train_d.py', 'config_hc.py')
+    h = hashlib.sha256()
+    missing = []
+    for n in names:
+        p = here / n
+        h.update(n.encode())
+        if p.exists():
+            h.update(p.read_bytes())
+        else:
+            missing.append(n)
+    git_sha = None
+    try:
+        import subprocess
+        r = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=str(here),
+                           capture_output=True, text=True, timeout=5)
+        git_sha = r.stdout.strip() or None
+    except Exception:
+        git_sha = None
+    return dict(files=list(names), files_sha256=h.hexdigest()[:32],
+                git_sha=git_sha, missing=missing)
+
+
 def _now():
     import datetime
     return datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -516,7 +546,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
              # B0 has no damage head, so it has no head fingerprint: recording
              # the shared one would claim an init the arm never built.
              head_fingerprint=(None if arm == 'B0' else sh['head_fingerprint']),
-             frozen_sha256=frozen_sha,
+             frozen_sha256=frozen_sha, code_fingerprint=code_fingerprint(),
              ref_batch_epoch_log_engines=[int(x) for x in ebt['engine_id'][:3]],
              ref_batch_calibration='first 8 training engines, index order (see d45_init.json)',
              params=nparam, epochs_run=len(history), best_ep=best_ep,
