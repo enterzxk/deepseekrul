@@ -189,6 +189,70 @@ def cmd_sign(args) -> int:
     return 0
 
 
+def _opens_records(manifest_path: str, d: dict) -> list:
+    """Find eval_start records for this manifest: sibling file and opens/ snapshots."""
+    fid = d.get("freeze_id")
+    base = os.path.dirname(manifest_path)
+    out = []
+    p = os.path.join(base, "%s.eval_start.json" % fid)
+    if os.path.exists(p):
+        out.append(p)
+    od = os.path.join(base, "opens")
+    if os.path.isdir(od):
+        for n in sorted(os.listdir(od)):
+            if n.endswith(".json") and fid in n:
+                out.append(os.path.join(od, n))
+    return out
+
+
+def _check_opens(manifest_path: str, d: dict) -> list:
+    """Verify every unsealing record against the manifest. Returns a list of failures."""
+    fails = []
+    recs = _opens_records(manifest_path, d)
+    if not recs:
+        print("ordering        not yet unsealed (no eval_start record found)")
+        return fails
+    blob = d.get("repo", {}).get("protocol_blob")
+    digest = d.get("freeze_content_sha256")
+    fts = d.get("freeze_ts_utc")
+    for path in recs:
+        r = json.load(io.open(path, encoding="utf-8"))
+        tag = os.path.basename(path)
+        if r.get("freeze_content_sha256") != digest:
+            fails.append("%s: freeze_content_sha256 does not match this manifest" % tag)
+        if r.get("freeze_ts_utc") != fts:
+            fails.append("%s: freeze_ts_utc %s != manifest %s" % (tag, r.get("freeze_ts_utc"), fts))
+        for op in r.get("opens", []):
+            s = op.get("subset")
+            t = op.get("eval_start_utc")
+            ok_order = bool(t and fts and t > fts)
+            ok_blob = op.get("protocol_blob") == blob
+            want_sha = d.get("data", {}).get(s, {}).get("sha256")
+            ok_sha = (want_sha is None) or (op.get("data_sha256") == want_sha)
+            want_test = d.get("data", {}).get(s, {}).get("test_units")
+            ok_units = (want_test is None) or (op.get("test_units") == want_test)
+            delta = ""
+            if t and fts:
+                from datetime import datetime as _dt
+                fmt = "%Y-%m-%dT%H:%M:%SZ"
+                delta = " +%ds" % int((_dt.strptime(t, fmt) - _dt.strptime(fts, fmt)).total_seconds())
+            print("ordering        %s  %s opens %s at %s%s (blob %s, data %s, units %s)"
+                  % ("OK" if (ok_order and ok_blob and ok_sha and ok_units) else "FAIL",
+                     tag, s, t, delta,
+                     "ok" if ok_blob else "MISMATCH",
+                     "ok" if ok_sha else "MISMATCH",
+                     "ok" if ok_units else "MISMATCH"))
+            if not ok_order:
+                fails.append("%s/%s: eval_start_utc %s is not after freeze_ts_utc %s" % (tag, s, t, fts))
+            if not ok_blob:
+                fails.append("%s/%s: protocol_blob %s != manifest %s" % (tag, s, op.get("protocol_blob"), blob))
+            if not ok_sha:
+                fails.append("%s/%s: data_sha256 mismatch" % (tag, s))
+            if not ok_units:
+                fails.append("%s/%s: test_units mismatch" % (tag, s))
+    return fails
+
+
 def cmd_verify(args) -> int:
     d = json.load(io.open(args.manifest, encoding="utf-8"))
     fail = []
@@ -236,7 +300,7 @@ def cmd_verify(args) -> int:
         if not ok:
             fail.append("eval_start_utc <= freeze_ts_utc")
     else:
-        print("ordering        not yet unsealed (eval_start_utc null)")
+        fail.extend(_check_opens(args.manifest, d))
 
     if d.get("frozen") is not True:
         fail.append("frozen is not true")

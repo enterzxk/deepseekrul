@@ -547,6 +547,12 @@ for (rung, eng), seeds in by_cell.items():
 4. 无泄漏：`feature_list` ⊆ 白名单；`X_v` / `T` / `A.hs` / `A.Fc` 零出现；`unit` 不在特征里。
 5. 无未来信息：预测时刻 = 飞行结束；特征只用当前及过去航班；截掉未来航班后历史特征不变。
 6. 无测试集调参：`phase=test` 的行必须有 `freeze_id`，且 `eval_start_utc > freeze_ts_utc`。
+   **`eval_start_utc` 的唯一来源是 `<freeze_id>.eval_start.json` 的 `opens` 记录**，不是行内字段——
+   运行器写出的 `runs_test.csv` 里这一列可能为空，登记时由管理员从 opens 记录填入，值本身不做任何加工。
+   因此判据是两条：(a) 该 opens 记录**已在仓库内**（`registry/freeze/opens/` 的快照，带 sha256），
+   (b) 记录的 `eval_start_utc` 严格晚于清单的 `freeze_ts_utc`。一条命令核完：
+   `python scripts/nc_freeze.py verify <清单>`。**opens 记录只存在于一台机器的未跟踪文件里时不算证据**——
+   一次 `git clean -fdx` 就能让「先冻后开」无从证明。
 7. 预算一致：同 rung 各折的 epochs/patience/batch/lr 一致，差异必须有 `registry_note`。
 8. 代码没漂移：`git_sha` + `code_md5` 与 `config_sha256` 对应的那份一致。
 9. 种子真实：`seed` 与 `metrics.json`、日志里的 seed 一致；**N0 的 `seed` 列为空**，但实现内部必须固定 seed 101（日志里要能看到），且不得出现 seed 202/303 的 N0 行。
