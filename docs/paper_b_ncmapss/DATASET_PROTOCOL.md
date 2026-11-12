@@ -168,13 +168,129 @@ are frozen.
 
 ## 6. Evaluation protocol
 
-- **LOEO (leave-one-engine-out) over the six dev units**: six folds, each
-  holding out one unit entirely. This is the only cross-validation scheme used
-  for development and model selection.
-- Selection uses validation folds only. The three official test units are opened
-  once, after the freeze manifest is written and committed.
-- Report per-fold values, the mean and dispersion across folds, and the paired
-  deltas with intervals. A single aggregate number is not a result.
+Implementation: `paper_b/ncmapss/evaluation.py` (`python -m
+paper_b.ncmapss.evaluation --self-test` checks the rules below without any DS02
+data on disk).
+
+### 6.1 Unit of analysis
+
+The unit is the **flight**, never the 1 Hz sample: one prediction and one true
+RUL per `(unit, cycle)`, taken at the end of that flight (see §4). Averaging
+over samples would weight a 3-hour flight 4.5x a 40-minute one while the
+protocol requires equal weight per flight.
+
+Three checks are enforced in code, each targeting one concrete way of getting
+the unit wrong:
+
+1. `(unit, cycle)` must be unique — a duplicate means 1 Hz rows reached the
+   scorer.
+2. `cycle` must be integer-valued — a fractional cycle is a timestamp.
+3. `cycle` must be strictly increasing within each unit — a collapsed 1 Hz
+   index fails here because its surviving spacing equals the flight length.
+
+`cycle_provenance()` additionally records `first_cycle / last_cycle / span /
+gaps` per unit as audit evidence: a genuine flight counter is contiguous
+1..N, whereas a surviving sample index leaves large gaps.
+
+### 6.2 LOEO folds and fit discipline
+
+- LOEO over the six dev units: six folds, each holding out one unit entirely.
+  This is the only cross-validation scheme used for development and selection.
+- **Every fitted quantity** — scaler, operating-condition encoder, RUL
+  normaliser, and any hyperparameter chosen from data — is fitted on the
+  current training fold only. Fitting on all engines is a silent leak: the
+  validation engine's range enters the normalisation.
+- `assert_fold_discipline(fold, fit_units)` requires `fit_units` to equal the
+  fold's five training units exactly and names the leaking engine otherwise.
+- `assert_no_test_units()` rejects `[11, 14, 15]` anywhere on the dev side.
+
+### 6.3 Metrics
+
+All computed at flight level with `n` flights and `d = y_hat - y`.
+
+| metric | definition | unit | criterion-sensitive | note |
+|---|---|---|---|---|
+| RMSE | `sqrt(mean(d^2))` | cycles | yes | primary |
+| MAE | `mean(|d|)` | cycles | yes | read with RMSE to see tail dominance |
+| NASA sum | `sum s_i`, `s_i = exp(-d/13)-1` if `d<0` else `exp(d/10)-1` | dimensionless | strongly | **not comparable across datasets**, see 6.7 |
+| NASA mean | `sum s_i / n` | dimensionless | strongly | the only comparable form when point counts differ |
+| Bias | `mean(d)` | cycles | yes | positive = late (dangerous side) |
+| segment RMSE | per segment, two rules, see 6.4 | cycles | yes | early/mid/late shape |
+| per-engine RMSE | within each unit | cycles | yes | guards against one broken engine hiding in the mean |
+| seed aggregate | `mean +- sample sd (ddof=1)`, `n_seeds >= 3` | inherited | inherited | fewer than 3 seeds is refused |
+
+The NASA score is non-linear and amplifies the tail: a single `d = +40` term is
+`exp(4) - 1 ~= 53.6`. It can therefore order models differently from RMSE; when
+the two disagree, the text says so rather than quoting the flattering one.
+
+### 6.4 Two segment rules, both reported
+
+| rule | definition | tag | role |
+|---|---|---|---|
+| relative | `frac = RUL / max(RUL of that unit)`; `late < 1/3`, `mid < 2/3`, `early >= 2/3` | `relative_thirds_primary` | **primary**: scale-free across units with different lifetimes |
+| absolute | fixed cut points in cycles: `early >= 75`, `mid 25-75`, `late < 25` | `absolute_rul_supplementary` | **supplementary**: the rule the C-MAPSS tables use, needed to align early/mid/late *shapes* across datasets |
+
+Both are always produced, and every segment row carries `segment_rule`. Table
+captions state which rule is primary. The absolute cut points are frozen in
+`seg_boundaries` before any result is seen and may not be tuned afterwards. The
+two rules may partition the flights differently; their results never share one
+table.
+
+### 6.5 Multi-seed aggregation
+
+- At least three seeds; report `mean +- sample sd (ddof=1)`. Fewer than three
+  is refused rather than estimated from two points.
+- Aggregation rejects a mix of criteria (see 6.6).
+- **The independent unit is the engine, not the fold-by-seed cell.** Six dev
+  engines are six independent units; the 18 fold-by-seed numbers are not 18
+  samples, and any interval taken across seeds uses `df = n_engines - 1`.
+- Seed variation is training randomness, not evidence of significance. Method
+  comparisons use same-seed pairing plus sign consistency.
+- On the official test set there are three units and three seeds per unit:
+  report each unit's error and the seed mean +- seed sd. There is no
+  cross-engine dispersion to estimate, so no "cross-engine 95% CI" may be
+  written.
+
+### 6.6 Criterion hygiene
+
+- Both label variants are always produced (`evaluate_both()`), never one alone.
+- Every result row and every table carries `criterion` and `rul_cap_used`;
+  `assert_single_criterion()` refuses a table that mixes them.
+- Capped and raw may never share a column, a table, a ranking, or a sentence,
+  and a DS02 number may never be placed in one ranking with a C-MAPSS number
+  under the other criterion (see §7 and §8).
+
+### 6.7 NASA sum is not comparable across datasets
+
+C-MAPSS contributes one point per test engine (100 / 259 / 100 / 248), DS02 one
+point per flight (a much larger count). The order-of-magnitude difference in
+NASA sum between the two datasets is driven by the number of terms, not by
+performance. Cross-dataset statements therefore use NASA **mean**, or compare
+within-dataset orderings only.
+
+### 6.8 Test gate
+
+`assert_test_allowed(freeze_manifest, tag, seed)` requires a manifest with
+`frozen: true` that lists the `(tag, seed)` pair, otherwise it exits. The
+semantics match `paper_b/evaluation/evaluate_test.py`: the manifest declares
+*which cells will be evaluated before the test set is opened*, so a manifest
+written after the fact is a rewrite of the evaluation order and is never
+accepted.
+
+### 6.9 Artifacts
+
+```
+<out_dir>/
+  summary.json           # both criteria, criterion/rul_cap_used flags, segment boundaries
+  per_engine_capped.csv  # unit, n_flights, rmse, mae, nasa_sum, bias, criterion, rul_cap_used
+  per_engine_raw.csv
+  segments_capped.csv    # segment, segment_rule, n_flights, rmse, ..., criterion
+  segments_raw.csv
+```
+
+Every CSV carries its own `criterion` / `rul_cap_used` (and `segment_rule` for
+the segment tables), so a file lifted out of context still cannot be merged
+into a table of the other criterion.
 
 ## 7. Label convention
 
