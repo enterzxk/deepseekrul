@@ -205,7 +205,8 @@ Label: `Y` at the prediction flight, in both raw and capped-at-125 form (§7).
 The **schedule** is taken verbatim from `paper_b/configs/protocol.json`: 40 epochs,
 lr 1e-3, weight decay 1e-4, d_model 64, 2 layers, dropout 0.2, batch
 `min(512, N_train)`, seeds 101 / 202 / 303. Only the input width changes (51
-columns instead of the C-MAPSS sensor block).
+columns instead of the C-MAPSS sensor block). `patience: 12` is present in that
+file but is **unused here** — see the stopping rule below.
 
 The **label-construction** fields in the same file are **not** inherited. They are
 C-MAPSS-specific and are re-defined here, once, and frozen:
@@ -229,6 +230,15 @@ recorded for every run so that under-training is visible rather than inferred.
 No rung gets a different schedule. If a rung fails to converge under this plan,
 that is a reported finding, not a licence to retune — the same rule that keeps N3
 frozen.
+
+Scope of the "same core structure" claim, stated so it cannot be over-read: same
+architecture, same optimizer, same hyper-parameters as the C-MAPSS line; the
+**stopping rule deliberately differs** — C-MAPSS early-stops on its validation
+split, DS02 trains a fixed budget and reports the final epoch, because here the
+validation engine is also the held-out engine. A reader who assumes the training
+procedure is identical end-to-end would otherwise be misled, and the difference
+costs nothing: DS02 carries the "does the mechanism hold on another dataset"
+claim, not a bit-for-bit re-run claim.
 
 Operating-condition conditioning: the DSPT arms receive a cluster embedding, as
 on C-MAPSS (`n_cond = 6`). For DS02 the clusters are k-means (k = 6) over the `W`
