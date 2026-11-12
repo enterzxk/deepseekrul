@@ -64,21 +64,89 @@ params 117955、pred (8,1)、hi (8,)、hi_seq (8,70)、前向 403 ms、显存 43
 但 `data.py`、`metrics.py` 在迁移前已被覆盖成新版。**只看目录名或抽查一两个文件必判错 → 一律逐文件比 md5，基准永远取本地仓库。**
 新目录已按本地仓库覆盖上传。
 
-**基准 md5（本地 = a40 新目录，2026-11-11 22:40 重定 v2）**：
+**基线版本制（2026-11-11 23:10 起）**：基准**写死 commit SHA，不写 `HEAD`**——写成 `HEAD` 时下一次提交会静默改变基准，今天哈希表已因此漂了四次。
+
+| 版本 | commit | 说明 |
+|---|---|---|
+| v1 | `95e729e` | 交接提交（旧） |
+| v2 | `bc75aa6` | 三 seed 结论（旧） |
+| **v3** | **`f3142687ed6c04efcfa35173772f532b3ebb3c38`** | R1/R2 修复 + `paper_b/hc/` 首次入库（**当前基准**）；**14 个 blob** = 5 frozen + 9 hc |
+| **v4** | **`0280cb8`**（链：`f314268`→`f83e27e`→`a203f4b`→`0280cb8`） | launch 独占创建 + 回读自检 + crash-safe close + `code_lock.py` + `worktree_dirty`/`baseline_version` 落 manifest + A3p 的 250 assert（在 `model_hc.py:64-73` 子类 override，**未动 `dspt.py`**）+ verify_loop 的 A3p 等价断言 + commit guard + shared-init 控制；**15 个 blob** |
+| ~~v5~~ | `4c7f238`（父 `3f38cfa`） | **未通过验收，作废**：①dump payload 缺 `code_md5`/`git_sha`/`baseline_version`（`train_hc.py:170-172`）；②`--dump-init` 写完不退出、继续训练（`:177`）。待 v6 |
+| v6–v8 | `20b9f3b` / `dc77575` / `aef910c`+`441c92f` | 过渡版本：v6 锁、v7 两提交结构、v8 三步验收；均已被 v9 取代 |
+| **v9** | **代码 `d1e0527` / 锁提交 `6c405ad`** | **当前有效**：A3a init remap 修复（copy `pe_periods`，不 pop）+ CRLF 归一化（本地 `--check` 首次通过）+ 15 blob 0 不匹配 |
+| v10+ | 每次提交新版本 | 必须在本表加一行，写清改了什么 |
+
+**代码指纹的组成**：`FROZEN` 5 个（`dspt.py`、`data.py`、`train.py`、`metrics.py`、`protocol.json`）+
+`OWN` 9 个（`config_hc`、`data_hc`、`model_hc`、`cycle_encoder`、`train_hc`、`run_hc`、`verify_loop`、
+`snapshot_val`、`compare_val_snapshot`）。
+**`paper_b/hc/__init__.py` 不纳入代码指纹**（空文件，无逻辑），按数量核对时不要把它算进去——v3 = 14，v4 = 15。
+
+> **勿引用**：`2482baa`、`8066f3f`、`2ae9b5a` 三个 SHA 曾被本地 `reset` 重写，不在任何分支的祖先链上。
+> 它们现在还能 `cat-file` 到，但 reflog 过期后会被 `gc` 清掉；按它们复核会直接失败。引用一律用上表的可达 SHA。
+
+**代码锁规则（2026-11-11 定，取代"冻结窗口"的临时做法）**
+
+**版本号唯一性（2026-11-12 补充，硬规则）**：一个版本号**只能对应一种代码状态**。
+- 同一版本号出现两把不同的锁，**视为版本号复用，该版本号下所有 run 一律无效**；
+- 已确认复用：**v6**（两把锁）、**v7**（`70c8779` 的锁 `git_sha=20b9f3b`；`dc77575` 的锁是 from-index、`git_sha=None`）→ **v6/v7 标 retired，不得引用**；
+- 以后复用版本号即判该版本作废，不追溯，但该版本下的 run 全部降为 `unknown`。
+
+一个版本 = **两个提交**：
+1. **代码提交**：改 15 个受锁文件里的任意一个；
+2. **锁提交**：只含 `docs/paper_b_hc/registry/code_lock.json`，由 `python -m paper_b.hc.code_lock --write --version vN` 生成。
+
+要点：
+- 锁只覆盖 15 个 `.py`，`code_lock.json` 自己**不在**覆盖范围，所以提交锁不会让它自己失效，提交后 `--check` 仍通过。
+- `lock.git_sha` 记的是**被锁代码所在的 commit**，不等于 HEAD；**不要为了让它等于 HEAD 再生成一次**（会无限递归）。
+- 任何动了受锁文件的提交，**必须**跟一个锁提交，否则 a40 上 `run_hc` 拒绝启动。
+- 锁文件里的 `definition` 字段写的是 `md5 of git show HEAD:<path> blob bytes`，**这里的 HEAD 指锁自己的 `git_sha`**，不是会移动的 HEAD。比对时 `rev` 一律从锁文件里读。
+
+规矩：
+- 每个 run 的 `manifest.json` 写 `baseline_version`（如 `v3`）+ `git_sha`（完整 SHA）+ `worktree_dirty`。
+- **`worktree_dirty=true` 的 run 不进 Gate 表**；`run_hc` 启动前查脏，非空直接拒绝启动。
+- **a40 无 git**，`git_sha` 在远端恒为 `WORKTREE`，**不能**拿它去 `git show`。a40 侧由 `paper_b/hc/code_lock.py`
+  生成并校验哈希清单；本地核对用 `git show f3142687ed6c04efcfa35173772f532b3ebb3c38:<path> | md5sum`。
+
+**基准 md5（当前唯一有效 = v9；下方 v2/v3 说明仅作历史）**：
 
 > **v2 变更（2026-11-11 22:40，主控裁定）**：`train.py`、`metrics.py` 的哈希因 B5 更正而变——
 > 只删了"权重 9 倍"这句已被证伪的表述，改的是 docstring/注释文本，R2 逻辑零改动（`git diff` 已核）。
 > **不回滚**：保住旧哈希等于把错误说法留在冻结代码里。
 > 旧值仅作历史记录：`train.py=07e7379dc2a8ae93c0f828efa8694b6c`、`metrics.py=87e8245b49f4d23f61c6dd019958aa24`。
 > 新值由两条独立测量互证：tmh 本地/远端逐文件 `md5sum`；燕子独立在 a40 采样三次（22:39 起稳定不变）。
+>
+> **v3/v4 状态（2026-11-11 23:15，主控）**：v2 已被提交 `f314268` 取代，表中 `train.py`/`metrics.py`
+> 两行作废（现为 `13ec2fbb75ed09a389e4e979a82e11e6` / `39202682865d14dc6be5d332ac7a1c16`）。
+> **基准 SHA 写死，不写 `HEAD`**：比对一律 `git cat-file blob <锁里记的 git_sha>:<path>`，上传用同一 blob；禁止直接 scp Windows 工作树（CRLF 会污染字节）。今晚 HEAD 在 `f314268 → 0280cb8 → 4c7f238 → 20b9f3b → dc77575 → 441c92f → 6c405ad` 之间动了七次，任何绑在 `HEAD` 上的表述都会过期。
+> ——CRLF/LF 差异会改 md5，2026-11-11 22:49 那次漂移就是这么来的。
+> 当前等 `v4` 定稿，定稿后本表整体重写并登记。
 
-| 文件 | md5 | 说明 |
-|---|---|---|
-| `paper_b/models/dspt.py` | `fb7011023b284a5f571cba4d4abb6927` | 未改 |
-| `paper_b/training/train.py` | `ef14ee21cf8dccf3b9de2f089e885cfc` | R2 双口径 + R4 docstring + B5 更正 |
-| `paper_b/training/data.py` | `c2ee079f6e60a8b0d0eb608676ff871a` | R1 `cuts` 改必填 |
-| `paper_b/configs/protocol.json` | `c55720ffe09deff3a9b59c218a180114` | 未改 |
-| `paper_b/training/metrics.py` | `a799d43f1c35649f22882f95e26790d1` | R2 新增 per-engine 聚合 + B5 更正 |
+> **v9 定稿（2026-11-12 00:10，主控）**：v9 是当前**唯一**基线——代码提交 `d1e0527`、锁提交 `6c405ad`、
+> `baseline_version=v9`。取哈希一律 `git cat-file blob d1e0527:<path> | md5sum`，上传用同一 blob，
+> **禁止 scp Windows 工作树**（CRLF/LF 会改 md5）。v8 及更早全部 superseded：v8 的 `pop pe_periods`
+> 在共享初始化路径上必炸，不能作任何 run 的基线。v9 相对 v8 只变两个：`train_hc`→`069f8977…`、
+> `code_lock`→`45916d9a…`（remap 改 copy-never-pop + CRLF 归一化）。
+> 三方独立复算 0/15 不符（锁 vs `d1e0527`、锁 vs `6c405ad`、锁 vs a40 实测）；a40 `code_lock.json`
+> md5 = `c04c9586…`，`code_lock --check` = `CODE LOCK OK`。
+
+| 文件 | md5（v9） |
+|---|---|
+| `paper_b/models/dspt.py` | `fb7011023b284a5f571cba4d4abb6927` |
+| `paper_b/training/data.py` | `c2ee079f6e60a8b0d0eb608676ff871a` |
+| `paper_b/training/train.py` | `13ec2fbb75ed09a389e4e979a82e11e6` |
+| `paper_b/training/metrics.py` | `39202682865d14dc6be5d332ac7a1c16` |
+| `paper_b/configs/protocol.json` | `c55720ffe09deff3a9b59c218a180114` |
+| `paper_b/hc/config_hc.py` | `bffe552fefa49c0e9cff38a31c6cd8ff` |
+| `paper_b/hc/data_hc.py` | `3ad7c111cf0268409bb40d79f7271cee` |
+| `paper_b/hc/model_hc.py` | `c55eb2b430e2d356a809a0ccbbb3f3f0` |
+| `paper_b/hc/cycle_encoder.py` | `f0ddc9115ba49627d4804fa6d5752e6d` |
+| `paper_b/hc/train_hc.py` | `069f8977bee8cf6aa01953c817d01601` |
+| `paper_b/hc/run_hc.py` | `8784311bebdc6891b59058f278e8d1f8` |
+| `paper_b/hc/verify_loop.py` | `2c15fcb4293e226102e368c717ef3f3a` |
+| `paper_b/hc/snapshot_val.py` | `be21a3cdc6f7022f3871faaf9d33a69b` |
+| `paper_b/hc/compare_val_snapshot.py` | `daff09811d4dbe6fa74c8bcb6190b2a6` |
+| `paper_b/hc/code_lock.py` | `45916d9a08c88b40072c03f2127cfd07` |
 
 > R1 行为不变已证明：改前/改后四子集 32/32 字段逐元素相等、`max|diff|=0`、
 > 两个 npz 的 sha256 同为 `38032744387b71be50410aac2a4c23d52454d6f72cf504ad9bab5b153a66f11f`；
@@ -111,6 +179,13 @@ params 117955、pred (8,1)、hi (8,)、hi_seq (8,70)、前向 403 ms、显存 43
 > 任何"原 DSPT 基线"必须明确声明用的是哪一份；本轮基线一律用 `paper_b/models/dspt.py`。
 
 ### 1.2 代码同步纪律
+
+**基线提交（2026-11-11 22:50，唯一代码基准）**：`f3142687ed6c04efcfa35173772f532b3ebb3c38`（短 `f314268`，父 `bc75aa6`）。
+- 所有 run 的 `git_sha` 必须写这个 SHA；它之后的改动算未提交工作树，`manifest.json` 要写 `worktree_dirty=true` 并列出差异文件 md5。
+- 管理员核对 `code_md5` 时基准取**本提交的 blob**：`git show f314268:paper_b/training/data.py | md5sum`。
+  不取任何时刻的工作树快照——否则哈希每十分钟过期一次（已连续发生三次）。
+- 在本提交之前的 SMOKE（`T1431Z` 失败、`T1436Z` 通过）跑的是更早的工作树，`code_md5` 与基准不一致，
+  二者都标 `not evidence`，**不作为证据引用**；正式放行前需在 `f314268` 上重跑一次 SMOKE。
 
 - a40 无 git，本地与远端**必然漂移**。每次上传后必须 `md5sum` 逐文件核对，把 hash 写进 `manifest.json`。
 - 上传只允许写 `<工作根目录>/paper_b/hc/`、`<工作根目录>/experiments/hc/`、`<工作根目录>/docs/paper_b_hc/`。
@@ -166,8 +241,10 @@ SA 跨传感器注意力 + Learned Sensor Pooling」全部在场。**Stage C 的
 | **V0-NoCycle** | full | basic | `hf` | **False** |
 | **V0-NoHI** | full | basic | `none` | True |
 
-> **V0-NoHI ≡ A3**：两者是同一配置（full / basic / none + 原 Fourier cycle），**只跑一次、双向引用**，
-> 不得重复训练，也不得当成两个独立证据。V0-Cycle 与 A3 的差 = HI 辅助损失的作用；
+> **V0-NoHI ≡ A3p**：两者是同一配置（full / basic / none + 原 Fourier cycle，frozen pre-norm 注入点），**只跑一次、双向引用**，
+> 不得重复训练，也不得当成两个独立证据。（2026-11-11 修订：原写 A3，但 A3a 是 post-norm 变体、与 frozen 不等价；
+> A3p 才是与 `build_dspt(use_cycle=True)` 逐位等价的注入点，故改为 A3p。）
+> V0-Cycle 与 A3p 的差 = HI 辅助损失的作用；
 > V0-NoCycle 与 A1 的差 = HI 辅助损失的作用（在无 cycle 条件下）。
 >
 > factorial 选出的候选骨干 `single_proj / basic / hf` **不属于 Stage C**。它丢了 MS 多尺度，
@@ -297,6 +374,40 @@ SA 跨传感器注意力、Learned Sensor Pooling、原始时空特征维度与�
 | A5 | Sensor + 非周期单调样条年龄编码 |
 
 A3 内部必须对比三种：原始 250 截断 / 不截断 Cycle / 合理归一化但不饱和的 Cycle。
+
+**注入点必须分表（2026-11-12 定，实现事实决定的硬约束）**
+`model_hc.py` 里只有 **A3p** 走 pre-norm（`DSPT_HC_Frozen.encode` 在 `self.norm` 之前加 cycle），
+**A2/A3a/A3b/A3c/A4/A5 全部走 post-norm**（`DSPT_HC.encode` 在 `super().encode()` 之后加）。因此：
+- **编码形式比较**只在 post-norm 家族内部做：`A1`（无 cycle 基线）+ `A2`(raw) / `A3a`(Fourier) / `A4`(log) / `A5`(spline)；
+- **注入点比较**单独做：`A3p` vs `A3a`（同 Fourier、同共享初始化，只差位置）；
+- **A3p 不得与 A2/A4/A5 比较编码形式**，任何表里出现这种比较即判该表作废；
+- 不把其他臂改造成 pre-norm：`dspt.py` 不可改，要统一就得在子类复制 `encode` 主体，破坏"只 import 不复制"原则，代价不值。
+
+**A3a vs A3p 必须显式共享初始化（2026-11-11 补充，否则对照无效）**：
+`dspt.py` 里 `pe_proj` 在第 119 行创建，**早于** layers(125) / sensor_attn(133) / cond_emb(139) /
+reg_head(146) / hi_head(149)。A3p 走 `use_cycle=True` 会抽这一次 `Linear(8,64)`，A3a 走
+`use_cycle=False` 不抽，于是 119 行之后所有模块的 RNG 流整体错位——**同 seed 不够，主干权重会整体不同**。
+做法：先建 A3p，把 `pe_proj.weight/bias` 搬进 A3a 的 `cycle_enc.proj`（同为 `Linear(8,64)`，
+输入同为 `cat([sin,cos])`），其余键原样载入，再同 seed 训练。
+`verify_loop.py` 的验收改成**三步**（2026-11-11 修订：原来要求的"同输入输出逐位相等"不可能成立——
+A3a 的 cycle 项注入在 post-norm、A3p 在 pre-norm，二者按构造就不同）：
+
+1. **共享张量 0 差**：两侧 state_dict 里所有共享键逐元素相等（`max|Δ|=0`）；
+2. **循环项同值**：同一 `cat([sin,cos])` 输入下，A3p 的 `pe_proj` 与 A3a 的 `cycle_enc.proj` 输出逐位相等；
+3. **置零投影后 ≤1e-6**：把两侧的循环投影权重置零，前向输出差 `≤1e-6`——这一步证明**差异只来自注入点**。
+
+三条全过才算共享初始化成立。真实初始化下记录的 `A3a − A3p` 的 Δ 作为 **treatment**，不是噪声。
+
+**`--dump-init` 的验收（v9 起是纯导出模式，2026-11-12 更正）**
+v9 的 `run_hc.py:242-249` 里 dump 是 export-only：写 payload → 打印 → `return`，**不写 launch、不写 close、不建 run 目录、不训练**。
+所以验收改成三条，与实现一致：
+1. payload 含 `variant / subset / seed / span / created_utc / code_md5 / git_sha / baseline_version` **八个字段**；
+2. 终端打印 `init sha256=...`，且该值与文件实际 sha256 一致；
+3. 消费方（A3a）的 `manifest.init_sha256` 与它相等。
+
+链条是「dump payload 自带溯源 → A3a manifest 记录同一 sha256」，**registry 里不需要有一条 dump 记录**。
+（v5 的 `INIT-DUMP-A3p` 有 launch，是因为老代码还走训练路径、训到了 ep020；v9 不会再有这种记录。）
+**不要再要求 dump 写 `close.json` 或检查 `train.log` 里有没有 `ep001`**——导出模式下根本没有这两个东西。
 
 **每个变体都要记录 9 项**：①四子集 RMSE ②NASA Score ③MAE ④Bias ⑤不同 RUL 区间表现
 ⑥不同发动机寿命分位数 ⑦不同截断长度 ⑧Cycle-only 相对 Sensor-only 的收益
@@ -450,6 +561,12 @@ Git commit SHA（本地）/ 上传文件 md5（a40）、完整配置 JSON、随�
   结束后写 `registry/close/<run_id>.json`。
 - 管理员据 launch/close 文件登记进 `runs.csv`，并抽查产物真实性（checkpoint 存在、预测条数、指标可复算）。
 - **任一方不得改对方的文件**。细则见 `docs/paper_b_hc/RESULTS_REGISTRY.md`。
+
+**违反写入边界的处理（2026-11-11 裁决）**：`docs/` 下没有文件锁，并发写会丢内容（已实测出现 `ReplaceFileW EIO` 写冲突）。因此：
+1. 越权写入的那次修改**视为无效**，由文件所有者以自己那一版为准覆盖；
+2. 覆盖后在审计文档追加一行：时间 / 被改文件 / 越权方 / 如何处理；
+3. 需要别人文件的内容时，**只发替换文本，不落笔**；
+4. 不靠重试解决写冲突——重试只能掩盖丢内容，§11 的「一人一文件」是唯一解。
 
 ---
 

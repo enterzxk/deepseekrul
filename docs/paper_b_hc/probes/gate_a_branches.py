@@ -25,15 +25,17 @@ Inputs: each run's own close.json (status, closed_utc, metrics) and config.json
 
 Usage: python docs/paper_b_hc/probes/gate_a_branches.py
 """
+import csv
 import json
 import re
 from pathlib import Path
 
 import numpy as np
 
-OUT = Path('/media/sangfor/vdb/user/zxk/deepseek-rul/experiments/hc')
+ROOT = Path('/media/sangfor/vdb/user/zxk/deepseek-rul')
+OUT = ROOT / 'experiments/hc'
+LEDGER = ROOT / 'docs/paper_b_hc/registry/runs.csv'
 WITHIN = OUT / 'tmp' / 'g4_within.json'
-PAT = re.compile(r'^HC-C-(A\d\w?)-((?:FD00[1-4]))-s(\d+)-W1(r\d+)?$')
 
 VARIANTS = ['A0', 'A1', 'A2', 'A3a', 'A4', 'A5', 'A3p']
 MAIN = ['A0', 'A1', 'A2', 'A3a', 'A4', 'A5']
@@ -53,32 +55,27 @@ G5_SIGN = 3
 B1_RHO = -0.9
 
 
-def closed(run):
-    f = run / 'close.json'
-    if not f.exists():
-        return None
-    try:
-        c = json.loads(f.read_text())
-    except Exception:
-        return None
-    return c if c.get('status') == 'ok' else None
-
-
 def evidence():
-    best = {}
-    for run in sorted(OUT.glob('HC-C-*')):
-        m = PAT.match(run.name)
-        if not m:
-            continue
-        c = closed(run)
-        if c is None:
-            continue
-        key = (m.group(1), m.group(2), int(m.group(3)))
-        t = c.get('closed_utc')
-        if key not in best or t < best[key][0]:
-            best[key] = (t, run, c)
-    return {(v, s): best[(v, s, 101)] for v in VARIANTS for s in SUBSETS
-            if (v, s, 101) in best}
+    """Admitted cells straight from the ledger (in_gate_a_table + status=ok).
+
+    Re-deriving the cell from the directory listing was dropped in review: when
+    a cell has more than one ok run, "earliest closed_utc" can land on a run the
+    ledger did not admit.
+    """
+    keep = {}
+    with LEDGER.open(encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            if row['in_gate_a_table'].strip().lower() != 'true':
+                continue
+            if row['status'].strip() != 'ok':
+                continue
+            run = OUT / row['run_id']
+            if not run.exists():
+                continue
+            keep[(row['variant'], row['subset'])] = (
+                row['closed_utc'], run,
+                json.loads((run / 'close.json').read_text()))
+    return keep
 
 
 def rmse(c):
@@ -148,7 +145,7 @@ def main():
 
     print('# Gate A 双分支判定（脚本生成，勿手改）\n')
     print('生成脚本：`docs/paper_b_hc/probes/gate_a_branches.py`  ')
-    print('证据 run：按台账规则自动挑选（`status=ok` + `-W1(r\\d+)?$` + 最早 `closed_utc`）')
+    print('证据 run：读台账 `registry/runs.csv`，取 `in_gate_a_table=true` 且 `status=ok`')
     print('缺格：%s\n' % ('无' if not missing else missing))
 
     print('## 0. 主表 RMSE（`val_engine_mean_rmse`，越低越好）\n')
@@ -210,9 +207,9 @@ def main():
           % ('**过**' if g1['pass_'] else '不过', '**过**' if g2['pass_'] else '不过',
              '**过**' if g3['pass_'] else '不过', '**过**' if g5['pass_'] else '不过'))
     print('\n量级诊断（不作判据，必须如实写进论文）：模型每 +10 的响应'
-          ' %s，而数据局部条件效应 %s，比值约 3×–90×。'
-          % ('/'.join('%.3f' % g4a[v]['abs'] for v in TREATMENT),
-             '+0.016…+0.218'))
+          ' %s；与 between-engine 条件效应同数量级、约 1–5×，随条件集变化，'
+          '不能当校准系数。数值与聚类 CI 见 `G4_DIAGNOSIS.md` §5。'
+          % '/'.join('%.3f' % g4a[v]['abs'] for v in TREATMENT))
     print('\n## 4. 两分支的差别只有一处\n')
     print('| | BRANCH A | BRANCH B |')
     print('|---|---|---|')
