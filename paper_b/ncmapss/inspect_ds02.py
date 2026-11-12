@@ -111,6 +111,42 @@ def main():
         for k in ('X_v', 'T')
     }
 
+    # ---- adjudicate the four open documentation questions ---------------
+    # These are the four items DATASET_PROTOCOL.md 2.4 says must be settled by
+    # measurement rather than by quoting the paper.
+    dev = rep['arrays']
+    n_cols = {k: dev.get(f'{k}_dev', {}).get('n_cols') for k in ('W', 'X_s', 'X_v', 'T', 'A')}
+    n_cols['Y'] = 1
+    total = sum(v for v in n_cols.values() if v)
+    t_cols = dev.get('T_dev', {}).get('cols') or []
+    ydev = rep['splits']['dev']['y']
+    rep['adjudication'] = {
+        'q1_table3_17_vs_sum_of_tables': {
+            'per_array_columns': n_cols,
+            'total_columns': total,
+            'verdict': ('Table 3 "17 variables" is wrong; the file has '
+                        f'{total} columns' if total != 17 else
+                        'Table 3 "17 variables" is confirmed'),
+        },
+        'q2_LPT_flow_mod_description': {
+            'T_var_10th': t_cols[-1] if t_cols else None,
+            'verdict': ('symbol is LPT_flow_mod, so the Table 7 description '
+                        '"HPT flow modifier" is a typo' if t_cols and t_cols[-1] == 'LPT_flow_mod'
+                        else 'T_var does not end in LPT_flow_mod; re-read Table 7'),
+        },
+        'q3_Y_constant_within_cycle': {
+            'max_spread': rep['splits']['dev']['y_within_cycle_max_spread'],
+            'verdict': ('Y is constant within a flight cycle' if
+                        rep['splits']['dev']['y_constant_within_cycle'] else
+                        'Y varies within a cycle; a flight-level label rule is required'),
+        },
+        'q4_dtype_and_chunks': {
+            'arrays': {k: {'dtype': v.get('dtype'), 'chunks': v.get('chunks')}
+                       for k, v in dev.items() if v.get('present')},
+            'verdict': 'dtype and chunking recorded for every array (see arrays)',
+        },
+    }
+
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rep, indent=1, ensure_ascii=False), encoding='utf-8')
@@ -131,6 +167,9 @@ def main():
     for name, v in rep['columns_match_docs'].items():
         print(f'columns {name}: exact={v["match_exact"]} set={v["match_as_set"]} '
               f'missing={v["missing"]} extra={v["extra"]}')
+    print('\n--- four documentation questions ---')
+    for q, v in rep['adjudication'].items():
+        print(f'{q}: {v["verdict"]}')
     print('wrote', out)
 
 
