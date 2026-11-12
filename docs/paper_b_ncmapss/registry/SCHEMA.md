@@ -305,7 +305,7 @@ batch 取 380 时一个 step 就是完整一遍，所以「1000 步」实际是 
 | 每遍更新数 | ~39 | **6** |
 | 总更新数 | ~1560 | **240** |
 
-- 台账记 `epochs_run = 40`、`selection_rule = fixed_passes:200`、`batch_effective = 64`（写在 `registry_note`）。
+- 台账记 `epochs_run = 200`、`selection_rule = fixed_passes:200`、`batch_effective = 64`（写在 `registry_note`）。
 - **`protocol.json` 的 `epochs: 40` 在这里恰好仍是 40**，但语义从「40 轮」变成「200 遍」，
   且 `batch` 被覆盖为 64——所以仍要记 `epochs_overridden` / `batch_overridden`，不能因为数字碰巧相同就不记。
 
