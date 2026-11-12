@@ -202,10 +202,29 @@ Label: `Y` at the prediction flight, in both raw and capped-at-125 form (§7).
 
 ### 4.2 Training plan and conditioning (frozen)
 
-The training plan is `paper_b/configs/protocol.json` used **verbatim**: 40 epochs,
-patience 12, batch `min(512, N_train)`, lr 1e-3, weight decay 1e-4, d_model 64,
-2 layers, dropout 0.2, seeds 101 / 202 / 303. Only the input width changes (51
+The **schedule** is taken verbatim from `paper_b/configs/protocol.json`: 40 epochs,
+lr 1e-3, weight decay 1e-4, d_model 64, 2 layers, dropout 0.2, batch
+`min(512, N_train)`, seeds 101 / 202 / 303. Only the input width changes (51
 columns instead of the C-MAPSS sensor block).
+
+The **label-construction** fields in the same file are **not** inherited. They are
+C-MAPSS-specific and are re-defined here, once, and frozen:
+
+| field | C-MAPSS value | DS02 |
+|---|---|---|
+| `rul_cap` | 125 | 125, but **only** for the supplementary capped criterion (§7). Primary is raw. |
+| `val_cuts` | `[0.4, 0.55, 0.7, 0.85, 0.95]` | not used — validation is a held-out engine, not a lifetime cut |
+| `val_frac` | 0.2 | not used — LOEO replaces the 80/20 split |
+
+Inheriting `rul_cap` silently would transplant the C-MAPSS label truncation onto
+a dataset whose lifetime scale is different, and would redefine the raw criterion
+by accident — exactly the confusion `D043` bounds.
+
+**No early stopping.** Every rung trains for the fixed epoch budget and the final
+epoch is the reported model. Early stopping on the held-out engine would mean the
+engine used for the reported score also chose the stopping point; that is a
+selection bias, not a training detail. Training and validation loss curves are
+recorded for every run so that under-training is visible rather than inferred.
 
 No rung gets a different schedule. If a rung fails to converge under this plan,
 that is a reported finding, not a licence to retune — the same rule that keeps N3
