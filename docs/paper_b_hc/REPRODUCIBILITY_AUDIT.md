@@ -11,27 +11,32 @@
 
 | 角色 | SHA | 说明 |
 |---|---|---|
-| 代码提交 | `707762f` | v13 四件套：`y_cap` 标签裁剪、启动护栏、目录名 = run_id、Stage D 四文件进 OWN |
-| 锁提交 | **缺（待补）** | 当前锁与代码在**同一个提交** `707762f` 里，所以 `git_sha = null` |
-| `baseline_version` | **v13**（20 blob） | a40 上 `code_lock --check` 报 `CODE LOCK OK` |
+| 代码提交 | `36e1cea` | v13 四件套（`y_cap` 标签裁剪、启动护栏、目录名 = run_id、Stage D 四文件进 OWN）+ `code_lock.check()` 拒跑断言 |
+| 锁提交 | `87dd505` | 20-blob code lock（**lock-only commit**，v8 的两段提交模式） |
+| `baseline_version` | **v13**（20 blob） | a40 上 `code_lock --check` → `CODE LOCK OK` |
 
-**v13 的指纹链有一处缺口，发车前必须补（2026-11-13 05:1x 发现）**：
-`code_lock.json` 里 `git_sha` 是 **`null`**，因为锁是用 `--from-index` 模式生成的
-（`code_lock.py:39`：`from_index=True` 时 `git_sha=None`，`source` 写 "staged index (the commit that contains this file)"）。
-这正是「一个版本 = 两个提交」这条规则要避免的自指：锁无法命名包含它自己的那个提交。
+`registry/code_lock.json`：`git_sha = 36e1cea38e42dbee811ae3bc8b4c2970afc1d637`、`source = HEAD`、20 blob、锁文件自身 md5 = `05ecdc4e28f82729124295399fde3619`。
+**指纹链完整**：20 个 blob 的 md5 与 `git cat-file blob 36e1cea:<path>` **20/20 全等**（`tmp/audit_hc/verify_lock_v13.py`）。
 
-- **内容本身是好的**：独立核过，20 个 blob 的 md5 与 `git cat-file blob 707762f:<path>` **20/20 全等**（`tmp/audit_hc/verify_lock_v13.py`）。
-  缺的只是 `git_sha` 这一个字段，不是代码漂移。
-- **后果（为什么不能就这么跑）**：`git_sha=null` 时无法按 §1.2 的口径重放 `md5(blob@git_sha)`，只能全历史搜 blob；
-  而且这 48 格登记进 `runs.csv` 时 `git_sha` 列会是空的——**和我刚报的 24 个 cal 行是同一个缺陷**，不能一边修一边新造。
-- **补法**：以 `707762f` 为 `git_sha`，用 HEAD 模式重生成锁（`source` 回到 "HEAD"），单独提交一个只含
-  `code_lock.json` 的锁提交；a40 重验。**不改 `git_sha` 就发车，等于 48 格从一开始就不在指纹链上。**
-- **顺带**：`code_lock.check()` 目前**不校验 `git_sha` 是否为空**，所以 `CODE LOCK OK` 会在 `git_sha=null` 时照报绿。
-  建议加一条断言（锁 `source` 含 "index" 或 `git_sha is None` → 拒跑），否则这个洞下次还会静默通过。
+**这条链是怎么补上的（2026-11-13 05:1x → 05:2x）**：v13 最初把代码和锁放进了**同一个提交** `707762f`，
+锁只能用 `--from-index` 生成，于是 `git_sha = null`、`source = "staged index (the commit that contains this file)"`——
+锁无法命名包含它自己的提交。这是「一个版本 = 两个提交」这条规则要防的自指。
+
+- 当时**内容本身没坏**：20 个 blob 与 `707762f` 逐条全等，缺的只是 `git_sha` 一个字段。
+- 但 `git_sha=null` 时无法按 §1.2 重放 `md5(blob@git_sha)`，只能全历史搜 blob；且这 48 格登记进 `runs.csv` 时
+  `git_sha` 列会是空的——**和 24 个 cal 行是同一个缺陷**。
+- 补法即 v8 模式：`36e1cea`（代码 + 断言）→ `87dd505`（只含 `code_lock.json`，HEAD 模式，`git_sha=36e1cea`）。
+- 同时把绿灯的洞堵上：`code_lock.check()` 现在**拒跑**（不是警告）当 `git_sha is None` 或 `source` 含 `index`。
+  原来「md5 全对就报绿」正是这个洞静默通过的原因。
+
+**48 格发车时用的锁，与现在这份锁差一个文件**：`707762f..36e1cea` 之间，
+20 条锁定路径里**只有 `paper_b/hc/code_lock.py` 变了**（就是那条拒跑断言），其余 19 条**逐字节相同**，
+含 Stage D 四个文件（独立核过：`git diff --name-only 707762f HEAD` 与锁定清单取交集 = 只有 `code_lock.py`）。
+`code_lock.py` **不被任何训练模块 import**（`grep` 无 `import code_lock`），它是独立 CLI 工具，不决定任何数值。
+所以 48 格的 `files_sha256`（覆盖 `arrival/hi_d/data_d/train_d/config_hc`）与 `707762f` 下跑出来的完全一致。
+**登记这 48 行时 `git_sha` 写 `36e1cea`（锁声明的、可重放的那个），并在 `registry_note` 记上面这条差异。**
 
 **历史版本**（不再作为准入基线，仅供追溯）：v12 `57a4570` / 锁 `21bc2a2`（16 blob，锁 md5 `b7e0bf01c974c724778aa3353511111c`）；v9 `d1e0527` / 锁 `6c405ad`（15 blob，锁 md5 `c04c958600ca26fed9ea6944cbe12cbc`）；v10 `95a5898`（16 blob，`scale_align.py` 入 OWN）；v11 `9601320`（16 blob）。**W2 那 24 格 cal 格是在 v11 下跑的**，标定缺陷见 §4 事故 14。
-
-**历史版本**（不再作为准入基线，仅供追溯）：v9 `d1e0527` / 锁 `6c405ad`（15 blob，锁 md5 `c04c958600ca26fed9ea6944cbe12cbc`）；v10 `95a5898`（16 blob，`scale_align.py` 入 OWN）；v11 `9601320`（16 blob，删 `train_hc` 内联 remap + 守卫与 `--check` 同口径 + `.gitattributes`）。**W2 那 24 格 cal 格是在 v11 下跑的**，标定缺陷见 §4 事故 14。
 
 ### 1.2 指纹的算法口径（**必须按此，否则会被假不符骗**）
 
