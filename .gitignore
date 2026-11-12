@@ -19,6 +19,10 @@ cal_assets.tgz
 .srvcheck/
 *.bak
 *.bak_*
+# results-manager working backups of the ledger (never commit; see
+# docs/paper_b_hc/registry/REGISTRY_NOTES.md)
+*.mgr-bak
+*.bak-*
 
 # ---- third-party PDFs (copyright; cite instead) -------------------------
 results/**/sources/*.pdf

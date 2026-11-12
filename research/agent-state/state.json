@@ -46,15 +46,28 @@
       ],
       "note": "预算实际 ≈7.8 GPU-h（估计 ≤6，FD002/FD004 每格 14.5 min）。产物在 a40 experiments/punet_mcd80_seeded/（权威）、punet_mcd80/（首轮）、punet_mcd80_repro/（复现抽检）。",
       "finished_at": "2026-11-09T04:01:25.868Z"
+    },
+    {
+      "id": "paperb-s23-seeds-20261111",
+      "title": "Paper B: seeds 202/303 for candidate (single+SA+HI), base and FULL (24 runs)",
+      "outcome": "completed",
+      "result": "24/24 training + 24/24 test, 0 failures (~50 min on 2x3090). Independent recomputation from raw JSONs matches paper_b/reports/SEED_ROBUSTNESS.md exactly. Validation RMSE (mean over 3 seeds): base 13.418, cand 12.929, FULL 12.982; test: base 11.655, cand 11.134, FULL 11.512. Winner flips on seed 202 (FULL 12.628 vs cand 13.035). Paired test cand-FULL: mean -0.378, sd 1.057, better in 8/12 (subset,seed) pairs, engine-bootstrap CI excludes 0 in 3/12. Conclusion: comparable, not better. Pushed as 122e0c8 (data/report, by the parallel line) + bc75aa6 (CURRENT_STATUS conclusion).",
+      "artifacts": [
+        "paper_b/experiments/grids/factorial_s23.json",
+        "paper_b/results/FREEZE_FACTORIAL_S23.json",
+        "paper_b/results/seed_robustness_raw.csv",
+        "paper_b/reports/SEED_ROBUSTNESS.md",
+        "paper_b/reports/CURRENT_STATUS.md",
+        "tmp/zxk_verify_s23.py"
+      ],
+      "note": "",
+      "finished_at": "2026-11-11T14:32:49.662Z"
     }
   ],
   "next_actions": [
-    "10:00 前已交付 docs/VERDICT_20261110.md（饱和地图 + 两个审计更正 + 三个带成本选项）",
-    "C12 A4 已独立复算一致：均值 +0.246%、中位 +0.930%、11/20 变差、FD004 −3.02%",
-    "C13 口径已澄清：46.82% 是相对改善的 seed 方差份额；绝对 Winkler 仅 3.92%（变异主要来自子集）",
-    "台账 C1/C3/C4/C5/C6/C7/C8/C12/C13 已全部独立复算通过；C11 已更正（泄漏→6/6、−16.30%、2/6 可达 0.90）",
-    "待用户 10:00 在 A（测量协议）/B（3–6 个月方法程序）/C（改期刊或改贡献类型）中选一；未选前不启动训练",
-    "若选 B：第一步是找新问题而不是新方法；先过无 GPU 新颖性门，再用 L2 批准的 20 GPU-h 先导"
+    "在 a40 跑 VAN_raw_cycle_L70 与 VAN_dsp_L70 各 12 格",
+    "汇总 4 臂 x 4 子集 x 3 seed 的 engine-level 验证 RMSE 与配对差",
+    "写入 DSPT_BASE_FUNCTIONAL_AUDIT.md"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -266,15 +279,1392 @@
         "通过测试标签调参、删除失败子集或事后改变主指标才能通过判定门：该验证无效"
       ],
       "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-11T13:53:31.345Z",
+      "level": "L1",
+      "decision": "branch",
+      "selected_option": "新开独立 Paper B / DSPT-HC 支线：冻结 paper_b/{models,training,configs}，新代码进 paper_b/hc/，任务书与结果台账落盘 docs/paper_b_hc/，tmh 实现、实验结果管理员治理",
+      "rationale": "用户明确要求在现有 DSPT 上加创新且不动原有研究，并指定 tmh 实现、实验结果管理员管理结果。实测发现用户原文指向的 docs/paper_b_code/run_dspt.py 与 docs/paper_b_results/ 均不存在，真实基线是 paper_b/ 下的 models/training/configs；a40 无 git，本地与远端必然漂移。因此把任务书与结果规范落成文件（而非超长消息），用 run_id + launch/close 声明 + 单一 runs.csv 台账治理结果，并用一人一文件的写入边界避免并发冲突。",
+      "evidence": [
+        "docs/paper_b_hc/TASK_BOOK.md",
+        "docs/paper_b_hc/RESULTS_REGISTRY.md",
+        "docs/paper_b_hc/README.md",
+        "docs/paper_b_hc/registry/runs.csv",
+        "docs/decision_log.md#D036",
+        "ssh a40: /home/yndx/deepseek-rul, git not found, python 3.9.25 torch 2.5.1+cu121, A40 49140MiB idle, disk free 124G",
+        "paper_b/models/dspt.py md5 FB7011… != src/candidates/dspt.py md5 634EB8…"
+      ],
+      "rejected_options": [
+        {
+          "option": "直接把用户原文当消息发给 tmh",
+          "reason": "原文约 8000 字且含错误路径，长消息易失真，且无法作为可审计契约"
+        },
+        {
+          "option": "在 src/candidates/dspt.py 上直接改",
+          "reason": "用户明令不动现有 DSPT；且该文件是旧版，与真实基线不同"
+        },
+        {
+          "option": "两人共写 docs/paper_b_hc/ 同一批文件",
+          "reason": "无锁，并发写会互相覆盖；改为一写声明/交付文档、一写台账/审计"
+        }
+      ],
+      "scientific_risks": [
+        "a40 无 git，上传代码可能与本地漂移，导致结果不可复现（已用 md5 核对 + manifest 缓解）",
+        "官方测试集已被历史多次观察，任何测试集指标都不能宣称独立验证",
+        "用户原文假设的路径不存在，若 tmh 按原文找文件会空转（已在任务书 §1.1 修正）",
+        "Gate A 六变体 × 四子集 × 三 seed = 72 次训练，磁盘仅余 124G，需限制 checkpoint 保留策略"
+      ],
+      "falsification_criteria": [
+        "若 tmh 首报无法给出任何 experiments/hc/<run_id>/ 产物，则派工无效，需改为更小粒度的可验收任务",
+        "若审计发现 paper_b/training/data.py 存在引擎泄漏，则 Gate A 全部结果作废，先修协议"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T14:01:21.327Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "授权最小行为保持修复 + 主指标改为发动机级平均 RMSE（双口径同时记录），并要求 val 张量逐元素一致性证明",
+      "rationale": "审计用文件:行号 + 独立复算证明冻结基线无引擎泄漏、无测试标签泄漏、无未来信息，可以开跑。但三处必须先改：①prepare_train 的 cuts 默认值与协议不一致，hc 层省略即静默用错验证集，属高优先级隐患；②模型选择用的是全局池化 RMSE，违反用户任务书「Validation 以发动机为统计单位、统一发动机级评价」，且长寿命引擎在池化口径下权重可达短引擎约 9 倍，可能让不同变体排出不同名次；③metrics.py 缺发动机级聚合函数，不补则每个脚本各写各的。三者都属\"行为保持的缺陷修复/新增函数\"，不改变冻结骨干的模型结构与训练路径，因此授权在 paper_b/ 侧最小改动，并要求用 val 张量逐元素比对证明基线行为不变。",
+      "evidence": [
+        "docs/paper_b_hc/RESULTS_AUDIT_20261111.md",
+        "paper_b/training/data.py:281 cuts 默认 (0.5,0.75,0.9) vs paper_b/configs/protocol.json:5-11 [0.4,0.55,0.7,0.85,0.95]",
+        "paper_b/training/train.py:101-103 val_rmse 为全局池化 rmse",
+        "paper_b/training/train.py:30 显式传入正确 cuts",
+        "paper_b/training/metrics.py:4-24 无发动机级聚合函数",
+        "管理员独立复算: 四子集 train∩val 交集均为 0; val hash FD001 f81d7f2496c494ca, FD002 cacf4ea1d7cf96b6, FD003 f81d7f2496c494ca, FD004 eb1b0f00047d393e"
+      ],
+      "rejected_options": [
+        {
+          "option": "完全不动 paper_b/training，只在 hc 层包一层守卫",
+          "reason": "能防新代码出错，但缺发动机级指标函数，各脚本各写各的仍会乱；且默认值陷阱会一直留着"
+        },
+        {
+          "option": "直接改 prepare_train 默认值为协议值",
+          "reason": "仍允许省略，静默回退风险未消除；改为 None + raise 才能强制显式"
+        },
+        {
+          "option": "沿用历史池化 RMSE 口径以保持与旧数字可比",
+          "reason": "违反用户任务书的发动机级评价要求，且长引擎权重偏差会污染变体排名"
+        }
+      ],
+      "scientific_risks": [
+        "改 data.py 有引入回归的风险（已要求逐元素比对 val 张量）",
+        "发动机级等权平均会让短寿命引擎获得与长引擎相同的权重，可能放大短引擎的噪声",
+        "V0 重跑增加约 24 run 成本，且新口径下的 V0 数字与历史论文数字不可直接比较，需要在报告中同时呈现两套",
+        "FD004 有 20.4% 的 val 标签落在 cap=125，两种口径都会被这些点稀释"
+      ],
+      "falsification_criteria": [
+        "若 R1 修复后 val 张量与修复前不逐元素一致，则该修复引入回归，必须回滚",
+        "若所有 HC 变体在两种口径下的名次完全一致，则口径之争无实际影响，可只报一个",
+        "若 engine-level 与 pooled 的选择导致 V0 基线结论翻转，说明历史数字不可比，需重述历史结论"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T14:11:30.163Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "paper_b/hc 第一轮代码审计结论：冻结开跑，先修 3 个 P0（hc 主指标口径、A3p 控制臂、冻结 md5 基准失效），再补 5 个 P1 守卫后放行 Gate A 冒烟",
+      "rationale": "hc 层代码结构与冻结骨干的衔接是正确的（只 import 不复制编码器、协议守卫可跑、val 划分与 R6 基准逐字一致、R1 修复静态可证行为保持），但存在三处会使证据失效的逻辑缺口：①train_hc 仍按池化 RMSE 选轮并把该值命名为任务书明令禁止的 val_engine_rmse，而 frozen train.py 已改为发动机级选轮，导致 V0 与 A0-A5 选轮口径不同、跨变体对比无效；②A3p 控制臂在 config_hc.VARIANTS 中缺失，实测 hc_config('A3p') 抛 KeyError，而 A3a 的 cycle 注入点在 post-norm、与 dspt.py 的 pre-norm 不同，缺此控制则 Gate A 第一条判据（Fourier vs 简单年龄）混入注入点差异；③任务书 §1 的五个冻结 md5 已被 22:04-22:06 的改动作废，a40 副本必然更旧，manifest:code_md5 与基准对不上，证据链起点断裂。另有 P1：R6 hash 未落盘未断言、run_hc 无 launch/重复守卫会静默覆盖、cfg 与模块常量双源、verify_loop.py 被引用但不存在、'9 倍权重'理由数值错误（实测 FD004 max/min=3.94，且每台引擎恰好 5 窗口故池化等权）。",
+      "evidence": [
+        "docs/paper_b_hc/CODE_REVIEW_20261111_test_lead.md（固定哈希版本审计报告，P0/P1/P2 全表）",
+        "paper_b/hc/train_hc.py:130-132,171,181（池化选轮 + 禁止字段名）vs paper_b/training/train.py:147,167（发动机级选轮 + 双口径字段）",
+        "tmp/audit_hc/test_hc_smoke.py 实测：FAIL a3p_control KeyError(\"unknown variant 'A3p'\")",
+        "本地复算四个子集 val_engine_ids_hash = f81d7f2496c494ca / cacf4ea1d7cf96b6 / f81d7f2496c494ca / eb1b0f00047d393e，与 R6 基准逐字一致",
+        "本地复算 windows_per_engine=[5]（四子集全同）；探针 metric_identity pooled=31.097 == rms_of_mse=31.097，engine_mean=17.906",
+        "FD004 每引擎 Σy² max/min=3.94（cap=125）；不封顶时 9.28 → '9 倍' 仅在未封顶标签下成立",
+        "git diff：data.py 仅默认值+raise，无计算路径改动；HEAD=49ac685 仍为旧默认值，可作 R1 改前快照来源",
+        "git status：data.py c2ee079f6e60 / metrics.py 87e8245b49f4 / train.py 07e7379dc2a8 已偏离任务书 §1 表（9441399/87c6637/4853414）",
+        "experiments/hc/ 为空目录 → hc 代码尚未产出任何端到端 run"
+      ],
+      "rejected_options": [
+        {
+          "option": "先放行 1 个 smoke run 边跑边修",
+          "reason": "smoke 会写出 manifest:code_md5 与过期的任务书基准冲突，且 train_hc 选轮口径错误会进入 history.json，留下不可比证据"
+        },
+        {
+          "option": "只口头告知 zxk，不落盘审计报告",
+          "reason": "角色要求可复核证据；且代码仍在变动，需固定哈希版本供后续 diff"
+        },
+        {
+          "option": "直接替 zxk 改 paper_b/hc/**",
+          "reason": "违反任务书 §11 一人一文件的写入边界；测试负责人应出证据与修复建议，由 tmh/zxk 落地"
+        }
+      ],
+      "scientific_risks": [
+        "本地无 torch/sklearn，前向与训练未执行；模型构建层面的缺陷只能靠阅读判断，需 a40 冒烟补齐",
+        "train_hc.py:122 与 train.py:94 均设 cudnn.benchmark=True，同 seed 不保证逐位复现；Gate A 第一波单 seed 判断方向前应先测噪声底线",
+        "Stage C 的 BACKBONE 是 factorial 选出的候选（single_proj/basic/hf），与任务书 §6 '原 DSPT 骨干' 冲突；若不在 L2 裁决，Stage C 结论不能与 V0 基线同表",
+        "正在跑的 paperb-s23-seeds-20261111 使用改动前 train.py（池化选轮），其结果与 hc 新口径不可比"
+      ],
+      "falsification_criteria": [
+        "若 zxk 修完 A1 后，同一 run 的 val_engine_mean_rmse 与 val_pooled_rmse 在全部变体上名次完全一致，则口径之争无实际影响，可只报一个（对应 D-2026-11-11T14:01 的既定判据）",
+        "若 A3p 与 A3a 在同一 seed/FD001 上的 val 差异小于同 seed 重复的噪声底线，则注入点不影响结论，A3a 可代表冻结形式",
+        "若更新后的五个冻结 md5 与 a40 md5sum 逐一一致，则 A3 解除；否则第一批 run 一律作废",
+        "若实测 FD004 单引擎平方误差质量比显著大于 3.94（例如换用不封顶标签或改 val 构造），则 B5 的更正需重算"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T14:25:49.148Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "Stage C 骨干 = ms_mode='full', sa_mode='basic', hi_source='none'；V0 三份 = full/basic/hf+cycle、full/basic/hf+no-cycle、full/basic/none+cycle；V0-NoHI ≡ A3 只跑一次",
+      "rationale": "L2-DEGRADED / PENDING-L2。X2：Stage C 骨干取 ms_mode='full', sa_mode='basic', hi_source='none'。理由：这是唯一同时满足用户任务书 §5「MS + Temporal Transformer + SA + pooling 全在场」且能让 V0 三份与 A0-A5 共用同一骨干的配置；冻结 DEFAULTS 的 sa_mode='off' 会让 SA 缺席、直接违反 §5；factorial 候选 single_proj 丢了 MS，同样违反 §5 且与 V0 不同源，不能进同一张表。X3：V0 三份定为 full/basic/hf+cycle、full/basic/hf+no-cycle、full/basic/none+cycle；其中 V0-NoHI 与 A3 是同一配置，只跑一次双向引用，因为二者本来就该是同一个模型——V0-NoHI 相对 V0-Cycle 的差正是 HI 辅助损失的作用，而这正是 P1 要论证的；重复训练同一配置只会制造两个不可区分、却被当成两份独立证据的 run，正是本项目要防的乱套。",
+      "evidence": [
+        "paper_b/training/train.py:25-32 冻结 DEFAULTS = ms_mode='full', sa_mode='off', hi_source='none'",
+        "paper_b/models/dspt.py 支持 ms_mode 6 种 / sa_mode 7 种 / hi_source 4 种",
+        "docs/paper_b_hc/TASK_BOOK.md §5 要求保留 MS + Temporal Transformer + SA + Learned Sensor Pooling",
+        "docs/paper_b_hc/CODE_REVIEW_20261111_test_lead.md §5 X1-X4",
+        "冻结 val 每台引擎恰好 5 窗口，FD001==FD003 val 划分 (f81d7f2496c494ca)"
+      ],
+      "rejected_options": [
+        {
+          "option": "X2 选 B：ms_mode='full', sa_mode='off'（与冻结 DEFAULTS 完全一致）",
+          "reason": "与用户任务书 §5 明令保留 SA 冲突；且 sa_mode='off' 时 SA 模块根本不构造，无法声称保留了跨传感器注意力"
+        },
+        {
+          "option": "X2 选 C：single_proj/basic/hf（factorial 候选）",
+          "reason": "丢了 MS 多尺度，违反 §5；且与 V0 不同源，同一张表里的差异会混入骨干差"
+        },
+        {
+          "option": "X2 选 D：两个骨干都跑",
+          "reason": "Gate A 第一波成本翻倍到 48 run，而骨干不是本轮研究问题；留到 Gate D 或作为附录单表更划算"
+        },
+        {
+          "option": "X3 给 V0-NoHI 单独跑一次，不与 A3 合并",
+          "reason": "同一配置跑两遍会产出两个不可区分却可被当成独立证据的 run，正好是台账要防的重复；且浪费 GPU"
+        }
+      ],
+      "scientific_risks": [],
+      "falsification_criteria": [
+        "若 full/basic 与 full/off 在 A1(sensor-only) 上的差异大于 A2-A3 的 cycle 效应，则骨干选择主导结论，需改为两骨干各一张表",
+        "若 A3p 对照显示 A3a 与 frozen 注入点的 Δ 大于 cycle 编码形式之间的 Δ，则 Gate A 第一条判据不成立，必须先修注入点",
+        "若 V0-NoHI 与 A3 合并后被审稿人质疑'同一模型不能同时充当基线与消融'，需补一次独立重跑（不同 seed）以证可复现"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T14:39:06.847Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "A3p 在模型边界把 cycle 从 cycles 换算回 min(c,250)/250 再进 frozen encode；冻结基线接受一次 docstring-only 变更（train.py/metrics.py）",
+      "rationale": "hc 数据层统一以“周期数”传 cycle，而 frozen DSPT.encode 内部做 cycle*250（因为 frozen data.py 存的是 min(c/250,1)）。若 A3p 直接吃 cycles，所有傅里叶角被放大 250 倍，控制臂失效。在 DSPT_HC_Frozen.encode 里除以 250 后，与同一权重、同一输入的 frozen DSPT.encode 逐元素相等（max|diff|=0），注入点仍在 LayerNorm 之前。另：B5 要求删掉冻结文件 docstring 里的“9 倍”错误表述，22:14 已改，导致 train.py/metrics.py 相对任务书 §1 表再次变 md5；回滚 docstring 会把错误说法留在冻结代码里，不可接受。",
+      "evidence": [
+        "a40: paper_b/hc/model_hc.py md5 adcbceb901ae59d2bd15bbfc4067fc3f；A3p 与 frozen DSPT.encode max|diff|=0.000e+00（同权重、cycle=[125,100,250,1] vs [0.5,0.4,1.0,0.004]）",
+        "a40: verify_loop PASS，frozen 与 hc 两轮 loss 序列 [9388.477344, 9189.038672] 逐位相同，46 个参数张量 max|param diff|=0",
+        "a40: 四子集 split hash 与 SPLIT_HASH_REF 全等（f81d7f2496c494ca/cacf4ea1d7cf96b6/f81d7f2496c494ca/eb1b0f00047d393e），FD001 n_tr=16762 n_va=100",
+        "a40: data_hc raw-cycle 重建守卫四子集通过；>250 窗口 tr/va：FD001 585/2、FD002 1486/6、FD003 3067/6、FD004 5272/41",
+        "a40: 九个变体全部可构建并前向有限；A1 115010、A2/A4 115138、A3a/b/c/A3p/SMOKE 115586、A5 115650",
+        "本地 md5 = a40 md5：train.py ef14ee21cf8dccf3b9de2f089e885cfc、metrics.py a799d43f1c35649f22882f95e26790d1（相对 §1 表 07e7379d/87e8245b 仅 docstring 变更）"
+      ],
+      "rejected_options": [
+        {
+          "option": "A3p 直接喂 cycles（不改量纲）",
+          "reason": "傅里叶角放大 250 倍，A3p 与 A3a 的差会混入量纲错误，控制臂无效"
+        },
+        {
+          "option": "回滚 train.py/metrics.py docstring 以保住 07e7379d/87e8245b",
+          "reason": "会把已被证伪的“9 倍权重”表述留在冻结代码里，违反 B5"
+        }
+      ],
+      "scientific_risks": [
+        "22:14 的两处 docstring 改动没有保留改前逐字节副本，无法对 07e7379d→ef14ee21 做字节级证明，只能靠改动记录与 git diff 语义说明",
+        "B2 的 registry launch/close 端到端路径尚未在真实 run 中跑过，只做了 exclusive_write 单测",
+        "A3p 只在 CPU 上做了等价性验证，尚未与 A3a 在真实数据上同 seed 对照（属 Gate A 前的 1-seed 对照，需主控放行冒烟后做）"
+      ],
+      "falsification_criteria": [],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T14:42:58.338Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "接受 v2 基线（train.py=ef14ee21…、metrics.py=a799d43f…），放行 1 个 SMOKE 验 registry launch/close 产物链；Gate A 第一波等测试负责人按新 md5 复审通过后再发。C6 不开口子，改为把输出重定向到 experiments/hc/tmp/。",
+      "rationale": "tmh 报的三处 P0 与 B/C 守卫已落地，且 A3p 的量纲 bug 属于新发现而非审计遗留：hc 数据层传周期数，frozen DSPT.encode 内部乘 250，直接喂会让傅里叶角放大 250 倍，控制臂形式对尺度错——这类错误不修，Gate A 第一条判据必被污染。修复后同权重同输入与 frozen encode 逐元素相等（max|diff|=0），verify_loop 两轮 loss 序列逐位相同、46 个参数张量 max|diff|=0，证据强度足够放行。基线哈希变更只涉 B5 文本更正，git diff 已确认 R2 逻辑零改动，因此重定基线而不回滚。",
+      "evidence": [
+        "docs/paper_b_hc/TASK_BOOK.md §1 基准 md5 表已更新为 v2（train.py ef14ee21cf8dccf3b9de2f089e885cfc、metrics.py a799d43f1c35649f22882f95e26790d1）",
+        "燕子独立在 a40 采样三次（22:39 起稳定）：train.py=ef14ee21…85cfc、metrics.py=a799d43f…0d1，与 tmh 本地值一致；dspt.py/data.py/protocol.json 3/5 未变",
+        "tmh verify_loop PASS：frozen 与 hc 两轮 loss [9388.477344, 9189.038672] 逐位相同，46 个参数张量 max|param diff|=0",
+        "A3p 量纲修复后同权重同输入与 frozen DSPT.encode 逐元素相等 max|diff|=0（cycle [125,100,250,1] vs [0.5,0.4,1.0,0.004]）",
+        "四子集 split hash 与 R6 基准全等；FD001 n_tr=16762 n_va=100；九变体全部可构建、前向有限",
+        "B2 守卫单测：同 run_id 第二次 O_EXCL 创建被拒",
+        "git status 确认 dspt.py 与 protocol.json 未被修改，白名单边界守住"
+      ],
+      "rejected_options": [
+        {
+          "option": "回滚 B5 docstring 以保住旧 md5",
+          "reason": "会把已被证伪的『权重 9 倍』说法留在冻结代码里，哈希好看但证据体系带错"
+        },
+        {
+          "option": "跳过 SMOKE 直接发 Gate A 第一波",
+          "reason": "registry launch/close 链路从未端到端走过，第一波 run 的产物链风险不可控"
+        },
+        {
+          "option": "为 C6 probe_selection_metric.py 开 paper_b/results/ 白名单",
+          "reason": "没必要扩权，把输出重定向到 experiments/hc/tmp/ 即可满足同一目的"
+        }
+      ],
+      "scientific_risks": [
+        "SMOKE 只验链路不验科学结论，其 manifest 不得进入任何比较表",
+        "A3p 等价性只在 cycle 张量上验证过，若后续改用非整数 cycle 或不同归一化，需重验",
+        "v2 基线之后若再动 paper_b/training/*，本次重定立即失效，必须重新走基准流程",
+        "test 负责人复审若发现新 P0，SMOKE 与 Gate A 第一波都需作废重跑"
+      ],
+      "falsification_criteria": [
+        "SMOKE 跑完后 registry/launch 与 close 未成对落盘，或 run 目录缺 manifest，则链路不合格，Gate A 不得发",
+        "a40 上五个冻结文件任一 md5 与 v2 表不符，则第一批 run 一律作废",
+        "测试负责人复审发现 A1/A2/B2/B3/B4 任一仍有 P0，则 SMOKE 结果作废"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T15:08:50.522Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "按 HEAD f314268 / v3 基线放行 A1/A2/B2/B3/B4；A3p 契约内等价（max|diff|=0）成立，附 3 条 P2 与 1 条流程锁定",
+      "rationale": "在 a40 上以同一 state_dict 实跑 A3p 与 frozen DSPT.encode，契约输入（cycle_source=clipped，c≤250）max|diff|=0.000e+00；注入点确为 dspt.py:239-244 的 pre-norm。A1 选轮口径、B2 launch/close/manifest、B3 cfg 单源、B4 verify_loop 均在 HEAD 版本核实通过。1500Z smoke 的 14 个 code_md5 与 HEAD 一致、产物齐全。未提交的工作树改动不在基线且未上 a40，不能用于 Gate A。",
+      "evidence": [
+        "docs/paper_b_hc/CODE_REVIEW_20261111_test_lead.md#7.1-7.5",
+        "git HEAD f314268; a40 /media/sangfor/vdb/user/zxk/deepseek-rul md5 逐文件一致",
+        "a40 实跑: contract c<=250 max|diff|=0.000e+00; out-of-contract 435 max|diff|=1.81",
+        "experiments/hc/HC-SMOKE-FD001-s101-20261111T1500Z/manifest.json (code_md5=HEAD, 8 artifacts)",
+        "paper_b/hc/train_hc.py:160-163,203,215; run_hc.py:189-193; model_hc.py:61-63,102-103; dspt.py:239-244"
+      ],
+      "rejected_options": [],
+      "scientific_risks": [
+        "A3a 与 A3p 同 seed 下骨干初始化流不同，单 seed 的 A3a−A3p 差含初始化噪声",
+        "DSPT_HC_Frozen 未在类内强制 250 上界，依赖调用方 cycle_source=clipped",
+        "工作树有 3 个未提交 hc 文件，若被同步到 a40 会使 v3 基线失效"
+      ],
+      "falsification_criteria": [
+        "若在 A3p 的 config 上出现 cycle_source != clipped，则契约内等价性不再覆盖该 run",
+        "若 verify_loop 在 HEAD 上 FAIL，则 B4 重新打开",
+        "若 Gate A 的 manifest code_md5 与 HEAD blob 不一致，则该 run 不得进入对比表"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T15:17:40.996Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "v4 一次性收口后硬冻结：并入工作树 3 个改动 + 250 上界 clamp + verify_loop A3p 断言 + A3a/A3p 共享骨干权重；提交即定稿，之后 管理员重算 git blob 基线 → 燕子同步 a40 并独立复算 → 干净树 smoke → 发 Gate A",
+      "rationale": "v3 本身已通过独立复审与干净 smoke，但工作树里还有 3 个未提交改动和牢莫两条 P2，若直接发 v3 会立刻被下一轮改动打成移动靶；而 v2 已经证明\"边改边冻结\"必然失效。因此把 v4 作为唯一一次收口窗口，把鲁棒性守卫、等价断言与共享初始化一起并入，之后硬冻结。A3a/A3p 的初始化流差异不是脚注问题：它直接决定 A3a−A3p 能不能被解释为注入点差异，而 Gate A 第一条判据依赖这一点，所以要求共享骨干权重而不是加注释。",
+      "evidence": [
+        "牢莫第七轮复审：v3=HEAD f314268，a40 与 HEAD 的 14 个 blob 逐文件 md5 一致（ssh 直核）；1500Z smoke 的 launch/manifest code_md5 14/14 等于 HEAD，产物 8 项，62.593<63.647",
+        "牢莫实跑 A3p 等价性：同 state_dict 下 frozen vs DSPT_HC_Frozen，clipped 输入 max|diff|=0.000e+00，435 周期经 cycle_vector 映射成 250 也是 0；注入点在 dspt.py:239-244 pre-norm",
+        "牢莫两条 P2：DSPT_HC_Frozen 只 clamp 下界，直传 raw 435 会静默偏 1.812；A3a 与 A3p 同 seed 的骨干初始化流不同（pe_proj 在 DSPT.__init__ 中消耗 RNG）",
+        "管理员实测：v2 三个哈希已不在磁盘（config_hc 64bf6d55→bffe552f、train_hc 64b90518→3fb05844、run_hc 959a490f→d2f08425/d1c4d87e）；train.py/metrics.py 随 f314268 变为 13ec2fbb/39202682",
+        "管理员：a40 差 1 个文件 hc/run_hc.py（本地 d2f08425 / a40 d1c4d87e），a40 mtime 23:01:04，且 tmh 仍在写"
+      ],
+      "rejected_options": [
+        {
+          "option": "直接按 v3/f314268 发 Gate A",
+          "reason": "v3 干净但工作树已有 3 个未提交改动，一旦 tmh 再同步就成移动靶；且 250 上界缺失会带来静默偏差"
+        },
+        {
+          "option": "只写脚注说明 A3a/A3p 初始化流不同",
+          "reason": "脚注不能把混淆项变成对照；任务书 §5 要求同一基础编码器，共享权重才合规"
+        },
+        {
+          "option": "等 v4 之后再补 clamp 与断言",
+          "reason": "又回到边跑边改，重复今晚的漂移"
+        }
+      ],
+      "scientific_risks": [
+        "v4 若再拖时间，Gate A 72 run 的窗口会压到深夜；但宁可晚开也不能带移动靶开",
+        "共享骨干权重会让 A3a/A3p 不再是各自独立训练的结果，解释范围要相应收窄",
+        "管理员与燕子都要等 tmh 定稿，链条上任一环报错就整链重来"
+      ],
+      "falsification_criteria": [
+        "v4 提交后工作树仍不干净，或有任何文件在 Gate A 期间变动，则本波 run 全部作废",
+        "A3a 与 A3p 共享骨干权重后同 seed 的差异仍与注入点无关（例如换个骨干权重集差异符号翻转），则 Gate A 第一条判据需重写",
+        "v4 的干净树 smoke 若 code_md5 与 HEAD 不全等，则不得发 Gate A"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T15:48:51.148Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "共享初始化验收拆三步：共享张量逐位 0 差 + 循环项同值 + 置零 cycle 投影后 A3a==A3p ≤1e-6；真实 init 下 A3a≠A3p 是 treatment",
+      "rationale": "A3p 在 encode 内做 norm(pooled+term)，A3a 在 encode 外做 norm(pooled)+term；同一权重同一 term 下二者代数上不相等（LayerNorm 非线性），实测差 0.136。按字面验收会永远失败，或迫使 A3p 改成 post-norm 从而毁掉控制臂。共享初始化应验的是\"骨干同权重 + 循环项同值\"，不是整模型同输出。",
+      "evidence": [
+        "a40 同结构 LayerNorm 实测：max|norm(x+b)-(norm(x)+b)|=0.136，相对 3.7%",
+        "paper_b/hc/model_hc.py:34-41 (A3a post-norm) vs :61-73 (A3p pre-norm)",
+        "paper_b/models/dspt.py:239-244 (pooled+pe_proj 后 self.norm)"
+      ],
+      "rejected_options": [
+        {
+          "option": "照字面断言 A3a(x)==A3p(x) ≤1e-6",
+          "reason": "数学上不可满足；会卡死 v7 或诱导错误修改控制臂"
+        },
+        {
+          "option": "把 A3p 改成 post-norm 以求相等",
+          "reason": "A3p 的存在意义就是 frozen pre-norm 注入点，改了就不是控制臂"
+        }
+      ],
+      "scientific_risks": [
+        "tmh 若已按字面实现，会得到一个必然失败的断言",
+        "置零投影的写法若忘记恢复 weight/bias，会污染后续断言"
+      ],
+      "falsification_criteria": [
+        "若共享 init 下 A3a 与 A3p 的输出相等（≤1e-6），说明其中一臂的注入点不是设计中的位置",
+        "若置零 cycle 投影后两臂输出仍不等，说明共享骨干没有真正共享"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:12:27.927Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "以 v9 为唯一基线（v8 及更早全部 superseded）；A3p 为 Gate A 主臂、A3a 为敏感性臂；Δ=+0.4216 在噪声底线出来前只作观测；runs.csv 由管理员独占写入并按 a40 实体补齐",
+      "rationale": "v9 是第一条经过三方独立复算且端到端跑通的基线，此时冻结成本最低、证据链最完整。但 Δ=+0.4216 产生于单 seed/单子集/select-on-val，而本仓库已实测 cudnn.benchmark=True 下同 seed 不保证逐位复现，因此该差值在噪声底线出来前不能进入任何表述。台账并发写已实际造成 runs.csv 落后于 registry 实体（18 目录 vs 32 行），若不先定单一写入人，Gate A 一开跑 manifest 与台账必然分叉，届时所有 run 的登记可信度归零。",
+      "evidence": [
+        "tmh v9 定稿：代码 d1e0527、锁 6c405ad，15 个 blob 经 git cat-file 复核；code_lock --check = CODE LOCK OK；HEAD a8f0f20 只加 CYCLE_DEPENDENCE_STUDY.md 不动受锁文件",
+        "燕子三边复算 0/15 不符（锁 vs d1e0527 / vs 6c405ad / vs a40 实测），a40 的 code_lock.json md5=c04c9586 与 HEAD 一致",
+        "管理员独立复核 v9 并登记，v8 判 superseded：pop pe_periods 在共享初始化路径上必炸",
+        "tmh 共享初始化实跑：A3p val_engine_mean=10.8951 / A3a=11.3167，Δ=+0.4216（3.87%）；两 run init_sha256 同为 336074a6…，missing/unexpected=0，verify_loop 三步全 0.000e+00",
+        "管理员实测台账缺口：a40 run 目录 18、launch 17、close 14，而 runs.csv 只有 32 行；10 个 run 有 launch/close 却未登记；4 个 launch 无 close",
+        "管理员两次读取 runs.csv 得到的行集合不同 → 并发写冲突已实际发生"
+      ],
+      "rejected_options": [
+        {
+          "option": "回退 v8 以避开 v9 的额外改动",
+          "reason": "v8 的 pop pe_periods 在共享初始化路径上必炸，回退等于让 A3a/A3p 对照无法载入"
+        },
+        {
+          "option": "先发 Gate A，噪声底线边跑边补",
+          "reason": "Gate A 的 Fourier 臂选择依赖该差值；若差值在噪声内却已按双臂跑完，浪费 24+ run 且结论要重写"
+        },
+        {
+          "option": "让 tmh 与管理员共写 runs.csv",
+          "reason": "并发写已两次改坏行集合，共写等于继续制造分叉"
+        },
+        {
+          "option": "接受管理员把审计文档放 .dsh/bot/workspace/",
+          "reason": "不在仓库内，a40 与后续会话都读不到，等于证据只在单机单 bot 可见"
+        }
+      ],
+      "scientific_risks": [
+        "噪声底线若与 Gate A 抢同一张 A40，两批 run 的耗时都会拉长",
+        "A3a 作为敏感性臂若与 A3p 差异落在噪声内，Gate A 实际只有一条 Fourier 臂，Fourier 结论的稳健性下降",
+        "管理员补齐台账时若采信 runs.csv 旧行而非 a40 实体，会把错误登记固化"
+      ],
+      "falsification_criteria": [
+        "若同 seed 重复的 Δ 分布跨 0（即 |0.4216| 在噪声带内），则 A3a/A3p 视为等价，Gate A 只用 A3p 单臂，不得再提注入点优势",
+        "若 runs.csv 补齐后仍有 run 目录与登记行对不上，则台账不合格，Gate A 不得启动",
+        "若 A3a-1640Z / A3a-0030Z 确认为异常退出且无 close，则相应 run 一律 superseded，不计入任何比较"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:19:20.587Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "A3a-1640Z 判 duplicate（保留 0030Z）；台账按 (baseline_version, variant, subset, seed, init_sha256) 唯一；确定性成立但不等于噪声底线，Δ=+0.4216 仍按单 seed 观测处理",
+      "rationale": "同 seed 两次运行逐字节相同，说明该实现下运行期随机性不产生可观测抖动，因此 Δ=+0.4216 不能归因于跑动噪声。但这只是确定性证据，不是可推广性证据：本仓库每格仅 1 seed，seed/初始化带来的变异尚未测量，故 Δ 仍只能作为选臂依据。与此同时，同一 cell 被两个执行者并发跑出两份完全相同的 run，暴露的是启动侧缺少格级互斥，而非数据错误；在 v9 冻结期用台账唯一键收敛比改代码更安全。",
+      "evidence": [
+        "tmh：A3a-1640Z 与 A3a-0030Z 均 status=ok、37 epoch、val_engine_mean_rmse=11.316705661 逐位相同，NASA/MAE/bias 全同",
+        "两 run 的 ckpt/best.pt sha256 同为 07afec2a…、preds.csv 同为 65f7f107…，逐字节相同",
+        "两份 init 文件 sha 不同但 state_dict 逐张量哈希同为 af23279d…、60 个张量——差异只来自 payload 的 created_utc",
+        "两 run 的 train_hc 均为 069f8977（v9），同代码同权重同 seed",
+        "a40 上已无 paper_b.hc 进程，两条均正常结束"
+      ],
+      "rejected_options": [
+        {
+          "option": "把逐位相同直接当作噪声底线，宣布 Δ 显著",
+          "reason": "同 seed 重复只测实现确定性，测不到 seed 级变异；单 seed 下的显著性主张不成立"
+        },
+        {
+          "option": "让 A3a 也补 3 seed 以强化注入点结论",
+          "reason": "A3a 只承担选臂依据，不是论文主张，补 3 seed 是纯算力浪费"
+        },
+        {
+          "option": "现在改 run_hc 加 cell 级锁",
+          "reason": "v9 已冻结且 15 blob 三方对齐，为一条非数据错误改代码会再触发一次全链重验"
+        }
+      ],
+      "scientific_risks": [
+        "确定性结论只在当前硬件/驱动/cudnn 配置下成立，换卡或换 torch 版本需重测",
+        "若把『逐位相同』误读为『结论稳健』，会在论文里把单 seed 结果写成已验证",
+        "台账唯一键若与 manifest 字段口径不一致，去重会漏掉真实重复"
+      ],
+      "falsification_criteria": [
+        "若牢莫 2×2 中任一配对出现非零差异，则确定性结论不成立，同 seed 重复即构成噪声来源，需重估 Δ",
+        "若后续发现 1640Z 与 0030Z 的 init payload 差异会改变训练行为（例如 created_utc 参与随机数派生），则 duplicate 判定需撤回",
+        "若 Gate A 的 3 seed 结果中 A3p 与 A3a 的排序与单 seed 相反，则 A3p 主臂选择需重议"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:26:08.250Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "批准 Gate A 第一波 24 格与 3 路并行；共享骨干初始化、A0 作参考线、A2/A4 共用 Linear(1,64) 抽样；发车前置 A3p 复现自检与写死判据",
+      "rationale": "共享骨干初始化把 wave-1 变成单因子对照（只换循环编码），这正是任务书『只改 Cycle 路径』的要求；A0 无骨干只能作参考线，混进 treatment 比较会破坏可比性。A3p 复现 0030Z 是免费的端到端自检：同一 init、同一代码、同一 seed，若不复现则说明链路上有别的东西在动，此时 24 格的数字全部不可信。并行 3 路的收益在 8 波量级上明显，但争抢一旦把单 run 拖过 15 min，墙钟反超 2 路，故设刹车。",
+      "evidence": [
+        "tmh 已落盘 docs/paper_b_hc/GATE_A_WAVE1_PLAN.md（commit d69d79a）：6 变体 × 4 子集 × seed 101 = 24 run，run_id 确定性可预登记",
+        "初始化方案：以 init_v9_A3p_s101.pt（sha256 336074a6…，纯导出未训练）为骨干基准，各变体骨干键从 A3p 复制，变体特有循环模块保留自身初始化；A0 无骨干走自身 seed 并标注参考线",
+        "并行实测：单 run ~6.9 GB、双 run 14.4 GB；3 路 42 GB < 49 GB，余 7 GB；单 run 6–9 min（A3a-1640Z 实测 16:11:26Z→16:19:45Z 约 8 min）",
+        "失败路径：异常也写 close.json(status=failed)，launch/close 成对不删；重跑换新 id（-W1r2）；唯一键 (baseline_version, variant, subset, seed, init_sha256)；单格连续 2 次失败即停",
+        "预检项：code_lock --check 绿、git status 空、GPU 空闲、init sha256 落盘"
+      ],
+      "rejected_options": [
+        {
+          "option": "各变体各自独立 seed 初始化",
+          "reason": "会把初始化方差混进循环编码的比较，违反单因子设计"
+        },
+        {
+          "option": "A0 也纳入 treatment 对比",
+          "reason": "A0 是 CycleOnly 无骨干，结构不同，只能作参考线"
+        },
+        {
+          "option": "直接 4 路并行压缩墙钟",
+          "reason": "4×7.2GB≈29GB 虽可容纳，但争抢下每 run 时间上升，8 波未必更快，且失败时更难定位"
+        },
+        {
+          "option": "不设 A3p 复现检查直接发车",
+          "reason": "失去唯一一次免费的全链一致性验证，错了要等 24 格跑完才发现"
+        }
+      ],
+      "scientific_risks": [
+        "共享骨干初始化使 wave-1 结果条件于单一 init 抽样，wave-2 补 3 seed 时需各自独立抽样并说明口径",
+        "A2/A4 共用 Linear(1,64) 初始化只是减少一个混淆项，不改变两者输入变换的差异",
+        "3 路并行下若 GPU 争抢导致 epoch 时间波动，早停 patience 的触发点可能随之变化"
+      ],
+      "falsification_criteria": [
+        "A3p-FD001-s101-W1 与 0030Z 的 val_engine_mean_rmse 不一致，则 init 生成器或调度链存在偏差，整波作废",
+        "3 路并行下单 run 墙钟 > 15 min，则并行度降到 2 路",
+        "Gate A 第一波结果若显示 A2（简单年龄）已解释 Cycle 增益，则不得把 Fourier 作为创新点，按 §9 判据处理"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:27:54.118Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "去重键改为 (baseline_version, variant, subset, seed) 且只对 status=ok 生效；init_state_dict_sha256 仅作 provenance 进 v10 backlog；0105Z 排除出一切表",
+      "rationale": "init 文件 sha 含 created_utc 等元数据，同一权重集合会产生不同文件哈希，因此把 init_sha256 放进唯一键既漏判又不稳定。协议本身规定每格每 seed 只有一次 init 抽样，所以去掉 init 维度后键更严也更稳：第二个 ok run 必然是多执行者并发或重复提交。这与『换 init = 换基线/换版本』的规则一致，且无需改动已冻结的 v9。",
+      "evidence": [
+        "管理员实测：A3a-0030Z 的 manifest.init_sha256=336074a6…，A3a-1640Z=2138ac51…，但两者 state_dict 哈希同为 af23279d…、60 个张量——差异只来自 payload 的 created_utc",
+        "因此按 (baseline_version, variant, subset, seed, init_sha256) 去重抓不到 1640Z，本次 duplicate 是靠人工裁决而非键判定",
+        "管理员：runs.csv 已补到 48 行 / 36 列，原 40 行零改动，9 行 v5–v8 标 retired_version=true；v9 且未 retired 的可用行只有 A3p-0030Z(10.8951) 与 A3a-0030Z(11.3167)",
+        "牢莫：R1 两对到 ep015，另有一条非其发起的 A3p repeat（0105Z）在抢卡，其 ep005/ep010 loss 与 R1 A3p 逐位相同"
+      ],
+      "rejected_options": [
+        {
+          "option": "按管理员建议把键换成 init_state_dict_sha256",
+          "reason": "需要 manifest 新增字段并改代码，v9 已冻结；而去掉 init 维度即可达到同样效果"
+        },
+        {
+          "option": "保留 init_sha256 并靠人工比 ckpt/preds 兜底",
+          "reason": "Gate A 24 格并发下人工比对不可靠，且无法自动阻断重复"
+        },
+        {
+          "option": "把 0105Z 并入 R1 作为确定性证据",
+          "reason": "它不在清单内、来源不明，纳入会让台账出现无法追溯的行"
+        }
+      ],
+      "scientific_risks": [
+        "若将来确需在同一格同 seed 下比较不同 init 抽样，该键会误判为 duplicate，需要在版本号层面区分",
+        "并发发车仍未被代码层阻断，只能靠清单纪律与台账唯一键兜底",
+        "牢莫 2×2 与 Gate A 第一波若在时间上重叠，GPU 争抢会同时拖慢两批"
+      ],
+      "falsification_criteria": [
+        "若同一 (baseline_version, variant, subset, seed) 下出现两个 ok run 但实际是不同 init 抽样的合法对照，则该键会误杀，需重新引入 init 维度",
+        "若 0105Z 事后被证明是 24 格清单内的合法 run，则其排除决定需撤回",
+        "若 A3p-FD001-s101-W1 未复现 10.8951，则整波停发"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:34:52.221Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "接受 G1–G5 预注册判据与 R0 逐位自检；同 seed 重复全部标 determinism_only（gate=R）不进任何 Gate 表；0105Z 标 duplicate",
+      "rationale": "预注册判据在发车前写死，才能避免事后挑阈值；G1/G2 用 1.0% 的均值门槛加子集符号一致性，是为了防止单一子集的偶然胜出被当成机制证据。R0 保持逐位相等而不放宽，是因为已有三条同 seed 在并发条件下仍逐位相同的实证，此时任何不等都指向链路异常而非数值噪声。同 seed 重复只能证明确定性，不能证明可推广性，若混入 Gate 表会被当成独立证据，故必须在台账层强制隔离。",
+      "evidence": [
+        "tmh 已落盘预注册判据（commit 7d8fa3e）：G1 A2 vs A1 均值 ≥1.0% 且无子集 <−2.0%；G2 A3p vs A2 ≥1.0% 且 3/4 子集同号；G3 A0 相对 A1 ≤−10%；G4 干预 mean_abs_delta≥0.5、frac_negative≥0.5、A1 必须为 0；G5 四子集符号 ≥3/4 一致；R0 要求 A3p-FD001-s101-W1 复现 10.89507407980715",
+        "共享骨干 init 已生成并落 manifest：A3p af23279d…、A1 4c9d9e92…、A2/A4 844e9a79…（逐位相同，只差 log1p）、A5 2863c11b…、A0 无骨干作参考线",
+        "调度脚本：R0 不等即 exit 3 停波；3 槽并行，单 run 超 900 s 降 2 槽；失败格换 -W1r2 新 id；共 23 格 + R0",
+        "确定性证据：A3a 0030Z 与 1640Z 并发下仍逐位相同；A3p 0030Z 与 0105Z 的 ep005/ep010 loss 逐位相同",
+        "管理员发现同一条比较被标了两个 gate：R1-0035Z 标 A、0105Z 标 C；0105Z 为同格第三次同 seed 复跑，已退出"
+      ],
+      "rejected_options": [
+        {
+          "option": "把 R0 放宽到 1e-6 容差",
+          "reason": "已有并发下逐位相同的实证，放宽会掩盖真实的链路问题"
+        },
+        {
+          "option": "让 0105Z 以 gate C 单独登记",
+          "reason": "它是同格第三次同 seed 复跑，买不到新信息，且会造成同一比较跨两张表"
+        },
+        {
+          "option": "保留 R1 的 gate A 标记不动",
+          "reason": "manifest 的 gate 是启动参数，不代表证据归属；不覆盖会让 Gate A 表混入重复 run"
+        }
+      ],
+      "scientific_risks": [
+        "G1–G5 的 1.0% 阈值是单 init 抽样下的经验门槛，wave-2 补 3 seed 后可能需要重述",
+        "共享骨干 init 使 wave-1 的结论条件于一次初始化抽样，不能外推为架构级结论",
+        "3 路并行若使早停触发点变化，同格数字会与单跑条件下不可比"
+      ],
+      "falsification_criteria": [
+        "R0 未逐位复现 10.89507407980715 则整波停发，且不得放宽阈值",
+        "若 R1/0105Z 的重复被计入任何 Gate 表，则该表作废重算",
+        "若 3 路并行下单 run 墙钟超 900 s 未自动降槽，则调度脚本不合格，停波修脚本"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:45:38.566Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "接受 G2 拆分为 G2a/G2b 并把第一波扩到 28 格；编码形式以 A3a 为主臂、A3p 为 frozen 等价臂；调度器改为按格键幂等跳过",
+      "rationale": "A3p 与其余变体的注入点不同（pre-norm vs post-norm），若直接拿 A3p 与 A2 比，把编码形式与注入点两个因子混在一起，任何差异都无法归因。补一条 A3a（Fourier + post-norm）后，A3a vs A2 变成单因子对照，A3p vs A3a 单独度量注入点，整个表才自洽。同时外部并发启动暴露的是调度器不幂等，而不是数据问题：R0 那条外部 run 数值合格，说明正确的修法是按格键跳过已完成格，而不是禁止并发。",
+      "evidence": [
+        "tmh 实测：R0 由外部启动并完成，HC-C-A3p-FD001-s101-W1 close=ok，val_engine_mean_rmse=10.895096839289387，init_sha256=336074a6…，baseline=v9，与 0030Z 逐位相同",
+        "tmh 调度器报 R0 RUN FAILED 的原因是 O_EXCL 撞车（同一 run_id 已被外部 run 占住），不是数值失败",
+        "A3p 走 DSPT_HC_Frozen（pre-norm），A1/A2/A4/A5 走 DSPT_HC（post-norm）→ A3p vs A2 同时混合编码形式与注入点两个因子",
+        "牢莫确定性结论：R1 两对与 0030Z 逐位相同（A3a 11.316705661052403、A3p 10.895096839289387，ckpt/preds sha 亦同）；加上 1640Z、0105Z 共四条独立重复",
+        "牢莫 R2 两对在 ep025/ep030 被终止，未写 close，两条 unclosed，仅作 determinism_only"
+      ],
+      "rejected_options": [
+        {
+          "option": "维持 24 格、继续用 A3p 作编码形式主臂",
+          "reason": "A3p 与 A2 的注入点不同，差异无法归因到编码形式"
+        },
+        {
+          "option": "禁止并发启动、发现外部 run 即作废重跑",
+          "reason": "外部 R0 数值已合格，作废是浪费；真正的问题是调度器不幂等"
+        },
+        {
+          "option": "把 A3a-FD001 重跑一遍以统一条件",
+          "reason": "确定性已由四条独立重复证明，重跑买不到新信息"
+        }
+      ],
+      "scientific_risks": [
+        "A3a 作为编码形式主臂意味着 Fourier 的结论依赖于 post-norm 注入点，A3p 的结果不能直接替代",
+        "跳过已完成的 A3a-FD001 意味着该格在单跑条件下产生，与其余格的 3 路并发条件不同，虽有确定性证据仍应记录",
+        "28 格比 24 格多约 1 GPU-h，若后续需扩到 3 seed 成本按比例上升"
+      ],
+      "falsification_criteria": [
+        "若 A3a 与 A2 的差异在 G2a 阈值下不成立，则 Fourier 相对简单年龄无增益，不得作为创新点",
+        "若 A3p 与 A3a 的 Δ 在 seed 级波动内，则注入点不构成可报效应，G2b 只作技术说明",
+        "若幂等跳过误跳了未完成的格（例如 status≠ok 却被跳过），则该格结果缺失，需补跑"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:51:32.340Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "让 wave1 的 24 格跑完，落盘后补 A3a×3 凑齐 28 格；baselines 线不预先让路，但设 44 GB / 第 4 worker 两条红线触发 SIGSTOP",
+      "rationale": "正在跑的 24 格全部是需要的：A0/A1/A2/A4/A5 构成 post-norm 下的编码形式对照，A3p 是 G2b 的 frozen 臂，缺的只有 A3a。停波会作废已完成的 A0×4 与在跑的 A1，且要清理 unclosed，代价大于补三格。并发方面已有四条独立重复证明同 seed 逐位相同，故同期跑 baselines 不改变数值结论；但显存是硬约束，一旦逼近上限就可能 OOM 把格跑废，所以设红线而不是预先叫停。",
+      "evidence": [
+        "燕子实测：Gate A wave1 已由外部 nohup 启动（PID 1759740，00:55:39，parent=1），脚本 VARIANTS=A0 A1 A2 A3p A4 A5，24 格；A0×4 已 ok（30.0986/26.2874/39.9834/37.1218），A1 FD001+FD002 在跑，A3p-FD001=10.8951 与 R0 一致",
+        "燕子实测：另一套 /media/sangfor/vdb/user/zxk/paper_b_matched_baselines_20261112/ 的 orchestrator PID 1755517（00:45 起）在跑 3 个模型，约 17.4 GB；GPU 总 30933/49140 MiB、100%",
+        "牢莫核 R0 外部 run：launch written_by=run_hc、baseline_version=v9、code_lock_git_sha=d1e0527、manifest 15/15 code_md5 与锁全等、close ok、10.895096839289387",
+        "管理员：台账 50 行/38 列，check_runs.py rows=50 flags=0，已入库 8436878/8798b87；31 个原 flag 属规则缺陷、3 条属数据修正",
+        "牢莫确定性：A3p 三条（0030Z/R1/R0 格）与 A3a 两条（0030Z/R1）均逐位相同"
+      ],
+      "rejected_options": [
+        {
+          "option": "立即停波改脚本为 28 格再重发",
+          "reason": "已完成的 A0×4 与在跑的 A1 全部作废，还要处理 unclosed，损失大于收益"
+        },
+        {
+          "option": "预先 SIGSTOP baselines orchestrator",
+          "reason": "该线不是 Gate A 但也在正常推进，显存尚有 18 GB 余量，没必要先停"
+        },
+        {
+          "option": "A3a 四格全部重跑以统一条件",
+          "reason": "FD001 已有 0030Z 与 R1 两条逐位相同的 ok run，重跑买不到新信息"
+        }
+      ],
+      "scientific_risks": [
+        "wave1 各格在 baselines 并发条件下运行，若 cudnn 算法选择随显存压力变化，格间存在系统性漂移风险，需靠离群检测兜底",
+        "A3a 只有 FD001 是单跑条件、其余三格在并发条件下跑，条件不完全一致",
+        "补 A3a×3 会与 wave1 尾部或 baselines 抢显存，可能触发红线"
+      ],
+      "falsification_criteria": [
+        "若某格数值与同条件重复 run 不一致，则该格作废并单独重跑",
+        "若显存超 44 GB 导致任一格 OOM 或中断，则 baselines orchestrator 必须暂停，受影响格重跑",
+        "若 A3a×3 与 A3a-FD001 的差异超出 seed 级波动，则说明注入点/初始化链路仍有问题"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T16:59:04.408Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "批准别名表；主表固定为 A0/A1/A2/A3a/A4/A5（24 格），A3p×4 单列 frozen 参考且准入 false；并发改为显存门 used≤40GB，只保留一个调度器",
+      "rationale": "A3p 与 A2/A4/A5 的注入点不同，若把 A3p 放进主表，等于把注入点差异混入编码形式比较；主表必须是同一 post-norm 注入点下的 A0/A1/A2/A3a/A4/A5。A3p 仍有价值——它是 G2b 的 frozen 臂与冻结等价参照，所以保留运行但准入置 false。并发方面，按槽位调度在 44 GB 红线下只剩约 5 GB 余量，A1/A2 这类带骨干的格同时起三个必然踩线；改成显存门可直接以真实占用为约束，比固定槽位稳健。",
+      "evidence": [
+        "牢莫：A1-FD003 为 OOM，ep001 已完成（loss 18986.6），backward 时仅剩 685 MB，close 写了 failed + 完整 OOM 原文，失败路径正常",
+        "tmh：外部那波把显存顶到 48.4 GB，已停掉两个调度器（子进程跑完），留 watcher PID 1771290 续跑",
+        "燕子：同时有两个调度器（旧 24 格版 + tmp/ 新 28 格版），并发达到 4",
+        "管理员：a40 实际有 10 个 W1 目录（A0×4、A1×4、A2-FD001、A3p-FD001）；§3 清单 24 格中第 13–16 格为 A3a，A3p 单列 frozen 参考",
+        "管理员请求别名：A3a-FD001 → 0030Z 准入 true；A3p-FD001~004 → 各自 -W1 准入 false"
+      ],
+      "rejected_options": [
+        {
+          "option": "维持 3 槽调度、靠重试兜 OOM",
+          "reason": "OOM 重试会重复烧算力，且失败格与成功格的运行条件不同"
+        },
+        {
+          "option": "把 A3p×4 也放进主表",
+          "reason": "注入点不同，会污染编码形式的比较"
+        },
+        {
+          "option": "A3a-FD001 重新跑一遍以统一 run_id 口径",
+          "reason": "0030Z 已与 R1 逐位相同，重跑买不到信息"
+        }
+      ],
+      "scientific_risks": [
+        "A0×4 与部分 A1 格在 48 GB 高压条件下完成，若 cudnn 算法随显存变化，与后续格存在条件差异",
+        "别名表让主表依赖非 -W1 命名的 run，后续汇总需严格按别名而非 run_id 前缀",
+        "显存门会拉长总墙钟，但比 OOM 重试划算"
+      ],
+      "falsification_criteria": [
+        "若显存门生效后仍出现 OOM，则门槛需上调（如 used ≤ 36 GB）",
+        "若 a40 上仍有第二个调度器在起格，则该波格的台账归属不可信，需按 run_id 逐条回溯",
+        "若 A3p 被误置 in_gate_a_table=true，则 Gate A 主表混入 frozen 臂，须重算"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:03:24.142Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "准入改为按格判定（格键 = baseline_version/variant/subset/seed，取首个 ok run）；run_id 仅作句柄；-W1 的 failed/unclosed 标 superseded_by；孤儿进程保留至自然落盘",
+      "rationale": "run_id 是执行句柄，重试、并发、外部启动都会产生新 id，而科学单元是格。若把 run_id 写进入门条件，任何重试都会让格凭空消失，A1 三格会因此永久缺格并使 G1 无法计算。按格准入与已定的去重键一致，且能自然容纳 r2/r3 与别名。孤儿进程不应击杀：run_hc 自写 launch/close，跑完即为合法证据，杀掉反而制造 unclosed。",
+      "evidence": [
+        "管理员：HC-C-A1-FD003-s101-W1 status=failed、epochs_run=0、torch.OutOfMemoryError，报错原文显示 GPU 0 总容量 47.33 GiB、仅剩 685 MiB、同时 8 个进程",
+        "管理员：A1-FD001-W1 / A1-FD002-W1 无 close、进程已消失，属 unclosed；r2 重试三条在跑（PID 1781100/1781106/1781143）",
+        "管理员：§3 清单只写 -W1，若按 run_id 字符串准入，A1×FD001/002/003 三格永久缺格，G1（A2 vs A1）算不出来",
+        "燕子：a40 上调度器数量从 1 变为 0，4 个 run_hc 成为孤儿；脚本 MEM_LIMIT=40000 已在第 14 行",
+        "燕子：当前显存 36403/49140 MiB；baselines 仍 3 worker（orchestrator 1755517），红线未触发"
+      ],
+      "rejected_options": [
+        {
+          "option": "方案 B：严格按 run_id 字符串准入",
+          "reason": "A1 三格永久缺格，G1 的分母消失，整波结论不成立"
+        },
+        {
+          "option": "杀掉孤儿进程重跑",
+          "reason": "run_hc 会自己写 close，杀掉只会多出 unclosed 并浪费已算的 epoch"
+        },
+        {
+          "option": "孤儿跑的同时再起调度器补格",
+          "reason": "显存已到 36 GB，再叠加必然重演 OOM"
+        }
+      ],
+      "scientific_risks": [
+        "按格取首个 ok run 时，若首个 ok 与后续 r2 数值不同（并发条件差异），需额外规则决定采用哪一个",
+        "A0×4 在 48 GB 高压条件下完成，与其他格条件不一致",
+        "孤儿进程无调度器监管，若异常退出仍可能留下 unclosed"
+      ],
+      "falsification_criteria": [
+        "若按格准入后同一格出现两个 status=ok 且数值不同，则该格证据无效，需查明",
+        "若孤儿 run 落盘后 close 缺失或状态非 ok，则该格需重跑",
+        "若重启调度器后仍出现 >40 GB 起格，则显存门实现有 bug，停波修脚本"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:07:13.249Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "杀掉 A1-FD001/A1-FD002 的 r3 释放约 12 GB；baselines 暂不动；修复重试趟绕过显存门与 cell_done() 未计活进程两个 bug",
+      "rationale": "同格同 seed 同 init 的两份 run 在确定性已由四条独立重复证明的前提下互为冗余，杀掉进度较晚的 r3 可立刻释放约 12 GB 且不损失信息。保留 r2 是因为它已跑 9 分钟、更接近落盘。根因不在显存本身，而在重试趟没有把「有活进程的格」视为已占用：cell_done() 只查 launch/close 文件，看不到正在跑的 r2，于是起了 r3。若不修这一条，任何重试都会再次自我叠加。",
+      "evidence": [
+        "燕子：GPU 47829/49140 MiB，仅剩 1311 MiB，已越 44 GB 红线",
+        "燕子：六个 run_hc 里四个是重复——A1-FD001 有 r2(1781100, 9:02) 与 r3(1795816, 3:14)；A1-FD002 有 r2(1781106, 9:02) 与 r3(1796173, 3:09)",
+        "燕子：tmh 日志写 mem gate: used=48160MiB > 40000MiB, waiting，但 r3 仍起来了 → 重试趟绕过显存门",
+        "燕子：已 SIGSTOP baselines orchestrator 1755517 与调度器 1795086；baselines 三个 worker 仍占约 10.6 GB",
+        "tmh：a40 上只有 watcher PID 1802471，等 run_hc 归零后启动唯一调度器"
+      ],
+      "rejected_options": [
+        {
+          "option": "先停 baselines 三个 worker 腾 10.6 GB",
+          "reason": "会中断另一条线的进度；先杀冗余 r3 已能释放 12 GB，足够回到门限下"
+        },
+        {
+          "option": "杀掉 r2 保留 r3",
+          "reason": "r2 已跑 9 分钟、更接近完成，杀它浪费更多算力"
+        },
+        {
+          "option": "两趟并行以缩短墙钟",
+          "reason": "正是两趟并行导致同格叠加与 OOM"
+        }
+      ],
+      "scientific_risks": [
+        "被杀 r3 会留下 unclosed 记录，需在台账明确标 aborted 以免污染",
+        "r2 与 r3 若数值不同（并发条件差异），需以落盘的 r2 为准并记录",
+        "baselines 线被 SIGSTOP 后其 worker 仍占显存，红线随时可能再次触发"
+      ],
+      "falsification_criteria": [
+        "杀掉 r3 后显存仍 >40 GB，则需停 baselines worker（另行批准）",
+        "若保留的 r2 未能正常落盘 close，则该格需按格重跑",
+        "若修好的门仍放行 >40 GB 的起格，则调度器不可信，停波人工发车"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:08:23.907Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "格键固定为 (baseline_version, variant, subset, seed) 四项；把 10.5455 vs 11.3167 的反例写入审计文档作为规则依据",
+      "rationale": "格键若不含 baseline_version，历史 run（pre-versioning、已 retired、audit_verdict=fail）会因时间更早而被选中，且不触发任何告警；本例中错误值 10.5455 与正确值 11.3167 相差 0.77 RMSE，足以改变敏感性臂的结论方向。这是静默错误，必须在规则层堵死而不是靠人工复核。",
+      "evidence": [
+        "管理员实测：漏掉 baseline_version 时，A3a-FD001 按最早 ok 选中 HC-C-A3a-FD001-s101-20261111T1505Z（pre-versioning、audit_verdict=fail、已 retired），值 10.5455；正确值 0030Z 为 11.3167，差 0.77 RMSE",
+        "管理员：加上 baseline_version=v9 过滤后才选对",
+        "管理员：当前按格准入 5/24（A0×4 + A3a-FD001 别名 0030Z）；A1/A2/A4/A5 待跑，A3a 还差 FD002/003/004",
+        "管理员：a40 上 6 个 run_hc 活进程，A1-FD001 的 -W1r2 与 -W1r3 同时在跑，A1-FD002 同样"
+      ],
+      "rejected_options": [
+        {
+          "option": "只用 (variant, subset, seed) 三项",
+          "reason": "会选中已 retired 的历史 run，实测差 0.77 RMSE 且不报错"
+        },
+        {
+          "option": "按 run_id 前缀过滤 -W1",
+          "reason": "重试与别名都会破坏前缀规则，A1 三格会永久缺格"
+        }
+      ],
+      "scientific_risks": [
+        "若将来 v10 与 v9 并行存在，同一格会同时有两版证据，需在汇总时显式指定版本",
+        "别名（A3a-FD001→0030Z）不体现在 run_id 上，汇总脚本需读别名表而非猜命名"
+      ],
+      "falsification_criteria": [
+        "若某格在加入 baseline_version 过滤后仍选中非 v9 的 run，则格键实现有误",
+        "若 r3 被杀后 r2 未能正常落盘，则该格需重跑"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:11:24.156Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "保留 1811699 作为唯一发射器，撤掉 watcher 1802471；tmh 不再新增 launcher；OOM 重试必须过显存门",
+      "rationale": "今晚的核心故障不是算力不足，而是发射器过多且各自守卫不一致：四个发射源互相叠加，导致同格双跑、显存被打满、重试绕过显存门。收敛到唯一发射器的收益远大于保留自己那版的掌控感，因此选守卫最严的 1811699，撤掉其余。OOM 重试必须由显存门而非固定升档触发，因为 r3 在同样压力下必然重演失败，只会把 unclosed 记录越堆越多。",
+      "evidence": [
+        "燕子：第三个发射源 /media/sangfor/vdb/user/zxk/run_wave1_sched.sh（PID 1811699，01:17:13 起），头注释自称 scheduler v3，已起 A1-FD004-W1r3（PID 1811733）",
+        "燕子：该版守卫更严——单例检查、cell_lock.py 按格判占用（活进程或未 close 都算占用）、显存门 used+12GiB≤44GiB、清单 A0 A1 A2 A3a A4 A5 A3p",
+        "燕子：tmh 的 watcher 1802471 仍会在 run_hc 归零后再起 tmp/run_wave1.sh，将成为第四个发射器",
+        "燕子：r3 两条已自行退出但无 close；显存 47829→33025 MiB，释放 14.8 GB（r3 退出 + baselines worker 跑完）",
+        "燕子：OOM 累计 4 条且全为 ep=0，其中 A1-FD003-W1r3 是重试后照样 OOM，证明『失败即升 rN』在显存受限下是负循环"
+      ],
+      "rejected_options": [
+        {
+          "option": "保留 tmh 的 watcher、撤 1811699",
+          "reason": "watcher 版的守卫弱于 v3（无 cell_lock、门只查 used 不预留余量），且仍需 tmh 再改一轮"
+        },
+        {
+          "option": "两个都撤、重写一个调度器",
+          "reason": "重写要再花时间，且已有一个经过实测的 v3 可立即接管"
+        },
+        {
+          "option": "两个都留",
+          "reason": "正是多发射器导致了今晚的同格双跑与 OOM"
+        }
+      ],
+      "scientific_risks": [
+        "1811699 非本组产出，其行为需用第一批格的结果验证",
+        "撤 watcher 后若 1811699 意外退出，将无人续跑，需燕子持续看守",
+        "baselines 长时间停在空壳 orchestrator 上，恢复时需确认其内部状态未损坏"
+      ],
+      "falsification_criteria": [
+        "若撤掉 watcher 后 a40 上仍出现第二个发射器，则整波格的来源不可信，需按 run_id 逐条回溯归属",
+        "若 1811699 的显存门放行后仍 OOM，则门槛需下调",
+        "若 1811699 的清单与 28 格计划不一致，则其产物不得进主表"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:16:29.431Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "不修改 v3；重试必须过显存门、档位上限 r2/r3；live_cell 与显存门两条 backlog 关闭",
+      "rationale": "revison 49 的实质约束是重试不得绕过显存门，而不是禁止重试 OOM 格。v3 已在 run_cell 内统一过门，本次 r3 是在 26616 MiB 下起格，属于设计内行为。若把『OOM 不重试』绝对化，会让只需等待显存回落的格永久缺格，反而降低证据完整性。",
+      "evidence": [
+        "tmh 回读 a40：pgrep -af 'hc_dispatch|wave1_resume|run_wave1' 只匹配 1811699，hc_dispatch.sh 已无进程",
+        "tmh 引 logs/wave1_sched.log：SKIP A1 FD001 -> busy HC-C-A1-FD001-s101-W1r2；START HC-C-A1-FD004-s101-W1r3 used=26616MiB",
+        "tmh：v3 的 cell_lock 按格判占用、显存门带 used 快照，两处已生效，无需移植",
+        "tmh：A1-FD004-W1r2 为 OOM 失败，v3 在 01:17:13 起 r3，起格时显存 26616 MiB"
+      ],
+      "rejected_options": [
+        {
+          "option": "按 tmh 建议给 v3 打补丁跳过 OOM 格",
+          "reason": "会误伤那些只因瞬时显存不足而失败的格，且需要再改一次运行中的调度器"
+        },
+        {
+          "option": "允许无限升 rN",
+          "reason": "没有上限会在真正的容量不足格上无限重试"
+        }
+      ],
+      "scientific_risks": [
+        "重试格与首跑格的显存条件不同，若数值有差异需记录条件",
+        "OOM 格反复失败可能掩盖该子集本身的计算需求超出单卡余量"
+      ],
+      "falsification_criteria": [
+        "若重试档位无上限导致同格无限升 rN，则该格作废并需人工介入",
+        "若重试格在显存门以下仍反复 OOM，则说明该格本身超出容量，需单独排查而非继续重试"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:25:44.258Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "删除准入规则中的前缀条件，改为格键四项 + status=ok + 最早 closed_utc；A3a-FD001 由 0030Z 承担",
+      "rationale": "前缀规则是为排除 pre-versioning 的 1505Z 而加的，但那条 run 缺 baseline_version=v9，已被格键的第一项过滤掉；再加前缀只会把合法的 v9 run（0030Z/1640Z）一并排除，制造出一个假缺格。科学单元是格而不是命名，准入应完全由格键 + 状态 + 最早完成时间决定。",
+      "evidence": [
+        "管理员：run_wave1.sh 的 cell_done() 按 (variant, subset, seed) 匹配任何 v9 ok run，会把 A3a-FD001 判为已完成（因 A3a-FD001-…T1640Z 是 v9 ok）",
+        "管理员：前缀规则又不准入 0030Z/1640Z → 该格永久缺失，主表停在 23/24，而它是 G2 主臂第一格",
+        "管理员：A3a-FD001 的 0030Z closed 16:17:15、1640Z closed 16:19:45，两者逐位相同",
+        "管理员：§12.11 曾因 PowerShell 反引号转义写坏，已从 HEAD~2 按字节恢复，现只差 +31 行、0 控制字符",
+        "管理员：按现行规则实测准入 6/24（A0×4 + A1-FD001-W1r2 11.2806 + A1-FD003-W1r2 12.0306）"
+      ],
+      "rejected_options": [
+        {
+          "option": "收窄 cell_done() 到 -W1 前缀，重跑 A3a-FD001",
+          "reason": "0030Z 已是同 init 同 seed 的 v9 ok run，重跑只会得到逐位相同的冗余结果"
+        },
+        {
+          "option": "恢复别名但保留前缀规则",
+          "reason": "规则内部自相矛盾，后续每遇重试或历史 run 都要再开一次例外"
+        }
+      ],
+      "scientific_risks": [
+        "0030Z 是单跑条件下产生，与 wave1 其余格的并发条件不同，虽确定性已证仍应记录",
+        "去掉前缀后若历史 v9 run 与当前 wave 格混用，需在汇总时标注来源 run"
+      ],
+      "falsification_criteria": [
+        "若去掉前缀后选中了非 v9 或 audit_verdict=fail 的 run，则准入规则失效，需回退",
+        "若同一格出现两个 ok 且 closed_utc 相同时刻，则需二级判据（如 run_id 字典序）"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:27:27.673Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "确认五份 init 骨干逐位相同（10 对 max|diff|=0），作为 wave1 单因子对照的公平性证据落盘；准入 7/24 有效，继续发车",
+      "rationale": "共享骨干初始化是 wave1 单因子设计的前提：只有所有变体的 58 个骨干张量逐位相同，A2 与 A3a 的差异才能归因于循环编码形式。实测 10 对全 0、且变化的 5 个键正好落在编码与投影模块上，说明 init 生成器按设计工作。这条必须落盘，否则后续无法证明 wave1 不是各变体各自初始化。",
+      "evidence": [
+        "管理员：五份 init 骨干比对，A1/A2/A3p/A4/A5 两两 10 对、58 张量，max|diff| 全部 0.000e+00",
+        "管理员：varying 仅 5 键——cycle_enc.proj.weight/bias、cycle_enc.knots、pe_proj.weight/bias，正是编码形式与注入点该变的部分；张量数 58/60/60/61/60",
+        "管理员：准入重算 7/24——A0×4（30.0986/26.2874/39.9834/37.1218）、A1-FD001-W1r2 11.2806、A1-FD003-W1r2 12.0306、A3a-FD001 取 0030Z 11.3167",
+        "管理员：前缀条件已从 §12.11 与 RESULTS_REGISTRY.md 删除，两处入库 dadad49"
+      ],
+      "rejected_options": [
+        {
+          "option": "只在对话里确认，不写进审计文档",
+          "reason": "公平性证据只存在于对话中，跨会话不可复核"
+        },
+        {
+          "option": "重新生成 init 再比对",
+          "reason": "现有五份已通过 10 对全 0 验证，重生成无收益"
+        }
+      ],
+      "scientific_risks": [
+        "骨干相同意味着 wave1 结果条件于单一初始化抽样，不能外推为架构级结论",
+        "A0 无骨干，不参与该比对，其参考线地位需在汇总时注明"
+      ],
+      "falsification_criteria": [
+        "若后续某变体的 init 与 A3p 骨干出现非零差异，则该格不满足单因子对照，需重生成 init",
+        "若 varying 键超出 cycle_enc/pe_proj 范围，说明有别的模块被改动，需排查"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T17:33:31.421Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "改判：保留 W1 前缀正则作为准入条件，0030Z/1640Z 退 preliminary，A3a-FD001 由新跑 W1 承担；时间戳一律以 a40 为准",
+      "rationale": "准入规则必须与实际调度器的判据一致，否则会出现『调度器会跑、准入不认』或『准入认了、调度器还要跑』的错位。cell_lock.py 只识别 W1 前缀，因此无前缀规则下这一格必然被重跑，而重跑结果又会因 closed_utc 更晚被 0030Z 压掉，等于白耗一格并引入别名特例。保留前缀正则后，规则、调度器、台账三者一致，代价只是多跑一格。",
+      "evidence": [
+        "tmh：cell_lock.py 只按 HC-C-{v}-{s}-s101-W1 + r2..r6 判 ok/busy，压根不看 0030Z；实跑 cell_lock.py --pick A3a FD001 → free HC-C-A3a-FD001-s101-W1",
+        "tmh：v3 脚本第 43 行 for v in A0 A1 A2 A3a A4 A5 A3p，A3a × FD001–004 全在清单里",
+        "管理员：按前缀正则重算 7/24，A3a 四格全部未准入",
+        "管理员：A1-FD002-W1r2 为早停，best_ep=8、epochs_run=20、gap=12=patience，验证序列第 8 轮后连续 12 轮无更低值",
+        "管理员：本地 01:28:20 ↔ a40 01:37:10，差约 9 分钟"
+      ],
+      "rejected_options": [
+        {
+          "option": "维持 revision 51 的无前缀规则",
+          "reason": "调度器仍会发 A3a-FD001-W1，白跑一格；且准入会选 0030Z，产生别名特例"
+        },
+        {
+          "option": "改 cell_lock.py 让它认 0030Z",
+          "reason": "要改正在运行的调度器依赖，风险高于多跑一格"
+        }
+      ],
+      "scientific_risks": [
+        "A3a-FD001 重跑与 0030Z 虽应逐位相同，但运行条件不同，若数值有差异需以 W1 为准并记录",
+        "时钟差 9 分钟若不统一，跨机比对 closed_utc 会出错序"
+      ],
+      "falsification_criteria": [
+        "若 A3a-FD001-W1 落盘后与 0030Z 不一致，则说明并发或 init 链路有差异，需查明",
+        "若前缀正则误排除合法的 W1 变体（如 r10），则正则需放宽"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T18:28:15.101Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "Gate A 判定改为双口径合取：预注册的 best-epoch 主指标不变，但一个门只有在本轮平台口径（末 10 epoch 均值）下同号且量级相容才算通过；同时把 Gate A (n=1) 定性为方向性筛查而非论文主张。G2 的 1.0% 阈值是否可解、是否必须补 3 seed 后才可写进论文，标 PENDING-L2。",
+      "rationale": "实测选择偏差（平台均值−最优）跨格从 0.27 到 2.34 RMSE，与 G1 要检测的 0.7–1.6 RMSE 同量级，且偏差按变体系统性不同（A0 0.13 vs A1 1.40），因此单口径的点估计不可解释。两口径下 G1 符号与聚合均值稳定（−10.36% vs −10.5%）但子集排序翻转（FD002 由 −13.52% 缩到 −3.5%，FD001 由 −6.10% 涨到 −12.4%），说明聚合稳健、分解不稳健。加合取是收紧而非放宽，不构成事后换指标；A3a 尚未起跑，此刻改分析计划属于预注册。Codex MCP 报 could not start codex: [WinError 2]，L2 通道不可用，故降级为 L1 执行可逆收紧，主张层面留 PENDING-L2。",
+      "evidence": [
+        "平台噪声 std / 选择偏差：A0 0.060/0.13、A3p 0.208/0.73、A1 0.738/1.40、A2 0.849/1.06",
+        "A2-FD002 best=10.2074，末 10 epoch 均值 12.5499、std 1.756",
+        "G1 best-epoch −6.10/−13.52/−11.46（均值 −10.36%）；平台口径 −12.4/−3.5/−15.6（均值 −10.5%）",
+        "G2 阈值 1.0% ≈ 0.106 RMSE，平台噪声 0.85 为其 8 倍",
+        "G3 四子集 −122%~−232%，A0 偏差 0.13 远小于 A1 的 1.40，故 G3 为保守估计",
+        "A2 与 A3a 骨干 10 对 × 57 张量 0 不匹配；循环投影形状 (64,1) vs (64,8)，独立抽样、噪声未测"
+      ],
+      "rejected_options": [
+        {
+          "option": "保持 best-epoch 单口径，平台均值只作描述性附表",
+          "reason": "偏差按变体系统不同，单口径下 FD002 的 −13.52% 无法与选择偏差区分，会被审稿人直接击穿"
+        },
+        {
+          "option": "直接把主指标换成平台均值",
+          "reason": "事后更换预注册主指标属于 p-hacking，且会作废已完成的 12 格判定基准"
+        },
+        {
+          "option": "立即为 G2 修订阈值或补跑 3 seed",
+          "reason": "涉及论文主张取舍与算力范围，超出 L1 可自决边界，标 PENDING-L2"
+        }
+      ],
+      "scientific_risks": [
+        "双口径合取会让部分格从 PASS 降为 PENDING，若 A3a 两口径不同号，G2 将无法判定，波次白跑风险上升",
+        "平台均值本身仍是在同一验证集上取的，只消除 best-of-N 选择偏差、不消除验证集复用偏差",
+        "若审稿人要求置信区间，n=1 的 Gate A 无论如何都给不出，3 seed 可能成为必需而非可选"
+      ],
+      "falsification_criteria": [
+        "若 3 seed 下 best-epoch 与平台口径的 Δ 排序一致，则本决策的担忧被推翻，可回到单口径",
+        "若某格的平台均值与 best 差值系统性集中在 0.1 以内，则该格不存在选择偏差问题",
+        "若 A3a 四格在两种口径下均与 A2 相差 > 5%，则 1% 阈值之争不影响结论"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-11T19:31:20.686Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "波次继续不停：A3a 剩余三子集与 A4/A5 全部照跑；Fourier 创新点是否退出标 PENDING-L2；我预注册的收敛模式预测记为已证伪",
+      "rationale": "A3a-FD001 显著差于 A2（−6.84%，效应为实测投影噪声的 24 倍），且与 0030Z 逐位复现，证据链干净。但 G2 是四子集判据，单子集不触发预注册的 B3 分支，故不停波次；且 A4/A5 是另外两种循环基，在「线性赢过 Fourier」之后反而成为唯一可能支持「基的选择有影响」的证据，停掉会让论文少一张关键对照表。我预注册的收敛模式预测被自己的数据证伪，按纪律记入，不做事后解释。",
+      "evidence": [
+        "A3a-FD001-W1 = 11.3167056611，与 0030Z 逐位相同（11.316705661052403），证明 W1 批次未引入新变量、σ=0 成立",
+        "Δ(A2→A3a) = −6.84%，|Δ| = 0.724 RMSE，为 NOISE1 投影噪声 0.0301 的 24 倍",
+        "Δ(A3a→A3p) = +3.73%；Δ(A3p→A2) = +2.78%（A2 10.5925 / A3p 10.8951 / A3a 11.3167）",
+        "A3a-FD001 epochs_run=37 / best_ep=25 / margin=12，干净早停——证伪「可训练循环分支延迟最优轮次」的 8/8 模式",
+        "同子集 best_ep：A0 37、A2 34、A1 25、A3p 24、A3a 25"
+      ],
+      "rejected_options": [
+        {
+          "option": "立即停掉 A4/A5，只留 A3a 剩余三格",
+          "reason": "预注册决策树以四子集均值为准，单子集不触发；且 A4/A5 现在是从「支撑证据」变成「唯一可能翻盘的正向证据」"
+        },
+        {
+          "option": "宣布 Fourier 路径失败、直接转向",
+          "reason": "属于放弃技术路线与论文主张取舍，超出 L1 边界，标 PENDING-L2"
+        },
+        {
+          "option": "把 +3.73% 记为注入点效应",
+          "reason": "A3a 与 A3p 同时差「冻结/可训练」与「pre/post-norm」两个变量，不能单独归因"
+        }
+      ],
+      "scientific_risks": [
+        "其余三子集可能符号不一致，四子集均值可能被拉回 ±5% 的不可分辨带，导致 G2 判为 null 而非负结果",
+        "A3a 与 A2 的投影形状不同（8→64 vs 1→64），差异里仍混着投影抽样，虽然 0.030 的噪声远小于 0.724 的效应",
+        "单子集负号若被外推成「Fourier 编码普遍有害」，会掩盖注入点与冻结策略的独立作用"
+      ],
+      "falsification_criteria": [],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T04:53:56.720Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "G4 未通过期间主表结论一律标 preliminary；下一步只做 G4 诊断（范围内干预 + A3p 对照），不动其他实验",
+      "rationale": "预注册判据的意义在于先定后验；G4 未过时若仍采用 G1/G2 的数字，等于事后放宽判据。当前最可能的解释是探针把 +10 加在 raw cycle 的外推区（观测上限 435，而训练中多数样本远低于此），且 A3p 有 250 clamp 而其余臂没有——这一差异足以造成方向假象。因此必须先做范围内干预与 A3p 对照，才能判断是探针问题还是模型真的学反。",
+      "evidence": [
+        "燕子：G4 全线不过——A2/A3a/A4/A5 的 mean_abs_delta 在 0.55–1.94（幅度够），但 frac_negative 只有 0.00–0.16，即给 cycle 加 +10 后预测 RUL 平均上升 1.4–2.3",
+        "燕子：A0 的 frac_negative=1.00、A1 的 mean_abs_delta=0.0，符合预期；带骨干的 cycle 臂方向全反",
+        "燕子：cycle_intervention 的 cycle_source 记录为 raw，raw cycle 最大 435，+10 落在外推区；A3p 路径有 250 上限 clamp，A2/A3a/A4/A5 没有",
+        "燕子：G1 Δ=+10.46%（4/4 同号）、G2 Δ=−5.03%（4/4 同号）、G3 Δ=−175.7%、G5 4/4 同号",
+        "燕子：A2-FD001 噪声探针 NOISE1=10.5623 vs 主表 10.5925，差 0.28%（n=1）"
+      ],
+      "rejected_options": [
+        {
+          "option": "先按 G1/G2 结论写论文，G4 作为 limitation 备注",
+          "reason": "等于事后放宽预注册判据，且方向反转若为真会推翻主结论"
+        },
+        {
+          "option": "直接判定 cycle 路径学反、作废本波",
+          "reason": "探针本身存在外推与 clamp 不一致的可疑点，未排除前不应下结论"
+        },
+        {
+          "option": "补 3 seed 再一起看",
+          "reason": "在判据本身可能失效时扩 seed 只会放大同一个测量问题"
+        }
+      ],
+      "scientific_risks": [
+        "若 G4 失败确为模型问题，则整个 cycle 编码比较的证据链失效，28 格需重做",
+        "范围内干预会改变 Δ 的量纲，G4 阈值 0.5 是否仍适用需重新说明",
+        "A5 的 FD001 单点最优在 G4 未决前不能作为任何论据"
+      ],
+      "falsification_criteria": [
+        "若范围内干预（clamp 到观测范围或相对 +10%）后 frac_negative 转为 ≥0.5，则 G4 的失败是探针外推假象，G1/G2 可恢复有效性",
+        "若 A3p 在 clamp 路径下方向为正、其余为负，则指向探针实现差异而非模型问题",
+        "若所有臂在范围内干预下仍方向为正，则 cycle 路径未被正确使用，G1/G2 结论作废"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T05:02:13.825Z",
+      "level": "L3",
+      "decision": "escalate",
+      "selected_option": "PENDING-L2：G4 判据替换与 Fourier 创新点取舍挂起，等待 Codex 通道恢复后补审；期间只做可逆工作",
+      "rationale": "G4 的失败已被诊断证明为判据缺陷（数据中不存在「固定传感器只加年龄」的反事实），但接受这一诊断并据此替换预注册判据，属于论文方法学争议，正是 L2 的职责范围。Fourier 是否退出创新点同理。两者都不在「可逆且可验证」的自决边界内，因此不得由执行侧拍板。同时诊断本身的事实部分（within-engine 方向、条件符号、量级差异）是可独立复核的技术结论，可以先行推进。",
+      "evidence": [
+        "mcp__codex__codex 返回：could not start codex: [WinError 2] 系统找不到指定的文件",
+        "where.exe codex 无结果；codex --version 报 CommandNotFoundException",
+        "常见安装位置扫描未发现 codex 可执行；~/.codex 下仅有 state/guard 文件",
+        "G4 实测：A2/A3a/A4/A5 的 frac_negative 0.00–0.16，mean_abs_delta 0.55–1.94；A0 为 1.00，A1 为 0.0",
+        "诊断：within-engine Spearman ρ=−0.97…−0.98；OLS y ~ p_A1 + c 四子集 train/val 八估计全正；模型响应 +0.74…+1.43 vs 数据局部条件效应 +0.02…+0.22"
+      ],
+      "rejected_options": [
+        {
+          "option": "自行裁定替换 G4 并继续写论文",
+          "reason": "属于论文方法学争议，超出第 5 级可逆自决边界"
+        },
+        {
+          "option": "自行判定 Fourier 退出创新点",
+          "reason": "创新性判断属 L2 专属，执行侧不得代决"
+        },
+        {
+          "option": "向用户提问该怎么办",
+          "reason": "违反 §0.0.3 提问预算为 0 的规定，且 L3 只处理授权类事项"
+        }
+      ],
+      "scientific_risks": [
+        "PENDING-L2 期间若继续推进论文写法，可能把未经复核的判据替换固化成正文",
+        "诊断若在独立复核中被推翻，当前所有 preliminary 结论需重述",
+        "L2 通道长期不可用会导致 G4 与 Fourier 两项一直悬空，阻碍 Stage C 收口"
+      ],
+      "falsification_criteria": [
+        "若牢莫复核发现 OLS 把引擎当独立样本或 Spearman 分组错误，则诊断结论撤回，G4 维持『不过』",
+        "若 Codex 通道恢复后判定不得替换预注册判据，则主表结论按 G4 不过处理，退回到『cycle 通道有效、编码基不重要』的表述",
+        "若量纲复核发现响应与条件效应不可比，则『大 1–2 个数量级』的说法撤回"
+      ],
+      "reviewer": "codex"
+    },
+    {
+      "at": "2026-11-12T05:07:23.514Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "采纳牢莫三条修正：撤回量级结论（改同数量级 2–5×）、val 显著性写实（2/4 CI 含 0）、Spearman 用平均秩并写 FD004 尾部；证据 run 显式用主 run_id",
+      "rationale": "独立复核发现了三处会直接改变 L2 判断的错误：量级基准选错使结论从『同数量级』被放大成『1–2 个数量级』；OLS 未处理引擎聚类使 val 的符号显著性被高估；Spearman 的并列破秩把 −0.98 写成 −1.00。这三条都会让 L2 在错误的证据强度上做决定，必须在送审前修正。修正后 G4 仍应被认定为判据缺陷，但理由要从『数据方向明确相反』退回到『反事实不存在 + train 聚类后显著』。",
+      "evidence": [
+        "牢莫：probe2 的 ρ(age,y)=−1.00 是 argsort(argsort) 并列破秩假象；平均秩重算 ρ(age,pred) 均值 −0.976…−0.989，FD004 有一台引擎只到 −0.20",
+        "牢莫：OLS 未按引擎聚类，未报 SE/CI；p_A1 为 train in-sample 生成回归量。聚类稳健 + 800 次引擎 bootstrap 后：train b/10=+0.231/+0.487/+0.237/+0.338，t=3.8/7.0/6.1/9.6；val b/10=+0.639/+0.384/+0.980/+0.628，t=1.7/1.2/2.7/3.1，FD001/FD002 的 95% CI 含 0",
+        "牢莫：原 doc 的数据基准是 p_A1 十分位内 pooled 的 y~c 斜率（+0.016…+0.218），被引擎内负变异拉低，且拿 val 模型响应对 train 斜率；改用 between-engine 估计后为 +0.39/+0.73/+0.28/+0.56 每 10",
+        "牢莫：模型 +10 响应 +0.738…+1.432 与 between-engine 估计相比约 1×–5×，同数量级，非 30×–90×",
+        "牢莫：evidence_runs 按最早 closed_utc 选格，同格有重复 ok run 时可能选到非主链"
+      ],
+      "rejected_options": [
+        {
+          "option": "保留原量级结论，仅在脚注注明估计量不同",
+          "reason": "headline 数字错一个数量级以上，脚注无法纠正读者印象"
+        },
+        {
+          "option": "等 L2 恢复后再修",
+          "reason": "L2 会基于错误证据做判断，必须先修再送"
+        },
+        {
+          "option": "直接采用牢莫的 between-engine 数字但不重跑探针",
+          "reason": "文档与脚本会不一致，无法复算"
+        }
+      ],
+      "scientific_risks": [
+        "between-engine 估计本身也有样本量限制（每子集 20–50 台引擎），2–5× 的区间仍宽",
+        "val 的 CI 含 0 意味着条件符号的实证支持弱，G4 的替换理由更依赖逻辑而非数据",
+        "修正后若 L2 认为证据不足，G4 可能维持原判，整波 cycle 叙事作废"
+      ],
+      "falsification_criteria": [
+        "若改用 between-engine 估计后模型响应仍超出一个数量级，则『过度加权』说法可恢复",
+        "若 val 的 FD003/FD004 CI 也不含 0，则可把条件符号的证据强度上调，但仍不足以当作反事实",
+        "若显式主 run_id 选出的证据与按最早 closed_utc 选出的不同，则以台账主 run 为准重算"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T05:12:30.363Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "接受 v2 诊断；混合提交 f549c44 不拆分不重写，仅记档并改为显式文件列表提交；a40 台账副本由管理员唯一同步",
+      "rationale": "两组独立计算在同一批数字上重合（t 值差在 0.05 以内），说明修正后的估计量实现正确，这比任何单方复核都强。提交边界问题不应通过改写历史解决：内容合法且已进入主线，拆分会破坏他人正在进行的暂存区工作；用后续纪律约束即可。a40 无 git 导致台账副本长期滞后，属于系统性风险，需指定唯一同步人。",
+      "evidence": [
+        "tmh v2 诊断（f549c44）：within-engine ρ 均值 −0.974…−0.983、p05=−1.000，FD004 2/50 台、FD002 1/52 台 ρ>−0.9",
+        "tmh：train b/10=0.231/0.487/0.237/0.338，t=3.83/6.98/6.09/9.56；val=0.639/0.384/0.980/0.628，t=1.70/1.23/2.69/3.13，FD001/FD002 CI 含 0",
+        "tmh：between-engine train=0.413/0.766/0.332/0.611，与牢莫 0.39/0.73/0.28/0.56 同估计量；模型 0.738–1.432 → 1.0×–4.3×",
+        "tmh 与牢莫两组独立计算的 t 值与 CI 基本重合（3.83 vs 3.8、6.98 vs 7.0、6.09 vs 6.1、9.56 vs 9.6）",
+        "f549c44 为混合提交：TASK_BOOK.md +139 行系暂存区中他人改动被一并带入",
+        "a40 的 runs.csv 为冻结前 51 行旧版，本地为 91 行"
+      ],
+      "rejected_options": [
+        {
+          "option": "revert f549c44 后重提",
+          "reason": "改写已提交历史，且会牵动他人的暂存区改动"
+        },
+        {
+          "option": "把 TASK_BOOK.md 的改动从提交里剥离",
+          "reason": "需要 history rewrite，违反项目约定"
+        },
+        {
+          "option": "允许 tmh 继续自行同步 a40 台账副本",
+          "reason": "台账唯一写入人是管理员，多写入方正是今晚事故的根源"
+        }
+      ],
+      "scientific_risks": [
+        "若混合提交中含未完成的 TASK_BOOK 改动，后续读者可能把它当作定稿",
+        "a40 台账副本长期滞后会让远端复核用到过期准入"
+      ],
+      "falsification_criteria": [
+        "若牢莫抽检发现 v2 与脚本输出不一致，则以脚本为准重写文档",
+        "若后续出现第二处混合提交，则提交纪律需改为强制 pre-commit 检查"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T05:18:12.320Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "PENDING-L2 期间维持 BRANCH A 为默认（不放宽预注册判据）；BRANCH B 必须由 L2 裁决；两套输出保持可复算",
+      "rationale": "预注册判据的意义在于先定后验；在没有 L2 裁决的情况下，执行侧唯一不越权的选择是维持原判据（BRANCH A），而不是自行采用更宽松的替换判据（BRANCH B）。这条默认规则使项目在 L2 通道长期不可用时仍可推进到明确状态，同时不产生需要事后撤回的结论。放宽判据必须由 L2 批准，收紧或维持不需要。",
+      "evidence": [
+        "牢莫：e0a0416 只含 G4_DIAGNOSIS.md + g4_stats.py，paper_b/ 0 文件，15-blob 锁未动，暂存区事后为空",
+        "牢莫：§5 val 列已改为 3/4 nan + FD002 −8.915（少数引擎，不可解释），并写明该列不可用",
+        "牢莫独立复算 A0 within-engine：四子集 mean/min/max 均 −1.0000、weak 0/20、0/52、0/20、0/50，与表内逐项一致",
+        "牢莫：§A 表头 pooled 已改，ARMS 含 A0",
+        "L2 通道仍不可用：mcp__codex__codex 报 WinError 2，本机无 codex 可执行"
+      ],
+      "rejected_options": [
+        {
+          "option": "默认采用 BRANCH B（替换判据）",
+          "reason": "等于执行侧自行放宽预注册判据，正是最需要外部裁决的一类动作"
+        },
+        {
+          "option": "无限期等待 L2，不设默认",
+          "reason": "项目会停在不确定状态，且无法判断哪些工作可以继续"
+        },
+        {
+          "option": "由用户裁决",
+          "reason": "违反提问预算为 0；且这是方法学争议，应由 L2 而非用户承担"
+        }
+      ],
+      "scientific_risks": [
+        "BRANCH A 下 cycle 叙事整体作废，前期 28 格的主要产出只剩 G3",
+        "若 L2 后续批准 BRANCH B，论文需同时呈现两支并解释替换理由",
+        "默认规则可能被误读为『已经决定』，需在文档中标明是 PENDING 状态下的保守默认"
+      ],
+      "falsification_criteria": [
+        "若 L2 在 24h 内恢复并裁定采用 BRANCH B，则默认规则让位于 L2 裁决",
+        "若 BRANCH A 下 G3 也被复核推翻，则 wave1 无任何可用结论，需重做"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T05:47:58.643Z",
+      "level": "L1",
+      "decision": "branch",
+      "selected_option": "立即启动 Stage D 的数学规格设计（不写代码、不跑实验）；D 中 cycle 采用 raw 标量；Gate A 的 PENDING-L2 结论只影响 D 的 cycle 形态表述",
+      "rationale": "用户的原始任务书把结构化 HI 作为方法主干，Cycle 只是前置研究；当前 12 小时全部投入 Cycle 前置，主干尚未开工，与用户意图不符。启动 D 的设计工作不等于宣布 Stage C 通过：不跑实验、不下结论，只是把既定下一阶段的数学规格写出来，属可逆工作。C 的结论对 D 的约束已经明确——Fourier 不优于 raw 标量，因此 D 中 cycle 只以 raw 标量进入，且不作为贡献点。",
+      "evidence": [
+        "docs/paper_b_hc/ 现有 15 份 md，属于任务书 8 份交付物的只有 CYCLE_DEPENDENCE_STUDY.md；METHOD_SPECIFICATION / STRUCTURAL_HI_RESULTS / HEALTH_CYCLE_COUPLING / ABLATION_RESULTS / RELATED_WORK_GAP 均不存在",
+        "paper_b/hc/ 13 个 py 全为 cycle 变体、数据层、训练、调度与校验，无累积损伤/阈值到达实现",
+        "Stage C 结果：G1 Δ(A1→A2)=+10.46%（4/4 同号）、G2 Δ(A2→A3a)=−5.03%（4/4 同号，Fourier 更差）、G3 −175.73%",
+        "任务书 §六 规定阶段 C 先不开发新 HI、只改 Cycle 路径；§二 规定 V1/V2 有可靠证据才进 V3",
+        "用户 2026-11-12 13:41 指出实验未覆盖结构化 HI 与周期位置编码"
+      ],
+      "rejected_options": [
+        {
+          "option": "等 Gate A 的 PENDING-L2 落地后再启动 D",
+          "reason": "Gate A 卡的是 cycle 编码形式，不阻塞 D 的数学设计；空等会让主干继续延后"
+        },
+        {
+          "option": "先补跑 Fourier 的 3 seed 再谈 D",
+          "reason": "G2 在四子集全负且幅度 5%，补 seed 只会确认负结果，不改变 D 的设计"
+        },
+        {
+          "option": "跳过 C 的结论直接按原设想实现 D",
+          "reason": "会让 D 里的 cycle 形态与 C 的证据冲突，且重复已验证为劣势的编码"
+        }
+      ],
+      "scientific_risks": [
+        "D 的设计若沿用固定窗口，仍可能踩『窗口开头重置 D』的坑，需在规格阶段堵死",
+        "Cycle 以 raw 标量进入 D 后，若 Gate A 的 PENDING-L2 最终裁定 Fourier 可用，需重述 D 的配置依据",
+        "D 与 C 并行会让 GPU 与人力重新紧张"
+      ],
+      "falsification_criteria": [
+        "若 D 的数学规格无法在「不重置窗口初始状态」的约束下给出可训练形式，则 D1 需改设计",
+        "若 D 实现后 Gate B 的 HI 单调性与失效终点对齐达不到，则结构化 HI 路线按任务书要求停止"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T06:02:52.614Z",
+      "level": "L1",
+      "decision": "revise",
+      "selected_option": "量纲按离散求和判定 λ_S=λ_T=L_scale²；同时把 L_smooth 按初始化期 mean((Δδ)²) 归一化到 O(1)；K=200 + 删失；D4.6 四条必报指标写死",
+      "rationale": "量纲次数与数值量级是两个独立问题：前者由表达式的求和/积分性质决定，后者由 L_smooth 的自然尺度决定。若只按次数把 λ_S 取成 L_scale²，平滑项在实际数值下恒为 0，等于悄悄关掉一个约束项；若按量级把 λ_S 取成 L_scale⁴，则规格失去可推导性，且换归一化约定时会差 15625 倍。正确做法是先把 L_smooth 无量纲化到 O(1)，再让系数承担量纲，两者才能同时成立。",
+      "evidence": [
+        "tmh：D_t=Σ_{u≤t}δ_u 为离散求和，dim δ = dim D = 1；L_smooth=mean((Δδ)²) 无量纲，故 λ_S 与 λ_T 同为 L_scale²",
+        "牢莫：δ 按 1/周期 处理时推出 λ_S 需周期⁴；其前提是把离散求和当作积分",
+        "牢莫数值观察：λ_S=125² 时 L_smooth~1e-8，乘积~1e-4，平滑项等于关掉；125⁴ 才是 O(1)–O(100)",
+        "tmh：FD004 最长寿命 543（435 是 val 最大 cycle），训练窗 48,691；K=434 时约 21M 次 g_φ 评估/epoch",
+        "tmh：训练窗封顶比例 40.3/39.9/51.2/48.9%，val 封顶 7.0/8.5/11.0/20.4%",
+        "tmh：val 为训练发动机的截断切分，r_t=n_e−t 已知，可直接评估真实 RUL"
+      ],
+      "rejected_options": [
+        {
+          "option": "采用牢莫的 λ_S=L_scale⁴",
+          "reason": "与离散求和定义不自洽，且换归一化约定即失效"
+        },
+        {
+          "option": "只按 tmh 的 L_scale² 而不归一化",
+          "reason": "数值上平滑项恒为 0，等于静默关掉约束"
+        },
+        {
+          "option": "把 λ 当超参扫",
+          "reason": "扫 λ 等于扫单位，无法解释结果"
+        }
+      ],
+      "scientific_risks": [
+        "归一化分母若在训练中漂移，平滑项权重会隐式变化，需固定或用 EMA 更新并记录",
+        "K=200 的尾部截断对 E[T] 的影响需实测，不能只靠推理",
+        "rmse_uncapped 用真实 RUL 评估时，需确认不引入 val 之外的标签使用"
+      ],
+      "falsification_criteria": [
+        "若归一化后 λ_S=c_S L_scale²、c_S=O(1) 仍使平滑项梯度占比 <0.1，则说明归一化分母选错，需改用运行期方差",
+        "若 rmse_uncapped 与 val_engine_mean_rmse 在四子集上排序一致，则封顶偏差对结论无实质影响",
+        "若 K=200 时尾部截断使 E[T] 偏低超过 1 个周期，则 K 需上调"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T06:06:50.050Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "继续可逆的审计工作；创新性判定挂 PENDING-L2，不自行作答",
+      "rationale": "双口径审计与 A8 消融已落盘，但「当前结构是否具备 IEEE TIM 方法创新」属 L2 判定。Codex 通道实测不可用（mcp__codex__codex 报 WinError 2，codex 不在 PATH；~/.codex/config.toml 指向的本地代理 127.0.0.1:15721 未监听），因此按项目路由规则不得自决，记为 PENDING-L2，继续做不依赖该判定的部分。",
+      "evidence": [
+        "docs/paper_b_baselines/BASELINE_PROTOCOL_AUDIT.md §9（PENDING-L2，含证据表与可证伪判据）",
+        "paper_b/training/data.py:245 min(rul_map[uid], 125.0)",
+        "paper_b/results/baseline_audit/dual_criteria_all_runs.csv（113 runs，capped/raw 双口径）",
+        "docs/paper_b_baselines/PAPER_PROTOCOL_MATRIX.md（牢莫，5 篇论文协议矩阵）",
+        "B = sqrt(mean(max(rul-125,0)^2)) = 3.738/18.317/4.710/19.529（独立复算）"
+      ],
+      "rejected_options": [],
+      "scientific_risks": [
+        "raw 口径是本工作新增，若与作者报告值并列会显得我们全面变差，属于口径错配而非性能事实",
+        "A8 测试列只有 seed 101，主效应是单 seed 增量，不能当 seed 稳健结论",
+        "sa 在 FD004 的符号随口径翻转，任何机制表述都必须带口径限定",
+        "若 Codex 长期不可用，PENDING-L2 会阻塞论文主张取舍，需在 24h 内补审"
+      ],
+      "falsification_criteria": [
+        "若发动机级重选轮（R2 metrics.py）改变 A8 排名，则「效应在噪声内」不成立",
+        "若 cap-free 训练与评估复现同样的模块排序，则饱和解释不成立，方法空间是真的小",
+        "若五篇论文中任一篇被证明确有官方代码且与本仓库协议冲突，§8 可比性结论需改写"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T06:07:56.852Z",
+      "level": "L1",
+      "decision": "continue",
+      "selected_option": "接受 8ee9c68 的四处修改；补 S_0 跨 B0–B3 共用与下限 1e-12 两条后方可进入代码",
+      "rationale": "归一化分母是目标函数的一部分，若每个 run 各算一次，λ_S 的实际权重会随初始化抖动而变化，四组对照就不再是同目标函数的比较。下限是防止初始化期 Δδ 接近 0 时归一化把梯度放大到失控的必要保护。这两条与量纲推导无关，但直接决定 D 的对照实验是否成立。",
+      "evidence": [
+        "tmh 8ee9c68：L̃_smooth=L_smooth/S_0，S_0 取初始化后固定 8 个 batch 的 mean((Δδ)²)，只测一次写进 config.json 全程复用",
+        "tmh：D4.1 更名 censored hinge，说明不采用 Tobit 似然的理由并把代价交给 D4.6 量化",
+        "tmh：r>200 占比 训练 10.3/10.6/24.6/21.6%、val 0/0/0/3.2%；T̂ 在 200 处右截断，只能作真实 RUL 的下界",
+        "牢莫四条约束：S_0 一次性常数、B0–B3 共用、设下限、归一化后跑梯度比；tmh 已落第 1、4 条",
+        "牢莫：rmse_uncapped 在 r_t>K 的样本上会被系统性压低，需只在 r_t≤K 上算并另报 frac_r_gt_K"
+      ],
+      "rejected_options": [
+        {
+          "option": "各 run 自行计算 S_0",
+          "reason": "破坏 B0–B3 的同目标函数前提"
+        },
+        {
+          "option": "不设下限、靠梯度裁剪兜底",
+          "reason": "梯度裁剪会掩盖问题且改变有效学习率"
+        },
+        {
+          "option": "逐 epoch 重测 S_0",
+          "reason": "目标函数随训练漂移，梯度比检查失去意义"
+        }
+      ],
+      "scientific_risks": [
+        "S_0 若取自某一子集，跨子集复用时权重口径需说明",
+        "rmse_uncapped 排除 r>K 后样本量减少，FD003 训练窗 24.6% 被排除需在报告注明",
+        "censored hinge 对 T̂>125 无约束，封顶层的预测分布不可解释"
+      ],
+      "falsification_criteria": [
+        "若 B0–B3 的 S_0 不一致，则四组对照的 λ_S 实际权重不同，D 的对照实验作废",
+        "若 S_0 无下限且初始化 Δδ 极小，平滑项梯度爆掉，训练不稳定"
+      ],
+      "reviewer": "none"
+    },
+    {
+      "at": "2026-11-12T06:08:30.994Z",
+      "level": "L1",
+      "decision": "branch",
+      "selected_option": "把 Vanilla 对照从 2 个臂补齐为 2x2 特征分解（raw / +cycle / +3ch / +3ch+cycle），共 48 格",
+      "rationale": "方法稿 §3.2 承诺「两个特征匹配对照」以分离架构效应与特征效应，但 grid 只存在 raw 与 dsp+cycle 两个对角臂，无法分离 cycle 与三通道各自的贡献。补齐两个缺失角后，DSPT-Base 与 Vanilla 的差异可分解为「架构」与「输入表示」两部分，这是回答「Base 为什么强」的唯一公平设计。",
+      "evidence": [
+        "paper_b/reports/PAPER_B_METHOD_DRAFT.md:67-75 承诺 feature-matched controls",
+        "paper_b/experiments/grids/vanilla.json 仅含 VAN_raw_L70 与 VAN_dsp_cycle_L70",
+        "paper_b/results/all_runs.csv 中 VAN_* 各仅 3 格（FD001）"
+      ],
+      "rejected_options": [
+        {
+          "option": "只跑现有两个臂并在文档中注明分解不完整",
+          "reason": "无法区分 cycle 与三通道的贡献，会使「Base 为什么强」的结论停留在相关性"
+        },
+        {
+          "option": "用 DSPT-Base 关掉模块来近似 Vanilla",
+          "reason": "用户明确禁止把 DSPT-Base 当 Vanilla；且开关关掉后仍保留 temporal_pe、sensor_score 等结构"
+        }
+      ],
+      "scientific_risks": [
+        "新增两臂只改输入表示与 cycle，不改超参，若差异落在 seed 离散度内则只能报「无独立增益」",
+        "48 格全部为验证集口径，测试集仅作描述性报告，不参与选择"
+      ],
+      "falsification_criteria": [
+        "若 3ch 与 cycle 两因子在 4 个子集上的效应均小于 seed 标准差，则「特征表示解释 Base 优势」被证伪",
+        "若 Vanilla 任一臂在子集内稳定优于 DSPT-Base，则「结构贡献」被证伪"
+      ],
+      "reviewer": "none"
     }
   ],
   "experiment_queue": [],
   "running_jobs": [],
   "last_git_commit": null,
-  "last_successful_checkpoint": "checkpoints\\2026-11-09T15-47-51-676Z-S9.json",
+  "last_successful_checkpoint": "checkpoints\\2026-11-11T09-08-07-075Z-S9.json",
   "blocked_reason": null,
-  "resume_instructions": "权威源是 docs/ 不是本文件。恢复顺序：读 AGENTS.md → docs/research_state.md → docs/decision_log.md → docs/results_summary.md → docs/manuscripts/SUBMISSION_CHECKLIST.md，核对产物确实在磁盘上，再继续。research/agent-state/state.json 只提供任务队列与幂等账本，不复制 docs 里的数字（避免双份真相）。",
+  "resume_instructions": "Blocked on human authorization. Keep executing every reversible task that does not depend on the blocked decision, and record results; do not idle waiting for an answer.",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-09T15:47:51.693Z",
-  "revision": 21
+  "updated_at": "2026-11-12T06:08:30.997Z",
+  "revision": 65
 }
