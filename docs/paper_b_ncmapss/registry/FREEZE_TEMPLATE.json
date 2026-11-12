@@ -1,13 +1,32 @@
 {
   "_note": "N-CMAPSS DS02 冻结清单模板。复制到 freeze/<freeze_id>.json 后逐项填实；模板本身不算冻结。三栏硬要求见 docs/paper_b_ncmapss/registry/SCHEMA.md §6。",
-  "_hash_rule": "freeze_content_sha256 = sha256( 本文件去掉 freeze_ts_utc / freeze_content_sha256 / eval_start_utc 三个键之后的规范化 JSON )。规范化：键按字典序、UTF-8、无多余空白、sort_keys=true、separators=(',',':')。去掉三栏是为了避免自引用。",
-  "_ordering_rule": "合规判据：eval_start_utc > freeze_ts_utc，且 freeze_content_sha256 与已提交版本复算值一致。任一不满足，该批测试结果不具备独立确认性。",
+  "_hash_rule": "freeze_content_sha256 = sha256( 本文件去掉 freeze_content_sha256 / eval_start_utc 两个键之后的规范化 JSON )。规范化：键按字典序、UTF-8、无多余空白、sort_keys=true、separators=(',',':')。**freeze_ts_utc 必须参与哈希**（v17 起）：它是唯一能证明「先声明、后开封」的字段，放在哈希外就能被改成任意更早的时刻而不被发现。eval_start_utc 排除是因为它在开封之后才写；哈希自身排除是为了避免自引用。复算命令：python scripts/nc_freeze.py verify <本文件>。",
+  "_ordering_rule": "合规判据：eval_start_utc > freeze_ts_utc，且 freeze_content_sha256 与已提交版本复算值一致。任一不满足，该批测试结果不具备独立确认性。**重签清单不能修复时序**——重签只把同一件事挪到更晚的时刻，所以时序违约必须如实写进 sequencing.honest_limitation，不许靠换时间戳掩盖。",
   "freeze_id": "NCM-FREEZE-YYYYMMDDTHHMMZ",
   "dataset": "N-CMAPSS-DS02",
   "frozen": false,
   "freeze_ts_utc": null,
   "freeze_content_sha256": null,
   "eval_start_utc": null,
+  "hash_rule_version": "v17: excludes eval_start_utc and freeze_content_sha256 only; freeze_ts_utc IS hashed",
+  "supersedes": null,
+  "sequencing": {
+    "disclosure": "<如实写：冻结之前是否读过测试集、读了哪格、大约几点；没有就写 none>",
+    "honest_limitation": "<时序违约就写在这里。不写等于声称没发生>",
+    "why_the_gate_still_holds": "<完整叉积 40/40、零排除——结构上无法挑选要报的格>",
+    "diff_vs_superseded_manifest": "<vN -> vN+1 逐项列出改了什么，防止「顺手改了别的东西」>"
+  },
+  "completeness": {
+    "assertion": "runs == {DS02,DS05,DS06,DS07} x {N0,N1,N2,N3} x ({N0:[null]} U {N1,N2,N3:[101,202,303]})",
+    "expected_cells": 40,
+    "observed_cells": null,
+    "excluded_cells": 0,
+    "exclusion_list": [],
+    "why_it_matters": "完整叉积在结构上无法表达「只报有利的格」，闸门要防的选择自由度因此不存在；这个字段就是那条断言的机器可读形式",
+    "verify_command": "python scripts/nc_freeze.py verify <本文件>"
+  },
+  "epoch_star_values": [],
+  "floor_statistics": null,
   "repo": {
     "base_git_sha": "ac94c29",
     "branch": "ncmapss-ds02",

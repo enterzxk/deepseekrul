@@ -457,16 +457,39 @@ docs/paper_b_ncmapss/registry/
 
 ## 6. 冻结清单
 
-模板见 [FREEZE_TEMPLATE.json](FREEZE_TEMPLATE.json)。三栏是本 schema 的硬要求：
+模板见 [FREEZE_TEMPLATE.json](FREEZE_TEMPLATE.json)；现有清单与作废状态见
+[freeze/INDEX.md](freeze/INDEX.md)。
 
 | 栏 | 含义 | 为什么必须有 |
 |---|---|---|
-| `freeze_ts_utc` | 清单写定并提交的时刻 | 证明「先声明，后看结果」 |
-| `freeze_content_sha256` | 清单内容（**去掉三栏后**）的 sha256 | 证明清单写完没被改过；去掉三栏是为了避免自引用 |
+| `freeze_ts_utc` | 清单写定并提交的时刻 | 证明「先声明，后看结果」；**必须参与哈希**（v17 起），否则可以被改早而不被发现 |
+| `freeze_content_sha256` | 清单内容（**去掉两栏后**）的 sha256 | 证明清单写完没被改过。排除哈希自身是为了避免自引用；排除 `eval_start_utc` 是因为它在开封之后才写 |
 | `eval_start_utc` | 第一次读取测试机预测/标签的时刻 | 与上一栏比较，`eval_start_utc > freeze_ts_utc` 才算合规 |
 
 **违规判定**：`eval_start_utc <= freeze_ts_utc`，或 `freeze_content_sha256` 与
 提交版本的复算值不符 → 该批测试结果**不具备独立确认性**，只能作为探索记录。
+
+**v17 改了什么**：v16 把 `freeze_ts_utc` 排除在哈希外，于是唯一能证明「先冻后开」的字段
+自己不受保护——把它改成任意更早的时刻，摘要照样对得上。v17 只排除两栏。
+代价是 v16 签的清单在 v17 规则下摘要必然不符，所以**旧清单的摘要必须按签名时的规则复算**，
+这一点写在 `freeze/INDEX.md`。
+
+**重签不能修复时序**：清单晚于第一次读测试集时，重签只是把同一件事挪到更晚的时刻。
+正确做法是如实写进 `sequencing.honest_limitation`，并用 `completeness` 证明没有选择自由度。
+
+**三条结构性字段**（v17 起，缺一即视为清单不完整）：
+
+| 栏 | 断言 |
+|---|---|
+| `completeness` | `runs[]` == 完整叉积 40/40，`excluded_cells == 0`。完整叉积在结构上无法表达「只报有利的格」，闸门要防的自由度因此不存在 |
+| `epoch_star_values` | 40 格的 `epoch*` 与六折原值，签名时从封存台账机械复算。运行器**读取**这些数，不许自己再算——否则 §6.10 的「开封前冻结」无法执行 |
+| `sequencing` | 冻结之前是否读过测试集、时序是否违约、与上一版清单逐项差了什么 |
+
+一条命令自证（哈希 / 完整性 / `epoch*` / 时序四项）：
+
+```bash
+python scripts/nc_freeze.py verify docs/paper_b_ncmapss/registry/freeze/<active>.json
+```
 
 ---
 
@@ -560,6 +583,9 @@ git status --porcelain            # 必须为空
 test -f paper_b/configs/protocol.json
 test -f paper_b/results/FREEZE_ABLATION_SEED101.json
 python -c "import json;d=json.load(open('paper_b/results/FREEZE_ABLATION_SEED101.json'));assert d['frozen'] is True"
+
+# 3b. 冻结清单自证：哈希 / 完整性 / epoch* / 时序，四项全 OK 才许开跑
+python scripts/nc_freeze.py verify docs/paper_b_ncmapss/registry/freeze/<active>.json
 
 # 4. 台账锁没有残留
 test ! -e docs/paper_b_ncmapss/registry/runs_<subset>.csv.lock
