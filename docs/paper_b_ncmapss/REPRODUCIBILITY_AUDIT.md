@@ -15,21 +15,44 @@ Status: **path chosen, nothing executed yet**.
 
 ## Protocol freeze
 
-The protocol is **frozen at commit `5b228ad`** (branch `ncmapss-ds02`,
-2026-11-12). From that commit onward §4 (flight features) and §6 (evaluation) do
-not change except by a recorded decision — an unrecorded edit would leave runs
-produced before and after it in different protocols with no marker.
+The protocol is **frozen at commit `7f01909`** (branch `ncmapss-ds02`,
+2026-11-12). **No §4 or §6 change after this commit until the LOEO development
+results are in.** A change requires a recorded decision first — never edit while
+runs are in flight, because an unrecorded edit leaves runs produced before and
+after it in different protocols with no marker.
 
 Verify the frozen document:
 
 ```bash
-git rev-parse 5b228ad:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
-# 6c184bbfe395325c367b1e460689b178ae48f1f3   (22499 bytes)
+git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
+# 4458d9ea05c965251aabb782bba9765304ebf686
 ```
 
 Every row in `registry/runs.csv` must cite **this blob hash**, not only the
 commit: a commit can be amended or rebased, a blob hash cannot. A run whose
-`protocol_blob` does not match is treated as produced under an unknown protocol.
+`protocol_blob` does not match is treated as produced under an unknown protocol
+and leaves the main evidence table.
+
+**The anchor moved forward from `5b228ad` / `6c184bbf…`, and the old anchor is
+void.** Three reasons, none of them cosmetic:
+
+1. **§6.3 now names the primary metric.** Per-engine mean RMSE is primary and
+   pooled RMSE is supplementary. The previous text did not say which was which —
+   a criterion ambiguity, not a content change.
+2. **§6.4 fixes a real bug in the relative segment rule.** The denominator must
+   come from the engine's full lifetime, supplied by the data layer. The previous
+   wording normalised by the evaluated frame, which on the test split (one
+   flight per engine) makes the fraction identically 1.0 and labels every row
+   `early` — silently.
+3. **The HI scope was narrowed** (`e7c2e41`, `026320c`). The frozen N0–N3 ladder
+   contains no HI arm, and the earlier text pre-registered a comparison against
+   an arm that does not exist.
+
+Note for anyone verifying on Windows: **blob hashes are sensitive to line
+endings**, and this repository pins `eol=lf` in `.gitattributes`. Always verify
+with `git rev-parse` **inside the repository**; never hash the working-tree file
+with `sha256sum` and compare, because a CRLF re-save changes the blob while the
+text looks identical.
 
 ## Commit path: **(a) patch from the compute host, applied and pushed from Windows**
 
@@ -70,6 +93,27 @@ git push origin ncmapss-ds02
 If `git am` conflicts, the patch is **rejected and re-cut** on the host — it is
 never hand-merged, because a hand-merged result is not the one that produced the
 numbers.
+
+### Worktree topology
+
+Three places have held a copy of this branch and they have already drifted twice.
+The rule, effective now:
+
+- **`origin/ncmapss-ds02` is the single source of truth.** No local copy is
+  authoritative, including the Windows worktree.
+- **The 3090 host is a read-only consumer.** Before each batch:
+  `git fetch && git reset --hard origin/ncmapss-ds02`. No commits are made on the
+  compute host.
+- **All code changes travel as patches**: author → patch → applied in the Windows
+  worktree → pushed. A change that exists only on the compute host is not part of
+  the project, no matter how good it is.
+- **No long-lived untracked files on the compute host.** A file that matters goes
+  into a patch; one that does not gets deleted. `features.py`, `train.py` and
+  `env/` were the last offenders and are now committed.
+
+Why this is a rule and not advice: twice already two writers touched this branch
+and "which copy is real" had to be settled by hand. The failure mode is not lost
+work — it is a run recorded against code nobody can reconstruct.
 
 ## Environment pinning
 
