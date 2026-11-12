@@ -300,6 +300,8 @@ SE = 0.109638   Welch df = 3.675   t = −5.19   t_crit(0.975, df=3.675) = 2.876
 
 **数据准入**：批三 24 格 `status=ok`、`driver.status=DONE ok=24 bad=0`、无 `FAILED` 标记；**无一格 `best_epoch ≥ 38`**，即无材料性截断。A1 的 s101 用 W1 canonical（`FD001-W1r2` / `FD002-W1r2` / `FD003-W1r2` / `FD004-W1r3`），s202/s303 用 W2；`A2cal-FD001-s101` 用 `W2r2`（`-W2` 为 failed，不占位）。**24 格数值由我从 a40 `close.json` 直读并独立复算，与燕子逐位一致**（Δ、df、t_crit、CI 全部对上）。
 
+**限制（标定 provenance）**：W2 的 24 格标定时模型处于 `train` 模式、dropout 开着，dropout 消耗 CUDA 生成器（按 seed 播种），所以 `gain` 带 **1e-11–1e-8** 的 seed 依赖（A2cal 1.3e-11、A3bcal 1.1e-8）；旧断言只快照了 CPU 生成器，因此当时「不消耗训练随机数」是被误证的。v12（`57a4570`）起 `calibrate_init_rms` 强制 `eval()`、结束后恢复模式，并把 CUDA RNG 纳入断言。**不重跑**：新旧 `gain` 相对差 2.8e-8，比任何有意义阈值低 5 个数量级，**7 位有效数字内的数值不用改**。同时，「seed 极差 = 训练随机性的下界」这句话在 W2 上**只到 1e-8 精度成立**，引用时按此精度说。
+
 **一、三臂 × 三 seed 原值**
 
 | 子集 | 臂 | s101 | s202 | s303 | 均值 | sd | 极差 |
