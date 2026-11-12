@@ -58,7 +58,14 @@ KEEP_DIRS = {'ckpt'}
 
 
 def md5(path):
-    return hashlib.md5(Path(path).read_bytes()).hexdigest()
+    """md5 of the file as the repo stores it (LF), never the working-tree CRLF.
+
+    Same definition as ``code_lock.check`` and as the lock's own ``definition``
+    field. The two validation paths used to disagree: ``check`` normalised CRLF
+    while this startup guard hashed raw bytes, so a CRLF sync to a git-less host
+    passed ``--check`` and then refused to launch. That is now one definition.
+    """
+    return hashlib.md5(Path(path).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
 
 
 def code_hashes():

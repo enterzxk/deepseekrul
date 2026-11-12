@@ -201,28 +201,15 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
         # what THIS model has, not by what the dump happens to contain. A plain
         # strict=False load would silently leave the cycle projection at its own
         # random draw; anything left over raises.
-        ckpt = torch.load(cfg['init_from'], map_location='cpu', weights_only=True)
-        if isinstance(ckpt, dict) and 'state_dict' in ckpt:
-            ckpt = ckpt['state_dict']   # --dump-init wraps it with provenance
-        sd = dict(ckpt)
-        want = net.state_dict()
-        if 'pe_proj.weight' in want and 'pe_proj.weight' not in sd:
-            sd = {('pe_proj.' + k.split('.', 1)[1]) if k.startswith('cycle_enc.proj.') else k: v
-                  for k, v in sd.items()}
-        if 'cycle_enc.proj.weight' in want and 'cycle_enc.proj.weight' not in sd:
-            sd = {('cycle_enc.proj.' + k.split('.', 1)[1]) if k.startswith('pe_proj.') else k: v
-                  for k, v in sd.items()}
-        if 'cycle_enc.periods' in want and 'cycle_enc.periods' not in sd and 'pe_periods' in sd:
-            sd['cycle_enc.periods'] = sd['pe_periods']   # copy, never pop: A3a keeps pe_periods too
-        if 'pe_periods' in want and 'pe_periods' not in sd and 'cycle_enc.periods' in sd:
-            sd['pe_periods'] = sd['cycle_enc.periods']
-        missing, unexpected = net.load_state_dict(sd, strict=False)
-        if missing or unexpected:
-            raise RuntimeError(
-                f'init_from mismatch: missing={sorted(missing)[:8]} '
-                f'unexpected={sorted(unexpected)[:8]} (after target-driven remap)')
+        # Single source of truth: scale_align.load_shared_init owns the remap and
+        # is the only place that knows ``cycle_gain`` cannot come from an init
+        # file. The copy that used to live here had drifted from it -- it did not
+        # exclude cycle_gain -- so every calibrated arm died at ep=0 with
+        # ``init_from mismatch: missing=['cycle_gain']``.
+        from .scale_align import load_shared_init
+        info = load_shared_init(net, cfg['init_from'])
         log('  init_from=%s loaded=%d missing=0 unexpected=0 (remapped)'
-            % (cfg['init_from'], len(sd)))
+            % (info['init_from'], info['keys_loaded']))
     # G2 init-RMS calibration. Order matters and is asserted by the caller:
     # the shared init is loaded above, the optimiser is created below, so the
     # gain is a property of the init and never of an optimisation step. The

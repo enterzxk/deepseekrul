@@ -1,0 +1,15 @@
+# Line endings are a correctness issue in this repo, not a style preference.
+#
+# The code lock records md5 of the *blob* bytes (LF). A Windows working tree with
+# core.autocrlf=true produces CRLF, and the git-less GPU host receives whatever
+# was copied. On 2026-11-12 that made `code_lock --check` pass while run_hc's own
+# startup guard refused the same files, because the two hashed different bytes.
+#
+# `run_hc.md5` now normalises CRLF->LF, so the two paths agree by construction.
+# This file keeps the bytes identical in the first place.
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.sh text eol=lf
