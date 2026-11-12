@@ -11,11 +11,25 @@
 
 | 角色 | SHA | 说明 |
 |---|---|---|
-| 代码提交 | `57a4570` | 标定期强制 `eval()` 并恢复原模式；RNG 断言纳入 CUDA 生成器 |
-| 锁提交 | `21bc2a2` | 16-blob code lock（lock-only commit） |
-| `baseline_version` | **v12** | 唯一有效基线 |
+| 代码提交 | `707762f` | v13 四件套：`y_cap` 标签裁剪、启动护栏、目录名 = run_id、Stage D 四文件进 OWN |
+| 锁提交 | **缺（待补）** | 当前锁与代码在**同一个提交** `707762f` 里，所以 `git_sha = null` |
+| `baseline_version` | **v13**（20 blob） | a40 上 `code_lock --check` 报 `CODE LOCK OK` |
 
-`registry/code_lock.json` 自身 md5 = `b7e0bf01c974c724778aa3353511111c`，`git_sha = 57a4570`，16 blob，a40 上 `CODE LOCK OK`。
+**v13 的指纹链有一处缺口，发车前必须补（2026-11-13 05:1x 发现）**：
+`code_lock.json` 里 `git_sha` 是 **`null`**，因为锁是用 `--from-index` 模式生成的
+（`code_lock.py:39`：`from_index=True` 时 `git_sha=None`，`source` 写 "staged index (the commit that contains this file)"）。
+这正是「一个版本 = 两个提交」这条规则要避免的自指：锁无法命名包含它自己的那个提交。
+
+- **内容本身是好的**：独立核过，20 个 blob 的 md5 与 `git cat-file blob 707762f:<path>` **20/20 全等**（`tmp/audit_hc/verify_lock_v13.py`）。
+  缺的只是 `git_sha` 这一个字段，不是代码漂移。
+- **后果（为什么不能就这么跑）**：`git_sha=null` 时无法按 §1.2 的口径重放 `md5(blob@git_sha)`，只能全历史搜 blob；
+  而且这 48 格登记进 `runs.csv` 时 `git_sha` 列会是空的——**和我刚报的 24 个 cal 行是同一个缺陷**，不能一边修一边新造。
+- **补法**：以 `707762f` 为 `git_sha`，用 HEAD 模式重生成锁（`source` 回到 "HEAD"），单独提交一个只含
+  `code_lock.json` 的锁提交；a40 重验。**不改 `git_sha` 就发车，等于 48 格从一开始就不在指纹链上。**
+- **顺带**：`code_lock.check()` 目前**不校验 `git_sha` 是否为空**，所以 `CODE LOCK OK` 会在 `git_sha=null` 时照报绿。
+  建议加一条断言（锁 `source` 含 "index" 或 `git_sha is None` → 拒跑），否则这个洞下次还会静默通过。
+
+**历史版本**（不再作为准入基线，仅供追溯）：v12 `57a4570` / 锁 `21bc2a2`（16 blob，锁 md5 `b7e0bf01c974c724778aa3353511111c`）；v9 `d1e0527` / 锁 `6c405ad`（15 blob，锁 md5 `c04c958600ca26fed9ea6944cbe12cbc`）；v10 `95a5898`（16 blob，`scale_align.py` 入 OWN）；v11 `9601320`（16 blob）。**W2 那 24 格 cal 格是在 v11 下跑的**，标定缺陷见 §4 事故 14。
 
 **历史版本**（不再作为准入基线，仅供追溯）：v9 `d1e0527` / 锁 `6c405ad`（15 blob，锁 md5 `c04c958600ca26fed9ea6944cbe12cbc`）；v10 `95a5898`（16 blob，`scale_align.py` 入 OWN）；v11 `9601320`（16 blob，删 `train_hc` 内联 remap + 守卫与 `--check` 同口径 + `.gitattributes`）。**W2 那 24 格 cal 格是在 v11 下跑的**，标定缺陷见 §4 事故 14。
 
