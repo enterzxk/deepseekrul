@@ -1,4 +1,4 @@
-# 方法规格（Paper B）
+﻿# 方法规格（Paper B）
 
 状态：**Stage D 部分草稿，待数学审查**。Stage C 的实测结论见 `CYCLE_DEPENDENCE_STUDY.md`。
 本文只写规格，**不含实现**；所有协议常量从 `paper_b/configs/protocol.json` 读取，
@@ -111,24 +111,56 @@ $\hat D$ 对 $k$ 单调不减（$\hat\nu\ge0$ 保证），因此到达时间良�
 
 ## D3. 可微失效阈值到达
 
-### D3.1 生存和形式
+### D3.1 直接软到达求和（v2；危险率连乘已证伪）
 
-设观测窗口的预测时域 $K$（见 D3.4）。定义危险率与生存函数
-$$h_j=\sigma\!\big(\beta(\hat D_{t+j\mid t}-1)\big),\qquad
-S_0=1,\quad S_k=\prod_{j=1}^{k}(1-h_j),$$
-$$\boxed{\;\widehat{\mathrm{RUL}}_t=\hat T^\star_t=\sum_{k=0}^{K-1}S_k\;}$$
+**v1 算子已证伪，仅作记录。** v1 用 $h_j=\sigma(\beta(\hat D_{t+j}-1))$、
+$S_0=1$、$S_k=\prod_{j=1}^{k}(1-h_j)$、$\hat T^\star=\sum_k S_k$。当 $\beta=1$ 且 $\hat D\ge0$ 时
+$h_j\ge\sigma(-1)$，于是
 
-依据离散非负随机变量的恒等式 $\mathbb{E}[T]=\sum_{k\ge0}\Pr(T>k)$，而 $\Pr(T>k)=S_k$。
-$\beta>0$ 是锐度：$\beta\to\infty$ 时 $S_k=\mathbb{1}[k<k^\star]$，
-$\hat T^\star\to k^\star$ 恰好等于硬到达步数，**无系统性偏移**（这是 D3.2 检验的对象）。
+$$\hat T^\star\le\frac{1-q^K}{h}<\frac{1}{h}=1+e=3.718,\qquad h=\sigma(-\beta),\ q=1-h,$$
+
+**与轨迹无关**，够不到 `rul_cap=125`。这是解析上界，不是调参能修的：$\beta$ 在本规格里
+**写死、不搜索**，所以上界贯穿整个训练。该上界在 $D\equiv0$ 处**取到**，
+即算子最大值落在坍缩解上。`test_arrival_old_operator_is_capped` 把它钉成回归见证。
+
+**v2：不连乘。** 单调轨迹的真生存指示就是 $\mathbb{1}[\hat D_{t+k}<1]$，连乘是多余的，
+而多余的连乘正是几何衰减的来源。取其平滑替代，并把**离阈值的距离除以预测速率**，
+使自变量成为"剩余周期数"而不是"损伤单位"：
+
+$$S_k=\sigma\!\Big(\beta_s\,\frac{1-\hat D_{t+k\mid t}}{\hat\nu_{t+k\mid t}+\varepsilon}\Big),
+\qquad
+\boxed{\;\hat T^\star_t=\mathrm{clamp}\Big(\sum_{k=0}^{K-1}S_k-0.5,\ 0,\ K\Big)\;}$$
+
+$\beta_s$ 的量纲是**每周期**、与速率无关：过渡带约 $1/\beta_s$ 个周期，取 $\beta_s=4$
+（初版固定，不搜索）。
+
+**语义逐条钉死**：
+
+| 情形 | $S_k$ 行为 | $\hat T^\star$ |
+|---|---|---|
+| 当前已越过阈值 $\hat D_t\ge1$ | $k=0$ 项 $\le0.5$，其余 $\approx0$ | $\approx0$：**已失效对应 RUL=0** |
+| 恰好命中 $\hat D=1$ | 该步恰为 0.5 | 与硬到达步数一致（$-0.5$ 抵消半周期）|
+| 未命中（$K$ 内不达阈值） | 每项饱和到 1 | $K-0.5$，样本按 $K$ **右删失** |
+| 速率可变 | 局部速率估计 | 偏差随速率曲率增长（见下）|
+
+**可表示范围用构造性证据**，不靠随机初始化恰好输出大值：预设轨迹在
+$n^\star=125/150/300$ 处穿越时，$\hat T^\star$ 必须分别给出对应值
+（`test_arrival_representable_range_exceeds_rul_cap`）。这是最便宜的门：3.718 那种上界
+应当在一秒内暴露，比任何接口检查都先。
+
+**变速偏差（已知限制）**：$S_k$ 用**局部**速率，所以 $\sum_k S_k$ 只在速率缓变时等于
+剩余步数。二次加速剖面上实测偏差 ≤3 周期，且 $S_k$ 随 $k$ 不回升
+（`test_arrival_variable_rate`）。**速率剧变时该估计会偏**——D-G4 的软硬一致性检查
+必须按速率变化幅度分组，不能整体报一个数。
 
 ### D3.2 硬到达与软硬一致性
 
 推理期硬规则：$\;T^\text{hard}_t=\min\{k\ge0:\hat D_{t+k\mid t}\ge1\}$，截断到 $K$。
 
 **预注册检验（D-G4）**：在 val 上要求
-$\big|\overline{\hat T^\star}-\overline{T^\text{hard}}\big|\le 1$ 周期。
-超出则说明 $\beta$ 过小（软到达被过度平滑），按 $\beta\mapsto2\beta$ 重标定一次，**只一次**。
+$\big|\overline{\hat T^\star}-\overline{T^\text{hard}}\big|\le 1$ 周期，**按速率变化幅度分层**。
+超出则说明 $\beta_s$ 过小（软到达被过度平滑），按 $\beta_s\mapsto2\beta_s$ 重标定一次，**只一次**。
+注意分层不是可选项：$S_k$ 用局部速率，速率曲率大的样本天然偏差更大（D3.1 已量化）。
 
 ### D3.3 为什么不用硬 argmin 训练
 
@@ -446,7 +478,7 @@ data_d.engine_batch(subset, data_dir, span, cuts, split='train'|'val') -> {
 - **cycle 在 D 中的形态**：Stage C 的结论是 raw 标量优于 Fourier（−5.03%，四子集全负），
   但 G4 判据替换仍 **PENDING-L2**。因此 D 的 B0–B3 **先不含 cycle**（符合任务书 C→D 顺序），
   cycle 融合留到 Stage E 的 C0–C3。
-- **$\alpha$ 与 $\beta$ 的取值**：初始版固定（$\alpha=0.2$、$\beta=1$），不做搜索；
+- **$\alpha$ 与 $\beta$ 的取值**：初始版固定（$\alpha=0.2$、$\beta_s=4$/周期），不做搜索；
   若 D-G4 不过再按 D3.2 重标定一次。
 - **$n_e$ 较大时的显存**：整条前向的序列长度可达数百，若显存不够，退回 D1.4 的备选，
   但必须同时提交一致性检验结果。

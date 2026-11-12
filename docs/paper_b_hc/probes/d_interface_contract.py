@@ -53,9 +53,11 @@ def check(subset, split):
         assert eb['valid'][i, :n].min() == 1.0 and eb['valid'][i, :n].max() == 1.0
         assert eb['valid'][i, n:].max(initial=0) == 0.0
         # padding must be exactly zero: a non-zero pad would enter the prefix sum
-        assert eb['x'][i, n:].max(initial=0) == 0.0, 'x padding not zero'
-        assert eb['mask'][i, n:].max(initial=0) == 0.0, 'mask padding not zero'
-        assert eb['baseline'][i, n:].max(initial=0) == 0.0, 'baseline padding not zero'
+        # padding must be exactly zero ELEMENT-WISE: a max() check misses an
+        # all-negative non-zero pad, which would enter the prefix sum silently.
+        assert np.all(eb['x'][i, n:] == 0.0), 'x padding not element-wise zero'
+        assert np.all(eb['mask'][i, n:] == 0.0), 'mask padding not element-wise zero'
+        assert np.all(eb['baseline'][i, n:] == 0.0), 'baseline padding not element-wise zero'
         assert eb['cycle_raw'][i, :n].tolist() == list(range(1, n + 1)), 'cycle axis'
         assert np.allclose(eb['r'][i, :n], n - np.arange(1, n + 1)), 'r = n - t'
         assert np.allclose(eb['y'][i, :n], np.minimum(eb['r'][i, :n], C.RUL_CAP)), 'y = min(r, cap)'
