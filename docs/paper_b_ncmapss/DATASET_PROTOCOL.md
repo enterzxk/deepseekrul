@@ -262,11 +262,30 @@ Inheriting `rul_cap` silently would transplant the C-MAPSS label truncation onto
 a dataset whose lifetime scale is different, and would redefine the raw criterion
 by accident — exactly the confusion `D043` bounds.
 
-**No early stopping.** Every rung trains for the fixed epoch budget and the final
-epoch is the reported model. Early stopping on the held-out engine would mean the
-engine used for the reported score also chose the stopping point; that is a
-selection bias, not a training detail. Training and validation loss curves are
-recorded for every run so that under-training is visible rather than inferred.
+**Stopping: inner-validation early stopping, never on the held-out engine.**
+A fixed budget was tried first and rejected on evidence. With the curve recorded
+as a diagnostic, fold 1 showed N0 reaching its minimum at epoch 11 while N1, N2
+and N3 were still descending at 200 (their minima fell at 157-198 of 200). One
+fixed budget therefore reports *where training stopped*, not what a model can
+reach, and no single value serves architectures that converge 20x apart.
+
+Early stopping on the outer held-out engine stays forbidden: the engine that
+supplies the reported score must not also choose the stopping point. The epoch is
+selected on an **inner** split instead. For outer fold `u_o`, the five training
+engines are rotated: one is held out as inner validation and the other four are
+used for training, giving five best epochs. `epoch*` is their median. The model
+is then retrained on all five training engines for exactly `epoch*` passes, with
+no early stopping, and evaluated on `u_o`. The outer held-out engine contributes
+nothing to `epoch*`.
+
+Inner early stopping uses `patience 12` (the value already in `protocol.json`), a
+minimum of 20 passes and a maximum of 400. Every run records `epoch_star` and the
+five inner epochs.
+
+`holdout_min` / `holdout_min_epoch` are still reported for every run, labelled
+`diagnostic only - never used for model selection`. They are explicitly **not** a
+convergence criterion: N0's outer minimum of 0.0005 at epoch 11 is a
+4,353-parameter MLP memorising one engine's curve, not convergence.
 
 No rung gets a different schedule. If a rung fails to converge under this plan,
 that is a reported finding, not a licence to retune — the same rule that keeps N3
