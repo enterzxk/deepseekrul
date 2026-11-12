@@ -110,6 +110,9 @@ FIXED_EVAL_PASSES = PASSES
 #: cannot reach GitHub (3090 currently cannot).
 PROTOCOL_PATH = 'docs/paper_b_ncmapss/DATASET_PROTOCOL.md'
 FREEZE_TEMPLATE = 'docs/paper_b_ncmapss/registry/FREEZE_TEMPLATE.json'
+#: protocol 6.8 gate: the sealed test engines are only scored under a manifest
+#: from this directory that is frozen and lists every (tag, seed) cell.
+FREEZE_DIR = 'docs/paper_b_ncmapss/registry/freeze'
 
 
 def expected_protocol_blob(root):
@@ -472,6 +475,101 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
     return rows
 
 
+def _freeze_hash_ok(man):
+    """Recompute the manifest content hash and report which exclusion rule matched.
+
+    The rule is not assumed: two generations exist in the repo (the older one also
+    excluded ``freeze_ts_utc``, which left the freeze time outside the hash and is
+    exactly the hole the gate is meant to close). Both are tried, and the one that
+    matched is recorded in the eval-start file so a reader can tell which manifest
+    shape this run used. Returns the rule label, or None if neither matches.
+    """
+    declared = man.get('freeze_content_sha256')
+    if not isinstance(declared, str):
+        return None
+    rules = {
+        'exclude_hash_and_eval_start': ('freeze_content_sha256', 'eval_start_utc'),
+        'exclude_hash_eval_start_and_freeze_ts': ('freeze_content_sha256',
+                                                  'eval_start_utc', 'freeze_ts_utc'),
+    }
+    for label, drop in rules.items():
+        body = {k: v for k, v in man.items() if k not in drop}
+        blob = json.dumps(body, sort_keys=True, separators=(',', ':'))
+        if hashlib.sha256(blob.encode('utf-8')).hexdigest() == declared:
+            return label
+    return None
+
+
+def _load_freeze(root, path_arg):
+    """Load and structurally validate the freeze manifest before any test row.
+
+    Protocol 6.8: the test engines may only be scored under a manifest that is
+    ``frozen: true`` and lists every (tag, seed) cell. A manifest that is missing a
+    cell would let us report a subset of the batch; a full cross product cannot
+    express "report only the cells that look good", which is what the gate is for.
+    """
+    if path_arg:
+        p = Path(path_arg)
+    else:
+        cands = sorted((root / FREEZE_DIR).glob('NCM-FREEZE-*.json'))
+        live = []
+        for c in cands:
+            m = json.loads(c.read_text(encoding='utf-8'))
+            if m.get('frozen') is True and str(m.get('status', '')).lower() != 'superseded':
+                live.append((c, m))
+        if len(live) != 1:
+            raise SystemExit(f'expected exactly one live freeze manifest in '
+                             f'{root / FREEZE_DIR}, found {[c.name for c, _ in live]}')
+        p, man = live[0]
+    if path_arg:
+        man = json.loads(p.read_text(encoding='utf-8'))
+    if man.get('frozen') is not True:
+        raise SystemExit(f'{p}: manifest is not frozen (frozen={man.get("frozen")!r})')
+    rule = _freeze_hash_ok(man)
+    if rule is None:
+        raise SystemExit(f'{p}: freeze_content_sha256 does not match the content '
+                         'under either exclusion rule; refusing to open the test set')
+    cells = [(c['subset'], c['rung'], c['seed']) for c in man.get('runs', [])]
+    if len(cells) != len(set(cells)):
+        raise SystemExit(f'{p}: duplicate (subset, rung, seed) entries')
+    return p, man, rule
+
+
+def _check_manifest(man, subset, dev_units, test_units, data_sha, rungs, seeds_by_rung):
+    """The manifest must cover exactly the cells this invocation will produce."""
+    want = {(subset, r, sd) for r in rungs for sd in seeds_by_rung[r]}
+    have = {(c['subset'], c['rung'], c['seed']) for c in man['runs']
+            if c['subset'] == subset}
+    if want != have:
+        raise SystemExit(f'manifest does not match this run: missing={sorted(have - want)} '
+                         f'extra={sorted(want - have)}')
+    d = man.get('data', {}).get(subset, {})
+    if d.get('sha256') and d['sha256'] != data_sha:
+        raise SystemExit(f'{subset}: h5 sha256 {data_sha} != manifest {d["sha256"]}')
+    if list(d.get('dev_units', [])) != list(dev_units):
+        raise SystemExit(f'{subset}: dev units {list(dev_units)} != manifest '
+                         f'{d.get("dev_units")}')
+    if list(d.get('test_units', [])) != list(test_units):
+        raise SystemExit(f'{subset}: test units {list(test_units)} != manifest '
+                         f'{d.get("test_units")}')
+
+
+def _write_eval_start(man_path, man, rule, payload):
+    """Write the open timestamp next to the manifest; refuse a second open."""
+    out = man_path.parent / f"{man['freeze_id']}.eval_start.json"
+    if out.exists():
+        raise SystemExit(f'{out} already exists: this manifest has already been used '
+                         'to open the test set; a second open needs a new manifest')
+    out.write_text(json.dumps({**payload, 'freeze_id': man['freeze_id'],
+                               'freeze_content_sha256': man['freeze_content_sha256'],
+                               'freeze_ts_utc': man.get('freeze_ts_utc'),
+                               'hash_rule_matched': rule,
+                               'eval_start_utc': datetime.now(timezone.utc)
+                               .strftime('%Y-%m-%dT%H:%M:%SZ')}, indent=1))
+    print(f'eval start recorded: {out}')
+    return out
+
+
 def _dev_epoch_star(dev_ledger, rung, seed):
     """Stopping point for a full-dev fit, taken from the dev LOEO grid.
 
@@ -498,7 +596,7 @@ def _dev_epoch_star(dev_ledger, rung, seed):
 
 
 def run_test_cell(rung, cfg, path, dev_units, test_units, out_root, ledger, pre,
-                  data_sha, subset, dev_ledger):
+                  data_sha, subset, dev_ledger, freeze=None):
     """Train on all six dev engines and score the sealed test engines.
 
     No test row influences anything: the stopping points come from the dev grid,
@@ -537,6 +635,9 @@ def run_test_cell(rung, cfg, path, dev_units, test_units, out_root, ledger, pre,
                             seg_boundaries=json.dumps({'relative': list(SEG_REL),
                                                        'absolute': list(SEG_ABS)}),
                             independent_unit='engine', status='running')
+        if freeze:
+            row_template.update(freeze_id=freeze.get('freeze_id', ''),
+                                freeze_ts_utc=freeze.get('freeze_ts_utc', ''))
         if rung == 'N3':
             row_template.update(freeze_source='paper_b/results/FREEZE_ABLATION_SEED101.json;'
                                              'paper_b/configs/protocol.json',
@@ -640,6 +741,9 @@ def main():
     ap.add_argument('--dev-ledger', default='',
                     help='dev ledger used for epoch* in the test phase '
                          '(default: <out-root>/<subset>/runs_dev.csv)')
+    ap.add_argument('--freeze', default='',
+                    help='freeze manifest for the test phase (default: the single '
+                         f'live manifest in {FREEZE_DIR})')
     a = ap.parse_args()
     cfg = load_frozen()
     cfg['_root'] = Path(__file__).resolve().parents[2]
@@ -671,15 +775,31 @@ def main():
 
     if a.phase == 'test':
         dev_ledger = a.dev_ledger or str(out_root / 'runs_dev.csv')
+        rungs = [r.strip() for r in a.rungs.split(',') if r.strip()]
+        if any(r in DIAG_RUNGS for r in rungs):
+            raise SystemExit('the test phase is only for the pre-registered rungs; '
+                             f'diagnostic arms: {sorted(set(rungs) & set(DIAG_RUNGS))}')
+        # protocol 6.8: no test row without a frozen manifest that covers exactly
+        # the cells this invocation will produce, and the anchor must be the one
+        # the manifest names.
+        man_path, man, rule = _load_freeze(cfg['_root'], a.freeze)
+        if man.get('repo', {}).get('protocol_blob') not in (None, pre['protocol_blob']):
+            raise SystemExit(f'manifest protocol_blob {man["repo"]["protocol_blob"]} != '
+                             f'current {pre["protocol_blob"]}')
+        seeds_by_rung = {'N0': (None,), 'N1': SEEDS, 'N2': SEEDS, 'N3': SEEDS}
+        _check_manifest(man, subset, dev_units, test_units, data_sha, rungs, seeds_by_rung)
+        print(f'freeze {man["freeze_id"]}  hash_rule={rule}  '
+              f'cells={len(man["runs"])}  anchor={pre["protocol_blob"]}')
+        _write_eval_start(man_path, man, rule,
+                          {'subset': subset, 'rungs': rungs, 'dev_units': list(dev_units),
+                           'test_units': list(test_units), 'data_sha256': data_sha,
+                           'git_sha': pre['git_sha'], 'protocol_blob': pre['protocol_blob']})
         print(f'test phase: ledger {ledger}  epoch* from {dev_ledger}')
         all_rows = []
-        for rung in [r.strip() for r in a.rungs.split(',') if r.strip()]:
-            if rung in DIAG_RUNGS:
-                raise SystemExit(f'{rung} is a diagnostic arm; the test phase is '
-                                 'only for the pre-registered rungs')
+        for rung in rungs:
             all_rows += run_test_cell(rung, cfg, p, dev_units, test_units,
                                       str(out_root), ledger, pre, data_sha,
-                                      subset, dev_ledger)
+                                      subset, dev_ledger, freeze=man)
         ok = sum(r['status'] == 'ok' for r in all_rows)
         print(f'done: {ok}/{len(all_rows)} ok, ledger {ledger}')
         return
