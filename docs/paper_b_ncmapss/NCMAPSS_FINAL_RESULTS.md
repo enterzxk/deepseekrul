@@ -39,3 +39,15 @@ number of flights contributing.
   reported; the disagreement is the finding, not something to reconcile away.
 - No DS02 number is compared against a C-MAPSS number without the protocol
   statement required by `CROSS_DATASET_COMPARISON.md`.
+- **The capped criterion may be inactive on DS02.** DS02 RUL is counted in
+  flights, and its lifetimes may be far shorter than the 125-cycle cap inherited
+  from C-MAPSS. If no unit's raw RUL ever exceeds 125, then
+  `y_true_cap125 == y_true_raw` everywhere and the capped criterion carries no
+  information. In that case the capped column is reported as
+  `inactive (no unit exceeds the cap)` — not printed as a second set of numbers
+  identical to the raw one, and never described as "the stricter criterion".
+  The measured lifetime distribution is reported first so a reader can check the
+  claim rather than take it on trust.
+- Symmetrically, if some units do exceed 125, the two criteria are reported
+  side by side with both caps named, and the difference between them is stated
+  as a property of the label definition, not as a property of the model.
