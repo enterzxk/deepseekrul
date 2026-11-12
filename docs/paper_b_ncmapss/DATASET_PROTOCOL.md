@@ -273,14 +273,28 @@ Early stopping on the outer held-out engine stays forbidden: the engine that
 supplies the reported score must not also choose the stopping point. The epoch is
 selected on an **inner** split instead. For outer fold `u_o`, the five training
 engines are rotated: one is held out as inner validation and the other four are
-used for training, giving five best epochs. `epoch*` is their median. The model
-is then retrained on all five training engines for exactly `epoch*` passes, with
-no early stopping, and evaluated on `u_o`. The outer held-out engine contributes
-nothing to `epoch*`.
+used for training, giving five inner validation curves. `epoch*` is the argmin of
+the **mean of those five curves**, floored at 20 passes. The model is then
+retrained on all five training engines for exactly `epoch*` passes, with no early
+stopping, and evaluated on `u_o`. The outer held-out engine contributes nothing to
+`epoch*`.
 
-Inner early stopping uses `patience 12` (the value already in `protocol.json`), a
-minimum of 20 passes and a maximum of 400. Every run records `epoch_star` and the
-five inner epochs.
+The median of the five *per-split* minima was tried first and rejected on
+evidence: with four training engines the inner validation loss bottoms out at
+epoch 1-12 and then rises, because the model starts memorising the four engines
+and generalises worse to the fifth. The median of those minima collapsed to 1-2,
+and the outer score became a barely-trained model's score (N2 fell from 5.29 to
+18.09). Averaging the curves first and taking the argmin smooths the single-engine
+noise that makes a per-split minimum unusable, while still using only training
+engines.
+
+Inner training runs to a maximum of 400 passes; `patience 12` from
+`protocol.json` is recorded but is not used as a stopping rule, because the
+stopping epoch is read off the mean curve. Every run records `epoch_star`, the
+five per-split minima, and `epoch_floor_applied` together with the raw argmin
+whenever the 20-pass floor moved the choice.
+
+`holdout_min` / `holdout_min_epoch` are still reported for every run, labelled
 
 `holdout_min` / `holdout_min_epoch` are still reported for every run, labelled
 `diagnostic only - never used for model selection`. They are explicitly **not** a
