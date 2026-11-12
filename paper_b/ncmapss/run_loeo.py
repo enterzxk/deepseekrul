@@ -476,27 +476,34 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
 
 
 def _freeze_hash_ok(man):
-    """Recompute the manifest content hash and report which exclusion rule matched.
+    """Recompute the manifest content hash and report which rule matched.
 
-    The rule is not assumed: two generations exist in the repo (the older one also
-    excluded ``freeze_ts_utc``, which left the freeze time outside the hash and is
-    exactly the hole the gate is meant to close). Both are tried, and the one that
-    matched is recorded in the eval-start file so a reader can tell which manifest
-    shape this run used. Returns the rule label, or None if neither matches.
+    The rule is not assumed. Two exclusion sets exist in the repo: the current one
+    (hash + eval_start) and the earlier one, which also excluded ``freeze_ts_utc``
+    -- that left the freeze time outside the hash, which is exactly the hole the
+    gate exists to close. The canonical form is compact separators with
+    ``ensure_ascii=False`` (found by ``scripts/nc_hash_probe.py`` against the
+    committed manifest, not guessed); both ascii modes are tried anyway and the
+    exact combination is returned so the eval-start file records what this run
+    actually verified.
+
+    Returns a rule label, or None if no rule reproduces the declared hash.
     """
     declared = man.get('freeze_content_sha256')
     if not isinstance(declared, str):
         return None
-    rules = {
-        'exclude_hash_and_eval_start': ('freeze_content_sha256', 'eval_start_utc'),
-        'exclude_hash_eval_start_and_freeze_ts': ('freeze_content_sha256',
-                                                  'eval_start_utc', 'freeze_ts_utc'),
+    drops = {
+        'hash+eval_start': ('freeze_content_sha256', 'eval_start_utc'),
+        'hash+eval_start+freeze_ts': ('freeze_content_sha256', 'eval_start_utc',
+                                      'freeze_ts_utc'),
     }
-    for label, drop in rules.items():
+    for label, drop in drops.items():
         body = {k: v for k, v in man.items() if k not in drop}
-        blob = json.dumps(body, sort_keys=True, separators=(',', ':'))
-        if hashlib.sha256(blob.encode('utf-8')).hexdigest() == declared:
-            return label
+        for ascii_ in (False, True):
+            blob = json.dumps(body, sort_keys=True, separators=(',', ':'),
+                              ensure_ascii=ascii_)
+            if hashlib.sha256(blob.encode('utf-8')).hexdigest() == declared:
+                return f'{label},ensure_ascii={ascii_}'
     return None
 
 
