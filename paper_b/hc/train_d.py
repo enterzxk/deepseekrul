@@ -161,14 +161,48 @@ def rul_loss(pred, r, cap):
                        (pred - r) ** 2)
 
 
-def losses_for(net, arm, fo, cap, s0, lam_t, lam_s):
-    L = dict(rul=rul_loss(fo['pred'], fo['r'], cap).mean())
+def term_sums(net, arm, fo, cap):
+    """Per-engine SUMS and counts, never means.
+
+    Why sums: the batch loss is a reduction over engines, and ||sum_i L_i|| is
+    not sum_i ||L_i||. Reducing per engine first (mean) and averaging the norms
+    afterwards measures something else entirely -- the advisor caught exactly
+    this. Sums let the caller apply the same reduction the optimiser sees.
+
+    The three terms reduce differently, and that is deliberate:
+      rul       point-weighted  (every cycle is a sample)
+      terminal  engine-equal    (one anchor per engine; a long engine must not
+                                 outvote a short one)
+      smooth    point-weighted  (a second difference per cycle)
+    """
+    pt = rul_loss(fo['pred'], fo['r'], cap)
+    out = dict(rul_sum=pt.sum(),
+               rul_n=torch.tensor(float(pt.numel()), device=pt.device))
     if arm in HI_ARMS:
-        L['terminal'] = (fo['D'][-1] - 1.0) ** 2
+        out['term_sum'] = (fo['D'][-1] - 1.0) ** 2
+        out['term_n'] = torch.ones((), device=out['term_sum'].device)
         if fo['delta'].numel() > 1:
-            L['smooth'] = ((fo['delta'][1:] - fo['delta'][:-1]) ** 2).mean() / s0
+            d2 = (fo['delta'][1:] - fo['delta'][:-1]) ** 2
+            out['smooth_sum'] = d2.sum()
+            out['smooth_n'] = torch.tensor(float(d2.numel()), device=d2.device)
         else:
-            L['smooth'] = torch.zeros((), device=fo['delta'].device)
+            out['smooth_sum'] = torch.zeros((), device=fo['delta'].device)
+            out['smooth_n'] = torch.ones((), device=fo['delta'].device)
+    return out
+
+
+def aggregate(acc, s0):
+    """Reduce accumulated sums to the three loss terms the optimiser sees."""
+    L = dict(rul=acc['rul_sum'] / acc['rul_n'].clamp_min(1.0))
+    if 'term_sum' in acc:
+        L['terminal'] = acc['term_sum'] / acc['term_n'].clamp_min(1.0)
+        L['smooth'] = acc['smooth_sum'] / acc['smooth_n'].clamp_min(1.0) / s0
+    return L
+
+
+def losses_for(net, arm, fo, cap, s0, lam_t, lam_s):
+    """Single-engine convenience wrapper (probes only). Batch code uses sums."""
+    L = aggregate(term_sums(net, arm, fo, cap), s0)
     total = L['rul']
     if 'terminal' in L:
         total = total + lam_t * L['terminal'] + lam_s * L['smooth']
@@ -294,37 +328,37 @@ def evaluate(net, arm, eb, dev, K, cap):
 # training
 # --------------------------------------------------------------------------- #
 def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3):
-    """D4.5: gradient contribution of each loss term, on a fixed sample.
+    """D4.5: gradient norm of the BATCH-AGGREGATED term, not of a mean of norms.
 
-    Reports BOTH readings, because the spec is ambiguous and the two disagree:
+    ``||grad sum_i L_i||`` is what the optimiser produces; averaging per-engine
+    gradient norms (the earlier version) measures a different quantity and is
+    wrong by the triangle inequality. The batch here is a fixed sample of
+    ``n_eng`` engines reduced with the same rules as the training step:
+    rul point-weighted, terminal engine-equal, smooth point-weighted.
 
-      unweighted  g_i = ||grad_theta L_i||          (D4.5's literal wording)
-      weighted    g_i = ||grad_theta lambda_i L_i|| (what the optimiser sees)
-
-    The literal reading has a defect: it ignores lambda entirely, so it would
-    prescribe a 1755x up-weight of L_terminal and a 45x up-weight of L_smooth --
-    which then makes the weighted smoothness gradient 1563x the RUL gradient.
-    The weighted reading is the one that describes the actual update, so the
-    ratio used for the gate is the weighted one; the unweighted one is kept for
-    the record.
+    Reports both readings, because the spec is ambiguous:
+      unweighted  ||grad L_i||            D4.5's literal wording
+      weighted    ||grad lambda_i L_i||   what the optimiser sees
+    The ratio used for the gate is the weighted one; the unweighted one is kept
+    for the record.
     """
     params = [p for p in net.parameters() if p.requires_grad]
-    keys = ('rul', 'terminal', 'smooth') if arm in HI_ARMS else ('rul',)
-    acc = {k: 0.0 for k in keys}
+    acc = {}
     for i in range(min(n_eng, len(ebt['lengths']))):
         n = int(ebt['lengths'][i])
         fo = forward_engine(net, arm, ebt, i, n, dev, K)
-        _, L = losses_for(net, arm, fo, cap, s0, lam_t, lam_s)
-        for k, v in L.items():
-            if k not in acc:
-                continue
-            gs = torch.autograd.grad(v, params, retain_graph=True, allow_unused=True)
-            acc[k] += float(sum(g.norm() ** 2 for g in gs if g is not None)) ** 0.5
-    m = float(min(n_eng, len(ebt['lengths'])))
-    unweighted = {k: v / m for k, v in acc.items()}
-    weighted = {k: (v if k == 'rul' else v * (lam_t if k == 'terminal' else lam_s))
-                for k, v in unweighted.items()}
-    return dict(unweighted=unweighted, weighted=weighted)
+        for k, v in term_sums(net, arm, fo, cap).items():
+            acc[k] = acc[k] + v if k in acc else v
+    L = aggregate(acc, s0)
+    w = {'rul': 1.0, 'terminal': lam_t, 'smooth': lam_s}
+    unweighted, weighted = {}, {}
+    for k, v in L.items():
+        gs = torch.autograd.grad(v, params, retain_graph=True, allow_unused=True)
+        nrm = float(sum(g.norm() ** 2 for g in gs if g is not None)) ** 0.5
+        unweighted[k] = nrm
+        weighted[k] = nrm * w[k]
+    return dict(unweighted=unweighted, weighted=weighted,
+                values={k: float(v) for k, v in L.items()})
 
 
 def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
@@ -335,6 +369,16 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     K = int(sh['K'] if K is None else K)
     s0 = float(sh['s0']['used'])
     l_mean = float(sh['l_mean'])
+    # One shared pair for all four arms (advisor, 2026-11-13). Read from the
+    # frozen calibration record rather than hard-coded, so the value that trained
+    # a run is the value in the record and the provenance is explicit.
+    lam_src = 'default_125_squared'
+    if lam is None and lam_t is None and lam_s is None:
+        fz = Path(shared_path).parent / 'd45_init.json'
+        if fz.exists():
+            fr = json.loads(fz.read_text(encoding='utf-8'))['frozen']
+            lam_t, lam_s = float(fr['lam_T']), float(fr['lam_S'])
+            lam_src = 'd45_init.json:frozen(c_T=%.6f,c_S=%.6f)' % (fr['c_T'], fr['c_S'])
     lam_t = float(C.RUL_CAP ** 2 if lam_t is None else lam_t)
     lam_s = float(C.RUL_CAP ** 2 if lam_s is None else lam_s)
     if lam is not None:
@@ -365,25 +409,35 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         net.train()
         order = torch.randperm(E, generator=g).tolist()
         opt.zero_grad(set_to_none=True)
-        pts, tot = 0, 0.0
-        for i in order:
-            n = int(ebt['lengths'][i])
-            fo = forward_engine(net, arm, ebt, i, n, dev, K)
-            loss, _ = losses_for(net, arm, fo, cap, s0, lam_t, lam_s)
-            # weight by the point count so the accumulated gradient is the mean
-            # over the ~`batch` points, not the sum of per-engine means
-            (loss * (n / float(batch))).backward()
-            pts += n
-            tot += float(loss.detach()) * n
-            if pts >= batch:
-                torch.nn.utils.clip_grad_norm_(params, 1.0)
-                opt.step()
-                opt.zero_grad(set_to_none=True)
-                pts = 0
-        if pts > 0:
+        acc, pts, tot, seen = {}, 0, 0.0, 0
+
+        def _step(acc, pts):
+            """One optimiser step on the batch-aggregated loss."""
+            L = aggregate(acc, s0)
+            total = L['rul']
+            if 'terminal' in L:
+                total = total + lam_t * L['terminal'] + lam_s * L['smooth']
+            total.backward()
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             opt.step()
             opt.zero_grad(set_to_none=True)
+            return float(total.detach()) * pts, pts
+
+        for i in order:
+            n = int(ebt['lengths'][i])
+            fo = forward_engine(net, arm, ebt, i, n, dev, K)
+            for k, v in term_sums(net, arm, fo, cap).items():
+                acc[k] = acc[k] + v if k in acc else v
+            pts += n
+            if pts >= batch:
+                dl, dp = _step(acc, pts)
+                tot += dl
+                seen += dp
+                acc, pts = {}, 0
+        if pts > 0:
+            dl, dp = _step(acc, pts)
+            tot += dl
+            seen += dp
         sch.step()
 
         ev = evaluate(net, arm, ebv, dev, K, cap)
@@ -418,7 +472,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     (out / 'ckpt').mkdir(parents=True, exist_ok=True)
     torch.save(net.state_dict(), out / 'ckpt' / 'best.pt')
     m = dict(arm=arm, subset=subset, seed=int(seed), K=K, s0=s0,
-             lam_t=lam_t, lam_s=lam_s,
+             lam_t=lam_t, lam_s=lam_s, lam_source=lam_src,
              l_mean=l_mean, head_fingerprint=sh['head_fingerprint'],
              params=nparam, epochs_run=len(history), best_ep=best_ep,
              best_val_engine_mean_rmse=best, elapsed_s=round(time.time() - t0, 1),

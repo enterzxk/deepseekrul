@@ -63,8 +63,27 @@ def main():
                      ('%.3f' % rec['implied_c'].get('terminal')) if rec['implied_c'].get('terminal') else '-',
                      ('%.4f' % rec['implied_c'].get('smooth')) if rec['implied_c'].get('smooth') else '-'))
     p = Path(SHARED) / 'd45_init.json'
-    p.write_text(json.dumps(out, indent=1), encoding='utf-8')
-    print('\nrecord -> %s' % p)
+    # Advisor's rule (2026-11-13): one shared pair for all arms and subsets,
+    # taken as the most conservative positive ratio so that at initialisation
+    # no auxiliary gradient exceeds its RUL gradient in ANY (subset, arm).
+    # Frozen from this measurement; never re-fitted against validation results.
+    ct = [r['implied_c']['terminal'] for r in out
+          if r['implied_c'].get('terminal')]
+    cs = [r['implied_c']['smooth'] for r in out if r['implied_c'].get('smooth')]
+    frozen = dict(c_T=min(ct), c_S=min(cs), lam_T=min(ct) * float(C.RUL_CAP) ** 2,
+                  lam_S=min(cs) * float(C.RUL_CAP) ** 2,
+                  rule='min over all (subset, arm) of g_rul/g_aux at init',
+                  c_T_range=[min(ct), max(ct)], c_S_range=[min(cs), max(cs)],
+                  n_records=len(out), source='d45_init.json',
+                  note='post-smoke protocol revision; S0 definition unchanged')
+    p.write_text(json.dumps(dict(records=out, frozen=frozen), indent=1),
+                 encoding='utf-8')
+    print('\nfrozen shared weights: c_T=%.6f (range %.4f-%.4f)  c_S=%.6f '
+          '(range %.4f-%.4f)' % (frozen['c_T'], frozen['c_T_range'][0],
+                                 frozen['c_T_range'][1], frozen['c_S'],
+                                 frozen['c_S_range'][0], frozen['c_S_range'][1]))
+    print('  lam_T=%.4f  lam_S=%.4f' % (frozen['lam_T'], frozen['lam_S']))
+    print('record -> %s' % p)
 
 
 if __name__ == '__main__':
