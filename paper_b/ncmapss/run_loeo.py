@@ -3,19 +3,34 @@
 Cell counts (schema §1.2): N0 = 6 folds x 1 (no seed axis) = 6; N1/N2/N3 =
 6 folds x 3 seeds = 54; total 60 dev cells.
 
-Per cell this writes, under ``experiments/ncmapss/<run_id>/``:
+Per cell this writes, under ``experiments/ncmapss/<run_id>_ev<epoch>/``:
 
     pred.csv             unit, cycle, y_true_raw, y_true_cap125, y_pred
                          exactly one row per (unit, cycle); no bare `y_true`
                          column, so the criterion is always chosen explicitly
     unit_lifetime.json   unit -> max RUL over that unit's complete trajectory
                          (needed by the relative segment rule; never a feature)
-    curve.csv            per-epoch train / holdout loss
-    config.json          the exact config used
+    curve.csv            per-epoch train / holdout loss (the full training run)
+    config.json          the exact config used, plus the epoch evaluated
     metrics.json         provisional metrics (the authoritative table is
                          recomputed by evaluation.py from pred.csv)
 
-and appends one row per cell to ``docs/paper_b_ncmapss/registry/runs.csv``.
+**Two evaluation points per cell, one training run.** The model is trained once
+to ``max(epoch*, 200)`` passes and the weights are snapshotted at ``epoch*`` (the
+inner-selection stopping point) and at 200 passes (the fixed endpoint). Each
+snapshot is scored separately, so every cell yields two ledger rows:
+
+    <run_id>_ev<epoch*>   selection_rule=inner_val
+    <run_id>_ev200        selection_rule=fixed_passes:200
+
+Neither point is preferred. Measured on fold 1 (2026-11-12), ``epoch*`` lands in
+20-94 while the outer curve's own minimum sits at 157-198, a systematic ~2x
+disagreement; reporting both makes that disagreement visible instead of hiding
+it behind one number. The outer holdout curve is diagnostic only and never
+selects anything.
+
+and appends one row per evaluation point to
+``docs/paper_b_ncmapss/registry/runs.csv``.
 
 A failing cell is recorded as ``status=failed`` with the reason in
 ``registry_note`` and the grid continues; nothing is retried until it succeeds,
@@ -46,9 +61,15 @@ import torch
 
 from .data import DEV_UNITS
 from .features import SPAN
-from .train import fit_rung, load_ds02, load_frozen
+from .train import build, fit_rung, load_ds02, load_frozen
 
 RUNGS = ('N0', 'N1', 'N2', 'N3')
+#: diagnostic arm, never part of the 60-cell grid: vanilla + the operating
+#: condition embedding DSPT gets, used to split the N1-vs-N2 gap into
+#: "tokenisation" and "condition id" (manager request, 2026-11-12)
+DIAG_RUNGS = ('N1c',)
+MODEL_NAMES = {'N0': 'age_only', 'N1': 'vanilla', 'N1c': 'vanilla_cond',
+               'N2': 'dspt_base', 'N3': 'dspt_frozen'}
 SEEDS = (101, 202, 303)
 N0_SEED = 101
 CAP = 125.0
@@ -59,6 +80,10 @@ SEG_ABS = (75.0, 25.0)          # early >= 75, mid >= 25, late < 25 (RUL cycles)
 # (240 updates) leaves every rung under-trained; 800 starts memorising (N2 13.99).
 PASSES = 200
 BATCH = 64
+#: the fixed endpoint reported next to the inner-selection epoch*. Both points
+#: come from the same training run (one fit, two snapshots), so a difference
+#: between the two rows is a difference of stopping point, not of initialisation.
+FIXED_EVAL_PASSES = PASSES
 #: frozen protocol anchor; checked by content hash so it works on a host that
 #: cannot reach GitHub (3090 currently cannot).
 PROTOCOL_PATH = 'docs/paper_b_ncmapss/DATASET_PROTOCOL.md'
@@ -213,119 +238,148 @@ def select_epoch_star(rung, data, cfg, seed, dev, batch):
                 avg_curve=[float(x) for x in avg])
 
 
+def _predict_held_out(rung, cfg, data, dev, state, target_mu, target_sd):
+    """Load one snapshot and predict the held-out unit's flight-end RUL."""
+    net = build(rung, cfg).to(dev)
+    net.load_state_dict(state)
+    net.eval()
+    ho = ~np.asarray(data['is_train'], bool)
+    x = torch.from_numpy(data['x'][ho]).float()
+    mask = torch.from_numpy(data['mask'][ho]).float()
+    cond = torch.from_numpy(data['cond'][ho])
+    if rung == 'N0':
+        x = x[..., -1:]
+    with torch.no_grad():
+        pred = net(x.to(dev), mask=mask.to(dev), cond=cond.to(dev))['prediction']
+    pred = pred.reshape(-1).cpu().numpy().astype(np.float64)
+    # invert the training-fold target standardisation before anything is written
+    return pred * target_sd + target_mu
+
+
 def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha):
     seed = N0_SEED if rung == 'N0' else None
     seeds = (N0_SEED,) if rung == 'N0' else SEEDS
     rows = []
     for sd in seeds:
         run_id = f'{rung}_LOEO-{held_out}_s{sd}' if rung != 'N0' else f'{rung}_LOEO-{held_out}'
-        d = Path(out_root) / run_id
-        row = {c: '' for c in LEDGER_COLS}
-        row.update(run_id=run_id, phase='dev', rung=rung,
-                   model=dict(N0='age_only', N1='vanilla', N2='dspt_base',
-                              N3='dspt_frozen')[rung],
-                   fold=f'LOEO-{held_out}', held_out_engine=held_out,
-                   n_train_engines=5, seed=(sd if rung != 'N0' else ''),
-                   git_sha=pre['git_sha'], protocol_blob=pre['protocol_blob'],
-                   train_plan_sha256=_sha256(cfg['_root'] / 'paper_b/configs/protocol.json'),
-                   feature_set='WS14+W4+CYC',
-                   feature_list=';'.join(['Xs_mean', 'Xs_std', 'Xs_slope', 'W_mean', 'W_std', 'age_scaled']),
-                   kmeans_fit_units='' if rung in ('N0', 'N1') else
-                   ';'.join(str(u) for u in DEV_UNITS if u != held_out),
-                   kmeans_seed='' if rung in ('N0', 'N1') else cfg['seeds'][0],
-                   pred_instant='flight_end', n_units=1,
-                   seg_boundaries=json.dumps({'relative': list(SEG_REL), 'absolute': list(SEG_ABS)}),
-                   independent_unit='engine', status='running')
+        row_template = {c: '' for c in LEDGER_COLS}
+        row_template.update(phase='dev', rung=rung,
+                            model=MODEL_NAMES[rung],
+                            fold=f'LOEO-{held_out}', held_out_engine=held_out,
+                            n_train_engines=5, seed=(sd if rung != 'N0' else ''),
+                            git_sha=pre['git_sha'], protocol_blob=pre['protocol_blob'],
+                            train_plan_sha256=_sha256(cfg['_root'] / 'paper_b/configs/protocol.json'),
+                            feature_set='WS14+W4+CYC',
+                            feature_list=';'.join(['Xs_mean', 'Xs_std', 'Xs_slope',
+                                                   'W_mean', 'W_std', 'age_scaled']),
+                            kmeans_fit_units='' if rung in ('N0', 'N1') else
+                            ';'.join(str(u) for u in DEV_UNITS if u != held_out),
+                            kmeans_seed='' if rung in ('N0', 'N1') else cfg['seeds'][0],
+                            pred_instant='flight_end', n_units=1,
+                            seg_boundaries=json.dumps({'relative': list(SEG_REL),
+                                                       'absolute': list(SEG_ABS)}),
+                            independent_unit='engine', status='running')
         if rung == 'N3':
-            row.update(freeze_source='paper_b/results/FREEZE_ABLATION_SEED101.json;'
-                                     'paper_b/configs/protocol.json',
-                       freeze_source_sha256=json.dumps(cfg['provenance']))
+            row_template.update(freeze_source='paper_b/results/FREEZE_ABLATION_SEED101.json;'
+                                             'paper_b/configs/protocol.json',
+                                freeze_source_sha256=json.dumps(cfg['provenance']))
         try:
             dev = 'cuda:0' if torch.cuda.is_available() else 'cpu'
             n_train = int(np.asarray(data['is_train'], bool).sum())
             batch = min(BATCH, n_train)
             # epoch* from the five inner folds of the training engines only
             sel = select_epoch_star(rung, data, cfg, sd, dev, batch)
-            epoch_star = sel['epoch_star']
+            epoch_star = int(sel['epoch_star'])
+            # one fit, two stopping points (manager ruling 2026-11-12): neither is
+            # preferred, both are reported, and both come from the same weights
+            points = [('inner_val', epoch_star),
+                      (f'fixed_passes:{FIXED_EVAL_PASSES}', FIXED_EVAL_PASSES)]
             net, res = fit_rung(rung, data, cfg, seed=sd, device=dev,
-                                epochs=epoch_star, batch=batch)
-            d.mkdir(parents=True, exist_ok=True)
-            # predictions on the held-out unit
+                                epochs=max(ep for _, ep in points), batch=batch,
+                                snapshot_at=sorted({ep for _, ep in points}))
+            snaps = res['snapshots']
             ho = ~np.asarray(data['is_train'], bool)
-            x = torch.from_numpy(data['x'][ho]).float()
-            mask = torch.from_numpy(data['mask'][ho]).float()
-            cond = torch.from_numpy(data['cond'][ho])
-            if rung == 'N0':
-                x = x[..., -1:]
-            net.eval()
-            with torch.no_grad():
-                pred = net(x.to(dev), mask=mask.to(dev), cond=cond.to(dev))['prediction']
-            pred = pred.reshape(-1).cpu().numpy().astype(np.float64)
-            # invert the training-fold target standardisation before anything is written
-            pred = pred * res['target_sd'] + res['target_mu']
             y_raw = np.asarray(data['y'][ho], np.float64)
             unit = np.asarray(data['unit'][ho])
             cyc = np.asarray(data['cycle'][ho])
-            if len(pred) != len(y_raw):
-                raise RuntimeError(f'prediction/label length mismatch {len(pred)} vs {len(y_raw)}')
-            import pandas as pd
-            # exactly five columns: no bare `y_true`, because that name would
-            # silently carry the capped label and become a default criterion.
-            pd.DataFrame(dict(unit=unit, cycle=cyc, y_true_raw=y_raw,
-                              y_true_cap125=np.minimum(y_raw, CAP),
-                              y_pred=pred)).to_csv(d / 'pred.csv', index=False)
-            (d / 'unit_lifetime.json').write_text(json.dumps(data['unit_lifetime'], indent=1))
-            pd.DataFrame(res['history']).to_csv(d / 'curve.csv', index=False)
-            (d / 'config.json').write_text(json.dumps(
-                {**{k: v for k, v in cfg.items() if not k.startswith('_')},
-                 'target_norm': 'fold_local', 'target_mu': res['target_mu'],
-                 'target_sd': res['target_sd'], 'passes': res['epochs'],
-                 'batch_effective': res['batch']}, indent=1, default=str))
-            m = metrics(y_raw, pred, data['unit_lifetime'][int(held_out)])
-            # diagnostic only: the fixed 40-pass endpoint is what gets reported;
-            # the curve minimum shows whether that endpoint sits on a slope or a plateau
             hist = res['history']
+            # diagnostic only: the outer curve minimum shows where epoch* sits
+            # relative to the outer optimum; it never selects anything
             best = min(hist, key=lambda h: h['holdout_loss'])
-            m['holdout_min'] = float(best['holdout_loss'])
-            m['holdout_min_epoch'] = int(best['epoch'])
-            m['passes'] = int(res['epochs'])
-            m['batch_effective'] = int(res['batch'])
-            m['epoch_star'] = int(epoch_star)
-            m['epoch_star_raw_argmin'] = int(sel['raw_argmin'])
-            m['epoch_floor_applied'] = bool(sel['floor_applied'])
-            m['inner_per_fold_best_epoch'] = list(sel['per_fold_best_epoch'])
-            m['inner_per_fold_min_loss'] = list(sel['per_fold_min_loss'])
-            m['inner_avg_curve'] = list(sel['avg_curve'])
-            # diagnostic only: where epoch* sits relative to the outer curve minimum
-            m['outer_loss_at_epoch_star'] = float(hist[-1]['holdout_loss'])
-            m['outer_curve_min'] = float(best['holdout_loss'])
-            m['outer_curve_argmin'] = int(best['epoch'])
-            (d / 'metrics.json').write_text(json.dumps(m, indent=1))
-            row.update(m, status='ok', epochs_run=res['epochs'],
-                       best_epoch=int(epoch_star),
-                       selection_rule='inner_val',
-                       preds_path=str(d / 'pred.csv'), config_path=str(d / 'config.json'),
-                       config_sha256=_sha256(d / 'config.json'),
-                       registry_note=f'epoch_star={epoch_star} '
-                                     f'raw_argmin={sel["raw_argmin"]} '
-                                     f'floor_applied={sel["floor_applied"]} '
-                                     f'inner_best_epochs={sel["per_fold_best_epoch"]} '
-                                     f'inner_min_losses={[round(x, 4) for x in sel["per_fold_min_loss"]]}; '
-                                     f'batch_effective={res["batch"]}; '
-                                     f'target_norm=fold_local mu={res["target_mu"]:.3f} '
-                                     f'sd={res["target_sd"]:.3f}; '
-                                     'outer_early_stop=false; holdout_min is diagnostic only; '
-                                     'metrics provisional, recompute with evaluation.py')
+            import pandas as pd
+            for rule, ep in points:
+                if ep not in snaps:
+                    raise RuntimeError(f'no snapshot at epoch {ep}')
+                d = Path(out_root) / f'{run_id}_ev{ep}'
+                d.mkdir(parents=True, exist_ok=True)
+                pred = _predict_held_out(rung, cfg, data, dev, snaps[ep],
+                                         res['target_mu'], res['target_sd'])
+                if len(pred) != len(y_raw):
+                    raise RuntimeError(f'prediction/label length mismatch '
+                                       f'{len(pred)} vs {len(y_raw)}')
+                # exactly five columns: no bare `y_true`, because that name would
+                # silently carry the capped label and become a default criterion.
+                pd.DataFrame(dict(unit=unit, cycle=cyc, y_true_raw=y_raw,
+                                  y_true_cap125=np.minimum(y_raw, CAP),
+                                  y_pred=pred)).to_csv(d / 'pred.csv', index=False)
+                (d / 'unit_lifetime.json').write_text(json.dumps(data['unit_lifetime'], indent=1))
+                pd.DataFrame(hist).to_csv(d / 'curve.csv', index=False)
+                (d / 'config.json').write_text(json.dumps(
+                    {**{k: v for k, v in cfg.items() if not k.startswith('_')},
+                     'target_norm': 'fold_local', 'target_mu': res['target_mu'],
+                     'target_sd': res['target_sd'],
+                     'passes_trained': int(res['epochs']),
+                     'epoch_evaluated': int(ep), 'selection_rule': rule,
+                     'batch_effective': res['batch']}, indent=1, default=str))
+                m = metrics(y_raw, pred, data['unit_lifetime'][int(held_out)])
+                m['epoch_evaluated'] = int(ep)
+                m['selection_rule'] = rule
+                m['passes_trained'] = int(res['epochs'])
+                m['batch_effective'] = int(res['batch'])
+                m['epoch_star'] = epoch_star
+                m['epoch_star_raw_argmin'] = int(sel['raw_argmin'])
+                m['epoch_floor_applied'] = bool(sel['floor_applied'])
+                m['inner_per_fold_best_epoch'] = list(sel['per_fold_best_epoch'])
+                m['inner_per_fold_min_loss'] = list(sel['per_fold_min_loss'])
+                m['inner_avg_curve'] = list(sel['avg_curve'])
+                m['outer_curve_min'] = float(best['holdout_loss'])
+                m['outer_curve_argmin'] = int(best['epoch'])
+                m['outer_loss_at_evaluated_epoch'] = float(hist[ep - 1]['holdout_loss'])
+                (d / 'metrics.json').write_text(json.dumps(m, indent=1))
+                row = dict(row_template)
+                row.update(m, status='ok',
+                           run_id=f'{run_id}_ev{ep}',
+                           epochs_run=int(ep), best_epoch=int(ep),
+                           selection_rule=rule,
+                           preds_path=str(d / 'pred.csv'),
+                           config_path=str(d / 'config.json'),
+                           config_sha256=_sha256(d / 'config.json'),
+                           registry_note=f'rule={rule}; epoch_star={epoch_star} '
+                                         f'raw_argmin={sel["raw_argmin"]} '
+                                         f'floor_applied={sel["floor_applied"]}; '
+                                         f'trained_to={res["epochs"]}; '
+                                         f'inner_best_epochs={sel["per_fold_best_epoch"]}; '
+                                         f'inner_min_losses={[round(x, 4) for x in sel["per_fold_min_loss"]]}; '
+                                         f'batch_effective={res["batch"]}; '
+                                         f'target_norm=fold_local mu={res["target_mu"]:.3f} '
+                                         f'sd={res["target_sd"]:.3f}; '
+                                         'outer_early_stop=false; outer curve diagnostic only '
+                                         '(never used for selection); '
+                                         'metrics provisional, recompute with evaluation.py')
+                _write_ledger(ledger, row)
+                rows.append(row)
+                print(f'{run_id}_ev{ep}: ok  rmse_raw={m["rmse_raw_unit"]:.3f}  '
+                      f'rule={rule}')
         except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden
-            row.update(status='failed',
+            row = dict(row_template)
+            row.update(run_id=run_id, status='failed',
                        registry_note=f'{type(exc).__name__}: {exc}',
                        epochs_run='')
             (Path(out_root) / run_id).mkdir(parents=True, exist_ok=True)
             (Path(out_root) / run_id / 'error.txt').write_text(traceback.format_exc())
-        _write_ledger(ledger, row)
-        rows.append(row)
-        print(f'{run_id}: {row["status"]}'
-              + (f'  rmse_raw={row.get("rmse_raw_unit"):.3f}' if row['status'] == 'ok' else ''))
+            _write_ledger(ledger, row)
+            rows.append(row)
+            print(f'{run_id}: failed  {type(exc).__name__}: {exc}')
     return rows
 
 
@@ -337,6 +391,9 @@ def main():
     ap.add_argument('--out-root', default='experiments/ncmapss')
     ap.add_argument('--ledger', default='docs/paper_b_ncmapss/registry/runs.csv')
     ap.add_argument('--data-sha256', default='')
+    ap.add_argument('--rungs', default=','.join(RUNGS),
+                    help=f'comma-separated rungs (main grid: {",".join(RUNGS)}; '
+                         f'diagnostics: {",".join(DIAG_RUNGS)})')
     a = ap.parse_args()
     cfg = load_frozen()
     cfg['_root'] = Path(__file__).resolve().parents[2]
@@ -362,7 +419,7 @@ def main():
         data = load_ds02(p, train_units, cfg)
         print(f'fold {k}/{len(folds)}: holdout {held}, train {train_units}, '
               f'{data["x"].shape[0]} flights, drops {data["drop_info"]["n_dropped"]}')
-        for rung in RUNGS:
+        for rung in [r.strip() for r in a.rungs.split(',') if r.strip()]:
             all_rows += run_fold(rung, k, held, cfg, data, a.out_root, a.ledger, pre,
                                  a.data_sha256 or ('SYNTHETIC' if a.synthetic else _sha256(p)))
     ok = sum(r['status'] == 'ok' for r in all_rows)

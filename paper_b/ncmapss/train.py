@@ -156,11 +156,18 @@ class AgeOnly(nn.Module):
 
 
 class VanillaFlight(nn.Module):
-    """N1: standard encoder over the 70-flight sequence of 51-dim vectors."""
+    """N1: standard encoder over the 70-flight sequence of 51-dim vectors.
+
+    ``n_cond`` is only set for the ``N1c`` diagnostic arm (vanilla + the same
+    operating-condition embedding DSPT gets). N1 itself never reads ``cond``, so
+    the N1-vs-N2 gap mixes the tokenisation with the condition embedding; N1c
+    removes one of those two differences and is reported as a diagnostic, not as
+    a main arm.
+    """
 
     dual_span = False
 
-    def __init__(self, d=64, layers=2, heads=4, dropout=0.2, span=SPAN):
+    def __init__(self, d=64, layers=2, heads=4, dropout=0.2, span=SPAN, n_cond=None):
         super().__init__()
         self.embed = nn.Linear(N_FEATURES, d)
         pe = torch.zeros(span, d)
@@ -174,6 +181,7 @@ class VanillaFlight(nn.Module):
                                        batch_first=True, norm_first=True)
             for _ in range(layers)])
         self.norm = nn.LayerNorm(d)
+        self.cond_emb = nn.Embedding(n_cond, d) if n_cond else None
         self.head = nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Linear(d, 1))
 
     def forward(self, x, mask=None, cond=None, **kw):
@@ -181,7 +189,10 @@ class VanillaFlight(nn.Module):
         pad = ~mask.bool()
         for layer in self.layers:
             h = layer(h, src_key_padding_mask=pad)
-        y = self.head(self.norm(masked_mean(h, mask)))
+        pooled = masked_mean(h, mask)
+        if self.cond_emb is not None and cond is not None:
+            pooled = pooled + self.cond_emb(cond)
+        y = self.head(self.norm(pooled))
         return {'prediction': y, 'y_A': y, 'y_B': y, 'embedding': h}
 
 
@@ -290,6 +301,12 @@ def build(rung, cfg):
     if rung == 'N1':
         return VanillaFlight(d=cfg['d_model'], layers=cfg['layers'],
                              heads=cfg['heads'], dropout=cfg['dropout'])
+    if rung == 'N1c':
+        # diagnostic only: vanilla + the operating-condition embedding, so the
+        # N1-vs-N2 gap can be split into "tokenisation" and "condition id"
+        return VanillaFlight(d=cfg['d_model'], layers=cfg['layers'],
+                             heads=cfg['heads'], dropout=cfg['dropout'],
+                             n_cond=cfg['n_cond'])
     if rung == 'N2':
         return DSPTFlight(d=cfg['d_model'], layers=cfg['layers'], heads=cfg['heads'],
                           dropout=cfg['dropout'], ms_mode='off', sa_mode='off',
@@ -367,13 +384,20 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
 
 def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
              normalize_target=True, early_stop=False, max_epochs=400,
-             min_epochs=20, patience=12):
+             min_epochs=20, patience=12, snapshot_at=None):
     """Train one rung and return ``(net, report)``.
 
     ``early_stop=True`` is used only by the **inner** selection folds, whose
     validation unit is one of the outer fold's training engines. The outer
     evaluation trains for a fixed ``epoch*`` and reports the last epoch, so no
     outer held-out information selects anything (protocol 4.2).
+
+    ``snapshot_at`` is an optional iterable of epoch numbers; the weights at the
+    end of each such epoch are cloned into ``report['snapshots']``. It exists so
+    that one training run can be scored at more than one epoch (the
+    inner-selection ``epoch*`` and the fixed 200-pass endpoint) without
+    retraining, which would let a reviewer attribute the difference to two
+    different fits instead of two different stopping points.
     """
     torch.manual_seed(seed)
     net = build(rung, cfg).to(device)
@@ -400,6 +424,8 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
     bs = min(int(batch if batch is not None else cfg['batch']), n)
     epochs = int(max_epochs if early_stop else (cfg['epochs'] if epochs is None else epochs))
     hist = []
+    snaps = {}
+    want = {int(e) for e in snapshot_at} if snapshot_at else set()
     best_va, best_ep = float('inf'), -1
     for ep in range(1, epochs + 1):
         net.train()
@@ -427,6 +453,8 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
         hist.append(dict(epoch=ep, train_loss=tr_loss, holdout_loss=va_loss))
         if va_loss < best_va - 1e-4:
             best_va, best_ep = va_loss, ep
+        if ep in want:
+            snaps[ep] = {k: v.detach().clone() for k, v in net.state_dict().items()}
         if early_stop and ep >= min_epochs and ep - best_ep >= patience:
             break
     net.eval()
@@ -438,7 +466,8 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
                   target_mu=float(target_mu), target_sd=float(target_sd),
                   final_train_loss=hist[-1]['train_loss'],
                   final_holdout_loss=hist[-1]['holdout_loss'],
-                  out_shape=list(out['prediction'].shape), history=hist)
+                  out_shape=list(out['prediction'].shape), history=hist,
+                  snapshots=snaps)
     return net, report
 
 
