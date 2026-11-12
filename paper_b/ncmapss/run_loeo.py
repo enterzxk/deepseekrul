@@ -67,6 +67,7 @@ import numpy as np
 import torch
 
 from .data import official_split
+from .evaluation import loeo_folds
 from .features import SPAN
 from .train import build, fit_rung, load_frozen, load_subset
 
@@ -487,12 +488,15 @@ def main():
     if not a.synthetic:
         _write_subset_audit(p, subset, out_root, dev_units, test_units)
 
-    folds = list(dev_units)
+    # one fold-construction authority: evaluation.loeo_folds, fed with the two
+    # lists read from the file. The runner keeps no unit list of its own.
+    folds = loeo_folds(dev_units, test_units)
     if a.folds:
         folds = folds[:a.folds]
     all_rows = []
-    for k, held in enumerate(folds, 1):
-        train_units = [u for u in dev_units if u != held]
+    for k, fold in enumerate(folds, 1):
+        held = int(fold.val_unit)
+        train_units = [int(u) for u in fold.train_units]
         data = load_subset(p, train_units, cfg, subset=subset)
         print(f'fold {k}/{len(folds)}: holdout {held}, train {train_units}, '
               f'{data["x"].shape[0]} flights, drops {data["drop_info"]["n_dropped"]}')
