@@ -69,7 +69,7 @@
     "牢莫: 更正 D3 边界报告的历史归属与三条过强推论（已失效↔RUL=0；T̂≈2 仅常值 D≡1；损失推 D→0 未证）",
     "tmh: 固定边界定义，补变速/平台/非整数命中/完整计算图反传检查；可表示范围用预设轨迹作构造性证据，不要求随机初始化输出超 125；padding 逐元素修正提交",
     "军师: 上述检查通过后再审 D 训练准入",
-    "管理员: W2 18 个 cal 格 incident 留痕；padding 修正的历史归属按 80245b3 更正"
+    "管理员: W2 24 个 cal 格（批二 6 + 批三 18）incident 留痕；padding 修正的历史归属按 80245b3 更正"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -2189,6 +2189,6 @@
   "blocked_reason": null,
   "resume_instructions": "Blocked on human authorization. Keep executing every reversible task that does not depend on the blocked decision, and record results; do not idle waiting for an answer.",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-12T19:30:00.000Z",
-  "revision": 80
+  "updated_at": "2026-11-12T19:33:00.000Z",
+  "revision": 81
 }
