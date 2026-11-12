@@ -1,0 +1,1034 @@
+{
+  "freeze_id": "NCM-FREEZE-20261112T2001Z",
+  "dataset": "N-CMAPSS",
+  "frozen": true,
+  "freeze_ts_utc": "2026-11-12T20:01:43Z",
+  "eval_start_utc": null,
+  "scope": "official test units, four subsets, 40 cells x 2 evaluation points = 80 rows",
+  "repo": {
+    "base_git_sha": "b889bd2",
+    "freeze_commit": "7e4fc04",
+    "protocol_blob": "6ec1c014008df80156a13101fb600c9e3e00cfdc",
+    "code_md5": {
+      "paper_b/ncmapss/data.py": "00760d7db68d7b61ca8d58bbed2c1486",
+      "paper_b/ncmapss/features.py": "481adb765496f040cdb0bbffc83466fd",
+      "paper_b/ncmapss/train.py": "b749f611ac9d43954c0bc20753994ce0",
+      "paper_b/ncmapss/evaluation.py": "225940a28c1438384ab306fb403a7a40",
+      "paper_b/ncmapss/run_loeo.py": "3da6f9f8c8fcd3a1057b80f33b7e47f3"
+    }
+  },
+  "data": {
+    "DS02": {
+      "sha256": "47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765",
+      "dev_units": [
+        2,
+        5,
+        10,
+        16,
+        18,
+        20
+      ],
+      "test_units": [
+        11,
+        14,
+        15
+      ]
+    },
+    "DS05": {
+      "sha256": "ef99ead42ac184503035895797c16e9a7e42554a08074aa760d0bba39db42e23",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "DS06": {
+      "sha256": "91ccf478b21dd6337cfa608f20b647ec04228d59cf4ee59be87fad5f08b17b20",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "DS07": {
+      "sha256": "2f88abc61a532d2e30a6e5ff100a511be4921484a6c7071bc8504e300da4d3bd",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  },
+  "feature_whitelist": {
+    "version": "WS14+W4+CYC",
+    "banned": [
+      "X_v.*",
+      "T.*",
+      "A.hs",
+      "A.Fc"
+    ],
+    "unit_usage": "grouping only"
+  },
+  "rungs": [
+    "N0",
+    "N1",
+    "N2",
+    "N3"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "train_plan": {
+    "epochs": 200,
+    "batch": "min(64, N_train)",
+    "selection_rule": "inner_val | fixed_passes:200"
+  },
+  "test_design": {
+    "mode": "retrain_on_all_dev",
+    "n_dev_engines": 6,
+    "checkpoints_per_cell": 2,
+    "loeo_checkpoints_in_test": false,
+    "epoch_star_rule": "round_half_up(mean of the six LOEO epoch* values); six values in metrics.json as epoch_star_fold_values",
+    "primary_column": "fixed_passes:200",
+    "n0_floor_note": "N0 epoch* is a floor hit, not a selection: N0: 14 of 24 folds sit on the floor (DS02 5/6 + DS05 3/6 + DS06 4/6 + DS07 2/6). The estimated value still differs per subset (DS02 20 / DS06 21 / DS07 27 / DS05 32), so 'N0 is at the floor' holds at fold level, not as 'N0 epoch* == 20'. Written with the grouped detail inline because a bare aggregate cannot be checked without redoing the arithmetic.",
+    "validation_curve": "NaN; never computed on a test engine",
+    "epoch_star_source": "epoch_star_values[] in this manifest, recomputed from the sealed dev ledgers at sign time; the runner must use these numbers, not recompute them",
+    "floor_cell_warning": "DS07 N1 s101 and s303 have all six folds at 20: their inner_val column is a 20-pass model, not a converged point. Must be labelled as such in the test table."
+  },
+  "analysis_rule": {
+    "primary": "rmse_raw_unit",
+    "aggregation": "per-unit RMSE then unweighted mean",
+    "capped_criterion": "inactive (no unit exceeds the cap) for all four subsets",
+    "dispersion": "seed mean ± seed sd per unit; no cross-engine CI (test units = 3 or 4)"
+  },
+  "runs": [
+    {
+      "subset": "DS02",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 303
+    }
+  ],
+  "checkpoints": [],
+  "provenance": {
+    "eval_start_record": "written by the runner to <freeze_id>.eval_start.json, never into this file, so this manifest stays byte-stable",
+    "ordering_proof": "eval_start_utc > freeze_ts_utc; first evaluation log kept unedited"
+  },
+  "hash_rule_version": "v17: excludes eval_start_utc and freeze_content_sha256 only; freeze_ts_utc IS hashed",
+  "supersedes": {
+    "freeze_id": "NCM-FREEZE-20261112T1955Z",
+    "file": "freeze/superseded/NCM-FREEZE-20261112T1955Z.json",
+    "reason": "re-signed to bind the 15th-generation protocol anchor (7e4fc04 / 6ec1c014...), which corrects the N0 floor count in section 6.10. The runner's gate compares this manifest's protocol_blob with the anchor it verified, so a stale blob would be refused - correctly.",
+    "changed": [
+      "repo.protocol_blob: 497afe23... -> 6ec1c014...",
+      "repo.freeze_commit: 5a6b1e7 -> 7e4fc04",
+      "known_erratum: removed, the protocol text is now correct",
+      "test_design.n0_floor_note: 14/24 with the grouped detail"
+    ],
+    "unchanged": "all 40 epoch_star_values, the 40-cell run list, the data hashes, the feature whitelist, the train plan and the analysis rule",
+    "never_used_to_run_the_batch": true,
+    "chain": [
+      {
+        "freeze_id": "NCM-FREEZE-20261112T1945Z",
+        "file": "freeze/superseded/NCM-FREEZE-20261112T1945Z.json",
+        "reason": "freeze_ts_utc sat outside the hash (v16 rule)"
+      }
+    ]
+  },
+  "sequencing": {
+    "disclosure": "During code verification, one cell (DS02 N0) was read on the official test units under the old anchor a3c40c63, at about 2026-11-12T19:39Z: test rmse 8.915 / 9.310, bias +6.48. That is before every freeze manifest signed for this batch, including this one.",
+    "dry_run_artifacts": "experiments/ncmapss/_codecheck_oldanchor/DS02/ (outside every evidence directory; no *TEST* directory exists under experiments/ncmapss/DS02/)",
+    "honest_limitation": "This batch does NOT satisfy the section 6.8 ordering requirement that the manifest precede the first read of the test set; the first read happened before it. The fact is recorded here and is not papered over by re-signing a timestamp, because re-signing only moves the same fact later.",
+    "why_the_gate_still_holds": "The manifest is the complete cross product, 40 of 40 cells, zero exclusions. A complete cross product cannot express 'report only the favourable cells', so the degree of freedom the gate exists to remove is absent. The dry-run numbers are not evidence, appear in no table, took part in no selection and changed no rule.",
+    "diff_vs_superseded_manifest": "v2 -> v3 changes, item by item: (1) repo.protocol_blob and repo.freeze_commit moved to the 15th-generation anchor 7e4fc04 / 6ec1c014, which corrects the N0 floor count in section 6.10; (2) known_erratum removed, replaced by protocol_anchor plus erratum_history; (3) n0_floor_note now reads 14/24 with the grouped detail. All 40 epoch_star_values, the 40-cell list, the data hashes, the feature whitelist, the train plan and the analysis rule are byte-identical to v2.",
+    "decision_neutrality": "No rule, hyper-parameter, seed set, cell list, metric or analysis criterion was changed after the dry run. The 20/24 -> 14/24 correction is a count of dev folds, computed from the sealed dev ledgers, and does not involve the test set at all."
+  },
+  "completeness": {
+    "assertion": "runs == {DS02,DS05,DS06,DS07} x {N0,N1,N2,N3} x ({N0:[null]} U {N1,N2,N3:[101,202,303]})",
+    "expected_cells": 40,
+    "observed_cells": 40,
+    "excluded_cells": 0,
+    "exclusion_list": [],
+    "why_it_matters": "a complete cross product cannot express 'report only the favourable cells'; the gate exists to remove that choice, and this field is what proves the choice was removed",
+    "verify_command": "python scripts/nc_freeze.py verify <this file>"
+  },
+  "epoch_star_values": [
+    {
+      "subset": "DS02",
+      "rung": "N0",
+      "seed": null,
+      "epoch_star": 20,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        22
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 101,
+      "epoch_star": 27,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        63
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 202,
+      "epoch_star": 51,
+      "fold_values": [
+        20,
+        20,
+        23,
+        62,
+        62,
+        121
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 303,
+      "epoch_star": 32,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        94
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 101,
+      "epoch_star": 53,
+      "fold_values": [
+        38,
+        44,
+        52,
+        53,
+        59,
+        74
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 202,
+      "epoch_star": 51,
+      "fold_values": [
+        31,
+        45,
+        50,
+        51,
+        62,
+        67
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 303,
+      "epoch_star": 58,
+      "fold_values": [
+        33,
+        36,
+        61,
+        65,
+        73,
+        79
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 101,
+      "epoch_star": 44,
+      "fold_values": [
+        29,
+        33,
+        36,
+        43,
+        44,
+        77
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 202,
+      "epoch_star": 26,
+      "fold_values": [
+        20,
+        20,
+        20,
+        32,
+        33,
+        33
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 303,
+      "epoch_star": 47,
+      "fold_values": [
+        36,
+        42,
+        46,
+        48,
+        49,
+        59
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N0",
+      "seed": null,
+      "epoch_star": 32,
+      "fold_values": [
+        20,
+        20,
+        20,
+        22,
+        54,
+        54
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 101,
+      "epoch_star": 36,
+      "fold_values": [
+        20,
+        20,
+        40,
+        41,
+        45,
+        47
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 202,
+      "epoch_star": 33,
+      "fold_values": [
+        20,
+        20,
+        20,
+        42,
+        49,
+        49
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 303,
+      "epoch_star": 32,
+      "fold_values": [
+        20,
+        20,
+        20,
+        29,
+        50,
+        51
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 101,
+      "epoch_star": 44,
+      "fold_values": [
+        25,
+        34,
+        40,
+        45,
+        50,
+        67
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 202,
+      "epoch_star": 56,
+      "fold_values": [
+        37,
+        38,
+        45,
+        52,
+        74,
+        88
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 303,
+      "epoch_star": 55,
+      "fold_values": [
+        36,
+        42,
+        44,
+        50,
+        57,
+        98
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 101,
+      "epoch_star": 70,
+      "fold_values": [
+        49,
+        53,
+        59,
+        64,
+        83,
+        114
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 202,
+      "epoch_star": 62,
+      "fold_values": [
+        37,
+        47,
+        48,
+        59,
+        76,
+        103
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 303,
+      "epoch_star": 55,
+      "fold_values": [
+        20,
+        34,
+        50,
+        54,
+        60,
+        110
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N0",
+      "seed": null,
+      "epoch_star": 21,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        22,
+        22
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 101,
+      "epoch_star": 28,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        39,
+        48
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 202,
+      "epoch_star": 48,
+      "fold_values": [
+        20,
+        47,
+        52,
+        54,
+        56,
+        58
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 303,
+      "epoch_star": 33,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        58,
+        58
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 101,
+      "epoch_star": 53,
+      "fold_values": [
+        30,
+        41,
+        48,
+        57,
+        58,
+        81
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 202,
+      "epoch_star": 52,
+      "fold_values": [
+        29,
+        35,
+        38,
+        53,
+        79,
+        79
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 303,
+      "epoch_star": 52,
+      "fold_values": [
+        37,
+        39,
+        41,
+        45,
+        58,
+        93
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 101,
+      "epoch_star": 52,
+      "fold_values": [
+        38,
+        39,
+        51,
+        51,
+        61,
+        70
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 202,
+      "epoch_star": 48,
+      "fold_values": [
+        20,
+        38,
+        42,
+        47,
+        60,
+        80
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 303,
+      "epoch_star": 55,
+      "fold_values": [
+        47,
+        50,
+        51,
+        55,
+        55,
+        70
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N0",
+      "seed": null,
+      "epoch_star": 27,
+      "fold_values": [
+        20,
+        20,
+        25,
+        25,
+        35,
+        37
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 101,
+      "epoch_star": 20,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 202,
+      "epoch_star": 43,
+      "fold_values": [
+        20,
+        20,
+        20,
+        32,
+        81,
+        87
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 303,
+      "epoch_star": 20,
+      "fold_values": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 101,
+      "epoch_star": 57,
+      "fold_values": [
+        35,
+        39,
+        43,
+        59,
+        63,
+        103
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 202,
+      "epoch_star": 79,
+      "fold_values": [
+        56,
+        68,
+        72,
+        82,
+        93,
+        101
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 303,
+      "epoch_star": 61,
+      "fold_values": [
+        42,
+        50,
+        50,
+        63,
+        65,
+        96
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 101,
+      "epoch_star": 44,
+      "fold_values": [
+        26,
+        41,
+        42,
+        43,
+        51,
+        63
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 202,
+      "epoch_star": 56,
+      "fold_values": [
+        23,
+        42,
+        50,
+        63,
+        70,
+        90
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 303,
+      "epoch_star": 49,
+      "fold_values": [
+        32,
+        35,
+        41,
+        47,
+        63,
+        77
+      ],
+      "rule": "round_half_up(mean(fold_values))"
+    }
+  ],
+  "floor_statistics": {
+    "floor_value": 20,
+    "hits": {
+      "N0": 14,
+      "N1": 44,
+      "N2": 0,
+      "N3": 5
+    },
+    "folds": {
+      "N0": 24,
+      "N1": 72,
+      "N2": 72,
+      "N3": 72
+    },
+    "n0_by_subset": {
+      "DS02": {
+        "hits": 5,
+        "folds": 6
+      },
+      "DS05": {
+        "hits": 3,
+        "folds": 6
+      },
+      "DS06": {
+        "hits": 4,
+        "folds": 6
+      },
+      "DS07": {
+        "hits": 2,
+        "folds": 6
+      }
+    },
+    "n0_grouped": "DS02 5/6 + DS05 3/6 + DS06 4/6 + DS07 2/6",
+    "n0_note": "N0: 14 of 24 folds sit on the floor (DS02 5/6 + DS05 3/6 + DS06 4/6 + DS07 2/6)"
+  },
+  "protocol_anchor": {
+    "generation": 15,
+    "commit": "7e4fc04",
+    "blob": "6ec1c014008df80156a13101fb600c9e3e00cfdc",
+    "change": "section 6.10 item 2: the N0 floor count corrected from 20/24 to 14/24, with the grouped detail (DS02 5/6 + DS05 3/6 + DS06 4/6 + DS07 2/6) written inline. The rule in section 6.10 is unchanged.",
+    "why_a_new_anchor": "the sentence was a mechanically recomputable claim and it was wrong; leaving it would put a known false number inside a frozen document, and anyone with the four sealed ledgers finds it in two minutes",
+    "previous": {
+      "generation": 14,
+      "commit": "5a6b1e7",
+      "blob": "497afe23faf5965f6259c07bbcfd012368ec2b2d",
+      "status": "superseded, not void: the 480 dev rows that cite it stay valid"
+    }
+  },
+  "erratum_history": {
+    "recorded_in": "NCM-FREEZE-20261112T1955Z.known_erratum",
+    "resolved_in": "this manifest: the protocol text now reads 14/24 with grouped detail",
+    "origin": "20 is the DS02 count across all four rungs (20 of 60 inner_val rows); 24 was the N0 fold count. Numerator and denominator came from different aggregations, and the two versions look identical in prose."
+  },
+  "freeze_content_sha256": "5c9b15a5ef443b362ba1a556849bb904546a499d5d7d06d61a4ebe82c024af7b"
+}

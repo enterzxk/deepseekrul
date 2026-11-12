@@ -21,7 +21,7 @@ breaking the digest. `eval_start_utc` stays outside because it is written after
 unsealing; the digest itself is outside to avoid self-reference.
 
 Usage:
-    python scripts/nc_freeze.py sign   --out docs/paper_b_ncmapss/registry/freeze/NCM-FREEZE-YYYYMMDDTHHMMZ.json
+    python scripts/nc_freeze.py sign --base <previous manifest> [--drop key] [--extra @fields.json]
     python scripts/nc_freeze.py verify docs/paper_b_ncmapss/registry/freeze/NCM-FREEZE-YYYYMMDDTHHMMZ.json
 """
 from __future__ import annotations
@@ -85,19 +85,31 @@ def floor_stats() -> dict:
     """Count floor-of-20 hits, per rung and overall, from the sealed ledgers."""
     per_rung = collections.Counter()
     per_rung_total = collections.Counter()
+    n0_by_subset = {}
     for s in SUBSETS:
         path = os.path.join(REG, "runs_%s.csv" % s)
+        hit = tot = 0
         for r in csv.DictReader(io.open(path, encoding="utf-8")):
             if r["selection_rule"] != "inner_val":
                 continue
             per_rung_total[r["rung"]] += 1
             if int(r["epochs_run"]) == 20:
                 per_rung[r["rung"]] += 1
+            if r["rung"] == "N0":
+                tot += 1
+                if int(r["epochs_run"]) == 20:
+                    hit += 1
+        n0_by_subset[s] = {"hits": hit, "folds": tot}
+    grouped = " + ".join("%s %d/%d" % (s, n0_by_subset[s]["hits"], n0_by_subset[s]["folds"])
+                         for s in SUBSETS)
     return {
         "floor_value": 20,
         "hits": {k: per_rung[k] for k in RUNGS},
         "folds": {k: per_rung_total[k] for k in RUNGS},
-        "n0_note": "N0: %d of %d folds sit on the floor" % (per_rung["N0"], per_rung_total["N0"]),
+        "n0_by_subset": n0_by_subset,
+        "n0_grouped": grouped,
+        "n0_note": "N0: %d of %d folds sit on the floor (%s)"
+                   % (per_rung["N0"], per_rung_total["N0"], grouped),
     }
 
 
@@ -142,9 +154,11 @@ def cmd_sign(args) -> int:
     m["floor_statistics"] = fs
     m["test_design"] = dict(m["test_design"])
     m["test_design"]["n0_floor_note"] = (
-        "N0 epoch* is a floor hit, not a selection: %s (DS02 5/6). The estimated "
-        "value still differs per subset (DS02 20 / DS06 21 / DS07 27 / DS05 32), so "
-        "'N0 is at the floor' holds at fold level, not as 'N0 epoch* == 20'." % fs["n0_note"]
+        "N0 epoch* is a floor hit, not a selection: %s. The estimated value still "
+        "differs per subset (DS02 20 / DS06 21 / DS07 27 / DS05 32), so 'N0 is at the "
+        "floor' holds at fold level, not as 'N0 epoch* == 20'. Written with the grouped "
+        "detail inline because a bare aggregate cannot be checked without redoing the "
+        "arithmetic." % fs["n0_note"]
     )
     m["test_design"]["epoch_star_source"] = (
         "epoch_star_values[] in this manifest, recomputed from the sealed dev ledgers "
@@ -155,6 +169,9 @@ def cmd_sign(args) -> int:
         "20-pass model, not a converged point. Must be labelled as such in the test table."
     )
     m.pop("freeze_content_sha256", None)
+    for k in (args.drop or "").split(","):
+        if k.strip():
+            m.pop(k.strip(), None)
     if getattr(args, "extra", None):
         m.update(args.extra)
     m["freeze_content_sha256"] = content_hash(m)
@@ -242,6 +259,7 @@ def main(argv=None) -> int:
     s.add_argument("--supersedes", default=None, help="JSON object describing the superseded manifest")
     s.add_argument("--sequencing", default=None, help="JSON object describing the freeze/eval ordering disclosure")
     s.add_argument("--extra", default=None, help="JSON object merged into the manifest before hashing")
+    s.add_argument("--drop", default=None, help="comma-separated top-level keys to remove before hashing")
     s.set_defaults(func=cmd_sign)
     v = sub.add_parser("verify")
     v.add_argument("manifest")

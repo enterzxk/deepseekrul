@@ -286,15 +286,19 @@ freeze_ts_utc, eval_start_utc, status, audit_verdict, coincident, independent_un
 > 核心 HI 结构冻结后才跑正式对照，**本轮不产生任何 HI 结论**。
 > 台账不得出现任何暗示「N3 测过 HI」的表述；出现即视为伪造证据。
 
-**协议冻结锚（当前）：**
+**协议冻结锚（当前，第 15 代）：**
 
 | 项 | 值 |
 |---|---|
-| `freeze_commit` | **`9ac1744`** |
-| `protocol_blob` | **`a3c40c634da7a3bb44ace788f74896b17e51c3fb`** |
-| 核验命令 | `git rev-parse 9ac1744:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
+| `freeze_commit` | **`7e4fc04`** |
+| `protocol_blob` | **`6ec1c014008df80156a13101fb600c9e3e00cfdc`** |
+| 核验命令 | `git rev-parse 7e4fc04:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
 
-**完整锚历史（从 git 重建，共 13 代）**——注意：审计早期写的是「五次前移」，**那个数字是错的**，协议正文实际有 13 个不同 blob——协议正文在本分支上一共产生过 **13 个不同 blob**，
+**上一代（14 代）`5a6b1e7` / `497afe23faf5965f6259c07bbcfd012368ec2b2d` 记 `superseded`，不是 void**——
+它新增的 §6.10 规则仍然有效，只是其中「N0 撞地板」的计数写错了，15 代只改那个计数。
+**已引用旧锚的行永远有效**：作废一个已被引用的锚等于回头否定自己封存的证据。
+
+**完整锚历史（从 git 重建，共 15 代）**——注意：审计早期写的是「五次前移」，**那个数字是错的**，协议正文在本分支上一共产生过 **15 个不同 blob**，
 不是五次。只记最后几次会让「这个 run 用的是哪版协议」出现缺口：
 
 | commit | blob | 说明 |
@@ -311,11 +315,19 @@ freeze_ts_utc, eval_start_utc, status, audit_verdict, coincident, independent_un
 | `e7ad15f` | `35b40d8bce8e2b6ee39408c2e36e39482462f05e` | ncmapss: fix the budget on passes not steps (40 passes, batch 64 -> 24 |
 | `1c76b37` | `443462ca03087d5aff2058778de2d47b3331728c` | ncmapss: fold-local target standardisation and a 200-pass budget (1200 |
 | `7e9415e` | `21af549e448415113ee2ac61f11a5679400eddac` | ncmapss: replace the fixed budget with inner-validation early stopping |
-| **`9ac1744`** | **`a3c40c634da7a3bb44ace788f74896b17e51c3fb`** | **当前冻结锚** |
+| `9ac1744` | `a3c40c634da7a3bb44ace788f74896b17e51c3fb` | 第一批 LOEO 的冻结锚（**480 行 dev 引用的就是这一代**） |
+| `5a6b1e7` | `497afe23faf5965f6259c07bbcfd012368ec2b2d` | 新增 §6.10（全 dev 模型的 `epoch*` 定义）。**superseded**：计数写错，规则仍有效 |
+| **`7e4fc04`** | **`6ec1c014008df80156a13101fb600c9e3e00cfdc`** | **当前冻结锚**：§6.10 的 N0 撞地板计数改为 14/24（带分组明细），规则未变 |
 
 > **`9ac1744` 之后协议冻结，直到第一批 LOEO 开发集结果出来为止不再改 §4/§6。**
 > 分界线（写进审计）：**改动必须由「测量失效」证明，不能由「数字不符合预期」触发**。
 > 全量开跑之后再改，就不再是修仪器，而是挑选。
+>
+> 14、15 两代的两次前移都**不是**由结果触发的，逐条对照上面的分界线：
+> 14 代补的是「全 dev 训练时 `epoch*` 从哪来」——没有它测试阶段没有可复算的定义，
+> 属于**测量缺失**；15 代改的是一个**由 dev 台账就能机械复算、且算错了**的计数，
+> 属于**测量错误**。两次都发生在测试集开封之前，没有一行测试结果参与。
+> 如果下一次前移需要拿「结果不如预期」来解释，那它就不该发生。
 
 
 ---

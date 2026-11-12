@@ -39,9 +39,9 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "5a6b1e7",
+    "freeze_commit": "7e4fc04",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "497afe23faf5965f6259c07bbcfd012368ec2b2d",
+    "known_protocol_blob_at_freeze": "6ec1c014008df80156a13101fb600c9e3e00cfdc",
     "superseded_anchor": [
       {
         "freeze_commit": "c481289",
@@ -107,6 +107,11 @@
         "freeze_commit": "9ac1744",
         "protocol_blob": "a3c40c634da7a3bb44ace788f74896b17e51c3fb",
         "reason": "§6.10 新增全 dev 模型的 epoch* 定义（六折均值取整、固定预算为主证据列、N0 为撞地板、测试期验证曲线记 NaN）。旧锚记 superseded，不是 void——480 行 dev 引用的 a3c40c63 永远有效。"
+      },
+      {
+        "freeze_commit": "5a6b1e7",
+        "protocol_blob": "497afe23faf5965f6259c07bbcfd012368ec2b2d",
+        "reason": "第 14 代：新增 §6.10（全 dev 模型的 epoch* 定义、fixed_passes:200 为主证据列、N0 撞地板、测试期验证曲线 NaN）。superseded 而非 void——规则仍有效，只是其中「N0 撞地板」的计数写错（20/24 应为 14/24），由第 15 代 7e4fc04 改正。480 行 dev 引用的 a3c40c63 永远有效。"
       }
     ],
     "n3_scope": {
