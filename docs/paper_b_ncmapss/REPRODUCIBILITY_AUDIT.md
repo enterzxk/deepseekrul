@@ -8,14 +8,29 @@ Status: **path chosen, nothing executed yet**.
 |---|---|
 | base commit (branch point) | `ac94c29` "v11 code lock" |
 | working branch | `ncmapss-ds02` |
-| dataset | N-CMAPSS DS02, official archive 15,760,443,389 bytes |
+| dataset archive | outer zip 15,760,443,389 bytes, SHA256 `d1271732…`, **full CRC pass** |
+| dataset file | `N-CMAPSS_DS02-006.h5`, 2,450,472,504 bytes, SHA256 `47971a68…`, mode `444` |
 | data location (never committed) | `/home/user/deepseek-rul/data/NCMAPSS/` |
 | experiment output (never committed) | `/home/user/deepseek-rul/experiments/ncmapss/` |
 | compute host | 3090 box, 2×RTX3090, 64 cores |
 
+**The archive is nested.** The outer zip contains a second `data_set.zip`, and the
+DS02 HDF5 file lives inside it. A single-level `unzip` will not find the file and
+will look like a corrupt or incomplete download. Unpack in two steps. NASA
+publishes no checksum for this archive, so the integrity evidence is the ZIP CRC
+pass plus our own SHA256 — see "Open items".
+
+Measured dataset shape (from `experiments/ncmapss/ds02_audit.json`, before any
+run): dev units `[2,5,10,16,18,20]` hold **446 flights** in total, test units
+`[11,14,15]` are the official held-out set. Longest lifetime is **89 flights**
+(dev unit 5) and **76** (test), so no unit reaches the 125 cap. Unit 14 has only
+1,912 rows per cycle (`Fc=1`) against 11k–13k for most others — flight-level
+statistics from that unit rest on far fewer 1 Hz samples, which is expected and
+is exactly what the slope guard is for.
+
 ## Protocol freeze
 
-The protocol is **frozen at commit `7f01909`** (branch `ncmapss-ds02`,
+The protocol is **frozen at commit `922a2d1`** (branch `ncmapss-ds02`,
 2026-11-12). **No §4 or §6 change after this commit until the LOEO development
 results are in.** A change requires a recorded decision first — never edit while
 runs are in flight, because an unrecorded edit leaves runs produced before and
@@ -24,8 +39,8 @@ after it in different protocols with no marker.
 Verify the frozen document:
 
 ```bash
-git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
-# 4458d9ea05c965251aabb782bba9765304ebf686
+git rev-parse 922a2d1:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
+# ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1
 ```
 
 Every row in `registry/runs.csv` must cite **this blob hash**, not only the
@@ -33,20 +48,35 @@ commit: a commit can be amended or rebased, a blob hash cannot. A run whose
 `protocol_blob` does not match is treated as produced under an unknown protocol
 and leaves the main evidence table.
 
-**The anchor moved forward from `5b228ad` / `6c184bbf…`, and the old anchor is
-void.** Three reasons, none of them cosmetic:
+### Anchor history
 
-1. **§6.3 now names the primary metric.** Per-engine mean RMSE is primary and
-   pooled RMSE is supplementary. The previous text did not say which was which —
-   a criterion ambiguity, not a content change.
-2. **§6.4 fixes a real bug in the relative segment rule.** The denominator must
-   come from the engine's full lifetime, supplied by the data layer. The previous
-   wording normalised by the evaluated frame, which on the test split (one
-   flight per engine) makes the fraction identically 1.0 and labels every row
-   `early` — silently.
-3. **The HI scope was narrowed** (`e7c2e41`, `026320c`). The frozen N0–N3 ladder
-   contains no HI arm, and the earlier text pre-registered a comparison against
-   an arm that does not exist.
+| anchor | blob | status | why it moved |
+|---|---|---|---|
+| `5b228ad` | `6c184bbf…` | void | initial freeze |
+| `7f01909` | `4458d9ea…` | void | §6.3 named the primary metric; §6.4 fixed the relative-segment denominator bug; HI scope narrowed |
+| **`922a2d1`** | **`ebfbfcb8…`** | **current** | two settings decided from the measured file, before any run |
+
+The last move needs spelling out, because it is the one that could be mistaken
+for tuning after seeing results. It was not: both numbers come from the file's
+row counts, not from any model output, and no run existed when they were set.
+
+1. **The 125 cap is inactive on this dataset.** The measured longest lifetime is
+   89 flights (dev unit 5) and 76 (test), so `min(raw, 125) == raw` everywhere.
+   The capped criterion carries no information here and is reported as
+   `inactive (no unit exceeds the cap)` — never as a stricter criterion, and
+   never as a second column printed beside raw.
+2. **40 epochs was 40 gradient steps.** The dev split holds 446 flights, so a
+   fold trains on ~380 windows; with `batch = min(512, 380) = 380` each epoch is
+   a single step. The budget was restated as **1000 optimizer steps**
+   (`epochs = ceil(1000 / ceil(N_train / batch))`), identical for all four rungs.
+
+The earlier move from `5b228ad` had three reasons, still worth keeping in the
+record: §6.3 previously did not say which metric was primary; §6.4 normalised the
+relative segment by the evaluated frame, which on the one-flight-per-engine test
+split makes the fraction identically 1.0 and silently labels every row `early`;
+and the HI scope was narrowed (`e7c2e41`, `026320c`) because the frozen N0–N3
+ladder contains no HI arm and the earlier text pre-registered a comparison
+against an arm that does not exist.
 
 Note for anyone verifying on Windows: **blob hashes are sensitive to line
 endings**, and this repository pins `eol=lf` in `.gitattributes`. Always verify
@@ -132,10 +162,11 @@ unit, cycle, y_true_raw, y_true_cap125, y_pred
   before computing any score.
 
 **It is deliberately not added to §6 right now.** Any edit to §4/§6 moves the
-protocol blob and voids the freeze anchor (`7f01909` / `4458d9ea…`), and the
-compute host is about to be synchronised to exactly that anchor for the first
-LOEO batch. Moving the anchor for a prose clarification while a sync is in
-flight is precisely how a batch ends up invalid.
+protocol blob and voids the freeze anchor. The anchor has just moved once
+(`922a2d1` / `ebfbfcb8…`) for reasons taken from the measured file, and it will
+not move again until the first LOEO batch lands — a second move for a prose
+clarification would make "which anchor is real" a question no reader can answer
+from the document alone.
 
 The contract is enforced in two places that cannot drift: the code (hard
 rejection at the entry point) and `registry/SCHEMA.md` v5 (column 28). Once the
@@ -160,15 +191,12 @@ anchor and an explicit note that the old one is void.
 
 ## Open items
 
-- [ ] Record the **self-computed** SHA256 of the DS02 archive and a passing
-      `unzip -t` (full ZIP CRC verification) on the 3090 host.
-      **NASA publishes no official checksum for this archive**, so there is
-      nothing to compare against — the audit must not claim "matches the
-      official hash". The two pieces of integrity evidence we can actually offer
-      are (a) the ZIP CRC check covering every member, and (b) our own SHA256
-      recorded before any run and re-checked when the extracted tables are
-      rebuilt.
-- [ ] Record the Python environment path on the 3090 host
+- [x] Record the **self-computed** SHA256 of the DS02 archive and a passing
+      `unzip -t` (full ZIP CRC verification): outer zip `d1271732…`, CRC pass,
+      15,760,443,389 bytes; inner HDF5 `47971a68…`, 2,450,472,504 bytes, mode
+      `444`. **NASA publishes no official checksum**, so there is nothing to
+      compare against — the audit must not claim "matches the official hash".
+- [x] Record the Python environment path on the 3090 host
       (`/home/user/miniconda3/envs/ncmapss/bin/python`, Python 3.10.22,
       torch 2.5.1+cu121, same version set as the A40 environment).
 - [ ] Record the first patch round-trip (patch id, `git am` result) as proof the
