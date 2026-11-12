@@ -460,7 +460,9 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
         if va_loss < best_va - 1e-4:
             best_va, best_ep = va_loss, ep
         if ep in want:
-            snaps[ep] = {k: v.detach().clone() for k, v in net.state_dict().items()}
+            # CPU copies: these are written to disk as checkpoints, and a GPU
+            # tensor would make the file unloadable on a host without that card
+            snaps[ep] = {k: v.detach().cpu().clone() for k, v in net.state_dict().items()}
         if early_stop and ep >= min_epochs and ep - best_ep >= patience:
             break
     net.eval()

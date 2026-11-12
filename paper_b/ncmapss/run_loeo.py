@@ -1,13 +1,21 @@
-"""Run the N0-N3 LOEO grid for DS02 and write one ledger row per cell.
+"""Run the N0-N3 LOEO grid for one N-CMAPSS subset and write one ledger row per
+evaluation point.
 
-Cell counts (schema §1.2): N0 = 6 folds x 1 (no seed axis) = 6; N1/N2/N3 =
-6 folds x 3 seeds = 54; total 60 dev cells.
+The subset is not fixed here: the official dev/test split is read from the HDF5
+(``data.official_split``) and the folds come from ``evaluation.loeo_folds``, so
+the same entry point runs DS02, DS05, DS06 and DS07 without a unit list stored
+in code. Cell counts per subset: N0 = 6 folds x 1 (no seed axis) = 6; N1/N2/N3 =
+6 folds x 3 seeds = 54; total 60 dev cells = 120 ledger rows.
 
-Per cell this writes, under ``experiments/ncmapss/<run_id>_ev<epoch>/``:
+Per cell this writes, under ``experiments/ncmapss/<subset>/<run_id>_iv/`` and
+``..._f200/``:
 
     pred.csv             unit, cycle, y_true_raw, y_true_cap125, y_pred
                          exactly one row per (unit, cycle); no bare `y_true`
                          column, so the criterion is always chosen explicitly
+    ckpt_iv.pt /         the weights that produced this row, so the number can be
+    ckpt_f200.pt         verified rather than retrained (one per evaluation point:
+                         the two rows come from two different snapshots)
     unit_lifetime.json   unit -> max RUL over that unit's complete trajectory
                          (needed by the relative segment rule; never a feature)
     curve.csv            per-epoch train / holdout loss (the full training run)
@@ -20,17 +28,23 @@ to ``max(epoch*, 200)`` passes and the weights are snapshotted at ``epoch*`` (th
 inner-selection stopping point) and at 200 passes (the fixed endpoint). Each
 snapshot is scored separately, so every cell yields two ledger rows:
 
-    <run_id>_ev<epoch*>   selection_rule=inner_val
-    <run_id>_ev200        selection_rule=fixed_passes:200
+    <run_id>_iv     selection_rule=inner_val          (epoch*)
+    <run_id>_f200   selection_rule=fixed_passes:200   (200 passes)
 
-Neither point is preferred. Measured on fold 1 (2026-11-12), ``epoch*`` lands in
-20-94 while the outer curve's own minimum sits at 157-198, a systematic ~2x
-disagreement; reporting both makes that disagreement visible instead of hiding
-it behind one number. The outer holdout curve is diagnostic only and never
-selects anything.
+The ``iv``/``f200`` stop tokens are the ones the frozen template specifies. An
+earlier batch used ``_ev<epoch>``, which collapses the two rows into one
+directory whenever ``epoch* == 200``; the four-subset batch does not repeat it.
+
+Neither point is preferred. Measured on DS02 fold 1 (2026-11-12), ``epoch*``
+lands in 20-94 while the outer curve's own minimum sits at 157-198, a systematic
+~2x disagreement; reporting both makes that disagreement visible instead of
+hiding it behind one number. The outer holdout curve is diagnostic only and
+never selects anything.
 
 and appends one row per evaluation point to
-``docs/paper_b_ncmapss/registry/runs.csv``.
+``experiments/ncmapss/<subset>/runs_dev.csv`` (or ``runs_diag.csv`` for a
+diagnostic arm). The sealed per-subset tables under ``docs/paper_b_ncmapss/``
+are written by the registry owner from these run outputs, not by this script.
 
 **Diagnostic arms are routed elsewhere.** ``DIAG_RUNGS`` (currently ``N1c``) are
 not pre-registered and therefore never enter that frozen-grid table: their rows
@@ -355,12 +369,14 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             sel = select_epoch_star(rung, data, cfg, sd, dev, batch)
             epoch_star = int(sel['epoch_star'])
             # one fit, two stopping points (manager ruling 2026-11-12): neither is
-            # preferred, both are reported, and both come from the same weights
-            points = [('inner_val', epoch_star),
-                      (f'fixed_passes:{FIXED_EVAL_PASSES}', FIXED_EVAL_PASSES)]
+            # preferred, both are reported, and both come from the same weights.
+            # The tag is the frozen template's stop token, not the epoch number:
+            # `_ev<epoch>` makes both rows land in one directory when epoch* == 200.
+            points = [('inner_val', epoch_star, 'iv'),
+                      (f'fixed_passes:{FIXED_EVAL_PASSES}', FIXED_EVAL_PASSES, 'f200')]
             net, res = fit_rung(rung, data, cfg, seed=sd, device=dev,
-                                epochs=max(ep for _, ep in points), batch=batch,
-                                snapshot_at=sorted({ep for _, ep in points}))
+                                epochs=max(ep for _, ep, _ in points), batch=batch,
+                                snapshot_at=sorted({ep for _, ep, _ in points}))
             snaps = res['snapshots']
             ho = ~np.asarray(data['is_train'], bool)
             y_raw = np.asarray(data['y'][ho], np.float64)
@@ -371,16 +387,19 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             # relative to the outer optimum; it never selects anything
             best = min(hist, key=lambda h: h['holdout_loss'])
             import pandas as pd
-            for rule, ep in points:
+            for rule, ep, tag in points:
                 if ep not in snaps:
                     raise RuntimeError(f'no snapshot at epoch {ep}')
-                d = Path(out_root) / f'{run_id}_ev{ep}'
+                d = Path(out_root) / f'{run_id}_{tag}'
                 d.mkdir(parents=True, exist_ok=True)
                 pred = _predict_held_out(rung, cfg, data, dev, snaps[ep],
                                          res['target_mu'], res['target_sd'])
                 if len(pred) != len(y_raw):
                     raise RuntimeError(f'prediction/label length mismatch '
                                        f'{len(pred)} vs {len(y_raw)}')
+                # the weights that produced this row, one file per evaluation point
+                ckpt = d / f'ckpt_{tag}.pt'
+                torch.save(snaps[ep], ckpt)
                 # exactly five columns: no bare `y_true`, because that name would
                 # silently carry the capped label and become a default criterion.
                 pd.DataFrame(dict(unit=unit, cycle=cyc, y_true_raw=y_raw,
@@ -412,9 +431,10 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                 (d / 'metrics.json').write_text(json.dumps(m, indent=1))
                 row = dict(row_template)
                 row.update(m, status='ok',
-                           run_id=f'{run_id}_ev{ep}',
+                           run_id=f'{run_id}_{tag}',
                            epochs_run=int(ep), best_epoch=int(ep),
                            selection_rule=rule,
+                           ckpt_path=str(ckpt), ckpt_sha256=_sha256(ckpt),
                            preds_path=str(d / 'pred.csv'),
                            config_path=str(d / 'config.json'),
                            config_sha256=_sha256(d / 'config.json'),
@@ -432,7 +452,7 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                                          'metrics provisional, recompute with evaluation.py')
                 _write_ledger(ledger, row)
                 rows.append(row)
-                print(f'{run_id}_ev{ep}: ok  rmse_raw={m["rmse_raw_unit"]:.3f}  '
+                print(f'{run_id}_{tag}: ok  rmse_raw={m["rmse_raw_unit"]:.3f}  '
                       f'rule={rule}')
         except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden
             row = dict(row_template)
