@@ -61,8 +61,27 @@ PASSES = 200
 BATCH = 64
 #: frozen protocol anchor; checked by content hash so it works on a host that
 #: cannot reach GitHub (3090 currently cannot).
-EXPECTED_PROTOCOL_BLOB = '35b40d8bce8e2b6ee39408c2e36e39482462f05e'
 PROTOCOL_PATH = 'docs/paper_b_ncmapss/DATASET_PROTOCOL.md'
+FREEZE_TEMPLATE = 'docs/paper_b_ncmapss/registry/FREEZE_TEMPLATE.json'
+
+
+def expected_protocol_blob(root):
+    """Read the frozen anchor from the ledger template.
+
+    Hard-coding it here meant every anchor move silently broke the preflight
+    with a stale constant; the template is already the single place the anchor
+    is recorded, so read it there.
+    """
+    import json
+    tpl = json.loads((root / FREEZE_TEMPLATE).read_text(encoding='utf-8'))
+    candidates = [tpl, tpl.get('repo') or {}, tpl.get('provenance') or {},
+                  tpl.get('freeze_source') or {}]
+    for block in candidates:
+        for key in ('known_protocol_blob_at_freeze', 'protocol_blob'):
+            val = block.get(key) if isinstance(block, dict) else None
+            if isinstance(val, str) and len(val) == 40:
+                return val
+    raise SystemExit('freeze template has no protocol blob; refusing to run')
 
 LEDGER_COLS = """run_id phase rung model fold held_out_engine n_train_engines seed
 git_sha code_md5 data_sha256 split_hash protocol_blob train_plan_sha256 feature_set feature_list
@@ -137,10 +156,11 @@ def _preflight(root):
     def run(*a):
         return subprocess.run(a, cwd=root, capture_output=True, text=True).stdout.strip()
     blob = run('git', 'hash-object', PROTOCOL_PATH)
-    if blob != EXPECTED_PROTOCOL_BLOB:
+    expected = expected_protocol_blob(root)
+    if blob != expected:
         raise SystemExit(
             f'protocol anchor mismatch: {PROTOCOL_PATH} has blob {blob}, '
-            f'frozen anchor is {EXPECTED_PROTOCOL_BLOB}. Refusing to run.')
+            f'frozen anchor is {expected}. Refusing to run.')
     return dict(git_sha=run('git', 'rev-parse', 'HEAD'), protocol_blob=blob)
 
 
