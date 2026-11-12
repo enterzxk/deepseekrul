@@ -365,11 +365,17 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
     return total / max(nb, 1)
 
 
-def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None):
+def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
+             normalize_target=True):
     """Train one rung for a **fixed** number of epochs and return ``(net, report)``.
 
     ``epochs``/``batch`` override the frozen schedule for the DS02 budget rule
-    (40 passes, batch=min(64,N)); the override is recorded by the caller.
+    (200 passes, batch=min(64,N)); the override is recorded by the caller.
+
+    The target is standardised with the **training-fold** mean/std and the
+    prediction must be inverted with the returned ``target_mu``/``target_sd``.
+    Without this the output head cannot reach the RUL scale in a few hundred
+    updates; with it, N0 reaches its converged error at 40 passes.
 
     No early stopping: the held-out unit is never used to pick a stopping point
     (protocol 4.2). The per-epoch curves are recorded so under-training is
@@ -389,6 +395,13 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None):
     va_idx = torch.nonzero(~is_train, as_tuple=False).flatten()
     if len(tr_idx) == 0 or len(va_idx) == 0:
         raise ValueError('need at least one training and one held-out unit')
+    # target standardisation, fitted on the training fold only
+    if normalize_target:
+        ytr = np.asarray(data['y'], np.float64)[np.asarray(data['is_train'], bool)]
+        target_mu, target_sd = float(ytr.mean()), float(ytr.std() + 1e-8)
+        y = (y - target_mu) / target_sd
+    else:
+        target_mu, target_sd = 0.0, 1.0
     n = len(tr_idx)
     bs = min(int(batch if batch is not None else cfg['batch']), n)
     epochs = int(cfg['epochs'] if epochs is None else epochs)
@@ -422,6 +435,7 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None):
         out = net(x[:1], mask=mask[:1], cond=cond[:1])
     report = dict(rung=rung, seed=int(seed), n=int(n), batch=bs, epochs=int(epochs),
                   params=int(sum(p.numel() for p in net.parameters())),
+                  target_mu=float(target_mu), target_sd=float(target_sd),
                   final_train_loss=hist[-1]['train_loss'],
                   final_holdout_loss=hist[-1]['holdout_loss'],
                   out_shape=list(out['prediction'].shape), history=hist)

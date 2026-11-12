@@ -54,9 +54,10 @@ N0_SEED = 101
 CAP = 125.0
 SEG_REL = (1 / 3, 2 / 3)
 SEG_ABS = (75.0, 25.0)          # early >= 75, mid >= 25, late < 25 (RUL cycles)
-# DS02 budget (protocol 4.2): align on passes over the data, not optimizer steps.
-# 40 passes with batch=min(64,N) gives 6 updates per pass on a 380-window fold.
-PASSES = 40
+# DS02 budget (protocol 4.2): 200 passes with batch=min(64,N) gives 6 updates per
+# pass, i.e. ~1200 parameter updates, the same order as C-MAPSS's ~1560. 40 passes
+# (240 updates) leaves every rung under-trained; 800 starts memorising (N2 13.99).
+PASSES = 200
 BATCH = 64
 #: frozen protocol anchor; checked by content hash so it works on a host that
 #: cannot reach GitHub (3090 currently cannot).
@@ -188,6 +189,8 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             with torch.no_grad():
                 pred = net(x.to(dev), mask=mask.to(dev), cond=cond.to(dev))['prediction']
             pred = pred.reshape(-1).cpu().numpy().astype(np.float64)
+            # invert the training-fold target standardisation before anything is written
+            pred = pred * res['target_sd'] + res['target_mu']
             y_raw = np.asarray(data['y'][ho], np.float64)
             unit = np.asarray(data['unit'][ho])
             cyc = np.asarray(data['cycle'][ho])
@@ -202,7 +205,10 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             (d / 'unit_lifetime.json').write_text(json.dumps(data['unit_lifetime'], indent=1))
             pd.DataFrame(res['history']).to_csv(d / 'curve.csv', index=False)
             (d / 'config.json').write_text(json.dumps(
-                {k: v for k, v in cfg.items() if not k.startswith('_')}, indent=1, default=str))
+                {**{k: v for k, v in cfg.items() if not k.startswith('_')},
+                 'target_norm': 'fold_local', 'target_mu': res['target_mu'],
+                 'target_sd': res['target_sd'], 'passes': res['epochs'],
+                 'batch_effective': res['batch']}, indent=1, default=str))
             m = metrics(y_raw, pred, data['unit_lifetime'][int(held_out)])
             # diagnostic only: the fixed 40-pass endpoint is what gets reported;
             # the curve minimum shows whether that endpoint sits on a slope or a plateau
@@ -218,6 +224,8 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                        preds_path=str(d / 'pred.csv'), config_path=str(d / 'config.json'),
                        config_sha256=_sha256(d / 'config.json'),
                        registry_note=f'batch_effective={res["batch"]}; '
+                                     f'target_norm=fold_local mu={res["target_mu"]:.3f} '
+                                     f'sd={res["target_sd"]:.3f}; '
                                      'holdout_min is diagnostic only, not used for selection; '
                                      'metrics provisional, recompute with evaluation.py')
         except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden

@@ -208,35 +208,39 @@ seeds 101 / 202 / 303. Only the input width changes (51 columns instead of the
 C-MAPSS sensor block). `patience: 12` is present in that file but is **unused
 here** — see the stopping rule below.
 
-**Epoch budget: fixed at 40 passes, with the batch reduced so a pass is not a
-single update.**
+**Budget: 200 passes with `batch = min(64, N_train)`, and the target standardised
+fold-locally.**
 Measured from the file before any run: DS02 dev holds 446 flights over six units,
-so a LOEO fold trains on 380 windows. With `batch = min(512, N) = 380` that is
-**one gradient step per epoch**, i.e. 40 steps in total — a warm-up, not a
-training run.
+so a LOEO fold trains on 380 windows. With `batch = min(512, N)` that is one
+gradient step per pass — 40 updates in total, a warm-up rather than a training
+run.
 
-Fixing the number of *optimizer steps* instead would be the wrong instrument: it
-would take 1000 steps to look respectable, and since one step is one pass here,
-that is **1000 passes over 380 flights** — roughly 25× the C-MAPSS regime, and a
-guaranteed memorisation endpoint for every rung. All four rungs would still be
-compared fairly, but the question would silently change from "which model
-predicts better" to "which model degrades more slowly once overfitted".
+Two corrections were needed, both found by diagnostics run before any cell was
+produced, and both applied identically to all four rungs:
 
-So the budget is fixed on the quantity that controls generalisation — **passes
-over the data** — and the batch is reduced to give a usable number of updates:
+1. **Target standardisation.** `y` is standardised with the mean/std of the
+   **training units of the current fold** and the prediction is mapped back to
+   cycles before anything is written. Without it the head starts ~40 cycles away
+   from its target and no rung converges: measured holdout RMSE on fold 1 was
+   N0 15.23 / N1 21.71 against a linear-ridge reference of 5.19 on the same
+   features. With it, N0 reaches 2.45 in the same 40 passes.
+2. **Budget raised to 200 passes.** 200 passes × 6 updates = ~1200 parameter
+   updates, the same order as C-MAPSS's ~1560. 40 passes (240 updates) leaves
+   every rung under-trained; 800 passes starts memorising (N2 degrades from 6.81
+   to 13.99). The pass budget is fixed, not chosen per rung.
 
 | quantity | C-MAPSS | DS02 |
 |---|---|---|
-| passes over the data | 40 | **40** |
+| passes over the data | 40 | 200 |
 | batch | 512 | `min(64, N_train)` = 64 |
 | updates per pass | ~39 | 6 |
-| total updates | ~1560 | **240** |
+| total updates | ~1560 | ~1200 |
+| target | raw cycles | standardised fold-locally, inverted before writing |
 
-`epochs = 40`, `batch = min(64, N_train)`. Applied identically to all four rungs.
-This is decided from the measured dataset size before any run, not from any
-result, and it replaces `protocol.json`'s `epochs` and `batch` fields for DS02
-only. The C-MAPSS line keeps its own schedule; the difference is recorded here so
-the "same core structure" claim is bounded exactly as stated below.
+`epochs = 200`, `batch = min(64, N_train)`. Applied identically to all four
+rungs. This replaces `protocol.json`'s `epochs` and `batch` fields for DS02
+only; the C-MAPSS line keeps its own schedule, and the difference is recorded
+here so the "same core structure" claim is bounded exactly as stated below.
 
 Because no early stopping is allowed (see below), the reported model is the one
 at the end of this budget. The full training and holdout curves are therefore
