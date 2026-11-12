@@ -22,8 +22,14 @@ pass plus our own SHA256 — see "Open items".
 
 Measured dataset shape (from `experiments/ncmapss/ds02_audit.json`, before any
 run): dev units `[2,5,10,16,18,20]` hold **446 flights** in total, test units
-`[11,14,15]` are the official held-out set. Longest lifetime is **89 flights**
-(dev unit 5) and **76** (test), so no unit reaches the 125 cap. Unit 14 has only
+`[11,14,15]` are the official held-out set. The longest dev trajectory is **89
+flights** (unit 5) and the longest test one **76**. These are flight counts, not
+RUL. The official `Y` label ends at 0 on the last flight, so `max(Y)` is **88**
+(dev) and **75** (test); it is `max(Y)` that `unit_lifetime()` returns
+(`data.py:184`) and that the relative segment rule uses as its denominator
+(`evaluation.py:359`). Both are under the 125 cap, so the capped criterion is
+inactive either way — but the two quantities must not be interchanged, because
+the segment denominator is the second one. Unit 14 has only
 1,912 rows per cycle (`Fc=1`) against 11k–13k for most others — flight-level
 statistics from that unit rest on far fewer 1 Hz samples, which is expected and
 is exactly what the slope guard is for.
