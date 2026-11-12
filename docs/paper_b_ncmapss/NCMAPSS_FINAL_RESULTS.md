@@ -38,6 +38,33 @@ Any attempt to remove this effect by tuning the budget, the features or the fold
 assignment would be exactly the move D043 forbids: the numbers would look better
 and the question would no longer be answerable.
 
+## Reporting rule: two evaluation points, neither used for selection
+
+Every cell is trained **once** to 200 passes, and then evaluated at **two**
+points:
+
+- `inner_val` — argmin of the mean inner validation curve, floored at 20 passes;
+- `fixed_passes:200` — the final pass.
+
+Both are reported **side by side, at the same font size**, with the stopping rule
+named in the header. The body text **may not pick whichever column looks better
+and draw the conclusion from it**. If the two columns order the rungs
+differently, that disagreement is itself the finding.
+
+Why both rather than one, measured before any full batch:
+
+- `epoch*` lands between **20 and 94** passes, while the outer curve's minimum
+  sits at **157–198** — a systematic offset of roughly 2x;
+- the five inner per-fold minima spread by **13–19x** (N2 seed 202: 0.294 to
+  3.804).
+
+On six engines, when to stop is neither estimable nor transferable. Reporting a
+single point hides that; reporting both is the honest option, and it costs
+nothing because both come from the same training run.
+
+Ledger consequence: **two rows per cell** and two prediction files suffixed
+`_ev<epoch>`, distinguished by `selection_rule`.
+
 ## Freeze procedure
 
 Before any official-test number exists, the following must be committed on

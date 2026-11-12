@@ -30,7 +30,7 @@ is exactly what the slope guard is for.
 
 ## Protocol freeze
 
-The protocol is **frozen at commit `e7ad15f`** (branch `ncmapss-ds02`,
+The protocol is **frozen at commit `9ac1744`** (branch `ncmapss-ds02`,
 2026-11-12). **No §4 or §6 change after this commit until the LOEO development
 results are in.** A change requires a recorded decision first — never edit while
 runs are in flight, because an unrecorded edit leaves runs produced before and
@@ -39,8 +39,8 @@ after it in different protocols with no marker.
 Verify the frozen document:
 
 ```bash
-git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
-# 35b40d8bce8e2b6ee39408c2e36e39482462f05e
+git rev-parse 9ac1744:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
+# a3c40c634da7a3bb44ace788f74896b17e51c3fb
 ```
 
 Every row in `registry/runs.csv` must cite **this blob hash**, not only the
@@ -54,33 +54,39 @@ and leaves the main evidence table.
 |---|---|---|---|
 | `5b228ad` | `6c184bbf…` | void | initial freeze |
 | `7f01909` | `4458d9ea…` | void | §6.3 named the primary metric; §6.4 fixed the relative-segment denominator bug; HI scope narrowed |
-| `922a2d1` | `ebfbfcb8…` | void | the 125 cap measured inactive, and the epoch budget was restated as optimizer steps |
-| **`e7ad15f`** | **`35b40d8b…`** | **current** | the budget's alignment quantity was wrong: 1000 steps on 380 windows is 1000 passes, 25x the C-MAPSS budget |
+| `922a2d1` | `ebfbfcb8…` | void | the 125 cap measured inactive; the epoch budget was restated as optimizer steps |
+| `e7ad15f` | `35b40d8b…` | void | the budget's alignment quantity was wrong: 1000 steps on 380 windows is 1000 passes, 25x the C-MAPSS budget |
+| `7e9415e` | `21af549e…` | void | a fixed budget was replaced by inner-validation stopping |
+| **`9ac1744`** | **`a3c40c63…`** | **current** | the median of per-split minima collapsed to 1–2 passes, so stopping moved to the argmin of the mean inner curve, floored at 20 |
 
-All three moves were taken from the measured file, with no run in existence. That
-is the only window in which a change like this is a setup decision rather than
-tuning, and the last one closes it: **another move before the first batch is a
-tuning decision, not a setup decision.**
+**These five moves are not equally defensible, and the record should say so.**
+The first three were taken from the measured file with no run in existence —
+unambiguous setup decisions. The last two came **after smoke runs** exposed a
+failure in the stopping rule, which is a weaker position: they are setup
+decisions made in the presence of diagnostic runs, not in their absence.
 
-What the two measured-data moves fixed:
+What makes them defensible is the shape of the failure. The median-of-minima
+rule collapsed `epoch*` to 1–2 passes and produced visibly untrained models
+(N2 went from 5.29 to 18.09); that is a broken instrument, not an unfavourable
+result. And the response was not to pick the better number: **both evaluation
+points are now reported side by side** (`inner_val` and `fixed_passes:200`), so
+the choice is visible instead of hidden.
 
-1. **The 125 cap is inactive on this dataset.** The longest lifetime is 89
-   flights (dev unit 5) and 76 (test), so `min(raw, 125) == raw` everywhere. The
-   capped criterion carries no information here and is reported as
-   `inactive (no unit exceeds the cap)` — never as a stricter criterion, and
-   never as a second column printed beside raw. The judgement is computed from
-   the data, so a dataset with any unit above 125 restores it automatically.
-2. **The budget aligns on passes, not steps.** The first attempt aligned on
-   gradient steps (1000), but on a 380-window fold with `batch=380` one step is
-   one pass, so that was 1000 passes — 25x the C-MAPSS budget of 40. The
-   corrected rule is **40 passes with `batch = min(64, N)`**: 380 windows give
-   6 updates per pass and 240 updates in total, against ~1560 on C-MAPSS. Passes
-   are the quantity that governs generalisation; batch was reduced so that a pass
-   is more than a single update.
-3. **The holdout curve is reported as a diagnostic.** Every result row carries
-   the final-epoch value *and* the holdout minimum with its epoch, marked
-   `diagnostic only — not used for model selection`. A fixed budget only hides
-   overfitting when the curve is hidden too.
+What would not be defensible is another move after the full batch starts. At that
+point a change stops being a repair and becomes a selection.
+
+The narrative detail of the two stopping-rule moves is worth keeping, because
+both were overturned by data rather than by preference:
+
+- **Fixed budget → inner-validation stopping**: the four rungs converged at
+  rates differing by up to 20x (`holdout_min`), so one fixed budget could not fit
+  all of them.
+- **Median of per-split minima → argmin of the mean curve**: with four training
+  engines and one inner validation engine, the validation loss bottoms out at
+  passes 1–12 and then rises as the model memorises the four. Per-split minima
+  are therefore not an estimable stopping point; averaging the five curves and
+  flooring at 20 is more stable, and the floor application is recorded explicitly
+  rather than applied silently.
 
 The earlier move from `5b228ad` had three reasons, still worth keeping in the
 record: §6.3 previously did not say which metric was primary; §6.4 normalised the
@@ -184,6 +190,28 @@ The contract is enforced in two places that cannot drift: the code (hard
 rejection at the entry point) and `registry/SCHEMA.md` v5 (column 28). Once the
 first LOEO batch lands, it gets folded into §6 as a recorded decision, with a new
 anchor and an explicit note that the old one is void.
+
+## Open defect: N1 may be missing an input path the DSPT rungs have
+
+N1 (vanilla) scores **21.6–23.1** at `epoch*` = 20 and at 94, and **18–22** at a
+fixed 200 passes. Its error barely responds to the training budget, which points
+at the model rather than at the schedule.
+
+The DSPT rungs consume a `cond` embedding (k-means over `W`, fitted on the fold's
+training engines only) and a `dual_span` branch. N1 consumes neither. If N1 is
+simply missing an input path that the DSPT rungs have, then the N1-vs-DSPT
+contrast compares **different information**, not different architectures — the
+same failure mode that invalidated the C-MAPSS cross-paper comparisons in
+D041/D043.
+
+**Until this is resolved, no N1 number enters the main results table.** The check
+is not what the config says: it is to enumerate, at runtime, the input tensors
+each rung actually consumes, and diff the two lists.
+
+- If it is an implementation gap → N1's numbers are void and must be rerun.
+- If it is a genuine architectural difference → it is a writable contrast, and
+  the information-matching statement must say so explicitly rather than implying
+  the rungs saw the same inputs.
 
 ## Environment pinning
 
