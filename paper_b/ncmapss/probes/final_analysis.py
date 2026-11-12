@@ -13,25 +13,37 @@ Reads experiments/ncmapss/DS02_pilot/runs_dev.csv (paired rows per cell) and pri
 """
 from __future__ import annotations
 
+import argparse
 import collections
 import csv
 import statistics as st
 
-LEDGER = 'experiments/ncmapss/DS02_pilot/runs_dev.csv'
+#: The sealed DS02 dev table is the authority: the pilot's working ledger was
+#: archived and then lost, and the sealed copy reproduces every published number
+#: (checked 2026-11-13: 9.009 / 26.317 / 10.662 / 13.534 at fixed_passes:200).
+#: Pass --ledger to run this on a live batch, e.g.
+#:   --ledger experiments/ncmapss/DS05/runs_dev.csv
+LEDGER = 'docs/paper_b_ncmapss/registry/runs_DS02.csv'
 RUNGS = ('N0', 'N1', 'N2', 'N3')
 LIFETIME = {2: 74, 5: 88, 10: 81, 16: 62, 18: 70, 20: 65}  # max(Y), the same denominator evaluation.py uses
 RULES = ('fixed_passes:200', 'inner_val')
 
 
 def main():
-    rows = [r for r in csv.DictReader(open(LEDGER)) if r.get('status') == 'ok']
-    print(f'rows={len(rows)}')
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--ledger', default=LEDGER,
+                    help='ledger to analyse (default: the sealed DS02 dev table)')
+    args = ap.parse_args()
+    rows = [r for r in csv.DictReader(open(args.ledger, encoding='utf-8'))
+            if r.get('status') == 'ok']
+    print(f'rows={len(rows)} from {args.ledger}')
 
     cells = collections.defaultdict(dict)          # (rung, rule, fold) -> rmse
     for r in rows:
         v = r.get('rmse_raw_unit')
         if v:
-            cells[(r['rung'], r['selection_rule'], int(r['fold']))][r['seed']] = float(v)
+            # `fold` is the label ('LOEO-2'); the engine number is its own column
+            cells[(r['rung'], r['selection_rule'], int(r['held_out_engine']))][r['seed']] = float(v)
 
     folds = sorted({k[2] for k in cells})
     held = {}

@@ -12,18 +12,21 @@ confound seed count with fold count; a paired difference does not.
 """
 from __future__ import annotations
 
+import argparse
 import collections
 import csv
 import statistics as st
 
-LEDGER = 'experiments/ncmapss/DS02_pilot/runs_dev.csv'
+#: Sealed DS02 dev table by default; pass --ledger for a live batch.
+LEDGER = 'docs/paper_b_ncmapss/registry/runs_DS02.csv'
 RUNGS = ('N0', 'N1', 'N2', 'N3')
 # max(Y) per engine: the same denominator evaluation.py uses for relative segments
 MAXY = {2: 74, 5: 88, 10: 81, 16: 62, 18: 70, 20: 65}
 
 
-def load():
-    rows = [r for r in csv.DictReader(open(LEDGER)) if r.get('status') == 'ok']
+def load(path=LEDGER):
+    rows = [r for r in csv.DictReader(open(path, encoding='utf-8'))
+            if r.get('status') == 'ok']
     cell = collections.defaultdict(dict)          # (rung, engine, seed) -> {rule: rmse}
     for r in rows:
         v = r.get('rmse_raw_unit')
@@ -35,7 +38,11 @@ def load():
 
 
 def main():
-    cell = load()
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--ledger', default=LEDGER,
+                    help='ledger to analyse (default: the sealed DS02 dev table)')
+    args = ap.parse_args()
+    cell = load(args.ledger)
     engines = sorted({k[1] for k in cell})
     print(f'cells={len(cell)} engines={engines}')
 
