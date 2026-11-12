@@ -72,6 +72,15 @@ result. And the response was not to pick the better number: **both evaluation
 points are now reported side by side** (`inner_val` and `fixed_passes:200`), so
 the choice is visible instead of hidden.
 
+**The distinction that has to be written down, because it is the only line
+between fixing an instrument and picking a result:** both late moves were
+*triggered* by smoke numbers that looked wrong, but they were *justified* by a
+failure of measurement — `epoch*` collapsing to 1–2 passes, N2 dropping from
+5.29 to 18.09. A trigger is "the number was not what we expected"; a criterion is
+"the instrument could not measure". Only the second licenses a change. Any future
+change whose only justification is that the numbers were disappointing crosses
+the line, and after the full batch starts every change does.
+
 What would not be defensible is another move after the full batch starts. At that
 point a change stops being a repair and becomes a selection.
 
@@ -212,6 +221,12 @@ each rung actually consumes, and diff the two lists.
 - If it is a genuine architectural difference → it is a writable contrast, and
   the information-matching statement must say so explicitly rather than implying
   the rungs saw the same inputs.
+
+**No silent overwrite.** If the gap is confirmed, the pre-fix N1 numbers are
+recorded as void with the reason stated (which input path was missing, and what
+was compared against what), not deleted and not quietly replaced by the rerun.
+The rerun is a new row; the old rows keep their `void` marker. A reader must be
+able to see that a contrast existed, why it was withdrawn, and what replaced it.
 
 ## Environment pinning
 

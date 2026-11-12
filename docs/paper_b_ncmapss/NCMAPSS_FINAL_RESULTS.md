@@ -65,6 +65,21 @@ nothing because both come from the same training run.
 Ledger consequence: **two rows per cell** and two prediction files suffixed
 `_ev<epoch>`, distinguished by `selection_rule`.
 
+### Mechanical checks (so "do not pick a column" is not an honour system)
+
+A promise in prose is not a check. Three assertions run on every result table:
+
+1. **Both columns must be present.** A table missing either column fails to
+   build.
+2. **The two `selection_rule` values must differ** (`inner_val` vs
+   `fixed_passes:200`). Identical rules mean the same column was reported twice
+   under two headers.
+3. **The two numbers must not be silently equal.** If a rung's two evaluation
+   points genuinely coincide (`epoch*` happens to be 200), the row must be
+   marked **`coincident`**. A coincidence and a dropped column look identical in
+   a table, and a mechanical check cannot tell them apart — so the coincidence
+   has to be declared rather than inferred.
+
 ## Freeze procedure
 
 Before any official-test number exists, the following must be committed on
