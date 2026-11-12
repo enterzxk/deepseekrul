@@ -50,14 +50,22 @@ same as the pooled number in `metrics.json`; the pooled values are kept in
 
 | config | FD001 | FD002 | FD003 | FD004 |
 |---|---|---|---|---|
-| base | 11.054 | 10.975 | 12.266 | 12.497 |
+| base | 11.547 | 10.975 | 12.266 | 12.497 |
 | +ms | 10.664 | 11.538 | 11.601 | 11.744 |
 | +sa | 10.550 | 10.909 | 12.828 | 12.227 |
 | +hi | 11.451 | 11.381 | 12.151 | 12.462 |
-| ms+sa | 10.598 | 10.848 | 10.946 | 12.653 |
+| ms+sa | 10.822 | 10.848 | 10.946 | 12.653 |
 | ms+hi | 10.930 | 11.696 | 11.088 | 12.552 |
 | sa+hi | 10.789 | 10.958 | 11.298 | 12.775 |
 | full | **10.288** | **10.523** | 11.803 | 12.628 |
+
+**Freeze coverage.** `FREEZE_ABLATION_SEED101.json` lists 32 cells, all seed 101.
+The disk holds 36 test evaluations: four extra cells
+(`A8_base_L70/FD001/s202`, `/s303`, `A8_mssa_L70/FD001/s202`, `/s303`) were
+evaluated outside the manifest. They are **excluded from this table and marked
+n/a** — retro-fitting them into the freeze declaration would falsify the
+evaluation order, which is exactly what the freeze exists to prevent. The table
+above is seed 101 only, for every cell.
 
 ## 4. Main effects (mean over configs with the switch on, minus off)
 
@@ -73,9 +81,9 @@ Official test (seed 101):
 
 | switch | FD001 | FD002 | FD003 | FD004 |
 |---|---|---|---|---|
-| ms | −0.380 | +0.095 | −0.776 | −0.096 |
-| sa | −0.465 | −0.588 | −0.058 | **+0.257** |
-| hi | +0.093 | +0.072 | −0.325 | +0.324 |
+| ms | −0.41 | +0.10 | −0.78 | −0.10 |
+| sa | −0.54 | −0.59 | −0.06 | **+0.26** |
+| hi | −0.03 | +0.07 | −0.33 | +0.32 |
 
 ## 5. Findings
 
