@@ -1,9 +1,9 @@
 {
  "schema_version": 1,
- "git_sha": "95a5898ca2d957e82bcdcdd14128718841095c51",
- "baseline_version": "v10",
+ "git_sha": "9601320fb04b61e7d17d08bc3da37fadfbf5c10c",
+ "baseline_version": "v11",
  "source": "HEAD",
- "generated_utc": "2026-11-12T11:31:33Z",
+ "generated_utc": "2026-11-12T11:52:30Z",
  "definition": "md5 of `git cat-file blob <ref>:<path>` bytes",
  "code_md5": {
   "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
@@ -15,8 +15,8 @@
   "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
   "paper_b/hc/model_hc.py": "c55eb2b430e2d356a809a0ccbbb3f3f0",
   "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
-  "paper_b/hc/train_hc.py": "3a4db4069b3f140e99db67eadefd8dfe",
-  "paper_b/hc/run_hc.py": "2eb11493ea170f121e20b5b995b18653",
+  "paper_b/hc/train_hc.py": "a24ab6170f6ee826508913773538e899",
+  "paper_b/hc/run_hc.py": "a58d3eb8c5efc4d97882136be027de06",
   "paper_b/hc/verify_loop.py": "2c15fcb4293e226102e368c717ef3f3a",
   "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
   "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
