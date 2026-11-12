@@ -26,11 +26,16 @@ No historical artefact was modified: this audit only reads existing
 4. The clipped-label error is *not* dominated by the clipped engines under the
    capped criterion (11–17% of SSE), which is precisely why the artefact is
    invisible in the numbers that have been reported so far.
-5. There is a hard arithmetic floor `B = sqrt(mean(max(rul-125,0)^2))` on any
-   raw-label score from a capped-output model: 3.74 / 18.32 / 4.71 / 19.53 for
-   FD001–FD004. Published FD002/FD004 values sit **below** that floor, so they
-   cannot be raw-label readings. **Capped is the literature-consistent
-   criterion; raw is this audit's own stricter addition.**
+5. There is a hard arithmetic floor `B = sqrt(mean(max(rul-125,0)^2))` on a
+   raw-label score **for a model whose outputs are capped at 125**: 3.74 / 18.32 /
+   4.71 / 19.53 for FD001–FD004. Published FD002/FD004 values sit below that
+   floor, which rules out one specific explanation — raw labels scored against
+   capped outputs — but it does **not** identify which convention the authors
+   used, because a training-label cap does not constrain inference-time output.
+   The earlier inference ("therefore the authors also clipped the test labels,
+   so capped is the literature-consistent criterion") was **retracted in D041**;
+   see the RETRACTED block in §2b. Capped remains **this work's frozen
+   criterion**; it is not a claim about the literature.
 
 ## 1. Where the clipping happens
 
@@ -276,10 +281,11 @@ should not be read as seed-robust.
   magnitude is not a gain worth claiming. "Stable" and "effective" are different
   statements and only the first one is supported.
 - **`sa` flips sign on FD004**: +0.26 under the capped criterion, −0.82 under
-  the raw one. Since §8 establishes that capped is the literature-consistent
-  criterion, the main table keeps capped and "sa hurts FD004" may be stated —
-  but it must carry the sensitivity note, and it may not be presented as a
-  label-independent mechanism.
+  the raw one. The main table keeps capped because that is **our frozen
+  criterion** — not because it matches the literature, an inference retracted in
+  D041. Under that criterion "sa hurts FD004" may be stated, but it must carry
+  the sensitivity note and may not be presented as a label-independent
+  mechanism.
 - Nothing here is large relative to seed spread except `ms` on FD003 and `sa` on
   FD002, both of which survive both criteria.
 
@@ -331,6 +337,16 @@ describes. This is likely a PDF layout artefact. It is recorded as
 
 
 ## 9. Is the current structure enough for an IEEE TIM method contribution?
+
+> **Scope note (2026-11-12, D041).** Two claims this section previously leaned on
+> are withdrawn: (a) "the authors must also have clipped the test labels", and
+> (b) "capped is the literature-consistent criterion". A training-label cap does
+> not constrain inference-time output, so the arithmetic floor `B` is only a
+> *conditional* bound. What survives is the system-level comparison under our own
+> frozen criterion, plus the per-paper protocol matrix in §8 — which is
+> explicitly "protocol unverified" for all five papers. Any novelty argument
+> built on "we are better than the published numbers" therefore starts from an
+> assumption, not from an established fact.
 
 **PENDING-L2 — deliberately not decided here.** A novelty judgement is an L2
 decision under this project's routing rules and may not be self-answered by the
