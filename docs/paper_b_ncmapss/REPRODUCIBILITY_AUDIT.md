@@ -13,6 +13,24 @@ Status: **path chosen, nothing executed yet**.
 | experiment output (never committed) | `/home/user/deepseek-rul/experiments/ncmapss/` |
 | compute host | 3090 box, 2×RTX3090, 64 cores |
 
+## Protocol freeze
+
+The protocol is **frozen at commit `5b228ad`** (branch `ncmapss-ds02`,
+2026-11-12). From that commit onward §4 (flight features) and §6 (evaluation) do
+not change except by a recorded decision — an unrecorded edit would leave runs
+produced before and after it in different protocols with no marker.
+
+Verify the frozen document:
+
+```bash
+git rev-parse 5b228ad:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
+# 6c184bbfe395325c367b1e460689b178ae48f1f3   (22499 bytes)
+```
+
+Every row in `registry/runs.csv` must cite **this blob hash**, not only the
+commit: a commit can be amended or rebased, a blob hash cannot. A run whose
+`protocol_blob` does not match is treated as produced under an unknown protocol.
+
 ## Commit path: **(a) patch from the compute host, applied and pushed from Windows**
 
 Chosen over the alternative (pushing directly from the 3090 host) for three
