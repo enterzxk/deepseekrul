@@ -337,6 +337,8 @@ def load_ds02(path, train_units, cfg, root=ROOT):
     d['drop_info'] = drop_info
     d['cond_labels'] = lab
     d['is_train'] = np.isin(tbl['unit'], list(train_units))
+    from .data import unit_lifetime as _lifetime
+    d['unit_lifetime'] = _lifetime(path, 'dev')
     return d
 
 
@@ -363,8 +365,8 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
     return total / max(nb, 1)
 
 
-def run_rung(rung, data, cfg, seed, device='cpu', epochs=None):
-    """Train one rung for a **fixed** number of epochs and report the last one.
+def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None):
+    """Train one rung for a **fixed** number of epochs and return ``(net, report)``.
 
     No early stopping: the held-out unit is never used to pick a stopping point
     (protocol §4.2). The per-epoch curves are recorded so under-training is
@@ -415,11 +417,18 @@ def run_rung(rung, data, cfg, seed, device='cpu', epochs=None):
     net.eval()
     with torch.no_grad():
         out = net(x[:1], mask=mask[:1], cond=cond[:1])
-    return dict(rung=rung, seed=int(seed), n=int(n), batch=bs, epochs=int(epochs),
-                params=int(sum(p.numel() for p in net.parameters())),
-                final_train_loss=hist[-1]['train_loss'],
-                final_holdout_loss=hist[-1]['holdout_loss'],
-                out_shape=list(out['prediction'].shape), history=hist)
+    report = dict(rung=rung, seed=int(seed), n=int(n), batch=bs, epochs=int(epochs),
+                  params=int(sum(p.numel() for p in net.parameters())),
+                  final_train_loss=hist[-1]['train_loss'],
+                  final_holdout_loss=hist[-1]['holdout_loss'],
+                  out_shape=list(out['prediction'].shape), history=hist)
+    return net, report
+
+
+def run_rung(rung, data, cfg, seed, device='cpu', epochs=None):
+    """Same as :func:`fit_rung` but drops the model, for the smoke-test CLI."""
+    _, report = fit_rung(rung, data, cfg, seed, device=device, epochs=epochs)
+    return report
 
 
 def _self_check(data, cycles):

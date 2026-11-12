@@ -168,6 +168,23 @@ def load_health_parameters(path, split):
     return load_raw(path, split, arrays=('T',))['T']
 
 
+def unit_lifetime(path, split):
+    """``unit -> max RUL over that unit's complete trajectory``, in flight cycles.
+
+    Required by the relative segment rule: the normaliser must come from the
+    unit's full lifetime, not from the evaluated subset (which collapses to a
+    single label when only the last flight is scored). It is derived from the
+    label trajectory and is never a model input.
+    """
+    a = load_aux(path, split)
+    y = load_labels(path, split)
+    out = {}
+    for u in np.unique(a['unit']):
+        m = a['unit'] == u
+        out[int(u)] = float(np.max(y[m]))
+    return out
+
+
 def verify(path):
     """Runtime audit of the file against the documented structure.
 
