@@ -97,6 +97,17 @@ VARIANTS = {
     'A3p': dict(label='sensor + Fourier cycle at the frozen injection point',
                 cycle_mode='none', cycle_source='clipped', cycle_only=False,
                 frozen_injection=True),
+    # G2 scale-alignment arms (Codex ruling 2026-11-12). Same encoders as A2 and
+    # A3b; the only change is that the cycle term is multiplied by an init-RMS
+    # calibrated gain so that ||term||/||h|| == rho in every arm. `scale_mode`
+    # selects DSPT_HC_Scaled in scale_align.build_hc_scaled; the gain itself is
+    # measured per run and stored in calibration.json, never guessed here.
+    'A2cal': dict(label='sensor + raw cycle (untruncated), init-RMS calibrated',
+                  cycle_mode='raw', cycle_source='raw', cycle_only=False,
+                  scale_mode='cal', rho=1.0),
+    'A3bcal': dict(label='sensor + Fourier cycle (unclipped), init-RMS calibrated',
+                   cycle_mode='fourier', cycle_source='raw', cycle_only=False,
+                   scale_mode='cal', rho=1.0),
     # Pipeline check only. Same path as A3a; never evidence. Registered under
     # its own variant name so a smoke run can never be mistaken for a real cell.
     'SMOKE': dict(label='smoke: A3a path, 1 epoch, not evidence',
@@ -163,6 +174,11 @@ def hc_config(variant_name, subset, seed, span=SPAN):
             'post_norm' if v['cycle_mode'] != 'none' else 'none'),
         period_bank=v.get('period_bank', 'frozen'),
         frozen_injection=frozen_inj,
+        # 'raw' = historical arms (no calibration); 'cal' = init-RMS calibrated.
+        # The gain is not a config constant: it is measured per run (see
+        # scale_align.calibrate_init_rms) and recorded in calibration.json.
+        scale_mode=v.get('scale_mode', 'raw'),
+        rho=float(v.get('rho', 1.0)),
         cycle_only=bool(v['cycle_only']),
         split_seed=SPLIT_SEED, fold=FOLD, val_frac=VAL_FRAC, val_cuts=list(VAL_CUTS),
         rul_cap=RUL_CAP, n_cond=N_COND,

@@ -36,6 +36,7 @@ Only ``A2-cal`` and ``A3b-cal`` are new.
 """
 import hashlib
 import json
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -45,15 +46,26 @@ from .config_hc import hc_config
 from .data_hc import build
 from .model_hc import DSPT_HC, build_hc
 
+ROOT = Path('/media/sangfor/vdb/user/zxk/deepseek-rul')
 RHO_DEFAULT = 1.0
 BS_DEFAULT = 512
 
-#: name -> (base variant, mode). 'raw' arms are existing Gate A runs.
+#: arm -> config_hc variant name. The '-raw' arms are existing Gate A runs and
+#: are referenced by run_id, never retrained (re-running a completed
+#: configuration is forbidden). Only the two '-cal' arms are new.
 G2_ARMS = {
-    'A2raw': dict(base='A2', mode='raw', label='scalar cycle, untruncated (existing run)'),
-    'A3araw': dict(base='A3a', mode='raw', label='Fourier cycle, 250-clipped (existing run)'),
-    'A2cal': dict(base='A2', mode='cal', label='scalar cycle, untruncated, init-RMS calibrated'),
-    'A3bcal': dict(base='A3b', mode='cal', label='Fourier cycle, untruncated, init-RMS calibrated'),
+    'A2raw': dict(cfg='A2', mode='raw', label='scalar cycle, untruncated (existing run)'),
+    'A3araw': dict(cfg='A3a', mode='raw', label='Fourier cycle, 250-clipped (existing run)'),
+    'A2cal': dict(cfg='A2cal', mode='cal', label='scalar cycle, untruncated, init-RMS calibrated'),
+    'A3bcal': dict(cfg='A3bcal', mode='cal', label='Fourier cycle, untruncated, init-RMS calibrated'),
+}
+
+#: shared backbone init each calibrated arm must start from (经理 ruling
+#: 2026-11-12): same file as its base arm in wave 1, so the only difference
+#: between arms is the calibrated gain.
+DEFAULT_INIT = {
+    'A2cal': 'experiments/hc/tmp/wave1_init_A2_s101.pt',
+    'A3bcal': 'experiments/hc/tmp/init_v9_A3p_s101.pt',
 }
 
 
@@ -113,17 +125,45 @@ def assert_same_architecture(cfg):
     return True
 
 
+def load_shared_init(net, path):
+    """Load a shared backbone init with the same target-driven remap train_hc uses.
+
+    ``pe_proj``/``pe_periods`` (frozen model) vs ``cycle_enc.proj``/``cycle_enc.periods``
+    (subclass) means a plain strict=False load would silently leave the cycle
+    projection at its own random draw. The remap is driven by what *this* model
+    has. ``cycle_gain`` is the one key the init cannot carry: it is produced by
+    the calibration that runs immediately after this load.
+    """
+    ckpt = torch.load(path, map_location='cpu', weights_only=True)
+    if isinstance(ckpt, dict) and 'state_dict' in ckpt:
+        ckpt = ckpt['state_dict']   # --dump-init wraps it with provenance
+    sd = dict(ckpt)
+    want = net.state_dict()
+    if 'pe_proj.weight' in want and 'pe_proj.weight' not in sd:
+        sd = {('pe_proj.' + k.split('.', 1)[1]) if k.startswith('cycle_enc.proj.') else k: v
+              for k, v in sd.items()}
+    if 'cycle_enc.proj.weight' in want and 'cycle_enc.proj.weight' not in sd:
+        sd = {('cycle_enc.proj.' + k.split('.', 1)[1]) if k.startswith('pe_proj.') else k: v
+              for k, v in sd.items()}
+    if 'cycle_enc.periods' in want and 'cycle_enc.periods' not in sd and 'pe_periods' in sd:
+        sd['cycle_enc.periods'] = sd['pe_periods']   # copy, never pop
+    if 'pe_periods' in want and 'pe_periods' not in sd and 'cycle_enc.periods' in sd:
+        sd['pe_periods'] = sd['cycle_enc.periods']
+    missing, unexpected = net.load_state_dict(sd, strict=False)
+    missing = [m for m in missing if m != 'cycle_gain']
+    if missing or unexpected:
+        raise RuntimeError('init_from mismatch: missing=%s unexpected=%s (after remap)'
+                           % (sorted(missing)[:8], sorted(unexpected)[:8]))
+    return dict(init_from=str(path), keys_loaded=len(sd), missing=0, unexpected=0)
+
+
 def g2_config(arm, subset, seed, rho=RHO_DEFAULT):
-    """Effective config for one G2 arm. Shape-compatible with hc_config."""
+    """Effective config for one G2 arm (config_hc carries the cal arms)."""
     if arm not in G2_ARMS:
         raise KeyError('unknown G2 arm %r; known: %s' % (arm, sorted(G2_ARMS)))
-    spec = G2_ARMS[arm]
-    cfg = dict(hc_config(spec['base'], subset, seed))
-    cfg['variant'] = arm
-    cfg['base_variant'] = spec['base']
-    cfg['scale_mode'] = spec['mode']
+    cfg = dict(hc_config(G2_ARMS[arm]['cfg'], subset, seed))
+    cfg['g2_arm'] = arm
     cfg['rho'] = float(rho)
-    cfg['cycle_gain'] = 1.0
     return cfg
 
 
@@ -201,7 +241,7 @@ def calibrate_init_rms(net, ds, cfg, rho=RHO_DEFAULT, dev='cuda:0', bs=BS_DEFAUL
                 vecnorm_ratio_before=before['vecnorm_ratio'],
                 n_windows=before['n_windows'], n_batches=before['n_batches'],
                 subset=cfg.get('subset'), seed=cfg.get('seed'),
-                variant=cfg.get('variant'), base_variant=cfg.get('base_variant'),
+                variant=cfg.get('variant'), g2_arm=cfg.get('g2_arm'),
                 cycle_source=cfg.get('cycle_source'),
                 measured_on='train', when='after_init_before_optimizer',
                 definition='strict RMS over all elements and all training windows',
@@ -222,6 +262,8 @@ def main():
                     default='/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS')
     ap.add_argument('--check-arch', action='store_true',
                     help='only verify the scaled builder matches build_hc')
+    ap.add_argument('--init-from', default=None,
+                    help='shared backbone init; defaults to DEFAULT_INIT[arm]')
     a = ap.parse_args()
 
     if a.check_arch:
@@ -232,10 +274,15 @@ def main():
 
     cfg = g2_config(a.arm, a.subset, a.seed, rho=a.rho)
     cfg['data_dir'] = a.data_dir
+    if a.arm not in DEFAULT_INIT and not a.init_from:
+        raise SystemExit('arm %s has no default init; pass --init-from' % a.arm)
+    init = a.init_from or str(ROOT / DEFAULT_INIT[a.arm])
     net = build_hc_scaled(cfg).to(torch.device(a.device)).eval()
+    info = load_shared_init(net, init)          # init first ...
     ds = build(a.subset, cfg['data_dir'], cfg['span'], cfg['val_cuts'],
                cycle_source=cfg['cycle_source'])
-    rec = calibrate_init_rms(net, ds, cfg, rho=a.rho, dev=a.device)
+    rec = calibrate_init_rms(net, ds, cfg, rho=a.rho, dev=a.device)   # ... then calibrate
+    rec.update(info)
     print(json.dumps(rec, indent=1))
     assert abs(rec['rms_ratio_after'] - a.rho) <= 1e-3 * max(1.0, a.rho), \
         'calibrated RMS ratio %.6f != rho %.6f' % (rec['rms_ratio_after'], a.rho)
