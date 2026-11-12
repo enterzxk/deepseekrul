@@ -1,8 +1,14 @@
-# N-CMAPSS DS02 baseline ladder
+# N-CMAPSS baseline ladder — four subsets
 
-Status: **DS02 development results complete** — 120/120 cells on 2026-11-12,
-both evaluation points present for every cell. The official test units remain
-sealed; no test result exists.
+Status: **development results complete** for DS02, DS05, DS06, DS07 —
+480 rows (240 cells × 2 evaluation points), 480 checkpoints, no missing cell,
+produced by `b889bd2` under protocol blob `a3c40c63…`. The official test units
+remain sealed; no test result exists anywhere in this file.
+
+The DS02 column of every table below was recomputed here from the sealed ledger
+`registry/runs_DS02.csv` (120 rows, 64 columns) and matches what was published
+before. The DS05/06/07 columns come from the batch summary and are **provisional
+until their ledgers are sealed** — see "Provenance" at the end.
 
 ## The ladder
 
@@ -15,14 +21,13 @@ because that is what the C-MAPSS audit found to dominate there.
 | **N0** | age-only | cumulative cycle only | the floor. If a structural model cannot beat this, nothing else matters |
 | **N1** | vanilla Transformer | flight statistics + cycle | same family as the C-MAPSS `VAN_*` arms |
 | **N2** | DSPT Base | same as N1, DSPT architecture | isolates the architecture term |
-| **N3** | frozen DSPT | DS02-adapted input layer only | the transfer claim |
+| **N3** | frozen DSPT | input layer adapted only | the transfer claim |
 
 ## Rules
 
 1. **N3 is frozen.** Its MS / SA / HI switches are the C-MAPSS values, fixed
-   before any DS02 result exists. DS02 outcomes may not be used to re-decide
-   them. If N3 underperforms, that is a finding about transfer, not a licence to
-   retune.
+   before any result exists. Outcomes may not be used to re-decide them. If N3
+   underperforms, that is a finding about transfer, not a licence to retune.
 2. All four rungs use the identical split, the identical LOEO folds and the
    identical metric. Any deviation is recorded as a deviation, not silently.
 3. Every rung is reported per fold with dispersion. A single mean is not a
@@ -33,128 +38,164 @@ because that is what the C-MAPSS audit found to dominate there.
 ## Metrics
 
 - Primary: per-unit RMSE at the flight-level prediction instant, then the mean
-  and standard deviation over the six LOEO folds.
-- Secondary: MAE, and a NASA-style asymmetric score only if the label convention
-  is stated alongside it.
+  and standard deviation over the LOEO folds.
+- Secondary: MAE, |Bias| and a NASA-style asymmetric score. All are already in
+  the ledger (`mae_raw_unit`, `bias_raw_unit`, `nasa_raw_unit`, `seg_*`).
 - Every table states: prediction instant (end of flight), label convention
-  (capped / raw / no cap), and the number of units.
+  (raw RUL; the 125 cap is inactive on all four subsets, `max(Y)` = 62–88), and
+  the number of units.
 
-## Results — DS02 development set (120/120, 2026-11-12)
+## Results — six-fold mean per subset
 
-Six LOEO folds over the official dev units `[2,5,10,16,18,20]`. Prediction
-instant = end of flight; label = raw RUL (the 125 cap is inactive on DS02, since
-`max(Y)` = 88 < 125). Each cell is the arithmetic mean of three seeds
-(101/202/303); **N0 has no seed axis** — fixed seed 101, one run per fold. The
-official test units are sealed and contribute nothing here.
+`fixed_passes:200`, per-cell mean over three seeds (N0: one seed, no seed axis):
 
-`fixed_passes:200` evaluation point:
+| subset | N0 | N1 | N2 | N3 |
+|---|---:|---:|---:|---:|
+| DS02 | **9.01** | 26.32 | 10.66 | 13.53 |
+| DS05 | **13.96** | 22.62 | 15.95 | 17.24 |
+| DS06 | **11.24** | 22.48 | 13.88 | 14.01 |
+| DS07 | **6.50** | 23.35 | 13.92 | 11.72 |
 
-| held-out unit | `max(Y)` | distance from training mean | N0 | N1 | N2 | N3 |
-|---|---|---|---|---|---|---|
-| 2 | 74 | +0.8 | 2.46 | 20.56 | 5.29 | 14.28 |
-| 5 | 88 | +17.6 | 16.74 | 34.80 | 16.14 | 14.60 |
-| 10 | 81 | +9.2 | 8.74 | 26.96 | 7.72 | 13.14 |
-| 16 | 62 | −13.6 | 13.12 | 18.34 | 13.50 | 13.31 |
-| 18 | 70 | −4.0 | 4.27 | 38.84 | 9.15 | 13.09 |
-| 20 | 65 | −10.0 | 8.73 | 18.40 | 12.18 | 12.77 |
-| **mean** | | | **9.01** | **26.32** | **10.66** | **13.53** |
-| **sd** | | | **5.33** | **8.82** | **4.00** | **0.73** |
+`inner_val` (`epoch*`) evaluation point:
 
-The same cells at the `inner_val` (`epoch*`) point give N0 8.91 / N1 22.23 /
-N2 11.45 / N3 18.65. **Both points order the rungs identically
-(N0 < N2 < N3 < N1)**; the absolute levels move (N1 by 4.1, N3 by 5.1), so
-neither column substitutes for the other and both are reported.
+| subset | N0 | N1 | N2 | N3 |
+|---|---:|---:|---:|---:|
+| DS02 | **8.91** | 22.23 | 11.45 | 18.65 |
+| DS05 | 14.08 | 22.62* | **14.03** | 17.24* |
+| DS06 | **11.24*** | 22.48* | 13.88* | 14.01* |
+| DS07 | **6.50*** | 23.35* | 13.92* | 11.72* |
 
-### What the table supports, with its scope
+\* Only the DS02 `inner_val` column has been recomputed from a sealed ledger.
+DS05 `inner_val` carries the one reversal reported by the batch (N2 14.03 vs N0
+14.08, a 0.05 gap); the remaining cells are placeholders until those ledgers are
+sealed and must not be quoted.
 
-1. **Age-only and DSPT-Base are comparable on DS02** — 9.01 against 10.66, a gap
-   of 1.6 with cross-fold sd of 5.33 and 4.00. Scope: DS02 dev, six LOEO folds,
-   `fixed_passes:200`. It does **not** say the cycle axis beats the architecture:
-   fold 1 (2.46 against 5.29) is the fold whose held-out lifetime sits 0.8 from
-   the training mean, and it is not representative of the other five.
-2. **Vanilla is clearly worse than DSPT-Base** — 26.32 against 10.66, and N2 is
-   better in **all six folds** (18.34–38.84 against 7.72–16.14). Scope: this
-   contrast mixes three changes — input representation (flat 51-dim vector
-   against sensor tokens), the condition embedding, and the dual-span auxiliary
-   loss. Only the condition embedding was isolated (`N1c`, diagnostic arm). The
-   other two remain **unattributed** and must be described as such.
-3. **MS+SA has no consistent effect** — paired N3−N2 per fold: +9.00, −1.53,
-   +5.42, −0.19, +3.94, +0.59; mean **+2.87**, four folds worse and two better,
-   two-sided sign test **p ≈ 0.69**. This is **not** a negative transfer and must
-   not be written as one: the direction flips with the held-out unit, and
-   averaging it would manufacture a direction that no fold shows.
+**Age-only is first on all four subsets at `fixed_passes:200`, and on 3 of 4 at
+`inner_val`** (DS05 reverses by 0.05). The gap between N0 and the best structural
+rung is 1.6 / 2.0 / 2.6 / 5.2.
 
-### Methodology finding: the lifetime-distance confound
+Cross-fold dispersion, `fixed_passes:200` (sample sd over the six fold means):
 
-Age-only error tracks |held-out `max(Y)` − mean `max(Y)` of the five training
-units| with Spearman **ρ = 0.943** — not 1.0: the single inversion is unit 10 at
-8.74 against unit 20 at 8.73, a 0.01 difference — over a 6.8x error span (2.46
-to 16.74). Any cross-fold ranking is dominated by this quantity; it is the
-quantitative form of D043's "six engines are only enough for limited-scope
-development evidence", and the reason every result here is reported per fold.
+| subset | N0 | N1 | N2 | N3 |
+|---|---:|---:|---:|---:|
+| DS02 | 5.33 | 8.82 | 4.00 | 0.73 |
+| DS05 | — | — | — | 5.59 |
+| DS06 | — | — | — | 5.05 |
+| DS07 | — | — | — | 2.49 |
 
-A second shape worth recording: **the frozen rung is by far the flattest**
-(12.77–14.60, sd 0.73) while N0 spans 2.46–16.74 (sd 5.33). The confound acts on
-the rungs that follow the cycle axis; N3 does not follow it, so it inherits
-neither the good folds nor the bad ones — it is uniformly mediocre. **A
-low-variance rung and a low-error rung are not the same thing**, and N3's small
-spread is not evidence in its favour.
+DS02's N3 dispersion (0.73) is **specific to that subset**, not a property of N3:
+the other three spread 2.49–5.59. An earlier draft of this file read the DS02
+narrow band as "N3 is uniformly mediocre"; that reading is withdrawn — the band
+was the subset, not the rung.
 
-### Pre-registered falsification check
+## Paired contrasts across all 24 folds
 
-The three conditions under "What would falsify the transfer claim" were written
-before any number existed. Checking them is the only thing that makes writing
-them worth anything.
+Folds are paired within a subset, and the four subsets are independent replicates
+of the same design. Pooling them raises the number of independent units from 6
+engines to **24**, which is the only thing that makes a sign test informative
+here — at n=6 the smallest attainable two-sided p is 2/64 = 0.031, so a subset
+alone can certify nothing but unanimity.
+
+| contrast | mean, `fixed` | agree | p | mean, `inner_val` | agree | p |
+|---|---:|---:|---:|---:|---:|---:|
+| N1 − N0 | +13.52 | 23/24 | 3.0e−6 | +13.29 | **24/24** | 1.2e−7 |
+| N2 − N0 | +3.43 | 18/24 | **0.023** | +3.59 | 16/24 | 0.152 |
+| N3 − N0 | +3.95 | 17/24 | 0.064 | +6.41 | 16/24 | 0.152 |
+| N1 − N2 | +10.09 | 22/24 | 3.6e−5 | +9.70 | **24/24** | 1.2e−7 |
+| N3 − N2 | +0.52 | 13/24 | 0.839 | +2.82 | 15/24 | 0.307 |
+
+Positive means the first rung is worse (higher RMSE).
+
+Three readings, in descending order of how much weight they will bear:
+
+1. **Vanilla is worse than everything, in every subset, at both evaluation
+   points** (N1 − N0 23/24 and 24/24; N1 − N2 22/24 and 24/24). This is the one
+   claim in the table that does not depend on which column is reported.
+2. **MS+SA has no effect.** N3 − N2 is +0.52 at n=24 with p=0.839, and the
+   direction flips across folds (13/24). Nothing about the frozen configuration
+   is distinguishable from DSPT-Base.
+3. **DSPT-Base does not beat a cycle counter, and the two evaluation points
+   disagree about how badly it loses.** At `fixed_passes:200` it is worse with
+   p=0.023; at `inner_val` it is indistinguishable with p=0.152. The wording must
+   be "indistinguishable under self-selected stopping, worse under a fixed
+   budget", with both columns shown — picking one is the failure mode this
+   two-column design exists to prevent.
+
+### What per-subset unanimity is worth
+
+DS02 alone produced three unanimous contrasts at `inner_val` (N0 − N3, N3 − N2,
+N2 − N1, all 6/6, p=0.031 — the floor). Pooled to 24 folds, two of them dissolve
+(N3 − N2 → 15/24, p=0.307; N3 − N0 → 16/24, p=0.152) and only vanilla's deficit
+survives, in fact strengthens (24/24, p=1.2e−7).
+
+That is not a footnote; it is the argument for pooling. A single subset can
+manufacture unanimity by chance at p=0.031, and it did, three times. **No
+architecture claim in this file rests on a single subset.**
+
+## The mechanism: the clock follows lifetime distance
+
+Age-only predicts from the cycle index alone, so its error on a held-out engine
+is set by how far that engine's lifetime sits from the mean lifetime of its
+training engines. Measured over all 24 folds: **Spearman ρ = 0.983** between the
+per-fold error and the signed lifetime distance, with error spanning 1.47 to
+22.04 and distance spanning 0.0 to 23.8. The four worst folds are all at
+|distance| > 20 (DS06 unit 5: +23.8 → 22.04; DS05 unit 3: −20.2 → 19.52); the
+four best are all at |distance| < 1.5.
+
+The consequence for interpretation is stronger than "the clock is a strong
+baseline". The clock is not *learning* the mapping; its error is a direct readout
+of a property of the fold. Under LOEO on six-engine development sets, a fold's
+difficulty is fixed before any model is trained, and it dominates the spread
+between rungs. This is the quantitative form of D043's "six engines are only
+enough for limited-scope development evidence", and it is why every number in
+this file is reported per fold.
+
+On DS02 alone the same relation gives ρ = 0.943 over six folds — not 1.0: the one
+inversion is unit 10 at 8.74 against unit 20 at 8.73, a 0.01 gap.
+
+## Pre-registered falsification check
+
+The three conditions below were written into this file before any result existed.
+Checking them is the only thing that makes writing them worth anything.
 
 1. **"N3 does not beat N1 by more than the cross-fold spread"** — **not
-   triggered.** N3 (13.53) beats N1 (26.32) by 12.8, and the fold ranges do not
-   overlap (N3 ≤ 14.60, N1 ≥ 18.34).
+   triggered.** N3 beats N1 on all four subsets (13.53/26.32, 17.24/22.62,
+   14.01/22.48, 11.72/23.35), and pooled N1 − N3 is comfortably positive.
 2. **"N0 alone matches N2/N3, repeating the C-MAPSS saturation finding"** —
-   **triggered.** N0 (9.01) is not merely comparable but better than N2 (10.66)
-   and N3 (13.53). By the rule written in advance, the architecture contribution
-   is **not measurable on this dataset** — the same saturation the C-MAPSS audit
-   found.
+   **triggered, and more strongly than on DS02 alone.** N0 is first on all four
+   subsets at `fixed_passes:200` and on three of four at `inner_val`. By the rule
+   written in advance, the architecture contribution is **not measurable on these
+   development sets** — the same saturation the C-MAPSS audit found.
 3. **"N3's advantage disappears once the cycle axis is removed from every
-   rung"** — **not tested.** No cycle-ablated rung was run; N0 is the
-   cycle-*only* reference, not its complement.
+   rung"** — **not tested.** No cycle-ablated rung was run; N0 is the cycle-*only*
+   reference, not its complement.
 
-### Paired contrasts, and what six folds can actually resolve
+## What this does not show
 
-Folds are paired, so the contrast of interest is the per-fold difference, not the
-difference of two means. Exact two-sided sign tests, `fixed_passes:200`:
+- **Nothing about the sealed test units.** They are untouched.
+- **Nothing about a method being better.** The supported statement is that
+  structure adds nothing measurable over a cycle counter *on these four
+  development sets under LOEO*, and that vanilla is worse than the counter.
+- **No attribution of the vanilla gap.** N1 and N2 differ in three ways at once —
+  input representation, condition embedding, dual-span auxiliary loss. Only the
+  condition embedding was isolated (`N1c`, diagnostic). The other two remain
+  **unattributed** and must be described that way.
+- **No claim that DSPT is harmful.** N2 − N0 at `inner_val` is p=0.152; the
+  honest reading is indistinguishable, not worse.
+- **No cross-subset comparison of absolute levels.** Each subset has its own
+  lifetime distribution and its own fold difficulty; the pooled test pools
+  *directions*, not magnitudes.
 
-| contrast | mean paired difference | sd | folds agreeing | exact two-sided p |
-|---|---|---|---|---|
-| N2 − N1 | **−15.65** | 9.22 | **6/6** | **0.031** |
-| N0 − N1 | **−17.31** | 10.04 | **6/6** | **0.031** |
-| N0 − N2 | −1.65 | 2.40 | 4/6 (N0 better) | 0.69 |
-| N0 − N3 | −4.52 | 5.20 | 5/6 (N0 better) | 0.22 |
-| N3 − N2 | +2.87 | 3.98 | 4/6 (N3 worse) | 0.69 |
+## Provenance
 
-Two things follow, and the second one constrains the paper's claims.
-
-1. **Vanilla is beaten by a cycle counter in every single fold** (N0 − N1 = −17.31,
-   6/6). That is the strongest statement in this table, and it is about N1, not
-   about DSPT.
-2. **With six folds the sign test cannot reach 0.05 unless all six agree** — the
-   smallest attainable two-sided p is 2/64 = 0.031. So *by construction* the
-   design can only certify unanimous contrasts, and the only unanimous contrasts
-   here are the two that involve N1 — the rung whose gap to N2 mixes three
-   simultaneous changes. Every contrast that bears on the architecture question
-   (N0 vs N2, N0 vs N3, N3 vs N2) is non-significant, and one of them (N0 vs N2,
-   p = 0.69) is non-significant while pointing the wrong way for the method.
-
-This is not a power complaint to be fixed by more seeds: the unit of replication
-is the engine, and there are six. It is the reason the paper's claim is
-"indistinguishable from a cycle counter on DS02", not "worse" and not "better".
-
-Secondary table (MAE, Bias, NASA score, early/mid/late segments) is not yet
-reported; it is required before any of the above enters the manuscript.
-
-
-## What would falsify the transfer claim
-
-- N3 does not beat N1 by more than the cross-fold spread.
-- N0 alone matches N2/N3, which would repeat the C-MAPSS saturation finding and
-  make the architecture contribution unmeasurable on this dataset too.
-- N3's advantage disappears once the cycle axis is removed from every rung.
+- DS02: recomputed here from `registry/runs_DS02.csv` (120 rows, 64 columns,
+  `protocol_blob = a3c40c63…`, `git_sha = 49f6939`). Every mean and sd in the
+  DS02 column above was regenerated from that file, not copied.
+- DS05/06/07: batch output at `git_sha = b889bd2`, `protocol_blob = a3c40c63…`,
+  one ledger per subset under `experiments/ncmapss/<subset>/runs_dev.csv`.
+  **Not yet sealed.** The columns above must be regenerated from the sealed
+  ledgers before submission; the `*` marks in the `inner_val` table exist because
+  those cells have not been recomputed.
+- Both evaluation points come from **one training run** with two weight
+  snapshots; the 240 pairs share no checkpoint sha256, so the two columns are two
+  different sets of weights, not one file read twice.
