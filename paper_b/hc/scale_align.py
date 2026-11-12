@@ -221,16 +221,30 @@ def calibrate_init_rms(net, ds, cfg, rho=RHO_DEFAULT, dev='cuda:0', bs=BS_DEFAUL
     """Measure on all training windows and freeze the gain. Returns the record.
 
     Must be called after the shared init is loaded and before the optimiser is
-    created. Asserts that neither the torch nor the numpy RNG advanced.
+    created. Asserts that neither the torch nor the numpy RNG advanced, and that
+    the CUDA generator did not advance either -- dropout on GPU draws from the
+    CUDA generator, so a CPU-only guard passes while the measurement is still
+    seed-dependent. For the same reason the model is put in eval mode for the
+    measurement and its mode is restored afterwards: with dropout active the gain
+    moved by 7e-11 between seeds, and the gain must be a pure function of
+    (init, subset, encoding) for the seed spread to mean "training randomness".
     """
+    was_training = net.training
+    net.eval()
+    cu = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
     tp = torch.get_rng_state()
     np_state = np.random.get_state()
-    before = rms_stats(net, ds, dev=dev, bs=bs)
-    gain = rho / before['rms_ratio'] if before['rms_ratio'] else 1.0
-    with torch.no_grad():
-        net.cycle_gain.fill_(float(gain))
-    after = rms_stats(net, ds, dev=dev, bs=bs)
+    try:
+        before = rms_stats(net, ds, dev=dev, bs=bs)
+        gain = rho / before['rms_ratio'] if before['rms_ratio'] else 1.0
+        with torch.no_grad():
+            net.cycle_gain.fill_(float(gain))
+        after = rms_stats(net, ds, dev=dev, bs=bs)
+    finally:
+        net.train(was_training)
     assert torch.equal(tp, torch.get_rng_state()), 'calibration consumed torch RNG'
+    if cu is not None:
+        assert torch.equal(cu, torch.cuda.get_rng_state()), 'calibration consumed CUDA RNG'
     ns = np.random.get_state()
     assert ns[0] == np_state[0] and np.array_equal(ns[1], np_state[1]), \
         'calibration consumed numpy RNG'
