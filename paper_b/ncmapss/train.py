@@ -366,20 +366,14 @@ def _loss_on(net, x, mask, cond, y, bs, device, train):
 
 
 def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
-             normalize_target=True):
-    """Train one rung for a **fixed** number of epochs and return ``(net, report)``.
+             normalize_target=True, early_stop=False, max_epochs=400,
+             min_epochs=20, patience=12):
+    """Train one rung and return ``(net, report)``.
 
-    ``epochs``/``batch`` override the frozen schedule for the DS02 budget rule
-    (200 passes, batch=min(64,N)); the override is recorded by the caller.
-
-    The target is standardised with the **training-fold** mean/std and the
-    prediction must be inverted with the returned ``target_mu``/``target_sd``.
-    Without this the output head cannot reach the RUL scale in a few hundred
-    updates; with it, N0 reaches its converged error at 40 passes.
-
-    No early stopping: the held-out unit is never used to pick a stopping point
-    (protocol 4.2). The per-epoch curves are recorded so under-training is
-    visible; it is a finding, not a reason to change the schedule.
+    ``early_stop=True`` is used only by the **inner** selection folds, whose
+    validation unit is one of the outer fold's training engines. The outer
+    evaluation trains for a fixed ``epoch*`` and reports the last epoch, so no
+    outer held-out information selects anything (protocol 4.2).
     """
     torch.manual_seed(seed)
     net = build(rung, cfg).to(device)
@@ -404,8 +398,9 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
         target_mu, target_sd = 0.0, 1.0
     n = len(tr_idx)
     bs = min(int(batch if batch is not None else cfg['batch']), n)
-    epochs = int(cfg['epochs'] if epochs is None else epochs)
+    epochs = int(max_epochs if early_stop else (cfg['epochs'] if epochs is None else epochs))
     hist = []
+    best_va, best_ep = float('inf'), -1
     for ep in range(1, epochs + 1):
         net.train()
         perm = tr_idx[torch.randperm(n, device=device)]
@@ -426,14 +421,19 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
             total += float(loss.detach())
             nb += 1
         tr_loss = total / max(nb, 1)
-        # held-out curve is diagnostic only; it never selects the epoch
+        # diagnostic on an outer fold; the selection signal only on an inner fold
         va_loss = _loss_on(net, x[va_idx], mask[va_idx], cond[va_idx], y[va_idx],
                            bs, device, train=False)
         hist.append(dict(epoch=ep, train_loss=tr_loss, holdout_loss=va_loss))
+        if va_loss < best_va - 1e-4:
+            best_va, best_ep = va_loss, ep
+        if early_stop and ep >= min_epochs and ep - best_ep >= patience:
+            break
     net.eval()
     with torch.no_grad():
         out = net(x[:1], mask=mask[:1], cond=cond[:1])
     report = dict(rung=rung, seed=int(seed), n=int(n), batch=bs, epochs=int(epochs),
+                  epochs_run=len(hist), best_epoch=int(best_ep),
                   params=int(sum(p.numel() for p in net.parameters())),
                   target_mu=float(target_mu), target_sd=float(target_sd),
                   final_train_loss=hist[-1]['train_loss'],

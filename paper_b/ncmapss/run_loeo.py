@@ -164,6 +164,55 @@ def _preflight(root):
     return dict(git_sha=run('git', 'rev-parse', 'HEAD'), protocol_blob=blob)
 
 
+def _subset(data, units):
+    """Restrict a fold's windows to a set of units (windows never cross units)."""
+    m = np.isin(data['unit'], list(units))
+    out = {}
+    for k, v in data.items():
+        if isinstance(v, np.ndarray) and v.ndim >= 1 and v.shape[0] == len(m):
+            out[k] = v[m]
+        else:
+            out[k] = v
+    return out
+
+
+def select_epoch_star(rung, data, cfg, seed, dev, batch):
+    """Inner-fold epoch selection; the outer held-out unit is never involved.
+
+    For each of the outer fold's five training engines: hold it out, train on the
+    other four, record the full validation curve. ``epoch*`` is the argmin of the
+    curve **averaged over the five inner folds**, floored at 20 passes.
+
+    Averaging rather than taking the median of the five per-fold minima: with
+    four training engines the per-fold validation loss bottoms out at epoch 1-12
+    (the model memorises the four and predicts the fifth worse), so the median of
+    the minima collapses to a near-untrained model (measured: N2 5.29 -> 18.09).
+    The per-fold minima are kept for audit.
+    """
+    outer_train = sorted({int(u) for u in data['unit'][np.asarray(data['is_train'], bool)]})
+    curves, per_fold_best, per_fold_min = [], [], []
+    for u in outer_train:
+        inner = [x for x in outer_train if x != u]
+        sub = _subset(data, inner + [u])
+        sub['is_train'] = np.isin(sub['unit'], inner)
+        _, rep = fit_rung(rung, sub, cfg, seed=seed, device=dev, batch=batch,
+                          early_stop=True, max_epochs=400, min_epochs=20, patience=12)
+        c = [h['holdout_loss'] for h in rep['history']]
+        curves.append(c)
+        per_fold_best.append(int(rep['best_epoch']))
+        per_fold_min.append(float(min(c)))
+    L = max(len(c) for c in curves)
+    avg = np.array([np.mean([c[e] if e < len(c) else c[-1] for c in curves])
+                    for e in range(L)])
+    raw_argmin = int(np.argmin(avg) + 1)
+    epoch_star = max(raw_argmin, 20)
+    return dict(epoch_star=epoch_star, raw_argmin=raw_argmin,
+                floor_applied=bool(raw_argmin < 20),
+                per_fold_best_epoch=per_fold_best,
+                per_fold_min_loss=per_fold_min,
+                avg_curve=[float(x) for x in avg])
+
+
 def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sha):
     seed = N0_SEED if rung == 'N0' else None
     seeds = (N0_SEED,) if rung == 'N0' else SEEDS
@@ -195,8 +244,11 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             dev = 'cuda:0' if torch.cuda.is_available() else 'cpu'
             n_train = int(np.asarray(data['is_train'], bool).sum())
             batch = min(BATCH, n_train)
+            # epoch* from the five inner folds of the training engines only
+            sel = select_epoch_star(rung, data, cfg, sd, dev, batch)
+            epoch_star = sel['epoch_star']
             net, res = fit_rung(rung, data, cfg, seed=sd, device=dev,
-                                epochs=PASSES, batch=batch)
+                                epochs=epoch_star, batch=batch)
             d.mkdir(parents=True, exist_ok=True)
             # predictions on the held-out unit
             ho = ~np.asarray(data['is_train'], bool)
@@ -238,15 +290,31 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             m['holdout_min_epoch'] = int(best['epoch'])
             m['passes'] = int(res['epochs'])
             m['batch_effective'] = int(res['batch'])
+            m['epoch_star'] = int(epoch_star)
+            m['epoch_star_raw_argmin'] = int(sel['raw_argmin'])
+            m['epoch_floor_applied'] = bool(sel['floor_applied'])
+            m['inner_per_fold_best_epoch'] = list(sel['per_fold_best_epoch'])
+            m['inner_per_fold_min_loss'] = list(sel['per_fold_min_loss'])
+            m['inner_avg_curve'] = list(sel['avg_curve'])
+            # diagnostic only: where epoch* sits relative to the outer curve minimum
+            m['outer_loss_at_epoch_star'] = float(hist[-1]['holdout_loss'])
+            m['outer_curve_min'] = float(best['holdout_loss'])
+            m['outer_curve_argmin'] = int(best['epoch'])
             (d / 'metrics.json').write_text(json.dumps(m, indent=1))
             row.update(m, status='ok', epochs_run=res['epochs'],
-                       selection_rule=f'fixed_passes:{PASSES}',
+                       best_epoch=int(epoch_star),
+                       selection_rule='inner_val',
                        preds_path=str(d / 'pred.csv'), config_path=str(d / 'config.json'),
                        config_sha256=_sha256(d / 'config.json'),
-                       registry_note=f'batch_effective={res["batch"]}; '
+                       registry_note=f'epoch_star={epoch_star} '
+                                     f'raw_argmin={sel["raw_argmin"]} '
+                                     f'floor_applied={sel["floor_applied"]} '
+                                     f'inner_best_epochs={sel["per_fold_best_epoch"]} '
+                                     f'inner_min_losses={[round(x, 4) for x in sel["per_fold_min_loss"]]}; '
+                                     f'batch_effective={res["batch"]}; '
                                      f'target_norm=fold_local mu={res["target_mu"]:.3f} '
                                      f'sd={res["target_sd"]:.3f}; '
-                                     'holdout_min is diagnostic only, not used for selection; '
+                                     'outer_early_stop=false; holdout_min is diagnostic only; '
                                      'metrics provisional, recompute with evaluation.py')
         except Exception as exc:  # noqa: BLE001 - a failed cell must be recorded, not hidden
             row.update(status='failed',
