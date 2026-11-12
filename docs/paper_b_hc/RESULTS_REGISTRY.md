@@ -518,3 +518,5 @@ registry_note, audited_by, audit_verdict
 | 并发数的记录位置 | **本节 + 每行 `registry_note`**。`experiments/hc/d/ledger.csv` 的表头由 tmh 的脚本固定，管理员不改它；登记 `runs.csv` 时把实际并发写进 note |
 | 结果台账 | `experiments/hc/d/ledger.csv` 由脚本自动追加，管理员只读不改 |
 | 冒烟格 | 目录 `_smoke_B3_FD001_s101`，不在 48 格内、不进汇总；军师口径：**冒烟格不能因存在 `metrics.json` 就算正式格完成** |
+| 发车事实（2026-11-13 05:17） | 已发车，**并发 3**（`B0-FD001-s101/s202/s303` 先跑），驱动 `logs/d_wave/driver.sh`，每格日志 `logs/d_wave/<run_id>.log`、退出码 `<run_id>.rc`，失败即停（`FAILED` 标记 + `driver.status`） |
+| 产物出现时点 | `train_d` 只在**保存时**建目录（`(out/`ckpt`).mkdir(parents=True)`），所以格跑完之前 `experiments/hc/d/` 下**看不到 `HC-D-*` 目录**——「没有目录」不等于「没发车」，别误判 |
