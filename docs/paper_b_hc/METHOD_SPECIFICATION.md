@@ -397,17 +397,26 @@ $L_\text{RUL}$ 的梯度有一半来自"把 $\hat T^\star$ 推过 125"这一个�
 
 现有 `data_hc.build` 返回的是**窗口数组**（`x/y/mask/baseline/cond/cycle_hc/cycle_raw`），
 窗口之间没有"属于哪台发动机、从第几个周期开始"的字段，D 分支无法据此做前缀递推。
-必须新增一个并列接口，**不改动现有接口**（C 的 28 格证据依赖它）：
+必须新增一个并列接口，**不改动现有接口**（C 的 28 格证据依赖它）。
+
+**而且不能加在 `data_hc.py` 里**：该文件是 v9 code lock 的 15 个 blob 之一
+（md5 `3ad7c111cf0268409bb40d79f7271cee`），改它会让所有记录 `code_md5` 的 Stage C run 失效。
+因此接口放在**新模块 `paper_b/hc/data_d.py`**，只 import `data_hc`、不修改它。
 
 ```
-engine_batch(subset, split) -> {
+data_d.engine_batch(subset, data_dir, span, cuts, split='train'|'val') -> {
   x:          (E, Lmax, span, C)   # 按发动机补齐，右侧有效
   mask:       (E, Lmax, span)      # 窗口内 mask（右对齐，与冻结一致）
+  baseline:   (E, Lmax, C)
+  cond:       (E, Lmax)
   valid:      (E, Lmax)            # 该发动机真实长度内为 1，补齐位为 0
   cycle_raw:  (E, Lmax)            # 真实年龄（推理期只用 <= c 的部分）
   r:          (E, Lmax)            # 未封顶 RUL = n_e - t
   y:          (E, Lmax)            # 封顶标签 = min(r, rul_cap)
   engine_id:  (E,)                 # 发动机标识，用于 cluster/分组统计
+  lengths:    (E,)
+  cut_t:      (E, K)               # 仅 'val'：五个协议 cut 的周期位置
+  cut_valid:  (E, K)
 }
 ```
 

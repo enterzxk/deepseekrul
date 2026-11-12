@@ -174,17 +174,68 @@ def _skip(msg):
         raise _Skip(msg)
 
 
+def _find_data():
+    """Locate C-MAPSS train files; None if this machine has none."""
+    import os
+    for p in ('data/CMAPSS', 'paper_b/data/CMAPSS',
+              '/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS'):
+        if os.path.exists(os.path.join(p, 'train_FD001.txt')):
+            return p
+    return None
+
+
 # --------------------------------------------------------------------------
-# 5. contract test: two-interface parity (skipped until engine_batch exists)
+# 5. two-interface parity: the frozen cut window vs the engine trajectory
 # --------------------------------------------------------------------------
 def test_two_interface_parity():
+    """z_t from a frozen cut window must equal z_t from the trajectory slice.
+
+    This is the check that lets the Stage D recursion read the frozen cut
+    windows: if the two constructions ever disagree, the damage at a validation
+    cut is computed from a different input than the one the model was evaluated
+    on, and every val number in D is invalid.
+    """
+    data_dir = _find_data()
+    if data_dir is None:
+        _skip('no C-MAPSS data on this machine')
     try:
-        from paper_b.hc.data_hc import engine_batch  # noqa: F401
-    except Exception:
-        _skip('engine_batch not implemented yet (D7.1); contract test pending')
-    raise AssertionError(
-        'engine_batch exists -- implement the z_t parity assertion here before '
-        'writing the training loop')
+        import torch
+        from paper_b.hc import config_hc, data_d
+        from paper_b.hc.data_hc import build
+        from paper_b.hc.model_hc import build_hc
+    except Exception as e:                              # noqa: BLE001
+        _skip('torch / paper_b not importable: %s' % e)
+
+    span, cuts = config_hc.SPAN, config_hc.VAL_CUTS
+    net = build_hc(config_hc.hc_config('A1', 'FD001', 101)).eval()
+    ds = build('FD001', data_dir, span, cuts, cycle_source='raw')
+    eb = data_d.engine_batch('FD001', data_dir, span, cuts, split='val')
+    va = ds['val']
+
+    def enc(x, base, mask, cond):
+        return net.encode(torch.from_numpy(np.asarray(x, np.float32)),
+                          torch.from_numpy(np.asarray(base, np.float32)),
+                          torch.from_numpy(np.asarray(mask, np.float32)),
+                          None,
+                          torch.from_numpy(np.asarray(cond, np.int64)))
+
+    worst, checked = 0.0, 0
+    with torch.no_grad():
+        for j in range(len(va['y'])):
+            uid, c = int(va['unit'][j]), int(va['cut'][j])
+            hit = np.where(eb['engine_id'] == uid)[0]
+            assert len(hit) == 1, 'engine %d not unique in engine_batch' % uid
+            e = int(hit[0])
+            assert int(eb['cycle_raw'][e, c - 1]) == c, 'cycle misaligned'
+            h_win = enc(va['x'][j:j + 1], va['baseline'][j:j + 1],
+                        va['mask'][j:j + 1], va['cond'][j:j + 1])
+            h_eng = enc(eb['x'][e, c - 1:c], eb['baseline'][e, c - 1:c],
+                        eb['mask'][e, c - 1:c], eb['cond'][e, c - 1:c])
+            worst = max(worst, float((h_win - h_eng).abs().max()))
+            checked += 1
+
+    assert checked == len(va['y']), 'checked %d of %d windows' % (checked, len(va['y']))
+    assert worst <= TOL, 'window/engine encoder mismatch %.3e > %.0e' % (worst, TOL)
 
 
 def main():
