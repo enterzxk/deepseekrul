@@ -1,0 +1,1 @@
+"""One-off diagnostics that produced numbers cited in the repo. Kept so each cited number has a runnable source."""
