@@ -208,22 +208,42 @@ seeds 101 / 202 / 303. Only the input width changes (51 columns instead of the
 C-MAPSS sensor block). `patience: 12` is present in that file but is **unused
 here** — see the stopping rule below.
 
-**Epoch budget: amended from 40 to a fixed number of optimizer steps.**
-Measured from the file before any run: DS02 dev holds 446 flights over six
-units, so a LOEO fold trains on 380 windows and `min(512, 380) = 380`, i.e. one
-gradient step per epoch. The frozen 40 epochs would therefore mean **40 optimizer
-steps** — a warm-up, not a training run, and identical across rungs so the
-comparison would measure noise.
+**Epoch budget: fixed at 40 passes, with the batch reduced so a pass is not a
+single update.**
+Measured from the file before any run: DS02 dev holds 446 flights over six units,
+so a LOEO fold trains on 380 windows. With `batch = min(512, N) = 380` that is
+**one gradient step per epoch**, i.e. 40 steps in total — a warm-up, not a
+training run.
 
-The budget is therefore fixed at **1000 optimizer steps**, applied identically to
-every rung:
+Fixing the number of *optimizer steps* instead would be the wrong instrument: it
+would take 1000 steps to look respectable, and since one step is one pass here,
+that is **1000 passes over 380 flights** — roughly 25× the C-MAPSS regime, and a
+guaranteed memorisation endpoint for every rung. All four rungs would still be
+compared fairly, but the question would silently change from "which model
+predicts better" to "which model degrades more slowly once overfitted".
 
-    epochs = ceil(1000 / ceil(N_train / batch))
+So the budget is fixed on the quantity that controls generalisation — **passes
+over the data** — and the batch is reduced to give a usable number of updates:
 
-This is decided from the *measured dataset size* before any run, not from any
-result, and it replaces `protocol.json`'s `epochs` field for DS02 only. The
-C-MAPSS line keeps its own 40-epoch budget; the difference is recorded here so
+| quantity | C-MAPSS | DS02 |
+|---|---|---|
+| passes over the data | 40 | **40** |
+| batch | 512 | `min(64, N_train)` = 64 |
+| updates per pass | ~39 | 6 |
+| total updates | ~1560 | **240** |
+
+`epochs = 40`, `batch = min(64, N_train)`. Applied identically to all four rungs.
+This is decided from the measured dataset size before any run, not from any
+result, and it replaces `protocol.json`'s `epochs` and `batch` fields for DS02
+only. The C-MAPSS line keeps its own schedule; the difference is recorded here so
 the "same core structure" claim is bounded exactly as stated below.
+
+Because no early stopping is allowed (see below), the reported model is the one
+at the end of this budget. The full training and holdout curves are therefore
+reported alongside every number, and the holdout **minimum and the epoch at which
+it occurs are reported as a diagnostic** — never used to pick the model, only to
+show whether the fixed endpoint sits on a slope or at a floor. A fixed budget
+hides over-fitting only if the curve is hidden with it.
 
 The **label-construction** fields in the same file are **not** inherited. They are
 C-MAPSS-specific and are re-defined here, once, and frozen:

@@ -39,6 +39,13 @@ number of flights contributing.
   reported; the disagreement is the finding, not something to reconcile away.
 - No DS02 number is compared against a C-MAPSS number without the protocol
   statement required by `CROSS_DATASET_COMPARISON.md`.
+- **Every reported number is accompanied by its learning curve.** Because the
+  budget is fixed and there is no early stopping, the reported model is the one
+  at the end of that budget. Each row therefore also carries the holdout
+  minimum and the epoch at which it occurs, labelled
+  `diagnostic only - not used for model selection`. This shows whether the
+  fixed endpoint sits on a slope or at a floor; a fixed budget hides
+  over-fitting only when the curve is hidden with it.
 - **The capped criterion may be inactive on DS02.** DS02 RUL is counted in
   flights, and its lifetimes may be far shorter than the 125-cycle cap inherited
   from C-MAPSS. If no unit's raw RUL ever exceeds 125, then
