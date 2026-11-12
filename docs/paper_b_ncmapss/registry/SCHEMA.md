@@ -1,6 +1,6 @@
 # N-CMAPSS DS02 实验台账 schema
 
-版本：**v9** · 2026-11-12
+版本：**v10** · 2026-11-12
 状态：**schema 已定，0 run**（等数据接入后按此登记）
 最后更新：2026-11-12 22:05 (+08)
 维护人：实验结果管理员
@@ -246,7 +246,7 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 | 项 | 值 |
 |---|---|
 | `freeze_commit` | **`e7ad15f`** |
-| `protocol_blob` | **`21af549e448415113ee2ac61f11a5679400eddac`** |
+| `protocol_blob` | **`a3c40c634da7a3bb44ace788f74896b17e51c3fb`** |
 | 核验命令 | `git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
 
 > **已作废的旧锚（按时间顺序）**：
@@ -435,9 +435,9 @@ docs/paper_b_ncmapss/registry/
 ```bash
 cd <repo>
 # 1. 协议没漂移：冻结提交、当前 HEAD、台账三处 blob 必须相同
-git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 21af549e448415113ee2ac61f11a5679400eddac
+git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 a3c40c634da7a3bb44ace788f74896b17e51c3fb
 git rev-parse HEAD:docs/paper_b_ncmapss/DATASET_PROTOCOL.md      # 必须与上一行相同
-grep -c 21af549e448415113ee2ac61f11a5679400eddac docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
+grep -c a3c40c634da7a3bb44ace788f74896b17e51c3fb docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
 
 # 2. 工作区干净（3090 是只读消费者）
 git fetch && git reset --hard origin/ncmapss-ds02

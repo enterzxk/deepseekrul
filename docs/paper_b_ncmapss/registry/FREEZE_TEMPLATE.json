@@ -20,9 +20,9 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "7e9415e",
+    "freeze_commit": "9ac1744",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "21af549e448415113ee2ac61f11a5679400eddac",
+    "known_protocol_blob_at_freeze": "a3c40c634da7a3bb44ace788f74896b17e51c3fb",
     "superseded_anchor": [
       {
         "freeze_commit": "5b228ad",
@@ -243,7 +243,7 @@
       "layers": 2,
       "dropout": 0.2,
       "epochs_note": "the stopping epoch is chosen on an INNER split (5 training engines rotated, median of the 5 best epochs), then the model is retrained on all 5 for exactly epoch* passes; the outer held-out engine never contributes",
-      "early_stop": "inner validation, patience 12, min 20 passes, max 400",
+      "early_stop": "epoch* = argmin of the mean of the 5 inner validation curves, floored at 20 passes; max 400 passes; the median of per-split minima was rejected because it collapses to 1-2 epochs",
       "outer_early_stop": false,
       "target_norm": "fold_local_zscore",
       "target_norm_note": "y is standardised with the training-fold mean/std and inverted back to cycles before pred.csv is written"
