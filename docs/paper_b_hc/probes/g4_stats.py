@@ -40,7 +40,7 @@ OUT = ROOT / 'experiments/hc'
 LEDGER = ROOT / 'docs/paper_b_hc/registry/runs.csv'
 DIAG = OUT / 'tmp' / 'g4_diag.json'
 SUBSETS = ['FD001', 'FD002', 'FD003', 'FD004']
-ARMS = ['A1', 'A2', 'A3a', 'A4', 'A5', 'A3p']
+ARMS = ['A0', 'A1', 'A2', 'A3a', 'A4', 'A5', 'A3p']
 NBOOT = 800
 NPERM = 0
 
@@ -170,7 +170,7 @@ def main():
 
     print('\n## A. within-engine Spearman(age, pred), average ranks\n')
     print('%-4s %-6s %8s %8s %8s %7s %7s %7s'
-          % ('arm', 'subset', 'rho', 'min_eng', 'p05_eng', 'n_eng', 'neg_eng',
+          % ('arm', 'subset', 'pooled', 'min_eng', 'p05_eng', 'n_eng', 'neg_eng',
              'weak'))
     rho_agg = {}
     for s in SUBSETS:
