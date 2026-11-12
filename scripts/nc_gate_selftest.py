@@ -55,9 +55,22 @@ def main():
     expect_fail('test units from another subset',
                 lambda: _check_manifest(man, 'DS02', dev, (7, 8, 9, 10), SHA,
                                         ('N0', 'N1', 'N2', 'N3'), SEEDS_BY_RUNG))
-    expect_fail('unfrozen manifest',
-                lambda: _check_manifest({'frozen': False, 'runs': [], 'data': {}},
-                                        'DS02', dev, test, SHA, (), SEEDS_BY_RUNG))
+
+    # the frozen flag and the hash are checked in _load_freeze, so test that path
+    # with a real file rather than asserting on a dict that never reaches it
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        unfrozen = dict(man, frozen=False)
+        fp = Path(td) / 'unfrozen.json'
+        fp.write_text(json.dumps(unfrozen), encoding='utf-8')
+        expect_fail('unfrozen manifest (frozen:false)',
+                    lambda: _load_freeze(Path(td), str(fp)))
+
+        tampered = dict(man, scope=man['scope'] + ' (edited after signing)')
+        tp = Path(td) / 'tampered.json'
+        tp.write_text(json.dumps(tampered), encoding='utf-8')
+        expect_fail('manifest edited after signing (hash no longer reproduces)',
+                    lambda: _load_freeze(Path(td), str(tp)))
     print('\ngate self-test: PASS')
 
 
