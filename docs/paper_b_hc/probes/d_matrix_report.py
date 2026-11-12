@@ -77,8 +77,8 @@ def main():
             print('  %-4s %-6s s%-4d %s' % (arm, s, sd, st))
     print()
 
-    hdr = '%-6s %-4s %6s %8s %8s %8s %8s %6s %6s' % (
-        'subset', 'arm', 'n', 'main', 'sd', 'uncens', 'uncap', 'bnd', 'ep')
+    hdr = '%-6s %-4s %6s %8s %8s %8s %8s %6s %6s %6s' % (
+        'subset', 'arm', 'n', 'main', 'sd', 'uncens', 'cens', 'bnd', 'uncap', 'ep')
     print(hdr)
     print('-' * len(hdr))
     agg = {}
@@ -87,23 +87,30 @@ def main():
             rows = [cells[(arm, s, sd)] for sd in SEEDS
                     if status[(arm, s, sd)] == 'FORMAL']
             if not rows:
-                print('%-6s %-4s %6d %8s %8s %8s %8s %6s %6s'
-                      % (s, arm, 0, '-', '-', '-', '-', '-', '-'))
+                print('%-6s %-4s %6d %8s %8s %8s %8s %6s %6s %6s'
+                      % (s, arm, 0, '-', '-', '-', '-', '-', '-', '-'))
                 continue
             def col(k):
                 v = [r.get(k) for r in rows if r.get(k) is not None]
                 return (float(np.mean(v)), float(np.std(v, ddof=1)) if len(v) > 1 else 0.0)
+            def sub(k):
+                v = [r['rmse_by_censoring'][k] for r in rows
+                     if r.get('rmse_by_censoring', {}).get(k) is not None]
+                return float(np.mean(v)) if v else None
             main_m, main_s = col('val_engine_mean_rmse')
             unc_m, _ = col('rmse_uncensored')
             uncap_m, _ = col('rmse_uncapped')
             bnd_m, _ = col('boundary_hit')
+            cens_m = sub('censored')
             ep = float(np.mean([r['best_ep'] for r in rows]))
             agg[(arm, s)] = dict(main=main_m, main_sd=main_s, n=len(rows),
                                  per_seed={sd: cells[(arm, s, sd)]['val_engine_mean_rmse']
                                            for sd in SEEDS
                                            if status[(arm, s, sd)] == 'FORMAL'})
-            print('%-6s %-4s %6d %8.3f %8.3f %8.3f %8.3f %6.3f %6.1f'
-                  % (s, arm, len(rows), main_m, main_s, unc_m, uncap_m, bnd_m, ep))
+            print('%-6s %-4s %6d %8.3f %8.3f %8.3f %8s %6.3f %6.3f %6.1f'
+                  % (s, arm, len(rows), main_m, main_s, unc_m,
+                     '-' if cens_m is None else '%.3f' % cens_m,
+                     bnd_m, uncap_m, ep))
     print()
 
     print('paired chain (per seed, negative = the right-hand arm is better)')
