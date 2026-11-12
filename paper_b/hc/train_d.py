@@ -29,6 +29,7 @@ Numerics that are not negotiable:
   * The training loss uses the raw operator output. Clipping at ``rul_cap``
     happens only in evaluation (D4.1/D4.6).
 """
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -272,10 +273,65 @@ def prepare(subset, data_dir, K, head_seed, dev, init_from, out_dir):
 # --------------------------------------------------------------------------- #
 # evaluation (D4.6 six quantities)
 # --------------------------------------------------------------------------- #
+def metrics_from_arrays(preds, ys_raw, units, cuts, cap, K):
+    """The ONE place labels get capped. evaluate() calls this; tests call this.
+
+    Splitting it out is deliberate: the advisor's admission condition is an
+    actual-path check (r_raw=150, pred=125 -> capped error 0, raw error 25), and
+    a check that re-implements the cap proves nothing about the code that runs.
+    """
+    preds = np.asarray(preds, np.float64)
+    ys_raw = np.asarray(ys_raw, np.float64)
+    units = np.asarray(units)
+    cuts = np.asarray(cuts)
+    ys = np.minimum(ys_raw, cap)          # frozen metric label
+    clipped = np.clip(preds, 0.0, cap)
+    unc = ys_raw < cap                    # censoring is defined on the raw RUL
+    capd = ~unc
+    m = dict(n=int(ys.size),
+             # main metric and selection: capped labels, clipped predictions
+             val_engine_mean_rmse=per_engine_rmse(units, ys, clipped),
+             val_pooled_rmse=rmse(clipped, ys),
+             frac_capped=float(capd.mean()) if ys.size else None,
+             rmse_uncensored=(float(np.sqrt(np.mean((clipped[unc] - ys_raw[unc]) ** 2)))
+                              if unc.any() else None),
+             # uncapped truth vs the operator's own (unclipped) output, but only
+             # where the truth is inside the horizon: beyond K the operator
+             # cannot represent it and including those points flatters the model
+             rmse_uncapped=(float(np.sqrt(np.mean((preds[ys_raw <= K] - ys_raw[ys_raw <= K]) ** 2)))
+                            if (ys_raw <= K).any() else None),
+             frac_r_gt_K=float((ys_raw > K).mean()) if ys.size else None,
+             boundary_hit=float((preds[capd] >= cap).mean()) if capd.any() else None,
+             exact_boundary=(float((np.abs(preds[capd] - cap) < 1e-6).mean())
+                             if capd.any() else None),
+             rmse_by_censoring=dict(
+                 uncensored=(float(np.sqrt(np.mean((clipped[unc] - ys_raw[unc]) ** 2)))
+                             if unc.any() else None),
+                 censored=(float(np.sqrt(np.mean((clipped[capd] - ys[capd]) ** 2)))
+                           if capd.any() else None)))
+    m['per_cut'] = {int(c): dict(n=int((cuts == c).sum()),
+                                 rmse=float(np.sqrt(np.mean((clipped[cuts == c] - ys[cuts == c]) ** 2))))
+                    for c in np.unique(cuts)}
+    m['_preds'] = preds
+    m['_ys'] = ys
+    m['_ys_raw'] = ys_raw
+    m['_units'] = units
+    m['_cuts'] = cuts
+    return m
+
+
 def evaluate(net, arm, eb, dev, K, cap):
-    """Cut-cycle evaluation: 5 cuts per engine, engine-mean RMSE (frozen metric)."""
+    """Cut-cycle evaluation: 5 cuts per engine, engine-mean RMSE (frozen metric).
+
+    LABELS ARE CAPPED FOR THE MAIN METRIC. The frozen protocol scores
+    ``min(r, rul_cap)``; scoring a clipped prediction against the RAW ``n - t``
+    charges 25 cycles of error to a sample with r=150 and prediction 125, where
+    the protocol records zero. The advisor caught this; it moves both model
+    selection and D-G1. Raw labels are kept separately for the uncapped
+    diagnostics, which are reported apart and never used for selection.
+    """
     net.eval()
-    preds, ys, units, cuts = [], [], [], []
+    preds, ys_raw, units, cuts = [], [], [], []
     with torch.no_grad():
         for i in range(len(eb['lengths'])):
             n = int(eb['lengths'][i])
@@ -287,41 +343,10 @@ def evaluate(net, arm, eb, dev, K, cap):
                     continue
                 t = int(ct[j])
                 preds.append(float(fo['pred'][t - 1]))
-                ys.append(float(n - t))
+                ys_raw.append(float(n - t))
                 units.append(int(eb['engine_id'][i]))
                 cuts.append(j)
-    preds = np.asarray(preds, np.float64)
-    ys = np.asarray(ys, np.float64)
-    units = np.asarray(units)
-    cuts = np.asarray(cuts)
-    clipped = np.clip(preds, 0.0, cap)
-    m = dict(n=int(ys.size),
-             val_engine_mean_rmse=per_engine_rmse(units, ys, clipped),
-             val_pooled_rmse=rmse(clipped, ys))
-    unc = ys < cap
-    capd = ~unc
-    m['frac_capped'] = float(capd.mean()) if ys.size else None
-    m['rmse_uncensored'] = float(np.sqrt(np.mean((clipped[unc] - ys[unc]) ** 2))) if unc.any() else None
-    # rmse_uncapped: uncapped truth, but only where the truth is inside the
-    # model's horizon -- beyond K the operator's output cannot represent it and
-    # including those points would flatter the model (D4.6 item 4).
-    inK = ys <= K
-    m['rmse_uncapped'] = (float(np.sqrt(np.mean((preds[inK] - ys[inK]) ** 2)))
-                          if inK.any() else None)
-    m['frac_r_gt_K'] = float((~inK).mean()) if ys.size else None
-    m['boundary_hit'] = float((preds[capd] >= cap).mean()) if capd.any() else None
-    m['exact_boundary'] = float((np.abs(preds[capd] - cap) < 1e-6).mean()) if capd.any() else None
-    m['rmse_by_censoring'] = dict(
-        uncensored=(float(np.sqrt(np.mean((clipped[unc] - ys[unc]) ** 2))) if unc.any() else None),
-        censored=(float(np.sqrt(np.mean((clipped[capd] - ys[capd]) ** 2))) if capd.any() else None))
-    m['per_cut'] = {int(c): dict(n=int((cuts == c).sum()),
-                                 rmse=float(np.sqrt(np.mean((clipped[cuts == c] - ys[cuts == c]) ** 2))))
-                    for c in np.unique(cuts)}
-    m['_preds'] = preds
-    m['_ys'] = ys
-    m['_units'] = units
-    m['_cuts'] = cuts
-    return m
+    return metrics_from_arrays(preds, ys_raw, units, cuts, cap, K)
 
 
 # --------------------------------------------------------------------------- #
@@ -372,13 +397,22 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     # One shared pair for all four arms (advisor, 2026-11-13). Read from the
     # frozen calibration record rather than hard-coded, so the value that trained
     # a run is the value in the record and the provenance is explicit.
-    lam_src = 'default_125_squared'
+    # Startup guard: the formal matrix must read the FROZEN weights. Falling
+    # back to 125^2 would silently train a different objective than the one the
+    # advisor calibrated and froze, and nothing downstream would show it.
+    frozen_sha = None
     if lam is None and lam_t is None and lam_s is None:
         fz = Path(shared_path).parent / 'd45_init.json'
-        if fz.exists():
-            fr = json.loads(fz.read_text(encoding='utf-8'))['frozen']
-            lam_t, lam_s = float(fr['lam_T']), float(fr['lam_S'])
-            lam_src = 'd45_init.json:frozen(c_T=%.6f,c_S=%.6f)' % (fr['c_T'], fr['c_S'])
+        if not fz.exists():
+            raise SystemExit('REFUSED: %s missing; the frozen c_T/c_S must exist '
+                             '(no silent fallback to 125^2)' % fz)
+        raw = fz.read_bytes()
+        frozen_sha = hashlib.sha256(raw).hexdigest()
+        fr = json.loads(raw)['frozen']
+        lam_t, lam_s = float(fr['lam_T']), float(fr['lam_S'])
+        lam_src = 'd45_init.json:frozen(c_T=%.6f,c_S=%.6f)' % (fr['c_T'], fr['c_S'])
+    else:
+        lam_src = 'explicit_cli'
     lam_t = float(C.RUL_CAP ** 2 if lam_t is None else lam_t)
     lam_s = float(C.RUL_CAP ** 2 if lam_s is None else lam_s)
     if lam is not None:
@@ -390,6 +424,10 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     weight_decay = float(C.WEIGHT_DECAY if weight_decay is None else weight_decay)
     cap = float(C.RUL_CAP)
 
+    out = Path(out_dir)
+    if (out / 'metrics.json').exists() and not budget_override:
+        raise SystemExit('REFUSED: %s already has metrics.json; a formal cell is never '
+                         'overwritten' % out)
     set_seed(seed)
     t0 = time.time()
     dev = torch.device(dev)
@@ -466,6 +504,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
 
     ev = evaluate(net, arm, ebv, dev, K, cap)
     preds, ys = ev.pop('_preds'), ev.pop('_ys')
+    ys_raw = ev.pop('_ys_raw')
     units = ev.pop('_units')
     cuts = ev.pop('_cuts')
     out = Path(out_dir)
@@ -477,6 +516,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
              # B0 has no damage head, so it has no head fingerprint: recording
              # the shared one would claim an init the arm never built.
              head_fingerprint=(None if arm == 'B0' else sh['head_fingerprint']),
+             frozen_sha256=frozen_sha,
+             ref_batch_epoch_log_engines=[int(x) for x in ebt['engine_id'][:3]],
+             ref_batch_calibration='first 8 training engines, index order (see d45_init.json)',
              params=nparam, epochs_run=len(history), best_ep=best_ep,
              best_val_engine_mean_rmse=best, elapsed_s=round(time.time() - t0, 1),
              select_on_val=True, budget=dict(epochs=epochs, patience=patience,
@@ -491,8 +533,8 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     (out / 'metrics.json').write_text(json.dumps(m, indent=1), encoding='utf-8')
     (out / 'history.json').write_text(json.dumps(history, indent=1), encoding='utf-8')
     import pandas as pd
-    pd.DataFrame(dict(engine_id=units, cut=cuts, y_true=ys, y_pred=preds,
-                      split='val')).to_csv(out / 'preds.csv', index=False)
+    pd.DataFrame(dict(engine_id=units, cut=cuts, y_cap=ys, y_raw=ys_raw,
+                      y_pred=preds, split='val')).to_csv(out / 'preds.csv', index=False)
     log('DONE %s %s s%d val_eng=%.4f ep=%d params=%d %.1fs'
         % (arm, subset, seed, ev['val_engine_mean_rmse'], best_ep,
            nparam['trainable'], m['elapsed_s']))

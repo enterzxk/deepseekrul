@@ -47,12 +47,33 @@ if [ $DRY -eq 0 ] && [ ! -f "$LEDGER" ]; then
 fi
 [ $DRY -eq 1 ] && { echo "--- dry run, nothing started ---"; }
 
+cell_done() {
+  # A cell counts as done only if it is a FORMAL run that closed normally:
+  # no budget_override, frozen weights, right K. A smoke run that happens to
+  # have written metrics.json must never be mistaken for the formal cell.
+  local mr="$1/metrics.json"
+  [ -f "$mr" ] || return 1
+  $P - "$mr" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))
+ok = (m.get('budget_override') is None
+      and 'frozen' in str(m.get('lam_source'))
+      and int(m.get('K', -1)) == 600
+      and m.get('frozen_sha256'))
+sys.exit(0 if ok else 1)
+PY
+}
+
 run_cell() {
   local arm=$1 subset=$2 seed=$3
   local out="$ROOT/${arm}_${subset}_s${seed}"
-  if [ -f "$out/metrics.json" ]; then
-    echo "SKIP $arm $subset s$seed (metrics.json exists)" | tee -a "$LOG"
+  if cell_done "$out"; then
+    echo "SKIP $arm $subset s$seed (formal cell already closed)" | tee -a "$LOG"
     return 0
+  fi
+  if [ -f "$out/metrics.json" ]; then
+    echo "STALE $arm $subset s$seed (metrics.json is not a formal closed run; move it aside)" | tee -a "$LOG"
+    return 4
   fi
   local cmd="$P -m paper_b.hc.train_d train --subset $subset --arm $arm --seed $seed --root $ROOT"
   if [ $DRY -eq 1 ]; then echo "$cmd"; return 0; fi

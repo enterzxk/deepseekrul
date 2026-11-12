@@ -395,6 +395,45 @@ ep1 比值 rul 1.000 / terminal 0.182 / smooth 0.058，训练损失 1124.92
 **风险（记录，不阻断）**：梯度范数不等于 AdamW 的实际更新幅度；量纲只锁 $125^2$ 的尺度，
 不决定无量纲系数 $c$ 必须为 1。**冻结后不得因正式结果不好再校准。**
 
+### 8.7 评价口径修正（军师指出的启动条件，2026-11-13）
+
+**错在哪**：`evaluate()` 把预测裁剪到 125，却拿**未裁剪**的 $n-t$ 当标签。
+冻结协议的主指标是 $\min(r,125)$，所以 $r_\text{raw}=150$、预测 $=125$ 应记**零误差**，
+旧实现记 25。这个错同时影响**选轮**（`val_engine_mean_rmse` 决定 best_ep）和 D-G1。
+
+**修法**：抽出 `metrics_from_arrays` 作为**唯一**裁剪标签的地方，`evaluate()` 调它、测试也调它
+（测试若自己重写一遍裁剪，就证明不了跑的那份代码对）：
+
+- 主指标与选轮：$y_\text{cap}=\min(r_\text{raw},125)$，预测裁剪到 $[0,125]$；
+- raw 诊断：保留 $r_\text{raw}$ 与**未裁剪**预测，`rmse_uncapped` 只在 $r_\text{raw}\le K$ 上算；
+- 删失分层、`boundary_hit`、`exact_boundary` 都按 $r_\text{raw}$ 判定是否封顶。
+
+**实际路径检查**（`test_d_eval_labels.py`，4 条全过）：
+
+| 用例 | 主指标（capped） | raw 诊断 |
+|---|---|---|
+| $r_\text{raw}=150$，预测 125 | **0.0** | **25.0** |
+| $r_\text{raw}=150$，预测 100 | 25.0 | 50.0 |
+| $r_\text{raw}=60$，预测 70 | 10.0 | 10.0 |
+| 两台发动机（误差 0/25 与 0） | $\sqrt{312.5}/2=8.839$ | — |
+
+最后一行同时钉住「`val_engine_mean_rmse` 是**逐发动机 RMSE 的均值**」，
+不是 pooled MSE 开根（那是 14.43）——写错这个会把长发动机的权重搞反。
+
+**修后同一冒烟格的主指标从 29.2045 变为 27.7788**，证明这个错不是无害的。
+
+**启动护栏（`train_d.py`）**：
+- 缺 `d45_init.json` → **拒跑**，不再静默回退到 $125^2$；
+- 目标目录已有 `metrics.json` 且未设 `budget_override` → **拒跑**，正式格永不覆盖；
+- `metrics.json` 记 `frozen_sha256`、`lam_source`、`ref_batch_epoch_log_engines`、
+  `ref_batch_calibration`，冻结文件的哈希可追溯到具体内容。
+
+**派工规则（经理裁定）**：48 格走燕子的唯一发射器，本机 `run_d_matrix.sh --dry-run`
+只产出命令清单 `experiments/hc/d/matrix_commands.txt`，**不自行起进程**。
+跳过规则收紧为：只有 `budget_override is None` 且 `lam_source` 含 `frozen` 且 $K=600$
+且 `frozen_sha256` 非空才算「已完成的正式格」；冒烟格即使有 `metrics.json` 也会被判 `STALE` 并阻断该格。
+
+
 
 
 

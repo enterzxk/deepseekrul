@@ -151,6 +151,8 @@ G2 的判据是「四子集 3/4 同号」，一格跨批次会把批次效应混
 | Gate 归属 | D 的判据另立表（结构化 HI / 到达时间），**不得并入 Gate A 的 24 格主表**；D 行的 `in_gate_a_table` 恒为 `false` |
 | 准入 | 沿用 §3.1：格键 + `status=ok` + 最早 `closed_utc`；`failed` 不占位 |
 
+> **2026-11-13 更新**：`variant` 的 `D0`–`D5` 与波次前缀 `-D1` 中，**臂名已由 `METHOD_SPECIFICATION.md` D5 锁定为 `B0`–`B3`**，48 格的具体清单见 **§3.6**。本节其余约定（stage 列、格键、Gate 归属、准入）继续有效。
+
 **登记时点**：等 ①`METHOD_SPECIFICATION.md` 的 D1–D5 数学规格定稿、②测试负责人审完数学规格
 （重点：窗口开头不得把 `D` 重置为 0 如何在数学上保证）、③第一个 D run 落盘，三者齐了才登记第一行。
 在此之前台账的 D 区保持空，`check_runs.py` 不需要 D 行也能过。
@@ -423,8 +425,85 @@ registry_note, audited_by, audit_verdict
 ## 10. 写入边界（硬）
 
 - 管理员**只写** `docs/paper_b_hc/registry/runs.csv`、`docs/paper_b_hc/RESULTS_INDEX.md`、
-  `docs/paper_b_hc/RESULTS_AUDIT_*.md`。
+  `docs/paper_b_hc/RESULTS_AUDIT_*.md`、`docs/paper_b_hc/RESULTS_REGISTRY.md`（预留节 §3.2/§3.4/§3.6 历来在此）。
 - **不写** `paper_b/`、`experiments/hc/`、`src/`，**不改** tmh 的 8 份交付文档内容
   （发现问题只在审计文档里记，由 tmh 改）。
 - 不跑训练、不下载数据、不动 Paper A 任何文件。
 - 台账只追加，不删行；作废用 `status=superseded`。
+
+---
+
+## 3.6 Stage D 四臂矩阵预留：48 格（2026-11-13 04:5x）
+
+**尚未 launch。本节只预留命名与格清单，不向 `runs.csv` 写空行**（同 §3.2/§3.4 的既定做法：
+空行会污染准入统计，并破坏刚刚钉死的 128 行口径）。行在每格 `close` 后逐格登记。
+
+| 项 | 约定 |
+|---|---|
+| `stage` 列 | `D` |
+| run_id | `HC-D-{arm}-{subset}-s{seed}-D1` |
+| `variant` 列 | **`B0`/`B1`/`B2`/`B3`**（取代 §3.2 的 `D0`–`D5`：那版写在 `METHOD_SPECIFICATION.md` 定稿前，现已由 D5 的四组核心对照锁定） |
+| 格键 | `(baseline_version, variant, subset, seed)`，48 个键两两不同 |
+| `baseline_version` | **v13**（= `evaluate()` 标签裁剪修复 + 启动护栏的锁）；**定版前不得开跑**，不得先跑再补锁 |
+| 训练 seed | `101 / 202 / 303`；**全部复用 s101 共享 init**（s101 是构造种子，不是训练种子） |
+| `head_seed` / `K` | `101` / `600`（dispatcher 未传 `--K`，走 `train_d.py` 默认值） |
+| `in_gate_a_table` | 恒 `false`；D 的判据另立表，不得并入 Gate A 的 24 格主表 |
+| 准入 | 沿用 §3.1：格键 + `status=ok` + 最早 `closed_utc`；`failed` 不占位 |
+
+**B0 的指纹约定**：B0 不建损伤头、不算 $S_0$，`head_fingerprint` 记 **null**。
+记共享指纹等于宣称一个它没建过的初始化。
+
+**48 个 run_id（逐条，按 dispatcher 的 subset → arm → seed 顺序）**
+
+| # | run_id | arm | subset | seed |
+|---|---|---|---|---|
+| 1 | `HC-D-B0-FD001-s101-D1` | B0 | FD001 | 101 |
+| 2 | `HC-D-B0-FD001-s202-D1` | B0 | FD001 | 202 |
+| 3 | `HC-D-B0-FD001-s303-D1` | B0 | FD001 | 303 |
+| 4 | `HC-D-B1-FD001-s101-D1` | B1 | FD001 | 101 |
+| 5 | `HC-D-B1-FD001-s202-D1` | B1 | FD001 | 202 |
+| 6 | `HC-D-B1-FD001-s303-D1` | B1 | FD001 | 303 |
+| 7 | `HC-D-B2-FD001-s101-D1` | B2 | FD001 | 101 |
+| 8 | `HC-D-B2-FD001-s202-D1` | B2 | FD001 | 202 |
+| 9 | `HC-D-B2-FD001-s303-D1` | B2 | FD001 | 303 |
+| 10 | `HC-D-B3-FD001-s101-D1` | B3 | FD001 | 101 |
+| 11 | `HC-D-B3-FD001-s202-D1` | B3 | FD001 | 202 |
+| 12 | `HC-D-B3-FD001-s303-D1` | B3 | FD001 | 303 |
+| 13 | `HC-D-B0-FD002-s101-D1` | B0 | FD002 | 101 |
+| 14 | `HC-D-B0-FD002-s202-D1` | B0 | FD002 | 202 |
+| 15 | `HC-D-B0-FD002-s303-D1` | B0 | FD002 | 303 |
+| 16 | `HC-D-B1-FD002-s101-D1` | B1 | FD002 | 101 |
+| 17 | `HC-D-B1-FD002-s202-D1` | B1 | FD002 | 202 |
+| 18 | `HC-D-B1-FD002-s303-D1` | B1 | FD002 | 303 |
+| 19 | `HC-D-B2-FD002-s101-D1` | B2 | FD002 | 101 |
+| 20 | `HC-D-B2-FD002-s202-D1` | B2 | FD002 | 202 |
+| 21 | `HC-D-B2-FD002-s303-D1` | B2 | FD002 | 303 |
+| 22 | `HC-D-B3-FD002-s101-D1` | B3 | FD002 | 101 |
+| 23 | `HC-D-B3-FD002-s202-D1` | B3 | FD002 | 202 |
+| 24 | `HC-D-B3-FD002-s303-D1` | B3 | FD002 | 303 |
+| 25 | `HC-D-B0-FD003-s101-D1` | B0 | FD003 | 101 |
+| 26 | `HC-D-B0-FD003-s202-D1` | B0 | FD003 | 202 |
+| 27 | `HC-D-B0-FD003-s303-D1` | B0 | FD003 | 303 |
+| 28 | `HC-D-B1-FD003-s101-D1` | B1 | FD003 | 101 |
+| 29 | `HC-D-B1-FD003-s202-D1` | B1 | FD003 | 202 |
+| 30 | `HC-D-B1-FD003-s303-D1` | B1 | FD003 | 303 |
+| 31 | `HC-D-B2-FD003-s101-D1` | B2 | FD003 | 101 |
+| 32 | `HC-D-B2-FD003-s202-D1` | B2 | FD003 | 202 |
+| 33 | `HC-D-B2-FD003-s303-D1` | B2 | FD003 | 303 |
+| 34 | `HC-D-B3-FD003-s101-D1` | B3 | FD003 | 101 |
+| 35 | `HC-D-B3-FD003-s202-D1` | B3 | FD003 | 202 |
+| 36 | `HC-D-B3-FD003-s303-D1` | B3 | FD003 | 303 |
+| 37 | `HC-D-B0-FD004-s101-D1` | B0 | FD004 | 101 |
+| 38 | `HC-D-B0-FD004-s202-D1` | B0 | FD004 | 202 |
+| 39 | `HC-D-B0-FD004-s303-D1` | B0 | FD004 | 303 |
+| 40 | `HC-D-B1-FD004-s101-D1` | B1 | FD004 | 101 |
+| 41 | `HC-D-B1-FD004-s202-D1` | B1 | FD004 | 202 |
+| 42 | `HC-D-B1-FD004-s303-D1` | B1 | FD004 | 303 |
+| 43 | `HC-D-B2-FD004-s101-D1` | B2 | FD004 | 101 |
+| 44 | `HC-D-B2-FD004-s202-D1` | B2 | FD004 | 202 |
+| 45 | `HC-D-B2-FD004-s303-D1` | B2 | FD004 | 303 |
+| 46 | `HC-D-B3-FD004-s101-D1` | B3 | FD004 | 101 |
+| 47 | `HC-D-B3-FD004-s202-D1` | B3 | FD004 | 202 |
+| 48 | `HC-D-B3-FD004-s303-D1` | B3 | FD004 | 303 |
+
+**合计 48 格 = 4 臂 × 4 子集 × 3 seed，与 `probes/run_d_matrix.sh --dry-run` 的清单逐条对齐。**
