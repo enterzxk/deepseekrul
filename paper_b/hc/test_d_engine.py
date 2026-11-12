@@ -274,48 +274,41 @@ def arrival_old_bound(beta=1.0, K=200):
 
 
 def trajectory(D0, nu):
-    """D[...,0] = current damage; D[...,k+1] = D[...,k] + nu[...,k].
+    """TEST FIXTURE ONLY: build D[0..K] from the current damage and increments.
 
-    One definition shared by every test and by the production operator: the
-    reviewer asked for exactly this, because the earlier tests disagreed about
-    whether D[0] was "now" or "one step from now".
+    T is never computed here -- it comes from the production operator in
+    ``paper_b/hc/arrival.py``. Keeping a second implementation of the *operator*
+    in this file is exactly the drift the reviewer flagged; a fixture builder is
+    a different thing and is labelled as such.
     """
     return np.concatenate([D0[..., :1], D0[..., :1] + np.cumsum(nu, axis=-1)], axis=-1)
 
 
-def first_passage(D):
-    """Exact first-passage time of a piecewise-linear damage trajectory.
-
-    For each segment [D_k, D_{k+1}] the time spent BELOW the threshold is
-
-        frac_k = clip( (1 - D_k) / (D_{k+1} - D_k), 0, 1 )      if the segment rises
-        frac_k = 1[D_k < 1]                                     if it is flat
-
-    and T = sum_k frac_k. This is not a surrogate: for a piecewise-linear
-    trajectory it is the exact time at which D crosses 1, so
-
-      already failed (D0 >= 1)     -> 0
-      not hit within K             -> K
-      constant rate                -> (1 - D0)/nu exactly
-      crossing inside a segment    -> interpolated, not snapped
-
-    Why the earlier rate-temperature form had to go: dividing by the LOCAL rate
-    lets S rebound when the rate suddenly drops. With D0=0.90, nu0=0.5 and then
-    nu=0.01, that form gives S0=0.69 -> S1~1, which is not a survival function.
-    """
-    lo, hi = D[..., :-1], D[..., 1:]
-    d = hi - lo
-    rising = d > 0
-    safe = np.where(rising, d, 1.0)
-    frac = np.where(rising,
-                    np.clip((1.0 - lo) / safe, 0.0, 1.0),
-                    (lo < 1.0).astype(np.float64))
-    return frac.sum(axis=-1)
+def _torch():
+    try:
+        import torch
+        return torch
+    except Exception:                              # noqa: BLE001
+        _skip('torch not importable: the arrival operator is torch-only '
+              '(one implementation, no numpy copy)')
 
 
 def arrival(D0, nu):
-    """Convenience: T from the current damage and the predicted rate sequence."""
-    return first_passage(trajectory(D0, nu))
+    """Call the PRODUCTION operator. There is no local copy to drift."""
+    torch = _torch()
+    from paper_b.hc.arrival import first_passage
+    d0 = torch.as_tensor(np.asarray(D0, np.float64)).reshape(-1)
+    n = torch.as_tensor(np.asarray(nu, np.float64))
+    return first_passage(d0, n).detach().cpu().numpy()
+
+
+def hard_arrival(D0, nu):
+    """Non-differentiable reference, for the D-G4 consistency check."""
+    torch = _torch()
+    from paper_b.hc.arrival import hard_first_passage
+    d0 = torch.as_tensor(np.asarray(D0, np.float64)).reshape(-1)
+    n = torch.as_tensor(np.asarray(nu, np.float64))
+    return hard_first_passage(d0, n).detach().cpu().numpy()
 
 
 def _trajectory(n_star, K, nu=None):
@@ -433,42 +426,78 @@ def test_arrival_not_hit_within_K():
 
 
 def test_arrival_gradient_structure():
-    """Gradient reaches every increment up to the crossing, and nothing after it.
+    """Gradient reaches every increment up to the crossing, with the SAME value.
 
-    The reviewer corrected an earlier version of this test: an early increment
-    does NOT leave T unchanged. It shifts the cumulative damage, hence the
-    crossing position, hence T. With the crossing inside segment j,
+    Index convention (stated so it cannot drift from a verification script):
+    K predicted intervals, K+1 nodes D[0..K], D[k+1] = D[k] + nu[k],
+    T = min(first passage, K) in [0, K], not-hit returns K.
 
-        dT/dnu_i = -1/nu[j+1]      for i <= j
-        dT/dnu_i =  0              for i > j+1
+    With the crossing inside interval j:
 
-    (the crossing segment also gets -(1-D_j)/nu[j+1]^2 from the denominator).
+        dT/dnu_i = -1/nu[j+1]      for i <= j     (equal, non-decaying)
+        dT/dnu_j = -f/nu[j+1]      (the crossing interval itself, f = frac)
+        dT/dnu_i =  0              for i > j
+
+    The "equal, non-decaying" part is the reviewer's finite-difference finding:
+    every increment before the crossing shifts the cumulative damage by the same
+    amount, hence moves the crossing position identically.
     """
-    K, n_star = 200, 100.5                    # interior crossing at segment j=100
+    K, n_star = 200, 100.5                    # interior crossing in interval j=100
     j = 100
     D0, nu = _trajectory(n_star, K)           # nu = 1/100.5 everywhere
     base = float(arrival(D0, nu)[0])
     assert abs(base - n_star) <= 1e-6
+    nu_cross = float(nu[0, j])
 
-    # early increment: moves the crossing, magnitude -1/nu[j+1]
+    # increments STRICTLY BEFORE the crossing interval: all equal to -1/nu_j.
+    # (The crossing interval itself is a separate case below: it enters only as
+    # the denominator, not through D_j, so it gets -f/nu_j, not -1/nu_j.)
+    grads = []
+    for i in (0, 25, 50, j - 1):
+        nup = nu.copy()
+        dnu = nup[0, i] * 1e-4
+        nup[0, i] += dnu
+        grads.append((float(arrival(D0, nup)[0]) - base) / dnu)
+    expected = -1.0 / nu_cross
+    assert max(abs(g - expected) for g in grads) < 1e-6, (
+        'pre-crossing gradients %s != %.6f' % (grads, expected))
+    assert max(grads) - min(grads) < 1e-6, 'pre-crossing gradient decays with i'
+
+    # the crossing interval enters only as the denominator: -f/nu_j
+    D = trajectory(D0, nu)[0]
+    f = (1.0 - D[j]) / nu_cross
+    assert 0.0 < f < 1.0, 'the crossing should be interior, f=%.4f' % f
     nup = nu.copy()
-    dnu = nup[0, 0] * 0.05
-    nup[0, 0] += dnu
-    d_early = float(arrival(D0, nup)[0]) - base
-    expected = -dnu / nu[0, j + 1]
-    assert abs(d_early - expected) <= 0.1 * abs(expected), (
-        'early increment moved T by %.3e, expected %.3e' % (d_early, expected))
+    dnu = nup[0, j] * 1e-4
+    nup[0, j] += dnu
+    g_cross = (float(arrival(D0, nup)[0]) - base) / dnu
+    assert abs(g_cross - (-f / nu_cross)) < 1e-2, (
+        'crossing-interval gradient %.6f != -f/nu %.6f' % (g_cross, -f / nu_cross))
 
-    # increment well after the crossing segment: no effect on T
+    # increments after the crossing interval have no effect at all
     nup = nu.copy()
     nup[0, j + 5] *= 1.05
     assert abs(float(arrival(D0, nup)[0]) - base) < 1e-12, (
         'an increment after the crossing must not move T')
 
-    # the crossing segment itself: gradient through the denominator
-    nup = nu.copy()
-    nup[0, j] *= 1.05
-    assert abs(float(arrival(D0, nup)[0]) - base) > 1e-6, 'crossing segment did not move T'
+
+def test_arrival_soft_matches_hard():
+    """D-G4 as an implementation consistency check, not a modelling claim.
+
+    The operator is exact for piecewise-linear paths, so the differentiable form
+    and the hard argmax must agree to within one cycle on random monotone paths
+    -- the one cycle is float/vectorisation tolerance, not a modelling slack.
+    """
+    rng = np.random.default_rng(101)
+    B, K = 256, 120
+    d0 = rng.uniform(0.0, 1.5, size=(B, 1))
+    nu = rng.uniform(1e-3, 3e-2, size=(B, K))
+    soft = arrival(d0, nu)
+    hard = hard_arrival(d0, nu)
+    worst = float(np.abs(soft - hard).max())
+    assert worst <= 1.0, 'soft vs hard disagree by %.3f cycles' % worst
+    # exact agreement is expected for interior crossings; report the worst case
+    assert np.all(soft >= 0.0) and np.all(soft <= K), 'T outside [0, K]'
 
 
 def test_arrival_zero_gradient_trap():

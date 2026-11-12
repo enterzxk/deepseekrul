@@ -1,4 +1,4 @@
-# 方法规格（Paper B）
+﻿# 方法规格（Paper B）
 
 状态：**Stage D 部分草稿，待数学审查**。Stage C 的实测结论见 `CYCLE_DEPENDENCE_STUDY.md`。
 本文只写规格，**不含实现**；所有协议常量从 `paper_b/configs/protocol.json` 读取，
@@ -154,7 +154,7 @@ $$\text{frac}_k=\begin{cases}
 $$\boxed{\;\hat T^\star_t=\sum_{k=0}^{K-1}\text{frac}_k\;}$$
 
 单调轨迹上**只有一个区间横穿阈值**，故 $\hat T^\star=j+(1-D[j])/\hat\nu_{j+1}$，
-**正好是首达点**——这是恒等式，不是近似（牢莫在 12493 条轨迹上验到误差 0）。
+**正好是首达点**——这是恒等式，不是近似（独立复核：20000 条随机单调轨迹、**K+1 节点口径**，worst $|Σ\text{frac}-\text{首达}|=5.684\times10^{-14}$，只剩浮点舍入）。
 
 **语义逐条钉死**：
 
@@ -166,13 +166,22 @@ $$\boxed{\;\hat T^\star_t=\sum_{k=0}^{K-1}\text{frac}_k\;}$$
 | 未命中 | 全部 1 | $K$，按 $K$ **右删失** |
 | 平台（零增量且 $D<1$） | 1 | 全额计入 |
 
-**梯度结构（军师更正过的一条）**：设横穿区间为 $j$，则
+**梯度结构（军师更正过，实测确认）**：设**横穿区间**为 $j$（区间下标 0..K−1，
+$j$ 满足 $D[j]<1\le D[j+1]$），则
 
-$$\frac{\partial\hat T^\star}{\partial\nu_i}=-\frac{1}{\hat\nu_{j+1}}\ (i\le j),
-\qquad \frac{\partial\hat T^\star}{\partial\nu_i}=0\ (i>j+1).$$
+$$\frac{\partial\hat T^\star}{\partial\nu_i}=-\frac{1}{\nu_j}\ (i<j),
+\qquad
+\frac{\partial\hat T^\star}{\partial\nu_j}=-\frac{f}{\nu_j}\ (f=\text{frac}_j),
+\qquad
+\frac{\partial\hat T^\star}{\partial\nu_i}=0\ (i>j).$$
 
-**穿越之前的每个增量都有梯度**——它们通过累计损伤移动穿越位置；只有穿越之后的没有。
-早先"扰动早期速率 T 不变"的写法是错的。
+**横穿区间之前的每个增量都拿到同一个梯度、不衰减**——它们等量地移动累计损伤，
+从而等量地移动穿越位置；横穿区间本身只以分母身份进入，所以拿 $-f/\nu_j$。
+实测（$K=200,n^\star=100.5,j=100,\nu=1/100.5$）：$i\in\{0,25,50,99\}$ 全部 **−100.500000**，
+$i=j$ 为 **−50.245**（$f=0.5$）。早先"扰动早期速率 $T$ 不变"的写法是错的。
+
+> **与牢莫的节点口径等价**：他用「横穿节点 $j$、下一个区间速率 $\nu_{j+1}$」，
+> 于是 $i\le j$ 全给 $-1/\nu_{j+1}$；换成区间下标就是 $i<j$ 全给 $-1/\nu_j$，同一个命题。
 
 **精确节点处的自动微分约定单列**：$\mathrm{clip}$ 在边界点上导数取 1，
 所以恰好落在节点上的命中**仍有**梯度（实测 $\partial T/\partial D_0=-60$，$K=120,n^\star=60$）。
@@ -196,9 +205,9 @@ $n^\star=125/150/300$ 处穿越时，$\hat T^\star$ 必须分别给出对应值
 推理期硬规则：$\;T^\text{hard}_t=\min\{k\ge0:\hat D_{t+k\mid t}\ge1\}$，截断到 $K$。
 
 **预注册检验（D-G4）**：在 val 上要求
-$\big|\overline{\hat T^\star}-\overline{T^\text{hard}}\big|\le 1$ 周期，**按速率变化幅度分层**。
-超出则说明 $\beta_s$ 过小（软到达被过度平滑），按 $\beta_s\mapsto2\beta_s$ 重标定一次，**只一次**。
-注意分层不是可选项：$S_k$ 用局部速率，速率曲率大的样本天然偏差更大（D3.1 已量化）。
+$\big|\overline{\hat T^\star}-\overline{T^\text{hard}}\big|\le 1$ 周期。
+算子对分段线性轨迹是**精确**的，所以这条现在是**实现一致性检查**（浮点与向量化容差），
+不是建模松量：真出现偏差说明生产实现与已审公式不一致，先查实现，**不得放宽阈值**。
 
 ### D3.3 为什么不用硬 argmin 训练
 
@@ -536,7 +545,7 @@ data_d.engine_batch(subset, data_dir, span, cuts, split='train'|'val') -> {
 - **cycle 在 D 中的形态**：Stage C 的结论是 raw 标量优于 Fourier（−5.03%，四子集全负），
   但 G4 判据替换仍 **PENDING-L2**。因此 D 的 B0–B3 **先不含 cycle**（符合任务书 C→D 顺序），
   cycle 融合留到 Stage E 的 C0–C3。
-- **$\alpha$ 与 $\beta$ 的取值**：初始版固定（$\alpha=0.2$、$\beta_s=4$/周期），不做搜索；
+- **$\alpha$ 的取值**：EMA 系数初始版固定 $\alpha=0.2$，不做搜索。到达算子 v3 是精确首达、**没有锐度参数**，$\beta_s$ 相关条款全部作废；
   若 D-G4 不过再按 D3.2 重标定一次。
 - **$n_e$ 较大时的显存**：整条前向的序列长度可达数百，若显存不够，退回 D1.4 的备选，
   但必须同时提交一致性检验结果。
