@@ -20,9 +20,9 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "9ac1744",
+    "freeze_commit": "5a6b1e7",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "a3c40c634da7a3bb44ace788f74896b17e51c3fb",
+    "known_protocol_blob_at_freeze": "497afe23faf5965f6259c07bbcfd012368ec2b2d",
     "superseded_anchor": [
       {
         "freeze_commit": "c481289",
@@ -83,6 +83,11 @@
         "freeze_commit": "7e9415e",
         "protocol_blob": "21af549e448415113ee2ac61f11a5679400eddac",
         "subject": "ncmapss: replace the fixed budget with inner-validation early stopping - a single budget reports where training stopped, not what a model reaches"
+      },
+      {
+        "freeze_commit": "9ac1744",
+        "protocol_blob": "a3c40c634da7a3bb44ace788f74896b17e51c3fb",
+        "reason": "§6.10 新增全 dev 模型的 epoch* 定义（六折均值取整、固定预算为主证据列、N0 为撞地板、测试期验证曲线记 NaN）。旧锚记 superseded，不是 void——480 行 dev 引用的 a3c40c63 永远有效。"
       }
     ],
     "n3_scope": {

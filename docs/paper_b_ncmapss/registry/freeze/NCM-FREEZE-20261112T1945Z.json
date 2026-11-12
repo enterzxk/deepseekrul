@@ -1,0 +1,339 @@
+{
+  "freeze_id": "NCM-FREEZE-20261112T1945Z",
+  "dataset": "N-CMAPSS",
+  "frozen": true,
+  "freeze_ts_utc": "2026-11-12T19:45:00Z",
+  "freeze_content_sha256": "3c27009e3f5e9c6f6c456046f8b2a7d4672dfe242cc6a38f44156aec439b3932",
+  "eval_start_utc": null,
+  "scope": "official test units, four subsets, 40 cells x 2 evaluation points = 80 rows",
+  "repo": {
+    "base_git_sha": "b889bd2",
+    "freeze_commit": "5a6b1e7",
+    "protocol_blob": "497afe23faf5965f6259c07bbcfd012368ec2b2d",
+    "code_md5": {
+      "paper_b/ncmapss/data.py": "00760d7db68d7b61ca8d58bbed2c1486",
+      "paper_b/ncmapss/features.py": "481adb765496f040cdb0bbffc83466fd",
+      "paper_b/ncmapss/train.py": "b749f611ac9d43954c0bc20753994ce0",
+      "paper_b/ncmapss/evaluation.py": "225940a28c1438384ab306fb403a7a40",
+      "paper_b/ncmapss/run_loeo.py": "3da6f9f8c8fcd3a1057b80f33b7e47f3"
+    }
+  },
+  "data": {
+    "DS02": {
+      "sha256": "47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765",
+      "dev_units": [
+        2,
+        5,
+        10,
+        16,
+        18,
+        20
+      ],
+      "test_units": [
+        11,
+        14,
+        15
+      ]
+    },
+    "DS05": {
+      "sha256": "ef99ead42ac184503035895797c16e9a7e42554a08074aa760d0bba39db42e23",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "DS06": {
+      "sha256": "91ccf478b21dd6337cfa608f20b647ec04228d59cf4ee59be87fad5f08b17b20",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "DS07": {
+      "sha256": "2f88abc61a532d2e30a6e5ff100a511be4921484a6c7071bc8504e300da4d3bd",
+      "dev_units": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "test_units": [
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  },
+  "feature_whitelist": {
+    "version": "WS14+W4+CYC",
+    "banned": [
+      "X_v.*",
+      "T.*",
+      "A.hs",
+      "A.Fc"
+    ],
+    "unit_usage": "grouping only"
+  },
+  "rungs": [
+    "N0",
+    "N1",
+    "N2",
+    "N3"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "train_plan": {
+    "epochs": 200,
+    "batch": "min(64, N_train)",
+    "selection_rule": "inner_val | fixed_passes:200"
+  },
+  "test_design": {
+    "mode": "retrain_on_all_dev",
+    "n_dev_engines": 6,
+    "checkpoints_per_cell": 2,
+    "loeo_checkpoints_in_test": false,
+    "epoch_star_rule": "round_half_up(mean of the six LOEO epoch* values); six values in metrics.json as epoch_star_fold_values",
+    "primary_column": "fixed_passes:200",
+    "n0_floor_note": "N0 epoch* is a floor hit (5/6 DS02 folds, 20/24 folds at the floor of 20), not a selection",
+    "validation_curve": "NaN; never computed on a test engine"
+  },
+  "analysis_rule": {
+    "primary": "rmse_raw_unit",
+    "aggregation": "per-unit RMSE then unweighted mean",
+    "capped_criterion": "inactive (no unit exceeds the cap) for all four subsets",
+    "dispersion": "seed mean ± seed sd per unit; no cross-engine CI (test units = 3 or 4)"
+  },
+  "runs": [
+    {
+      "subset": "DS02",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS02",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS05",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS06",
+      "rung": "N3",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N0",
+      "seed": null
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N1",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N2",
+      "seed": 303
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 101
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 202
+    },
+    {
+      "subset": "DS07",
+      "rung": "N3",
+      "seed": 303
+    }
+  ],
+  "checkpoints": [],
+  "provenance": {
+    "eval_start_record": "written by the runner to <freeze_id>.eval_start.json, never into this file, so this manifest stays byte-stable",
+    "ordering_proof": "eval_start_utc > freeze_ts_utc; first evaluation log kept unedited"
+  }
+}
