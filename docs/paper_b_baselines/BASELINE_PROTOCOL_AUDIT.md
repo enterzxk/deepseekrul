@@ -184,17 +184,21 @@ Measured on one scale throughout — validation, engine level, FD001, three seed
 4. **The whole space is narrow**: from the worst vanilla arm to the best DSPT
    cell is about 1.9 RMSE (12.142 → 10.240), against a seed spread of 0.2–0.9.
 
-**A decomposition that circulates needs a caveat.** The split "cycle 1.046 (70%),
-architecture 0.307 (21%), interaction 0.232, three-channel −0.094" sums to the
-**pooled** gap of 1.492. On engine level the same gap is 1.056, and the four arms
-give cycle 0.318 (30%), architecture 0.409 (39%), input representation 0.065
-(6%), residual interaction 0.264 (25%). The direction survives — the cycle
-feature is a large single contributor — but the 70% headline does not.
+**A decomposition that circulates needs two qualifiers.** The split "cycle 1.046
+(70%), architecture 0.307 (21%), interaction 0.232, three-channel −0.094" is
+**engine level over all four subsets** — it is not a pooled number. The FD001
+pooled gap (1.492) happens to sit 0.001 away from it; that is a coincidence and
+must not be treated as an identity.
 
-The input-representation term is worse than metric-dependent: it **changes sign**
-(+0.065 engine level, −0.094 pooled) while being far below the 0.22 cross-machine
-seed spread either way. It must be reported as "no detectable effect", not as
-helpful or harmful.
+Scope changes the ranking. On FD001 alone the gap is 1.056 and the split is
+cycle 0.317 (30%), architecture 0.409 (39%), input 0.065 (6%), residual 0.265
+(25%) — **architecture contributes more than the cycle feature on that subset**.
+"Cycle is the single largest contributor" is a four-subset statement and may not
+be written without the scope.
+
+The input-representation term flips sign across scope (+0.065 on FD001, −0.094
+over four subsets) while staying far below the 0.22 cross-machine seed spread
+either way. Report it as no detectable effect, not as helpful or harmful.
 
 Separately, on the **official test set** (capped, FD001) the same arms read 12.60
 (`VAN_dsp_cycle`) and 15.05 (`VAN_raw`) against 10.29 for the best A8 cell.
