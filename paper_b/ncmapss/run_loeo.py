@@ -562,18 +562,33 @@ def _check_manifest(man, subset, dev_units, test_units, data_sha, rungs, seeds_b
 
 
 def _write_eval_start(man_path, man, rule, payload):
-    """Write the open timestamp next to the manifest; refuse a second open."""
+    """Record this open next to the manifest; refuse opening the same cells twice.
+
+    One manifest covers all four subsets, so several invocations legitimately use
+    it -- refusing any second use would block subsets 2..4. Every open is appended
+    to ``opens``; what is refused is opening the *same subset* twice under one
+    manifest, because that is how a run could quietly replace an earlier one.
+    """
     out = man_path.parent / f"{man['freeze_id']}.eval_start.json"
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     if out.exists():
-        raise SystemExit(f'{out} already exists: this manifest has already been used '
-                         'to open the test set; a second open needs a new manifest')
-    out.write_text(json.dumps({**payload, 'freeze_id': man['freeze_id'],
-                               'freeze_content_sha256': man['freeze_content_sha256'],
-                               'freeze_ts_utc': man.get('freeze_ts_utc'),
-                               'hash_rule_matched': rule,
-                               'eval_start_utc': datetime.now(timezone.utc)
-                               .strftime('%Y-%m-%dT%H:%M:%SZ')}, indent=1))
-    print(f'eval start recorded: {out}')
+        rec = json.loads(out.read_text(encoding='utf-8'))
+        if rec.get('freeze_content_sha256') != man.get('freeze_content_sha256'):
+            raise SystemExit(f'{out} was written for a different manifest content; '
+                             'refusing to mix opens from two manifests')
+    else:
+        rec = {'freeze_id': man['freeze_id'],
+               'freeze_content_sha256': man['freeze_content_sha256'],
+               'freeze_ts_utc': man.get('freeze_ts_utc'),
+               'hash_rule_matched': rule, 'opens': []}
+    same = [o for o in rec.get('opens', []) if o.get('subset') == payload['subset']]
+    if same:
+        raise SystemExit(f'{payload["subset"]} was already opened under '
+                         f'{man["freeze_id"]} at {same[0].get("eval_start_utc")}; '
+                         'a second open needs a new manifest')
+    rec.setdefault('opens', []).append({**payload, 'eval_start_utc': now})
+    out.write_text(json.dumps(rec, indent=1))
+    print(f'eval start recorded: {out}  (opens={len(rec["opens"])})')
     return out
 
 
