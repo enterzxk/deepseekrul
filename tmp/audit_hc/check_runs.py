@@ -20,18 +20,10 @@ import sys
 import pandas as pd
 
 DEFAULT = r'C:\Users\20562\Desktop\deepseek-rul\docs\paper_b_hc\registry\runs.csv'
+# experiment-registry rule 3: status only ok/failed/smoke/running/superseded;
+# verdict only pass/fail/n/a. determinism_only is a boolean column, never a verdict.
 LEGAL = {('ok', 'pass'), ('ok', 'fail'), ('failed', 'n/a'), ('smoke', 'n/a'),
-         # 2026-11-12 amendment (results admin, disclosed to the group):
-         # the statuses/verdicts introduced by the dedup + determinism rulings must be
-         # representable, otherwise a correct ledger row is reported as an inconsistency.
-         ('superseded', 'n/a'), ('superseded', 'duplicate'),
-         ('unclosed', 'n/a'), ('running', 'n/a'),
-         ('unclosed', 'determinism_only'), ('running', 'determinism_only'),
-         ('ok', 'determinism_only'), ('ok', 'duplicate'),
-         # 2026-11-12: main-table evidence is registered but conclusions are frozen
-         # pending L2 review (G4 criterion + Fourier scope). The run itself is sound.
-         ('ok', 'preliminary'),
-         ('failed', 'fail')}
+         ('superseded', 'n/a'), ('running', 'n/a')}
 # Commits whose runs may claim the engine-mean protocol.
 ENGINE_MEAN_SHAS = {'f314268', 'f83e27e', 'a203f4b', '0280cb8'}
 

@@ -126,6 +126,29 @@ G2 的判据是「四子集 3/4 同号」，一格跨批次会把批次效应混
 
 ---
 
+## 3.2 Stage D 预留（2026-11-12 13:5x）
+
+**D 目前零 run。本节只预留命名空间与格键，不向 `runs.csv` 写空行**——空行会污染准入统计与行数核对。
+
+| 项 | 约定 |
+|---|---|
+| `stage` 列 | `D`（现有 C 67 行、B 24 行，按 stage 过滤时必须显式指定，不得混算） |
+| run_id | `HC-D-{variant}-{subset}-s{seed}-{YYYYMMDDTHHMMZ}` |
+| variant | `D0`–`D5`，**待 `METHOD_SPECIFICATION.md` 的 D1–D5 定稿后锁定**，未定稿前不得占用具体编号 |
+| 格键 | 沿用 `(baseline_version, variant, subset, seed)`；`baseline_version` 从 v10 起，**不与 C 的 v9 混** |
+| 波次前缀 | `-D1(r\d+)?`，与 C 的 `-W1(r\d+)?` 区分 |
+| Gate 归属 | D 的判据另立表（结构化 HI / 到达时间），**不得并入 Gate A 的 24 格主表**；D 行的 `in_gate_a_table` 恒为 `false` |
+| 准入 | 沿用 §3.1：格键 + `status=ok` + 最早 `closed_utc`；`failed` 不占位 |
+
+**登记时点**：等 ①`METHOD_SPECIFICATION.md` 的 D1–D5 数学规格定稿、②测试负责人审完数学规格
+（重点：窗口开头不得把 `D` 重置为 0 如何在数学上保证）、③第一个 D run 落盘，三者齐了才登记第一行。
+在此之前台账的 D 区保持空，`check_runs.py` 不需要 D 行也能过。
+
+**与 C 的分界**：C 的结论（cycle 通路 +10.46%、Fourier 编码 −5.03%、G4 待 L2）只约束 D 的设计选择
+（cycle 用 raw 标量、编码形式不作为贡献点），**不构成 D 的任何证据**，也不得与 D 的数字同表比较。
+
+---
+
 ## 4. launch 文件 schema（tmh 在启动前写）
 
 ```json
