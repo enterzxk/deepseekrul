@@ -444,7 +444,7 @@ registry_note, audited_by, audit_verdict
 | run_id | `HC-D-{arm}-{subset}-s{seed}-D1` |
 | `variant` 列 | **`B0`/`B1`/`B2`/`B3`**（取代 §3.2 的 `D0`–`D5`：那版写在 `METHOD_SPECIFICATION.md` 定稿前，现已由 D5 的四组核心对照锁定） |
 | 格键 | `(baseline_version, variant, subset, seed)`，48 个键两两不同 |
-| `baseline_version` | **v13**（= `evaluate()` 标签裁剪修复 + 启动护栏的锁）；**定版前不得开跑**，不得先跑再补锁 |
+| `baseline_version` | **v13**，必须同时含四项：① `evaluate()`/`metrics_from_arrays` 的 $y_\text{cap}$ 标签裁剪；② 启动护栏（缺冻结权重拒跑、禁回退 $125^2$、不覆盖正式格）；③ **目录名改用 run_id**；④ `train_d.py`/`hi_d.py`/`arrival.py` 纳入 OWN 清单。**定版前不得开跑**，不得先跑再补锁 |
 | 训练 seed | `101 / 202 / 303`；**全部复用 s101 共享 init**（s101 是构造种子，不是训练种子） |
 | `head_seed` / `K` | `101` / `600`（dispatcher 未传 `--K`，走 `train_d.py` 默认值） |
 | `in_gate_a_table` | 恒 `false`；D 的判据另立表，不得并入 Gate A 的 24 格主表 |
@@ -507,3 +507,14 @@ registry_note, audited_by, audit_verdict
 | 48 | `HC-D-B3-FD004-s303-D1` | B3 | FD004 | 303 |
 
 **合计 48 格 = 4 臂 × 4 子集 × 3 seed，与 `probes/run_d_matrix.sh --dry-run` 的清单逐条对齐。**
+
+### 3.6.1 启动条件、发射器与并发（2026-11-13 经理裁定）
+
+| 项 | 约定 |
+|---|---|
+| run_id ↔ 目录 | **一套命名**：`train_d.py` 用本节 run_id 拼目录，产物落在 `experiments/hc/d/HC-D-{arm}-{subset}-s{seed}-D1/`。不再有 `B1_FD001_s101` 这种第二套名字 |
+| 发射器 | **唯一发射器 = 燕子**。`run_d_matrix.sh` 只保留 `--dry-run` 输出 48 条命令，起进程那段封掉；tmh 交清单不起进程（incident 5 不重演） |
+| 并发 | **最多 3 路**（经理给的上限），另受燕子显存 guard 约束。并发不影响数值（seed 固定、每格形状固定） |
+| 并发数的记录位置 | **本节 + 每行 `registry_note`**。`experiments/hc/d/ledger.csv` 的表头由 tmh 的脚本固定，管理员不改它；登记 `runs.csv` 时把实际并发写进 note |
+| 结果台账 | `experiments/hc/d/ledger.csv` 由脚本自动追加，管理员只读不改 |
+| 冒烟格 | 目录 `_smoke_B3_FD001_s101`，不在 48 格内、不进汇总；军师口径：**冒烟格不能因存在 `metrics.json` 就算正式格完成** |
