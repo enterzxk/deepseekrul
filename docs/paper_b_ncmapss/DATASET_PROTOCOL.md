@@ -157,6 +157,49 @@ feature matrix.
   complete flight, the model cannot claim in-flight prediction. Every result
   table must state which of the two it is.
 
+### 4.1 Feature contract (frozen before any run)
+
+Every rung consumes the **same** flight-level matrix; only the model differs.
+This is the information-matching rule: if N2 beats N1, the difference may not be
+explained by "it was given more".
+
+Per flight `(unit, cycle)`, built from `X_s` and `W` only:
+
+| block | definition | columns |
+|---|---|---|
+| sensor statistics | for each of the 14 `X_s` sensors: mean, std, OLS slope over that flight's 1 Hz samples | 42 |
+| operating conditions | for each of the 4 `W` columns: mean, std | 8 |
+| age | `cycle`, divided by a scale fitted on the training fold (95th percentile of its observed cycles) | 1 |
+| **total** | | **51** |
+
+Rules:
+
+- The 51 columns are **identical for N1, N2 and N3**. N3 differs only in its input
+  layer and encoder — never in what it is given. N0 receives the age column only.
+- Normalization (z-score) is fitted on the training folds of the current LOEO
+  fold and applied unchanged to the held-out unit. Never fitted on the held-out
+  unit, never on a test unit.
+- `X_v`, `T`, `Y` and `A.hs` are absent by construction; `unit` is a grouping key
+  only.
+- `A.Fc` (flight class) and flight duration are **not** among the 51. If either
+  is ever used, it is a declared, separately labelled ablation — never a silent
+  addition.
+- Quantile- and phase-resolved statistics are likewise declared extensions, not
+  part of this contract.
+
+Sequence construction: one row per flight, ordered by `cycle`; the model sees the
+last **70 flights**, right-aligned at the prediction flight, left zero-padded
+with a validity mask — the same construction as C-MAPSS `span=70`
+(`paper_b/training/data.py::_window`). Using the same span on both datasets is
+what makes "same core structure" checkable rather than asserted.
+
+The 70 is provisional until the flight counts are measured: if DS02 lifetimes make
+it degenerate, the value is changed **once, before any run**, recorded here with
+its justification, and used for every rung. It is not a knob to revisit after
+seeing results.
+
+Label: `Y` at the prediction flight, in both raw and capped-at-125 form (§7).
+
 ## 5. Splits (immutable)
 
 - dev units: `[2, 5, 10, 16, 18, 20]`
