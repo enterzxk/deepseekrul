@@ -11,11 +11,13 @@
 
 | 角色 | SHA | 说明 |
 |---|---|---|
-| 代码提交 | `d1e0527` | A3a init remap（copy `pe_periods`，不 pop）+ CRLF 归一化锁检查 |
-| 锁提交 | `6c405ad` | 15-blob code lock（lock-only commit） |
-| `baseline_version` | **v9** | 唯一有效基线 |
+| 代码提交 | `57a4570` | 标定期强制 `eval()` 并恢复原模式；RNG 断言纳入 CUDA 生成器 |
+| 锁提交 | `21bc2a2` | 16-blob code lock（lock-only commit） |
+| `baseline_version` | **v12** | 唯一有效基线 |
 
-`registry/code_lock.json` 自身 md5 = `c04c958600ca26fed9ea6944cbe12cbc`，本地与 a40 一致。
+`registry/code_lock.json` 自身 md5 = `b7e0bf01c974c724778aa3353511111c`，`git_sha = 57a4570`，16 blob，a40 上 `CODE LOCK OK`。
+
+**历史版本**（不再作为准入基线，仅供追溯）：v9 `d1e0527` / 锁 `6c405ad`（15 blob，锁 md5 `c04c958600ca26fed9ea6944cbe12cbc`）；v10 `95a5898`（16 blob，`scale_align.py` 入 OWN）；v11 `9601320`（16 blob，删 `train_hc` 内联 remap + 守卫与 `--check` 同口径 + `.gitattributes`）。**W2 那 24 格 cal 格是在 v11 下跑的**，标定缺陷见 §4 事故 14。
 
 ### 1.2 指纹的算法口径（**必须按此，否则会被假不符骗**）
 
@@ -62,6 +64,12 @@ a40 侧另可跑 `python -m paper_b.hc.code_lock --check`，退出码 0。
 
 **这排除了实现抖动，但不构成 seed 级带宽**：真正决定能否推广的变异来源是 seed / 初始化，
 那要 ≥3 seed 才看得到。所以「σ=0」只能用于说明**实现确定性**，不能用于声称结论稳健。
+
+**但「σ=0」有一个精度口径必须写明**：W2 那 24 格 cal 格的标定是在 dropout 开着时做的，
+`gain` 带 **1e-11–1e-8** 的 seed 依赖（§4 事故 14）。所以在 W2 上，
+「同格重复逐位相同」和「seed 极差 = 训练随机性下界」只在 **1e-8 精度内**成立；
+v12 起标定逐位 seed 无关（spread `0.000e+00`），这句话才无保留成立。
+结论不受影响（1e-8 比任何判据低 5 个数量级），但不能把它写成字面意义的 0。
 
 ### 2.1 早停 vs 打满预算的判别
 
@@ -138,6 +146,18 @@ a40 侧另可跑 `python -m paper_b.hc.code_lock --check`，退出码 0。
 
 | 12 | a40 上 `train_hc.py` / `run_hc.py` 变成 CRLF，`run_hc` 启动守卫拒跑（`REFUSED: code differs from the committed lock`），但 `code_lock --check` 报 OK | **两条校验路径口径不一致**：`code_lock.check()` 做换行规范化，`run_hc` 的守卫比原始字节；Windows→a40 同步即复发 | `sed -i 's/\r$//'` 转回 LF（备份 `experiments/hc/tmp/crlf_backup_194641/`），验证 **16/16 原始字节 md5 与锁相等**；根治：`run_hc` 守卫同口径规范化 + `.gitattributes`（`*.py text eol=lf`） |
 | 13 | `train_hc` 内联了一份与 `scale_align.load_shared_init()` 重复的 remap | **代码重复**：函数版排除了 `cycle_gain`，内联版没有，cal 臂在 ep=0 即炸 `missing=['cycle_gain']` | 删内联、改调函数（单一真相源）；cal 臂冒烟补进发车前检查 |
+| 14 | W2 24 个 cal 格的 `gain` 带 seed 依赖（spread **1.3e-11–1.1e-08**），与「标定是 (init, subset, 编码) 的纯函数」不符 | `calibrate_init_rms` 在建模型后**直接标定、未 `net.eval()`**，dropout 开着；dropout 在 GPU 上消耗 **CUDA 生成器**（按 seed 播种），而旧 RNG 断言只快照了 **CPU 生成器**，因此「不消耗训练随机数」是**被误证**的（断言通过，但什么都没证明） | **不重跑**：新 gain 与旧值相对差 2.8e-8（`0.0142921377` vs `0.0142921381`），比任何有意义阈值低 5 个数量级。v12（`57a4570`）标定期强制 `eval()` 并在结束后恢复原模式，RNG 断言加 `torch.cuda.get_rng_state()` 比对；修后 **train / eval 两模式 spread 均 `0.000e+00`**。留痕口径：**W2 的 24 格标定时 dropout 开着，gain 带 1e-11–1e-8 的 seed 依赖，v12 起修正** |
+
+**事故 14 的决定性实验**（`paper_b/hc/cal_determinism.py`，FD001 A2cal，两 seed × 两模式）：
+
+| 模式 | gain s101 | gain s202 | spread |
+|---|---|---|---|
+| train（W2 实际状态） | 0.0142921381 | 0.0142921381 | **7.137e-11** |
+| eval | 0.0142921377 | 0.0142921377 | **0.000e+00** |
+
+train 模式的 7.137e-11 恰好等于 W2 实测的 A2cal FD001 spread —— 这证明那 24 格**确实是在 dropout 开着时标的**，不是推断。
+
+**这条为什么要修而不是忽略**：seed 极差被解释为「训练随机性的下界」，而这个解释要求标定不贡献**任何** seed 相关成分。当时它贡献了（虽极小）。修完这句话才是真的；不修就是用一个未验证的前提去支撑一条结论。
 
 ---
 
@@ -145,11 +165,15 @@ a40 侧另可跑 `python -m paper_b.hc.code_lock --check`，退出码 0。
 
 | 项 | 值 |
 |---|---|
-| `registry/runs.csv` | **91 行 / 38 列** |
-| `check_runs.py` | `rows=91 flags=0`，退出码 **0** |
+| `registry/runs.csv` | **128 行 / 38 列** |
+| `check_runs.py` | `rows=128 flags=0`，退出码 **0** |
+| `stage` 分布 | C **100** / B **28**（D 已预留命名空间，零行） |
+| W2 行 | **33**（32 `ok` + 1 `failed`；失败格 `HC-C-A2cal-FD001-s101-W2` 保留不动，`W2r2` 为该格证据） |
 | 已准入格 | **28**（主表 24 + frozen `A3p` 4），全部 `preliminary (PENDING-L2)` |
-| `stage` 分布 | C 67 / B 24（D 已预留命名空间，零行） |
-| 远端一致性 | a40 `runs.csv` 行数同为 91 但内容陈旧；**准入一律直读 a40 的 launch/close，不读那份 csv** |
+| 远端一致性 | a40 `runs.csv` 内容陈旧；**准入一律直读 a40 的 launch/close，不读那份 csv** |
+
+台账行数的算式（防止再被转述成 134）：本轮 24 格中 **6 个 A1（FD002/003/004 × s202/s303）上一轮已登记**，
+实际新增 **18 个 cal 格**（A2cal×9 + A3bcal×9），110 + 18 = **128**。
 
 ---
 
