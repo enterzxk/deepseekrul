@@ -2,15 +2,12 @@
   "_note": "N-CMAPSS DS02 冻结清单模板。复制到 freeze/<freeze_id>.json 后逐项填实；模板本身不算冻结。三栏硬要求见 docs/paper_b_ncmapss/registry/SCHEMA.md §6。",
   "_hash_rule": "freeze_content_sha256 = sha256( 本文件去掉 freeze_ts_utc / freeze_content_sha256 / eval_start_utc 三个键之后的规范化 JSON )。规范化：键按字典序、UTF-8、无多余空白、sort_keys=true、separators=(',',':')。去掉三栏是为了避免自引用。",
   "_ordering_rule": "合规判据：eval_start_utc > freeze_ts_utc，且 freeze_content_sha256 与已提交版本复算值一致。任一不满足，该批测试结果不具备独立确认性。",
-
   "freeze_id": "NCM-FREEZE-YYYYMMDDTHHMMZ",
   "dataset": "N-CMAPSS-DS02",
   "frozen": false,
-
   "freeze_ts_utc": null,
   "freeze_content_sha256": null,
   "eval_start_utc": null,
-
   "repo": {
     "base_git_sha": "ac94c29",
     "branch": "ncmapss-ds02",
@@ -21,41 +18,149 @@
       "paper_b/ncmapss/data.py": null,
       "paper_b/ncmapss/metrics.py": null,
       "paper_b/ncmapss/protocol.py": null
+    },
+    "protocol_blob": null,
+    "freeze_commit": "7f01909",
+    "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
+    "known_protocol_blob_at_freeze": "4458d9ea05c965251aabb782bba9765304ebf686",
+    "superseded_anchor": {
+      "freeze_commit": "5b228ad",
+      "protocol_blob": "6c184bbfe395325c367b1e460689b178ae48f1f3",
+      "reason": "协议在开跑前修正三处：§6.3 主指标标注、§6.4 相对分段分母改为该机全寿命、HI 范围收窄（N0–N3 本无 HI 臂）。旧锚整体作废。"
+    },
+    "n3_scope": {
+      "rung": "N3",
+      "switches": {
+        "ms_mode": "full",
+        "sa_mode": "basic",
+        "hi_source": "none"
+      },
+      "statement": "N3 = MS+SA，hi_source=none，本批不含 HI 臂；HI 的跨数据集结论由 N4/N5 出，本轮不产生。",
+      "why": "用户 §七 的设计：HI 属于 N4（DSPT+Structural HI）/ N5（DSPT-HC），需等 C-MAPSS 核心 HI 结构冻结后才跑正式对照。",
+      "guard": "台账不得出现任何暗示 N3 测过 HI 的表述；出现即视为伪造证据",
+      "hi_in_scope": false
     }
   },
-
   "data": {
     "path": null,
     "sha256": null,
-    "units_dev": [2, 5, 10, 16, 18, 20],
-    "units_test": [11, 14, 15],
+    "units_dev": [
+      2,
+      5,
+      10,
+      16,
+      18,
+      20
+    ],
+    "units_test": [
+      11,
+      14,
+      15
+    ],
     "sampling": "1Hz within flight; cycle counts flights",
     "pred_instant": "flight_end"
   },
-
   "feature_whitelist": {
     "version": "WS14+W4+CYC",
     "columns": [
-      "W.alt", "W.Mach", "W.TRA", "W.T2",
-      "X_s.Wf", "X_s.Nf", "X_s.Nc", "X_s.T24", "X_s.T30", "X_s.T48", "X_s.T50",
-      "X_s.P15", "X_s.P2", "X_s.P21", "X_s.P24", "X_s.Ps30", "X_s.P40", "X_s.P50",
+      "W.alt",
+      "W.Mach",
+      "W.TRA",
+      "W.T2",
+      "X_s.Wf",
+      "X_s.Nf",
+      "X_s.Nc",
+      "X_s.T24",
+      "X_s.T30",
+      "X_s.T48",
+      "X_s.T50",
+      "X_s.P15",
+      "X_s.P2",
+      "X_s.P21",
+      "X_s.P24",
+      "X_s.Ps30",
+      "X_s.P40",
+      "X_s.P50",
       "A.cycle"
     ],
-    "banned": ["X_v.*", "T.*", "A.hs", "A.Fc"],
+    "banned": [
+      "X_v.*",
+      "T.*",
+      "A.hs",
+      "A.Fc"
+    ],
     "unit_usage": "grouping only, never a feature",
     "y_usage": "label and evaluation branch only"
   },
-
   "folds": [
-    {"fold": "LOEO-2",  "held_out": 2,  "train": [5, 10, 16, 18, 20]},
-    {"fold": "LOEO-5",  "held_out": 5,  "train": [2, 10, 16, 18, 20]},
-    {"fold": "LOEO-10", "held_out": 10, "train": [2, 5, 16, 18, 20]},
-    {"fold": "LOEO-16", "held_out": 16, "train": [2, 5, 10, 18, 20]},
-    {"fold": "LOEO-18", "held_out": 18, "train": [2, 5, 10, 16, 20]},
-    {"fold": "LOEO-20", "held_out": 20, "train": [2, 5, 10, 16, 18]}
+    {
+      "fold": "LOEO-2",
+      "held_out": 2,
+      "train": [
+        5,
+        10,
+        16,
+        18,
+        20
+      ]
+    },
+    {
+      "fold": "LOEO-5",
+      "held_out": 5,
+      "train": [
+        2,
+        10,
+        16,
+        18,
+        20
+      ]
+    },
+    {
+      "fold": "LOEO-10",
+      "held_out": 10,
+      "train": [
+        2,
+        5,
+        16,
+        18,
+        20
+      ]
+    },
+    {
+      "fold": "LOEO-16",
+      "held_out": 16,
+      "train": [
+        2,
+        5,
+        10,
+        18,
+        20
+      ]
+    },
+    {
+      "fold": "LOEO-18",
+      "held_out": 18,
+      "train": [
+        2,
+        5,
+        10,
+        16,
+        20
+      ]
+    },
+    {
+      "fold": "LOEO-20",
+      "held_out": 20,
+      "train": [
+        2,
+        5,
+        10,
+        16,
+        18
+      ]
+    }
   ],
   "split_hash": null,
-
   "rungs": [
     {
       "rung": "N0",
@@ -99,8 +204,11 @@
       "note": "only the input layer may adapt to DS02"
     }
   ],
-
-  "seeds": [101, 202, 303],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
   "selection_rule": "inner_val",
   "budget": {
     "epochs": null,
@@ -108,31 +216,92 @@
     "batch": null,
     "lr": null
   },
-
+  "train_plan": {
+    "source": "paper_b/configs/protocol.json",
+    "sha256": null,
+    "shared_by_all_rungs": true,
+    "values": {
+      "epochs": 40,
+      "patience": 12,
+      "batch": "min(512, N_train)",
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "d_model": 64,
+      "layers": 2,
+      "dropout": 0.2
+    },
+    "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。"
+  },
+  "condition_encoding": {
+    "n_cond": 6,
+    "fit_data": "W (alt, Mach, TRA, T2)",
+    "fit_units_rule": "k-means 只在当前 LOEO 折的训练机上拟合",
+    "kmeans_seed": null,
+    "leak_check": "kmeans_fit_units 不得含该折留出机或任何测试机；违反则该 run 作废",
+    "information_parity": "该 embedding 不带来 N1 没有的信息：W 的 mean/std 已在共享 51 列内，聚类只是同一种信息的另一种编码"
+  },
+  "freeze_source": {
+    "files": [
+      "paper_b/results/FREEZE_ABLATION_SEED101.json",
+      "paper_b/configs/protocol.json"
+    ],
+    "sha256": {},
+    "rule": "N3 直接 json.load 这两份文件；DS02 侧手抄参数值不等于冻结"
+  },
   "test_design": {
     "mode": "retrain_on_all_dev",
-    "note": "SCHEMA.md §1.3 的岔路：retrain_on_all_dev = 9 个 checkpoint × 3 台 = 27 行；若改用 loeo_checkpoints 则为 54 × 3 = 162 行，必须在此处写明并保持到评估结束",
-    "checkpoints_expected": 9
+    "decided_by": "经理 2026-11-12; user §9 stage 4 fixes it",
+    "note": "全部 6 台开发机重训 3 seed = 9 个 checkpoint，各评 3 台测试机 = 27 行。另一种做法（54 个 LOEO checkpoint × 3 台 = 162 行）已被否决：哪一折代表最终模型没有定义。",
+    "checkpoints_expected": 9,
+    "loeo_checkpoints_in_test": false,
+    "hard_rule": "最终测试模型 ≠ 任何一折模型；checkpoints[] 里出现任何 LOEO checkpoint 即冻结无效"
   },
-
   "analysis_rule": {
     "primary": "rmse_raw_unit",
     "primary_aggregation": "per-unit RMSE then unweighted mean over units",
-    "secondary": ["mae_raw_unit", "bias_raw_unit", "nasa_raw_unit", "rmse_raw_flightpooled"],
+    "secondary": [
+      "mae_raw_unit",
+      "bias_raw_unit",
+      "nasa_raw_unit",
+      "rmse_raw_flightpooled"
+    ],
     "supplementary_convention": "cap125",
     "supplementary_note": "capped125 是固定补充口径，不是主口径；禁止按结果择口径",
     "segments": {
-      "boundaries": "early:RUL>75;mid:25<=RUL<=75;late:RUL<25",
+      "rules": [
+        "relative",
+        "absolute"
+      ],
+      "conventions": [
+        "capped",
+        "raw"
+      ],
+      "metrics": [
+        "rmse"
+      ],
+      "columns": 12,
+      "boundaries": {
+        "relative": [
+          0.3333,
+          0.6667
+        ],
+        "absolute": [
+          75,
+          25
+        ]
+      },
+      "relative_scale": "该机完整标签轨迹的最大 RUL，不是被评估子集的最大值；由数据层传入 unit_lifetime，缺失即报错",
+      "absolute_default_note": "absolute 的 (75,25) 是默认值，可在 DS02 真实 RUL 尺度确认后改一次，且必须在冻结之前",
+      "mae_note": "逐段 MAE 不进台账 12 列，保留在每次 run 的逐段 CSV 里",
       "note": "边界预先固定；分段只用于事后评价，不得反向参与特征或选轮"
     },
     "dispersion": "per-fold seed sd AND cross-fold sd, reported separately, never conflated",
-    "ci": "df = n_engines - 1 = 5; seeds are not independent samples",
+    "ci": "dev: df = n_engines - 1 = 5; seeds are not independent samples",
+    "test_dispersion": "test set has 3 engines only: report seed mean ± seed sd per unit (n=3 seeds, 1 unit). Do NOT write a cross-engine 95% CI; minimum two-sided sign-test p with 3 units is 0.25",
     "insufficient_power_rule": "三台测试机全部改善仍不足以证明总体优越（独立对称符号检验双侧最小 p=0.25）；未拒绝差异不得表述为等效"
   },
-
   "runs_to_evaluate": [],
   "checkpoints": [],
-
   "provenance": {
     "freeze_commit_sha": null,
     "eval_log_first_line_sha256": null,

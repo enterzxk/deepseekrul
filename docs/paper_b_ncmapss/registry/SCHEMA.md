@@ -1,7 +1,8 @@
 # N-CMAPSS DS02 实验台账 schema
 
+版本：**v4** · 2026-11-12
 状态：**schema 已定，0 run**（等数据接入后按此登记）
-最后更新：2026-11-12 20:40 (+08)
+最后更新：2026-11-12 21:15 (+08)
 维护人：实验结果管理员
 适用：`docs/paper_b_ncmapss/registry/`（**与 C-MAPSS 的 `docs/paper_b_hc/registry/` 完全独立，互不引用、互不写入**）
 基准提交：`ac94c29`，分支 `ncmapss-ds02`
@@ -79,7 +80,7 @@
 `NCMAPSS_FINAL_RESULTS.md` 的 12 格表（4 rung × 3 单位）**每格只能报 seed 均值 ± seed sd**，
 表头必须写「seed mean ± seed sd (n=3 seeds, 1 unit)」，**不得写成跨机置信区间**。
 
-### 1.4 有效样本数不是 18
+### 1.5 有效样本数不是 18
 
 **6 折 × 3 seed = 18 个数字，但不是 18 个独立样本。**
 - 独立单位是**发动机**（开发集 6 台），seed 只衡量优化随机性。
@@ -113,21 +114,17 @@ NCM-test-N3-ALLDEV-s101-20261120T0900Z
 
 ---
 
-## 3. `runs.csv` 列定义（50 列，固定）
+## 3. `runs.csv` 列定义（62 列，固定）
 
 ```
 run_id, phase, rung, model, fold, held_out_engine, n_train_engines, seed,
-git_sha, code_md5, data_sha256, split_hash,
-feature_set, feature_list, config_path, config_sha256,
-selection_rule, epochs_run, best_epoch,
-ckpt_path, ckpt_sha256, preds_path, pred_instant, n_units, n_flights,
-rmse_raw_unit, mae_raw_unit, bias_raw_unit, nasa_raw_unit,
-rmse_cap125_unit, mae_cap125_unit, bias_cap125_unit, nasa_cap125_unit,
-rmse_raw_flightpooled, rmse_cap125_flightpooled,
-seg_early_raw, seg_mid_raw, seg_late_raw,
-seg_early_cap125, seg_mid_cap125, seg_late_cap125, seg_boundaries,
-freeze_id, freeze_ts_utc, eval_start_utc,
-status, audit_verdict, independent_unit, registry_note, audited_by
+git_sha, code_md5, data_sha256, split_hash, protocol_blob, train_plan_sha256, feature_set, feature_list,
+kmeans_fit_units, kmeans_seed, config_path, config_sha256, freeze_source, freeze_source_sha256, selection_rule, epochs_run,
+best_epoch, ckpt_path, ckpt_sha256, preds_path, pred_instant, n_units, n_flights, rmse_raw_unit,
+mae_raw_unit, bias_raw_unit, nasa_raw_unit, rmse_cap125_unit, mae_cap125_unit, bias_cap125_unit, nasa_cap125_unit, rmse_raw_flightpooled,
+rmse_cap125_flightpooled, seg_early_relative_capped, seg_early_relative_raw, seg_early_absolute_capped, seg_early_absolute_raw, seg_mid_relative_capped, seg_mid_relative_raw, seg_mid_absolute_capped,
+seg_mid_absolute_raw, seg_late_relative_capped, seg_late_relative_raw, seg_late_absolute_capped, seg_late_absolute_raw, seg_boundaries, freeze_id, freeze_ts_utc,
+eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_by
 ```
 
 ### 3.1 逐列含义
@@ -139,40 +136,63 @@ status, audit_verdict, independent_unit, registry_note, audited_by
 | 3 | `rung` | `N0` / `N1` / `N2` / `N3` |
 | 4 | `model` | 实际模型名，与 config 一致（`age_only` / `vanilla` / `dspt_base` / `dspt_frozen`） |
 | 5 | `fold` | `LOEO-<留出机号>` / `ALLDEV` |
-| 6 | `held_out_engine` | 该行预测的是哪台机；`phase=test` 时填该测试机号 |
-| 7 | `n_train_engines` | 该 run 训练用了多少台（dev 折 = 5，test 重训 = 6） |
+| 6 | `held_out_engine` | 该行预测的是哪台机；`phase=test` 时填测试机号 |
+| 7 | `n_train_engines` | dev 折 = 5，test 重训 = 6 |
 | 8 | `seed` | `101/202/303`；**N0 留空** |
 | 9 | `git_sha` | 训练时工作区 SHA；`WORKTREE` 必须同时有 `code_md5` |
 | 10 | `code_md5` | 关键文件 md5 的 JSON：`model` / `train` / `data` / `metrics` / `protocol` |
-| 11 | `data_sha256` | 所用 HDF5 的 sha256（`N-CMAPSS/DS02/*.h5`） |
-| 12 | `split_hash` | LOEO 折定义（留出机列表 + 训练机列表）的 sha256 |
-| 13 | `feature_set` | 白名单版本号，如 `WS14+W4+CYC`（见 §4） |
-| 14 | `feature_list` | **实际进入模型的列名**，`;` 分隔，必须能在 §4 白名单里逐个对上 |
-| 15 | `config_path` | `experiments/ncmapss/<run_id>/config.json` |
-| 16 | `config_sha256` | 上述 config 的 sha256（冻结时用来证明「跑的就是冻结的那份」） |
-| 17 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_epochs:<n>` / `none`（N0） |
-| 18 | `epochs_run` | 实际跑完的 epoch 数 |
-| 19 | `best_epoch` | 选轮得到的 epoch；`selection_rule=none` 时留空 |
-| 20 | `ckpt_path` | `experiments/ncmapss/<run_id>/ckpt/best.pt`；N0 留空 |
-| 21 | `ckpt_sha256` | checkpoint 的 sha256；N0 留空。**冻结清单里逐条列出** |
-| 22 | `preds_path` | 逐发动机预测文件 `preds.csv`（`engine_id, flight_cycle, y_true_raw, y_true_cap125, y_pred`） |
-| 23 | `pred_instant` | 预测时刻，本协议固定 `flight_end` |
-| 24 | `n_units` | 该行涉及的发动机数（dev 折 = 1，test = 1） |
-| 25 | `n_flights` | 该行涉及的飞行段数（预测点个数） |
-| 26–29 | `rmse/mae/bias/nasa` **`_raw_unit`** | **主口径**：raw 标签、飞行级预测、逐机算后等权平均 |
-| 30–33 | 同四项 **`_cap125_unit`** | **补充口径**：标签截断到 125 后同法计算 |
-| 34 | `rmse_raw_flightpooled` | 把所有飞行段混在一起算（不按机等权） |
-| 35 | `rmse_cap125_flightpooled` | 同上，capped 口径 |
-| 36–41 | `seg_*_raw` / `seg_*_cap125` | early / mid / late 三段的 RMSE，两种口径各一套 |
-| 42 | `seg_boundaries` | 分段边界，**必须预先固定**，如 `early:RUL>75;mid:25<=RUL<=75;late:RUL<25` |
-| 43 | `freeze_id` | 授权本次测试评估的冻结清单 id；`phase=dev` 留空 |
-| 44 | `freeze_ts_utc` | 该冻结清单的 `freeze_ts_utc`（从清单抄，不自己写） |
-| 45 | `eval_start_utc` | 本次测试评估**实际开始**时刻；必须 > `freeze_ts_utc` |
-| 46 | `status` | `running` / `ok` / `failed` / `smoke` / `superseded` |
-| 47 | `audit_verdict` | `pass` / `fail` / `n/a`（**只放判断，不放人名**） |
-| 48 | `independent_unit` | 本协议固定 `engine`（见 §1.4） |
-| 49 | `registry_note` | 异常、偏差、重跑原因、溯源信息都写这里 |
-| 50 | `audited_by` | **只放人名**（如「实验结果管理员」）。不确定性和判断不许写进这一列 |
+| 11 | `data_sha256` | 所用 HDF5 的 sha256 |
+| 12 | `split_hash` | LOEO 折定义（留出机 + 训练机）的 sha256 |
+| 13 | `protocol_blob` | 冻结协议文档的 git blob 哈希：`git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md`。**blob 抗 amend/rebase，commit 不抗**；对不上的 run 视为在未知协议下产出。**必须在仓库内用 `git rev-parse` 核，不要拿工作区文件算 sha256**——`.gitattributes` 规定 `*.md/*.json/*.csv` 为 `eol=lf`，Windows 上 CRLF 重存会让 blob 变而内容看起来没变 |
+| 14 | `train_plan_sha256` | `paper_b/configs/protocol.json` 的 sha256。四档共用同一训练计划，**记哈希不记手抄数值** |
+| 15 | `feature_set` | 白名单版本号，如 `WS14+W4+CYC` |
+| 16 | `feature_list` | **实际进入模型的列名**，`;` 分隔，必须逐个落在 §4 白名单里 |
+| 17 | `kmeans_fit_units` | 工况聚类（`n_cond=6`）拟合用的机号，`;` 分隔。**只许当前折的训练机**；N0/N1 留空。出现留出机 → 作废 |
+| 18 | `kmeans_seed` | k-means 随机种子；N0/N1 留空 |
+| 19 | `config_path` | `experiments/ncmapss/<run_id>/config.json` |
+| 20 | `config_sha256` | 上述 config 的 sha256 |
+| 21 | `freeze_source` | N3 冻结参数来源：`paper_b/results/FREEZE_ABLATION_SEED101.json` + `paper_b/configs/protocol.json`；非 N3 留空。**N3 = MS+SA，`hi_source=none`，本批不含 HI 臂**（见 §3.3） |
+| 22 | `freeze_source_sha256` | 上述两份文件的内容哈希，JSON `{path: sha256}`。**不许手抄参数值** |
+| 23 | `selection_rule` | `inner_val`（训练折内选轮）/ `fixed_epochs:<n>` / `none`（N0） |
+| 24 | `epochs_run` | 实际跑完的 epoch 数 |
+| 25 | `best_epoch` | 选轮得到的 epoch；`selection_rule=none` 时留空 |
+| 26 | `ckpt_path` | `experiments/ncmapss/<run_id>/ckpt/best.pt`；N0 留空 |
+| 27 | `ckpt_sha256` | checkpoint 的 sha256；N0 留空。冻结清单逐条列出 |
+| 28 | `preds_path` | 逐发动机预测 `preds.csv`（`engine_id, flight_cycle, y_true_raw, y_true_cap125, y_pred`） |
+| 29 | `pred_instant` | 预测时刻，固定 `flight_end` |
+| 30 | `n_units` | 该行涉及的发动机数（dev 折 = 1，test = 1） |
+| 31 | `n_flights` | 该行涉及的飞行段数（预测点个数） |
+| 32 | `rmse_raw_unit` | **主口径**：raw 标签、飞行级预测、逐机算后等权平均 |
+| 33 | `mae_raw_unit` | 同上口径的 MAE |
+| 34 | `bias_raw_unit` | 同上口径的 Bias |
+| 35 | `nasa_raw_unit` | 同上口径的 NASA Score（必须同时声明求和规则与样本数） |
+| 36 | `rmse_cap125_unit` | **补充口径**：标签截断 125 后同法计算 |
+| 37 | `mae_cap125_unit` | capped 口径 MAE |
+| 38 | `bias_cap125_unit` | capped 口径 Bias |
+| 39 | `nasa_cap125_unit` | capped 口径 NASA Score |
+| 40 | `rmse_raw_flightpooled` | 所有飞行段混算（不按机等权），raw 口径。**补充**，不是主口径 |
+| 41 | `rmse_cap125_flightpooled` | 同上，capped 口径 |
+| 42 | `seg_early_relative_capped` | early 段 RMSE，相对分段（按该机**完整寿命**的三分位），capped 口径 |
+| 43 | `seg_early_relative_raw` | early 段 RMSE，相对分段（按该机**完整寿命**的三分位），raw 口径 |
+| 44 | `seg_early_absolute_capped` | early 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），capped 口径 |
+| 45 | `seg_early_absolute_raw` | early 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），raw 口径 |
+| 46 | `seg_mid_relative_capped` | mid 段 RMSE，相对分段（按该机**完整寿命**的三分位），capped 口径 |
+| 47 | `seg_mid_relative_raw` | mid 段 RMSE，相对分段（按该机**完整寿命**的三分位），raw 口径 |
+| 48 | `seg_mid_absolute_capped` | mid 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），capped 口径 |
+| 49 | `seg_mid_absolute_raw` | mid 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），raw 口径 |
+| 50 | `seg_late_relative_capped` | late 段 RMSE，相对分段（按该机**完整寿命**的三分位），capped 口径 |
+| 51 | `seg_late_relative_raw` | late 段 RMSE，相对分段（按该机**完整寿命**的三分位），raw 口径 |
+| 52 | `seg_late_absolute_capped` | late 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），capped 口径 |
+| 53 | `seg_late_absolute_raw` | late 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），raw 口径 |
+| 54 | `seg_boundaries` | 两套边界同时装：`{"relative": [0.3333, 0.6667], "absolute": [75, 25]}`。**先冻结再跑**；`absolute` 的 (75,25) 是待 DS02 真实 RUL 尺度确认后可改**一次**的默认值，不许看完结果调 |
+| 55 | `freeze_id` | 授权本次测试评估的冻结清单 id；`phase=dev` 留空 |
+| 56 | `freeze_ts_utc` | 该冻结清单的 `freeze_ts_utc`（从清单抄，不自己写） |
+| 57 | `eval_start_utc` | 本次测试评估**实际开始**时刻；必须 > `freeze_ts_utc` |
+| 58 | `status` | `running` / `ok` / `failed` / `smoke` / `superseded` |
+| 59 | `audit_verdict` | `pass` / `fail` / `n/a`（**只放判断，不放人名**） |
+| 60 | `independent_unit` | 固定 `engine`（见 §1.5） |
+| 61 | `registry_note` | 异常、偏差、重跑原因、溯源信息都写这里 |
+| 62 | `audited_by` | **只放人名**。不确定性和判断不许写进这一列 |
 
 ### 3.2 两条硬规则（从 C-MAPSS 台账的教训来）
 
@@ -181,6 +201,73 @@ status, audit_verdict, independent_unit, registry_note, audited_by
 2. **口径列不许混。** `_unit` 与 `_flightpooled` 是两种聚合，`raw` 与 `cap125` 是两种标签变换。
    四者组合里的任何一个数，引用时必须同时说明是哪一种。C-MAPSS 那边把 pooled 当 engine-level
    用了整整一晚，就是因为列名没带口径。
+
+---
+
+### 3.3 训练计划与工况编码（v2 新增）
+
+**训练计划四档共用，来自 `paper_b/configs/protocol.json`，不许改：**
+
+| 项 | 值 |
+|---|---|
+| epochs | 40 |
+| patience | 12 |
+| batch | `min(512, N_train)` |
+| lr | 1e-3 |
+| weight_decay | 1e-4 |
+| d_model | 64 |
+| layers | 2 |
+| dropout | 0.2 |
+| seeds | 101 / 202 / 303 |
+
+只允许改输入宽度（51 列）。**哪一档在这个计划下不收敛，那是要报的发现，不是改超参的许可证**——
+和 N3 冻结是同一条规则。台账每行记 `train_plan_sha256`（对 `protocol.json` 算），不记手抄数值。
+
+**工况编码 `n_cond=6`（DS02 重新定义，信息匹配的关键点）：**
+
+- 对 `W`（4 列工况）做 k-means(k=6)，**只在当前 LOEO 折的训练机上拟合**。
+- 台账记 `kmeans_fit_units` 与 `kmeans_seed`。
+- **硬校验**：`kmeans_fit_units` 里出现该折的留出机 → 该 run 直接作废（`audit_verdict=fail`）。
+- 论证必须写进代码注释：**这个 embedding 不带来 N1 没有的信息**——`W` 的 mean/std 本来就在共享 51 列里，
+  聚类只是同一种信息的另一种编码。任何让 DSPT 档「输入严格更丰富」的改动是协议违规，不是架构选择。
+
+**N3 冻结来源与范围（写死，防止从台账反推出不存在的证据）：**
+
+`freeze_source` = `paper_b/results/FREEZE_ABLATION_SEED101.json` + `paper_b/configs/protocol.json`，
+两者内容哈希记入 `freeze_source_sha256`。**不许在 DS02 侧手抄一份参数值**——抄一份参数不等于「冻结」。
+
+> **N3 = MS+SA，`hi_source=none`。本批 N0–N3 不含 HI 臂。**
+> HI 的跨数据集结论由 **N4**（DSPT + Structural HI）/ **N5**（DSPT-HC）产生，两者要等 C-MAPSS
+> 核心 HI 结构冻结后才跑正式对照，**本轮不产生任何 HI 结论**。
+> 台账不得出现任何暗示「N3 测过 HI」的表述；出现即视为伪造证据。
+
+**协议冻结锚（当前）：**
+
+| 项 | 值 |
+|---|---|
+| `freeze_commit` | **`7f01909`** |
+| `protocol_blob` | **`4458d9ea05c965251aabb782bba9765304ebf686`** |
+| 核验命令 | `git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
+
+> 旧锚 `5b228ad` / `6c184bbf…` **已作废**：协议在开跑前修正三处——§6.3 主指标标注、
+> §6.4 相对分段分母改为该机全寿命、HI 范围收窄（N0–N3 本无 HI 臂）。前移理由记在
+> `REPRODUCIBILITY_AUDIT.md`。**`7f01909` 之后协议冻结，直到 LOEO 开发集结果出来为止不再改**。
+
+---
+
+### 3.4 分段误差：两套规则 × 两种口径（v3 修正）
+
+12 列 = **3 段 × 2 规则 × 2 口径**，指标只放 RMSE：
+
+- **规则维不能省。** `relative`（按该机完整寿命三分位）是本轮新增的主规则，`absolute`（RUL 阈值）
+  用来对齐 C-MAPSS 表。v2 把这一维漏了，两套边界只能留一套，等于把新增的东西丢了。
+- **MAE 不进这 12 列。** 分段表里 RMSE 是主；逐段 MAE 由 `evaluate()` 返回、留在每次 run 的
+  逐段 CSV 里，台账不冻结它，避免表撑到 24 列。
+- **相对分段的归一化尺度必须来自该机完整标签轨迹**，不能来自被评估子集。
+  测试集每台机只评最后一个飞行，若用 `block.max()`，`frac` 恒为 1.0，所有行都被判成 `early`，
+  指标退化成常数且**不报错**。实现上由数据层传入 `unit_lifetime: dict[unit, max_rul]`，缺了就报错。
+- **`absolute` 的 (75, 25) 是默认值**，可在 DS02 真实 RUL 尺度确认后改**一次**，
+  且必须改在冻结之前；看完结果再调 = 协议违规。
 
 ---
 
@@ -269,3 +356,52 @@ docs/paper_b_ncmapss/registry/
 8. 代码没漂移：`git_sha` + `code_md5` 与 `config_sha256` 对应的那份一致。
 9. 种子真实：`seed` 与 `metrics.json`、日志里的 seed 一致；N0 必须为空。
 10. 重复检查：同 `(phase, rung, fold, seed)` 是否已有 `ok` 行；重复标 `superseded` 并说明。
+11. **测试行不含 LOEO checkpoint**：`phase=test` 的 `ckpt_sha256` 必须能在冻结清单的 9 个
+    「全开发机重训」checkpoint 里找到；命中任何 LOEO checkpoint → `fail`，冻结作废。
+12. **测试集离散度口径**：`phase=test` 的汇总只能出现 seed 均值 ± seed sd；
+    出现「跨机 CI」「跨机 sd」字样 → `fail`（测试机只有 3 台，没有这个精度）。
+13. **工况聚类只用训练机**：`kmeans_fit_units` ⊆ 该折训练机集合；
+    出现留出机或测试机 → `fail`，该 run 退出主证据表。
+14. **训练计划未被改**：`train_plan_sha256` 与 `protocol.json` 实算值一致；
+    四档必须是同一个哈希。不一致 → `fail`（改超参不是调参自由，是协议违规）。
+15. **N3 冻结来源可追**：`freeze_source_sha256` 的两份文件哈希与仓库实算一致；
+    台账里出现手抄的参数值而非读取来源 → `fail`。
+16. **分段规则齐全**：12 个 `seg_*` 列必须两套规则（`relative` + `absolute`）都齐；
+    `relative` 的归一化尺度来自该机完整寿命而非被评估子集（否则测试集会退化成常数）；
+    缺任一套或尺度用错 → `fail`。
+17. **协议 blob 对得上**：`protocol_blob` 与 `git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md`
+    一致。不一致 → `fail`，该 run 视为在未知协议下产出（commit 可被 amend，blob 不会）。
+    **核验必须在仓库内跑 `git rev-parse`，不得拿工作区文件算 sha256 去比**：`.gitattributes`
+    把 `*.md/*.json/*.csv` 定为 `eol=lf`，工作区里一次 CRLF 重存就会让字节变而内容看起来没变。
+
+---
+
+## 9. 开跑前自检（每批 run 之前跑一遍，任何一条不过就不许开跑）
+
+```bash
+cd <repo>
+# 1. 协议没漂移：冻结提交、当前 HEAD、台账三处 blob 必须相同
+git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 4458d9ea05c965251aabb782bba9765304ebf686
+git rev-parse HEAD:docs/paper_b_ncmapss/DATASET_PROTOCOL.md      # 必须与上一行相同
+grep -c 4458d9ea05c965251aabb782bba9765304ebf686 docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
+
+# 2. 工作区干净（3090 是只读消费者）
+git fetch && git reset --hard origin/ncmapss-ds02
+git status --porcelain            # 必须为空
+
+# 3. 冻结文件在且是冻结态
+test -f paper_b/configs/protocol.json
+test -f paper_b/results/FREEZE_ABLATION_SEED101.json
+python -c "import json;d=json.load(open('paper_b/results/FREEZE_ABLATION_SEED101.json'));assert d['frozen'] is True"
+
+# 4. 台账锁没有残留
+test ! -e docs/paper_b_ncmapss/registry/runs.csv.lock
+```
+
+**第 1 条是最便宜、也最容易漏的一条**：一条 `git rev-parse` 就能证明协议正文在冻结后没被动过
+（2026-11-12 就用它证明过 `ed8f0cd` 只动了复现审计、`DATASET_PROTOCOL.md` 的 blob 未变）。
+开跑后再发现协议漂移，那一批 run 全部作废。
+
+第 2 条对应工作区拓扑：**`origin/ncmapss-ds02` 是唯一真源，3090 是只读消费者**，
+每批跑之前 `reset --hard`，不在 3090 上提交、不留未跟踪的代码文件。
+
