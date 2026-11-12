@@ -122,3 +122,31 @@ before freeze/test. Need later build jointfreeze/evaluationplan andcollect
 primary author-limit logical84 plus fixed40logical84, actualtraining84+K.
 Do not call them168 independent trainings. DedupTEST only after proving
 same state/input/evalcontract; preserve reuse sourcepred hashes.
+
+## All registered training finished; pre-TEST evaluation hardening
+
+Remote combinedqueuePID1937697 finished: fixed40=84, eligible fresh author
+extensions=10, no newofficialTEST opened. Final AUTHOR_LIMIT_ELIGIBILITY.json
+contains84 logical cases. Actualtraining94, logical condition comparisons168.
+Oldsource462 SHA3bbb..., author460 SHAf58a... unchanged.
+
+The independent integrity agent audited joint.py and identified pre-TEST
+metadataP1s (reuse race, partialfreeze readiness, input identity). All are
+being fixed before evaluation: PREPARED→both componentbatches validated→
+immutable JOINT READY; exclusive testcontroller; shared permanent
+TEST_ATTEMPT O_EXCL for real or reuse path; true input-array hashes recorded
+immediately before calling unchanged sourcepredict via test_instrumented.py;
+canonical train/official bytes and old completedoutput seals checked before
+reuse. Copying a real prediction creates TEST_REUSED/forward0, never a fake
+newforward. All evaluation code now binds EVALUATION_SOURCE_MANIFEST.json.
+
+Agent hit tool usage limit after reporting these P1s; do not claim its
+post-fix review has completed. PrimaryCodex must run concrete negative
+metadata/quota/readiness checks and full CPU artifact audits before TEST.
+Do not buy credits or call DSH; continue with available review channels.
+Remaining: finalize jointfreeze/test acceptance; freezeall94 before official
+prediction; actualtest84 plus unique authorstates, reuse only with exact
+state/input/source/seed contracts; collect authorlimits primary plus40
+sensitivity, both DSPT references, extra-data TwoPhase separate; strict
+logical/physical counts/hash/metrics/paired-summary validation; download,
+verify stagedbytes/frozenboundaries, finalreport and GitHubpush.

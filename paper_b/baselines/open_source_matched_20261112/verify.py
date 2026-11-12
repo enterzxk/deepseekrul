@@ -23,8 +23,8 @@ def score(rows):
     assert errors and all(math.isfinite(x) for x in errors)
     return math.sqrt(math.fsum(x*x for x in errors)/len(errors)),math.fsum(math.expm1(-x/13) if x<0 else math.expm1(x/10) for x in errors)
 
-def replay(history,metrics):
-    assert [r["epoch"] for r in history]==list(range(1,len(history)+1)) and 1<=len(history)<=40
+def replay(history,metrics,ceiling=40):
+    assert [r["epoch"] for r in history]==list(range(1,len(history)+1)) and 1<=len(history)<=ceiling
     best,best_ep=float("inf"),0
     for index,row in enumerate(history,1):
         groups=row["engine_squared_errors"]
@@ -35,7 +35,7 @@ def replay(history,metrics):
         if engine<best-1e-4:best,best_ep=engine,index
         assert row["selected_epoch_so_far"]==best_ep
         if index<len(history):assert index-best_ep<12
-    assert len(history)==40 or len(history)-best_ep>=12
+    assert len(history)==ceiling or len(history)-best_ep>=12
     assert best_ep==metrics["best_epoch"] and close(best,metrics["validation_engine_mean_rmse"])
     assert history[best_ep-1]["state_content_sha256"]==metrics["state_content_sha256"]
     return best_ep
