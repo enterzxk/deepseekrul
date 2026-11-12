@@ -94,10 +94,21 @@ HC-<stage>-<variant>-<subset>-s<seed>-<YYYYMMDDTHHMMZ>
 格的证据必须匹配：
 
 ```
-^HC-C-{variant}-{subset}-s101-W1(r\d+)?$
+^HC-C-{variant}-{subset}-s{seed}-W{wave}(r\d+)?$
 ```
 
 只写“前缀 `-W1`”会误纳 `-W1foo`；只写“以 `-W1` 结尾”会把 `r2/r3` 排除。
+
+
+**`wave` / `seed` 是参数，不是字面量。**
+
+| 波次 | `wave` | `seed` 取值 | 例 |
+|---|---|---|---|
+| Wave 1（Gate A） | `1` | `101` | `HC-C-A1-FD001-s101-W1r2` |
+| Wave 2（G2 尺度对齐） | `2` | `101` / `202` / `303` | `HC-C-A2cal-FD001-s202-W2` |
+
+> 写死 `s101` 或 `-W1` 会让 Wave 2 的格**全部无法准入**（seed 202/303 与 `-W2` 都不匹配）。
+> 2026-11-12 实测发现该字面量问题，已参数化。
 
 ### 选行规则
 
