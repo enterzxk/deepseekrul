@@ -156,6 +156,27 @@ def assert_no_test_units(units: Iterable[int], context: str = "") -> None:
 # --------------------------------------------------------------------------
 # Flight-level frame
 # --------------------------------------------------------------------------
+def cap_status(df: pd.DataFrame, rul_cap: float = RUL_CAP) -> dict:
+    """Is the capped criterion a real criterion on this data?
+
+    On DS02 every unit's raw RUL stays below 125 (dev max 89, test max 76), so
+    ``min(raw, 125) == raw`` everywhere and the capped column carries no
+    information. Reporting the two criteria side by side there would suggest
+    two independent evaluations of the same numbers, which is worse than
+    reporting one.
+    """
+    raw = df[COL_TRUE_RAW].to_numpy(dtype=float)
+    over = raw > float(rul_cap)
+    units = sorted(int(u) for u in df.loc[over, COL_UNIT].unique())
+    return dict(
+        cap_active=bool(units),
+        rul_cap=float(rul_cap),
+        n_flights_over_cap=int(over.sum()),
+        units_over_cap=units,
+        max_raw=float(raw.max()) if raw.size else float("nan"),
+    )
+
+
 def verify_capped_column(df: pd.DataFrame, rul_cap: float = RUL_CAP) -> None:
     """Check that the stored cap column really is ``min(y_true_raw, rul_cap)``.
 
@@ -405,6 +426,8 @@ def evaluate(
     segments = pd.DataFrame(seg_tables)
 
     engine_mean_rmse = float(per_engine["rmse"].mean()) if len(per_engine) else float("nan")
+    status = cap_status(df, rul_cap)
+    active = (criterion == "raw") or status["cap_active"]
     return dict(
         overall=overall,
         per_engine=per_engine,
@@ -418,6 +441,11 @@ def evaluate(
         supplementary_metric=SUPPLEMENTARY_METRIC,
         criterion=criterion,
         rul_cap_used=(criterion == "capped"),
+        # A criterion that cannot differ from the other one is reported as
+        # inactive instead of being printed twice.
+        criterion_active=bool(active),
+        inactive_reason=None if active else "inactive (no unit exceeds the cap)",
+        cap_status=status,
         n_engines=int(df[COL_UNIT].nunique()),
         n_flights=int(len(df)),
         segment_edges_rel=list(edges_rel),
@@ -585,6 +613,11 @@ def _self_test() -> int:
     assert capped["n_engines"] == 6
     # max true RUL is 120 < cap, so capped and raw must agree exactly here
     assert math.isclose(capped["overall"]["rmse"], raw["overall"]["rmse"], rel_tol=1e-12)
+    # ... and the capped criterion must be reported inactive, not printed twice
+    assert capped["criterion_active"] is False
+    assert capped["inactive_reason"] == "inactive (no unit exceeds the cap)"
+    assert raw["criterion_active"] is True and raw["inactive_reason"] is None
+    assert capped["cap_status"]["units_over_cap"] == []
 
     # primary vs supplementary: labelled, and pooled >= per-engine mean (Jensen)
     assert capped["primary_metric"] == "engine_mean_rmse"
@@ -624,6 +657,9 @@ def _self_test() -> int:
     c2 = evaluate(long_rows, "capped", unit_lifetime=lifetime_long)
     r2 = evaluate(long_rows, "raw", unit_lifetime=lifetime_long)
     assert r2["overall"]["rmse"] > c2["overall"]["rmse"]
+    # once a unit passes the cap the capped criterion is a real criterion again
+    assert c2["criterion_active"] is True and c2["inactive_reason"] is None
+    assert c2["cap_status"]["units_over_cap"] == [2]
 
     # segments: both rules present, each covering every flight exactly once
     seg = capped["segments"]
@@ -739,6 +775,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         results = {a.criterion: evaluate(rows, a.criterion, segment_rules=rules, **kw)}
 
     for name, res in results.items():
+        if not res["criterion_active"]:
+            st = res["cap_status"]
+            print(f"[{name}] {res['inactive_reason']}: max raw RUL {st['max_raw']:.1f} <= "
+                  f"{st['rul_cap']:.0f}, so this column equals raw and is not printed again")
+            continue
         print(f"[{name}] flights={res['n_flights']} engines={res['n_engines']} "
               f"{res['primary_metric']}={res['engine_mean_rmse']:.3f} "
               f"(primary) {res['supplementary_metric']}={res['rmse_pooled']:.3f} (supplementary) "
