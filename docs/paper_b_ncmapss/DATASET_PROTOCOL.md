@@ -202,18 +202,35 @@ Label: `Y` at the prediction flight, in both raw and capped-at-125 form (§7).
 
 ### 4.2 Training plan and conditioning (frozen)
 
-The **schedule** is taken verbatim from `paper_b/configs/protocol.json`: 40 epochs,
-lr 1e-3, weight decay 1e-4, d_model 64, 2 layers, dropout 0.2, batch
-`min(512, N_train)`, seeds 101 / 202 / 303. Only the input width changes (51
-columns instead of the C-MAPSS sensor block). `patience: 12` is present in that
-file but is **unused here** — see the stopping rule below.
+The **schedule** is taken verbatim from `paper_b/configs/protocol.json`: lr 1e-3,
+weight decay 1e-4, d_model 64, 2 layers, dropout 0.2, batch `min(512, N_train)`,
+seeds 101 / 202 / 303. Only the input width changes (51 columns instead of the
+C-MAPSS sensor block). `patience: 12` is present in that file but is **unused
+here** — see the stopping rule below.
+
+**Epoch budget: amended from 40 to a fixed number of optimizer steps.**
+Measured from the file before any run: DS02 dev holds 446 flights over six
+units, so a LOEO fold trains on 380 windows and `min(512, 380) = 380`, i.e. one
+gradient step per epoch. The frozen 40 epochs would therefore mean **40 optimizer
+steps** — a warm-up, not a training run, and identical across rungs so the
+comparison would measure noise.
+
+The budget is therefore fixed at **1000 optimizer steps**, applied identically to
+every rung:
+
+    epochs = ceil(1000 / ceil(N_train / batch))
+
+This is decided from the *measured dataset size* before any run, not from any
+result, and it replaces `protocol.json`'s `epochs` field for DS02 only. The
+C-MAPSS line keeps its own 40-epoch budget; the difference is recorded here so
+the "same core structure" claim is bounded exactly as stated below.
 
 The **label-construction** fields in the same file are **not** inherited. They are
 C-MAPSS-specific and are re-defined here, once, and frozen:
 
 | field | C-MAPSS value | DS02 |
 |---|---|---|
-| `rul_cap` | 125 | 125, but **only** for the supplementary capped criterion (§7). Primary is raw. |
+| `rul_cap` | 125 | **inactive**: the longest DS02 engine is 89 flights (dev) / 76 (test), so `min(raw,125) == raw` everywhere. Both columns are still written; the capped column is reported as `inactive (no unit exceeds the cap)`. |
 | `val_cuts` | `[0.4, 0.55, 0.7, 0.85, 0.95]` | not used — validation is a held-out engine, not a lifetime cut |
 | `val_frac` | 0.2 | not used — LOEO replaces the 80/20 split |
 
