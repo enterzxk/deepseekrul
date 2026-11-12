@@ -43,7 +43,12 @@ for s in $SUBSETS; do
       # the run id comes from the same function the trainer uses for the output
       # directory, so a registered id can never point at a different directory
       rid=$($P -m paper_b.hc.train_d id --arm "$a" --subset "$s" --seed "$sd") || exit 4
-      echo "$P -m paper_b.hc.train_d train --subset $s --arm $a --seed $sd --root $ROOT"
+      # `-u` is not cosmetic: stdout redirected to a file is block-buffered at
+      # 4 KB, the trainer prints ~60 B per epoch and a cell runs at most 40
+      # epochs, so without -u the log stays EMPTY for the whole 6-10 h and a
+      # hung run is indistinguishable from a healthy one. It also means a
+      # mid-run crash leaves no traceback anywhere.
+      echo "$P -u -m paper_b.hc.train_d train --subset $s --arm $a --seed $sd --root $ROOT"
       echo "#   run_id=$rid  dir=$ROOT/$rid" >&2
     done
   done
