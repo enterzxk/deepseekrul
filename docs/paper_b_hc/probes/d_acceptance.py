@@ -278,14 +278,23 @@ def run_subset(subset, a, dev):
         'pooling_parity': parity < 1e-4,
         'gradient_path_damage': g_delta > 0.0,
         'gradient_path_rate': (g_rate > 0.0) if not a.fixed_rate else None,
-        'no_zero_gradient_trap': not rec['zero_gradient_trap'],
+        'gradients_finite': bool(np.isfinite(g_delta) and np.isfinite(g_rate)),
         'scale_on_prior': (None if rec['damage_over_age_prior'] is None
                            else 0.5 < rec['damage_over_age_prior'] < 2.0),
-        'miss_ratio_low': (None if rec['frac_uncapped_not_hit'] is None
-                           else rec['frac_uncapped_not_hit'] < 0.5),
+        # A sample that never crosses within K contributes exactly zero gradient,
+        # so the admission criterion is that none exists -- not "fewer than half".
+        # The earlier 0.5 threshold was my own arbitrary choice and was loose
+        # enough to let 6.8% dead samples pass; replaced by the natural 0.
+        'no_missed_samples': (None if rec['frac_uncapped_not_hit'] is None
+                              else rec['frac_uncapped_not_hit'] == 0.0),
         's0_above_floor': not s0['floor_hit'],
     }
+    # nu_hat * K is REPORTED, never gated (advisor, 2026-11-13): whether a path
+    # crosses depends on the current damage plus the accumulated future
+    # increments, not on the rate times the horizon. The gate is the measured
+    # miss ratio plus the actual backward.
     rec['info'] = dict(
+        nu_hat_times_K_diagnostic=rec['rate_times_K'],
         all_head_tensors_have_grad=(n_grad_tensors == n_head_tensors),
         note='zero-init last layer: the rate head first layer gets its gradient '
              'from the second step on')
