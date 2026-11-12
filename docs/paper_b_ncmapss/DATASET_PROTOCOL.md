@@ -498,9 +498,17 @@ Two consequences that must be reported, not smoothed over:
    fold values is large — DS05 N3 s303 ranges 20–110, mean 54.7 — so the
    `epoch*` column is reported with that caveat attached, never alone.
 2. **N0's `epoch*` is a floor hit, not a selection.** Five of the six DS02 folds
-   sit exactly on the floor of 20 (`[20,20,20,22,20,20]`), and 20 of all 24
-   folds do. N0's `inner_val` column therefore means "stopped at the floor",
-   not "chose an epoch".
+   sit exactly on the floor of 20 (`[20,20,20,22,20,20]`, in fold order
+   LOEO-2/5/10/16/18/20), and **14 of all 24 N0 folds** do — 14/24
+   (DS02 5/6 + DS05 3/6 + DS06 4/6 + DS07 2/6). N0's `inner_val` column
+   therefore means "stopped at the floor", not "chose an epoch". The estimate
+   itself still differs by subset (DS02 20 / DS06 21 / DS07 27 / DS05 32), so
+   the floor statement holds **at fold level**, not as "N0's `epoch*` is 20".
+   An earlier revision of this item said "20 of all 24 folds"; that 20 is the
+   DS02 count across **all four rungs** (20 of 60 `inner_val` rows), not the N0
+   fold count. The grouped form above is deliberate: a bare aggregate cannot be
+   checked without redoing the arithmetic, and this one was wrong for a while
+   because the numerator came from one denominator and the total from another.
 
 Validation curves during the test stage are recorded as **NaN**. Under no
 circumstance may a validation curve be computed on a test engine — doing so
