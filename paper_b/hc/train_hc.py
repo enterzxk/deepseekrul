@@ -186,7 +186,13 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
     HT = torch.from_numpy(tr['hi']).to(dev)
 
     torch.backends.cudnn.benchmark = True
-    net = build_hc(cfg).to(dev)
+    # Calibrated arms must go through DSPT_HC_Scaled, otherwise `cycle_gain`
+    # does not exist and the calibration below would fail (loudly, not silently).
+    if cfg.get('scale_mode') == 'cal':
+        from .scale_align import build_hc_scaled
+        net = build_hc_scaled(cfg).to(dev)
+    else:
+        net = build_hc(cfg).to(dev)
     if cfg.get('init_from'):
         # Shared-initialisation control (A3a vs A3p). The two variants name the
         # same Linear(8->d) and the same period buffer differently -- ``pe_proj``
@@ -217,6 +223,18 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
                 f'unexpected={sorted(unexpected)[:8]} (after target-driven remap)')
         log('  init_from=%s loaded=%d missing=0 unexpected=0 (remapped)'
             % (cfg['init_from'], len(sd)))
+    # G2 init-RMS calibration. Order matters and is asserted by the caller:
+    # the shared init is loaded above, the optimiser is created below, so the
+    # gain is a property of the init and never of an optimisation step. The
+    # record is written to calibration.json further down, where `out` exists.
+    calib = None
+    if cfg.get('scale_mode') == 'cal':
+        from .scale_align import calibrate_init_rms
+        calib = calibrate_init_rms(net, ds, cfg, rho=float(cfg.get('rho', 1.0)),
+                                   dev=dev)
+        log('  calibration: rms_ratio %.6f -> %.6f rho=%.3g gain=%.6g'
+            % (calib['rms_ratio_before'], calib['rms_ratio_after'],
+               calib['rho'], calib['gain']))
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
@@ -303,6 +321,8 @@ def train_hc(cfg, device='cuda:0', out_dir=None, log=print):
 
     out = Path(out_dir)
     (out / 'ckpt').mkdir(parents=True, exist_ok=True)
+    if calib is not None:
+        (out / 'calibration.json').write_text(json.dumps(calib, indent=1))
     torch.save(net.state_dict(), out / 'ckpt' / 'best.pt')
     (out / 'metrics.json').write_text(json.dumps(m, indent=1))
     (out / 'history.json').write_text(json.dumps(history, indent=0))

@@ -50,7 +50,10 @@ FROZEN = ['paper_b/models/dspt.py', 'paper_b/training/data.py',
 OWN = ['paper_b/hc/config_hc.py', 'paper_b/hc/data_hc.py', 'paper_b/hc/model_hc.py',
        'paper_b/hc/cycle_encoder.py', 'paper_b/hc/train_hc.py', 'paper_b/hc/run_hc.py',
        'paper_b/hc/verify_loop.py', 'paper_b/hc/snapshot_val.py',
-       'paper_b/hc/compare_val_snapshot.py', 'paper_b/hc/code_lock.py']
+       'paper_b/hc/compare_val_snapshot.py', 'paper_b/hc/code_lock.py',
+       # v10: the G2 init-RMS calibration lives here, so it must be locked too
+       # (it decides the scale of the cycle term for the calibrated arms).
+       'paper_b/hc/scale_align.py']
 KEEP_DIRS = {'ckpt'}
 
 
@@ -340,8 +343,9 @@ def main():
                      val_nasa_mean=m.get('nasa_mean'), val_mae=m.get('mae'),
                      val_bias=m.get('bias')),
         main_metric='val_engine_mean_rmse', written_by='run_hc',
-        artifacts=['config.json', 'manifest.json', 'metrics.json', 'preds.csv',
-                   'train.log', 'history.json', 'ckpt/best.pt', 'launch.json'],
+        artifacts=(['config.json', 'manifest.json', 'metrics.json', 'preds.csv',
+                    'train.log', 'history.json', 'ckpt/best.pt', 'launch.json']
+                   + (['calibration.json'] if (out / 'calibration.json').exists() else [])),
         notes=('smoke run: not evidence' if a.smoke else
                'intervention mean|d|=%.3f; init_from=%s; init_shared=%s'
                % (m['cycle_intervention']['mean_abs_delta'],
