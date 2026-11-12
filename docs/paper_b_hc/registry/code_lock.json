@@ -1,9 +1,9 @@
 {
  "schema_version": 1,
- "git_sha": "57a4570c4953decb299fa00da8ef82ae0db3bc0d",
- "baseline_version": "v12",
- "source": "HEAD",
- "generated_utc": "2026-11-12T19:17:51Z",
+ "git_sha": null,
+ "baseline_version": "v13",
+ "source": "staged index (the commit that contains this file)",
+ "generated_utc": "2026-11-12T20:59:08Z",
  "definition": "md5 of `git cat-file blob <ref>:<path>` bytes",
  "code_md5": {
   "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
@@ -16,11 +16,15 @@
   "paper_b/hc/model_hc.py": "c55eb2b430e2d356a809a0ccbbb3f3f0",
   "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
   "paper_b/hc/train_hc.py": "a24ab6170f6ee826508913773538e899",
-  "paper_b/hc/run_hc.py": "a58d3eb8c5efc4d97882136be027de06",
+  "paper_b/hc/run_hc.py": "18f82c82ed00d134ee70fc40fc875b4a",
   "paper_b/hc/verify_loop.py": "2c15fcb4293e226102e368c717ef3f3a",
   "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
   "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
   "paper_b/hc/code_lock.py": "45916d9a08c88b40072c03f2127cfd07",
-  "paper_b/hc/scale_align.py": "9c1d4f53655728eb1f74518ceaa96898"
+  "paper_b/hc/scale_align.py": "9c1d4f53655728eb1f74518ceaa96898",
+  "paper_b/hc/arrival.py": "0e48b051d448c5ae66396ca31609fa9b",
+  "paper_b/hc/hi_d.py": "65f2850ad19c71d9091a12901cebfcbe",
+  "paper_b/hc/data_d.py": "b18c4d99afede4b1c274d88bb0966f2b",
+  "paper_b/hc/train_d.py": "f96699637e825d1a3c07edda7ea2360d"
  }
 }

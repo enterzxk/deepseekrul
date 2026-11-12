@@ -53,7 +53,14 @@ OWN = ['paper_b/hc/config_hc.py', 'paper_b/hc/data_hc.py', 'paper_b/hc/model_hc.
        'paper_b/hc/compare_val_snapshot.py', 'paper_b/hc/code_lock.py',
        # v10: the G2 init-RMS calibration lives here, so it must be locked too
        # (it decides the scale of the cycle term for the calibrated arms).
-       'paper_b/hc/scale_align.py']
+       'paper_b/hc/scale_align.py',
+       # v13: Stage D was outside the lock entirely -- its runs recorded a
+       # fingerprint but a code edit could not refuse to launch (the tester
+       # caught this). arrival decides the arrival operator, hi_d the damage
+       # head and its init, data_d the engine interface, train_d the losses and
+       # the evaluator. All four decide numbers, so all four are locked.
+       'paper_b/hc/arrival.py', 'paper_b/hc/hi_d.py',
+       'paper_b/hc/data_d.py', 'paper_b/hc/train_d.py']
 KEEP_DIRS = {'ckpt'}
 
 

@@ -27,6 +27,8 @@ from collections import defaultdict
 
 import numpy as np
 
+from paper_b.hc.train_d import run_id
+
 ROOT = '/media/sangfor/vdb/user/zxk/deepseek-rul/experiments/hc/d'
 ARMS = ['B0', 'B1', 'B2', 'B3']
 SUBSETS = ['FD001', 'FD002', 'FD003', 'FD004']
@@ -37,7 +39,7 @@ KEYS = ['val_engine_mean_rmse', 'rmse_uncensored', 'rmse_uncapped',
 
 
 def load_cell(root, arm, subset, seed):
-    p = os.path.join(root, '%s_%s_s%d' % (arm, subset, seed), 'metrics.json')
+    p = os.path.join(root, run_id(arm, subset, seed), 'metrics.json')
     if not os.path.exists(p):
         return None, 'MISSING'
     with open(p, encoding='utf-8') as f:

@@ -49,6 +49,17 @@ HI_ARMS = ('B1', 'B2', 'B3')
 ARRIVAL_ARMS = ('B2', 'B3')
 
 
+def run_id(arm, subset, seed):
+    """The registry id AND the artifact directory name -- one name, never two.
+
+    The registry pre-registers these ids; the run must write into the directory
+    of the same name or the ledger points at nothing. Kept here as the single
+    source: the dispatcher asks this module for the id instead of rebuilding the
+    string, and the report reads cells through the same function.
+    """
+    return 'HC-D-%s-%s-s%d-D1' % (arm, subset, int(seed))
+
+
 def code_fingerprint():
     """sha256 over the modules that decide the numbers in a Stage D run.
 
@@ -615,7 +626,7 @@ def audit(arms=ARMS, subset='FD001', data_dir=None, K=600, head_seed=101,
 def main():
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument('stage', choices=['prepare', 'train', 'audit'])
+    ap.add_argument('stage', choices=['prepare', 'train', 'audit', 'id'])
     ap.add_argument('--subset', default='FD001')
     ap.add_argument('--arm', default='B3', choices=ARMS)
     ap.add_argument('--seed', type=int, default=101)
@@ -638,6 +649,9 @@ def main():
     dev = torch.device(a.device)
     root = Path(a.root)
 
+    if a.stage == 'id':
+        print(run_id(a.arm, a.subset, a.seed))
+        return
     if a.stage == 'prepare':
         p, rec = prepare(a.subset, a.data_dir, a.K, a.head_seed, dev, a.init_from, root)
         print(json.dumps(dict(path=str(p), l_mean=rec['l_mean'], b0=rec['b0'],
@@ -656,7 +670,7 @@ def main():
         print('\nhead init identical across B1/B2/B3: %s' % next(iter(fps.values())))
     else:
         shared = root / ('%s_shared.json' % a.subset)
-        out = root / ('%s_%s_s%d' % (a.arm, a.subset, a.seed))
+        out = root / run_id(a.arm, a.subset, a.seed)
         train_arm(a.arm, a.subset, a.seed, a.data_dir, shared, out, dev,
                   a.init_from, a.K, epochs=a.epochs, lam=a.lam,
                   lam_t=a.lam_t, lam_s=a.lam_s,
