@@ -4,6 +4,40 @@ Status: **empty by design**. This file is opened only after the freeze manifest
 is written and committed, and only for the three official test units
 `[11, 14, 15]`.
 
+## Reporting rule: the held-out lifetime confound
+
+This is the most important methodological constraint in the DS02 design, and it
+was found by measurement, not by argument.
+
+With six dev engines under LOEO, the age-only rung (N0) predicts RUL from the
+cycle index alone. Its error on a held-out engine is driven almost entirely by
+**how far that engine's lifetime sits from the mean lifetime of the five training
+engines** — the "average cycle → RUL" curve is exact for an engine whose lifetime
+equals the training mean, and degrades in proportion to the gap.
+
+Measured on fold 1: the held-out engine is unit 2 with a lifetime of 75 flights,
+and the five training engines average 74.2. N0 scores **2.45** there — better
+than the linear ridge reference (5.19) and far better than DSPT-Base (6.81) or the
+frozen DSPT (6.93). Holding out unit 16 (lifetime 63) instead would push N0 far
+worse, because the training mean no longer matches.
+
+Consequences, and they are reporting rules, not caveats:
+
+1. **Every result is reported per fold, with that fold's held-out lifetime and
+   the training-set mean lifetime printed beside it.** A single averaged number
+   is not a result and may not appear as one.
+2. **A ranking claim must survive the lifetime-distance check.** If the ordering
+   of N1/N2/N3 across folds tracks the held-out engines' distance from the
+   training mean rather than the architecture, the ordering is not evidence about
+   the architecture.
+3. **The heterogeneity is a finding, not noise to be averaged away.** It is the
+   concrete form of what D043 records as "six engines are only enough for
+   limited-scope development evidence".
+
+Any attempt to remove this effect by tuning the budget, the features or the fold
+assignment would be exactly the move D043 forbids: the numbers would look better
+and the question would no longer be answerable.
+
 ## Freeze procedure
 
 Before any official-test number exists, the following must be committed on
