@@ -22,8 +22,29 @@ asserted in ``paper_b/hc/test_d_engine.py::test_two_interface_parity``.
 import numpy as np
 
 from ..training.data import make_train_windows
-from .config_hc import RUL_CAP
+from .config_hc import RUL_CAP, SPAN, VAL_CUTS
 from .data_hc import build
+
+
+def train_lifetime_mean(subset, data_dir, span=SPAN, cuts=VAL_CUTS):
+    """Mean run-to-failure length of the TRAINING engines of the frozen split.
+
+    This is the only lifetime statistic the increment head's bias init is
+    allowed to use (advisor ruling, 2026-11-13). The training engines run to
+    failure, so their true lifetime is observed; validation engines are cut at
+    a fraction of theirs and test lifetimes are unknown, so both are excluded.
+
+    Returns the mean plus the full engine list and per-engine lengths, so the
+    number can be recomputed by hand from the record instead of trusted.
+    """
+    ds = build(subset, data_dir, span, cuts, cycle_source='raw')
+    sizes = ds['tr'].groupby('unit', sort=True).size().to_numpy(np.int64)
+    units = [int(u) for u, _ in ds['tr'].groupby('unit', sort=True)]
+    if sizes.size == 0:
+        raise RuntimeError('empty training split for %r' % (subset,))
+    return dict(mean=float(sizes.mean()), n=int(sizes.size),
+                units=units, lengths=[int(x) for x in sizes],
+                total=int(sizes.sum()))
 
 
 def _blocks(win, sizes, tail):
