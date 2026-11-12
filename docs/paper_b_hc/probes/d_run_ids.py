@@ -41,6 +41,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--registry', default=None,
                     help='file with one registered id per line (registry section 3.6)')
+    ap.add_argument('--registry-md', default=None,
+                    help='RESULTS_REGISTRY.md; ids are read from the backticked '
+                         'HC-D-...-D1 fields of the section 3.6 table')
     ap.add_argument('--commands', default=str(ROOT / 'matrix_commands.txt'))
     ap.add_argument('--out', default=str(ROOT / 'matrix_run_ids.txt'))
     a = ap.parse_args()
@@ -65,9 +68,19 @@ def main():
     else:
         print('dispatcher command list missing, skipped: %s' % a.commands)
 
-    if a.registry:
+    reg = None
+    if a.registry_md:
+        txt = Path(a.registry_md).read_text(encoding='utf-8')
+        reg = []
+        for m in re.finditer(r'`(HC-D-[A-Za-z0-9]+-[A-Za-z0-9]+-s\d+-D1)`', txt):
+            if m.group(1) not in reg:
+                reg.append(m.group(1))
+        print('registry md: %d unique ids' % len(reg))
+    elif a.registry:
         reg = [ln.strip() for ln in Path(a.registry).read_text(encoding='utf-8')
                .splitlines() if ln.strip() and not ln.startswith('#')]
+
+    if reg is not None:
         missing = [i for i in ids if i not in set(reg)]
         extra = [r for r in reg if r not in set(ids)]
         print('registry: %d ids; missing from registry: %d; not in canonical: %d'
