@@ -338,15 +338,19 @@ describes. This is likely a PDF layout artefact. It is recorded as
 
 ## 9. Is the current structure enough for an IEEE TIM method contribution?
 
-> **Scope note (2026-11-12, D041).** Two claims this section previously leaned on
-> are withdrawn: (a) "the authors must also have clipped the test labels", and
-> (b) "capped is the literature-consistent criterion". A training-label cap does
-> not constrain inference-time output, so the arithmetic floor `B` is only a
-> *conditional* bound. What survives is the system-level comparison under our own
-> frozen criterion, plus the per-paper protocol matrix in §8 — which is
-> explicitly "protocol unverified" for all five papers. Any novelty argument
-> built on "we are better than the published numbers" therefore starts from an
-> assumption, not from an established fact.
+> **Scope note (2026-11-12, D041 + D043).** Two claims this section previously
+> leaned on are withdrawn: (a) "the authors must also have clipped the test
+> labels", and (b) "capped is the literature-consistent criterion". A
+> training-label cap does not constrain inference-time output, so the arithmetic
+> floor `B` is only a *conditional* bound. See **D041** for the retraction itself
+> and **D043** for the full L2 ruling it came from — D043 also fixes the writing
+> boundary for this paper: *the current DSPT evidence is not sufficient to
+> support an IEEE TIM method-novelty claim, and adding a dataset does not by
+> itself supply the missing mechanism.* What survives is the system-level
+> comparison under our own frozen criterion, plus the per-paper protocol matrix
+> in §8 — which is explicitly "protocol unverified" for all five papers. Any
+> novelty argument built on "we are better than the published numbers" therefore
+> starts from an assumption, not from an established fact.
 
 **PENDING-L2 — deliberately not decided here.** A novelty judgement is an L2
 decision under this project's routing rules and may not be self-answered by the
