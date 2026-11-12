@@ -118,6 +118,28 @@ Consequence: **capped is the literature-consistent criterion; raw is an
 additional, stricter criterion introduced here.** The raw numbers are a
 contribution of this audit, not a fair stick to beat published numbers with.
 
+> **RETRACTED 2026-11-12** (admin ruling; 军师 read-only adjudication). Original text kept as history.
+>
+> The inference in the three paragraphs after the table **does not hold**:
+>
+> 1. `B` is a floor **only under the premise `ŷ ≤ 125`**. A **training-label cap does not constrain
+>    inference-time outputs** — a model trained on labels capped at 125 can still extrapolate above 125.
+> 2. Hence "published value < `B` ⇒ the authors clipped the test labels" is an **invalid inference**.
+>    Raw labels plus extrapolating predictions is an equally self-consistent explanation, and the
+>    "authors also clipped (most likely)" branch is **one hypothesis among three**, not a finding.
+> 3. "None of these is a raw-label reading" is **withdrawn**.
+> 4. The literature's **test-label and prediction clipping are unverified** (§8 item 2 itself records
+>    that none of the five papers states them).
+>
+> **What still stands is only the arithmetic**: *if* outputs are capped at 125, a raw-label RMSE
+> cannot be below `B`. The premise is unverified, so `B` may be cited only as a **conditional** floor.
+>
+> **Criterion handling**: the capped criterion stays in the main table as **this work's frozen
+> criterion**, and is **no longer described as literature-consistent**; raw is reported alongside as a
+> stricter sensitivity analysis. The sentence "capped is the literature-consistent criterion" is
+> withdrawn.
+
+
 ## 3. How much do the clipped engines contribute?
 
 Two different questions, two different answers:
@@ -296,6 +318,17 @@ A residual item that was not resolved: ST-KDFormer's Eq. (29) extracts as
 `late -> /13, early -> /10`, which is the opposite of the asymmetry its own text
 describes. This is likely a PDF layout artefact. It is recorded as
 *page-layout pending* and was not used to change any comparison.
+
+> **RETRACTED 2026-11-12 (item 4 only; items 1–3 and 5 stand).**
+> Item 4, "The authors' reported values cannot be raw-label readings", is **withdrawn** — it rests on
+> the §2b premise `ŷ ≤ 125`, which is unverified, because a training cap does not constrain
+> inference-time outputs. What survives is only: *if* a model's outputs are capped at 125, its
+> raw-label score cannot be below `B`. The published numbers are therefore **not shown to be
+> incomparable in protocol**; what is unknown is their test-label/prediction clipping, which none of
+> the five states.
+> Item 5's phrasing is also adjusted: raw is this work's stricter sensitivity analysis, **not** evidence
+> that "capped matches the literature".
+
 
 ## 9. Is the current structure enough for an IEEE TIM method contribution?
 

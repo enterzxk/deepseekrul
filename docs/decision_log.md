@@ -1719,3 +1719,179 @@ TIM 2025–2026 的 RUL 论文全为「新架构/新表示 + 机制消融 + 四�
 
 **执行状态**：A2 矩阵 16 次（FD002/FD004 × seed 42/7 × {R, A2, A2-NE, A2-NR}）已启动；
 C 已完成 6 次（FD002 × 2 seed × 3 臂）；B2 待 A2 结果后决定是否实现。
+
+---
+
+## D036 · 2026-11-11 21:55 · 新开 Paper B 线 DSPT-HC：任务书落盘与双人派工（L1）
+
+**触发**：用户要求"在目前文件夹下实现的 dspt 基础上加一些创新，不动现在原有的研究；安排 tmh 去实现，实验结果安排实验结果管理员进行管理防止乱套"。
+
+**本轮实测的环境事实（覆盖用户原文里的路径假设）**
+- `ssh a40` 免密可用（172.25.52.97 / yndx / 22）；远端 `/home/yndx/deepseek-rul` **无 git**（`git: command not found`），是目录拷贝。
+- 远端 Python `/home/yndx/miniconda3/envs/a40_env/bin/python` = 3.9.25 / torch 2.5.1+cu121 / CUDA 可用；A40 49140 MiB 当前仅占 953 MiB；磁盘余 124 G。
+- 用户原文的 `docs/paper_b_code/run_dspt.py` 与 `docs/paper_b_results/` **本地与远端均不存在**。真实在跑的是 `paper_b/models/dspt.py`（14040 B，含 FastSensorAttention + cond）与 `paper_b/training/{data,train,metrics}.py`，协议 `paper_b/configs/protocol.json`。
+- `paper_b/models/dspt.py`（md5 `FB7011…`）与 `src/candidates/dspt.py`（md5 `634EB8…`）**不是同一份代码**；用户原文点的 `src/candidates/dspt.py` 是旧版。
+
+**决策（L1）**
+1. 冻结基线 = `paper_b/{models,training,configs}`，一律不改；新代码只进 `paper_b/hc/`，产物只进 `experiments/hc/`，文档只进 `docs/paper_b_hc/`。
+2. 任务书落盘为 `docs/paper_b_hc/TASK_BOOK.md`（保留用户全部硬性要求 + 环境事实 + 路径修正），作为 tmh 的唯一执行契约；超长消息容易失真，故不靠消息传全文。
+3. 结果治理落盘为 `docs/paper_b_hc/RESULTS_REGISTRY.md`：run_id 命名、launch/close 声明文件、`registry/runs.csv` 32 列台账、10 条审计清单。写入边界按"一人一文件"切分（tmh 写 launch/close 与 8 份交付文档，管理员只写 runs.csv / RESULTS_INDEX.md / 审计文档），避免并发写冲突。
+4. 派工：tmh = 实现 + 跑实验（阶段 A 文献 → B 冻结骨干 → C Gate A 周期研究）；实验结果管理员 = 台账 + 独立审计（本轮先做台账自检 + 冻结基线的泄漏/口径只读审计）。
+5. 官方 TEST 在 FREEZE 前不产出任何 `test_*` 指标；不用测试集做周期形式与窗口选择。
+
+**证据**：`docs/paper_b_hc/{TASK_BOOK.md,RESULTS_REGISTRY.md,README.md}`、`docs/paper_b_hc/registry/runs.csv`、`docs/paper_b_hc/RESULTS_INDEX.md`。
+
+**风险**：a40 无 git，本地与远端必然漂移 → 已要求每次上传后 md5 逐文件核对并写进 manifest；远端磁盘仅剩 124 G → checkpoint 只留 best。
+
+---
+
+## D037 · 2026-11-11 22:10 · a40 工作目录迁到 2TB 盘 zxk 目录（L1，用户指令）
+
+**用户指令**：数据代码放到 a40 另一个 2TB 空闲磁盘；虚拟环境用 a40_env；在该盘建 user 目录、其下建 zxk 文件夹，本轮工作全部放进 zxk。
+
+**实测**
+- 2TB 盘 = `/dev/vdb` ext4，挂载 `/media/sangfor/vdb`，可用 1.9T，权限 777，yndx 可写，**无需 sudo**（sudo 需密码）。
+- 系统盘 `/dev/vda5` 只剩 124G，此后不再用于本轮工作。
+
+**动作**
+1. 建 `/media/sangfor/vdb/user/zxk/{deepseek-rul,cache/torch,logs}`；`deepseek-rul/` 下建 paper_b / src / scripts / docs / data / experiments/hc。
+2. 数据：服务器端 `cp -a` 旧目录 `data/CMAPSS`（14 文件，44M）到新根目录。
+3. 代码：以**本地仓库为准**打 tar 上传（0.78MB，排除 __pycache__）。**五个关键文件 md5 与本地逐字节一致**：dspt.py `fb7011…`、train.py `485341…`、data.py `944139…`、protocol.json `c55720…`、metrics.py `87c663…`。
+4. 写 `/media/sangfor/vdb/user/zxk/env.sh`（HC_ROOT / HC_OUT_ROOT / TORCH_HOME / PATH）。
+5. GPU 冒烟 `tools_smoke.py`：**SMOKE OK**，params 117955、pred (8,1)、hi (8,)、hi_seq (8,70)、前向 403 ms、显存 43.3 MB。
+
+**关键发现：a40 旧目录代码是旧版**
+`paper_b/models/dspt.py` 旧目录 md5 `341c2e…`（缺 `linear_only`/`mean`/`static` 三种 ms_mode/sa_mode），
+`train.py` `cc158c…`、`protocol.json` `54e74d…`（epochs 36 / patience 6）。本地为 40 / 12。
+→ 印证"不得假定服务器代码与 GitHub 同步"。新目录一律以本地 git 记录为准；旧目录 `/home/yndx/deepseek-rul` 降为**只读参考**。
+
+**踩坑记录**：`paper_b/models/dspt.py` 的 `cond` 是**工况簇编号**（long, shape (B,)），走 `cond_emb`；
+传 one-hot (B,6) 会在 `encode` 里 `expand` 报错。已写进任务书与 tmh 的派工消息。
+
+**证据**：`/media/sangfor/vdb/user/zxk/{env.sh,deepseek-rul/tools_smoke.py}`、`docs/paper_b_hc/TASK_BOOK.md` §1。
+
+---
+
+## D038 · 2026-11-11 22:25 · R1/R2 验收通过 + env.sh 加固 + Gate A 第一波放行（L1）
+
+**R1（P0，验证截断默认值）已修并验收**
+`data.py:281` 的 `cuts=(0.5,0.75,0.9)` → `cuts=None` + 首行 `raise ValueError`。新 md5 `c2ee079f6e60a8b0d0eb608676ff871a`。
+行为不变证据（tmh 在 a40 实测，主控独立复验）：四子集 32/32 字段逐元素相等、`max|diff|=0`、
+改前改后两个 npz 的 sha256 同为 `38032744387b71be50410aac2a4c23d52454d6f72cf504ad9bab5b153a66f11f`；
+省略 `cuts` 确实 raise。主控另跑 `prepare_train('FD001', cuts=(0.4,0.55,0.7,0.85,0.95))` → train 16762 窗 / val 100 窗正常。
+
+**R2（指标口径）已实施**
+`metrics.py` 仅新增 `per_engine_rmse` / `per_engine_rmse_map`（md5 `87e8245b49f4d23f61c6dd019958aa24`），
+`train_one` 同时写 `val_engine_mean_rmse`（主指标）与 `val_pooled_rmse`（次报），旧名 `val_engine_rmse` 保留为池化别名。
+`train.py` 新 md5 `07e7379dc2a8ae93c0f828efa8694b6c`（含 R4 docstring 修正）。
+两口径可区分已实测：9 行小误差 + 1 行大误差 → pooled 3.3015 vs engine 5.5000。
+
+**环境：sklearn 的 GLIBCXX 报错未复现**
+tmh 报 a40 上 `sklearn` 挂于 `libstdc++.so.6: version GLIBCXX_3.4.29 not found`。主控在 zxk 新目录用 env python 直跑：
+`import sklearn` 1.6.1、`KMeans` + fit、`pandas` 2.0.3、`prepare_train` **全部正常，加不加 LD_LIBRARY_PATH 一样**。
+处置：不追不复现的问题；但把 `export LD_LIBRARY_PATH=<env>/lib:` 写进 `env.sh` 作防御，
+并装到 `/media/sangfor/vdb/user/zxk/env.sh`（与仓库 `docs/paper_b_hc/env.sh` md5 `356fb442570e264f3009381b0c5dfc64` 相同）。
+已要求 tmh 报出错时的确切命令/cwd，复现不了就按正常推进。
+
+**新增两条纪律**
+1. `va['cut']` 是**绝对周期数**不是比例：FD001 的 100 个 val 窗有 74 个不同 cut 值（20 引擎 × 5 点）。禁止写"unique cut == 5"这类断言。
+2. `paper_b/experiments/probe_selection_metric.py:45` 省略 cuts，其 `results/selection_metric_probe.csv` 是 off-protocol，
+   已标为**不得作为证据引用**（任务书 §5.2）。
+
+**放行**：Gate A 第一波 6 变体 × 4 子集 × seed101，先跑 `A3a×FD001×s101` SMOKE（`variant=SMOKE`、note `not evidence`）。
+
+**证据**：`docs/paper_b_hc/TASK_BOOK.md` §1/§5.2、`docs/paper_b_hc/env.sh`、a40 `/media/sangfor/vdb/user/zxk/env.sh`。
+
+---
+
+## D039 · 2026-11-11 22:25 · X1-X4 契约裁决（L2-DEGRADED，Codex 不可用）+ B5 数字更正
+
+**触发**：测试负责人第一轮代码审计（`docs/paper_b_hc/CODE_REVIEW_20261111_test_lead.md`，151 行）提出 3 个 P0、5 个 P1 与 4 处需主控裁决的契约冲突。
+
+**Codex 通道全挂**：`mcp__codex__codex` 报 `could not start codex: [WinError 2]`；本地 CLI `codex 0.167.0-alpha.3.2`（`C:\Users\20562\AppData\Local\OpenAI\Codex\bin\f71a721e0e6193a9\codex.exe`，在 PATH）能启动但报 **usage limit，恢复时间 23:09**。按 AGENTS.md §0.0.4 降级为 **L2-DEGRADED / PENDING-L2**，23:09 后补审。
+
+**X1 白名单（采纳测试负责人建议）**：任务书 §2.1 改成穷举表——`data.py` 只许改 cuts 默认值+raise；`metrics.py` 只许新增两个 per-engine 函数；`train.py` 只许改选轮口径/双口径字段/docstring；`dspt.py` 与 `protocol.json` 一行不许动。表外改动先报后改。
+
+**X2 Stage C 骨干（裁决）**：`ms_mode='full', sa_mode='basic', hi_source='none'`。
+理由：唯一同时满足用户任务书 §5「MS + Temporal Transformer + SA + Learned Sensor Pooling 全在场」且 V0 三份可共用同一骨干的配置。冻结 DEFAULTS 是 `sa_mode='off'`（SA 模块根本不构造），选它等于违反 §5；factorial 候选 `single_proj` 丢了 MS，且与 V0 不同源，不能同表。
+**驳回**：B（SA 缺席）、C（丢 MS）、D（两骨干都跑，成本翻倍且骨干不是本轮问题）。
+
+**X3 V0 三元组（裁决）**：
+| 变体 | ms | sa | hi | cycle |
+|---|---|---|---|---|
+| V0-Cycle | full | basic | hf | True |
+| V0-NoCycle | full | basic | hf | False |
+| V0-NoHI | full | basic | none | True |
+**V0-NoHI ≡ A3**（同配置），只跑一次、双向引用。理由：二者本就该是同一模型；V0-NoHI 相对 V0-Cycle 的差正是 HI 辅助损失的作用，正是 P1 要论证的；重复训练只会制造两个不可区分却被当独立证据的 run。
+
+**X4 legacy**：`paperb-s23-seeds-20261111`（24 run，22:04 前 `train.py`，池化选轮）标 `legacy metric`，属 factorial 线，不与 hc 任何结果同表。
+
+**B5 数字更正（我转发的错）**：原句"长引擎在池化口径下权重可达短引擎约 9 倍"**作废**。
+冻结 val 下每台引擎恰好 5 窗口 → `pooled² = (1/E)Σ_e MSE_e`，**每台引擎权重相同 1/E**；池化与发动机级平均的差别是**先平方后平均 vs 先平均后平方**（Jensen），池化恒 ≥ 发动机级平均。真正有差异的是平方误差质量：cap=125 下 FD004 每引擎 Σy² 的 max/min = **3.94**（FD001 3.28 / FD002 3.17 / FD003 2.55）；9.28 只有不封顶 `(1-f)·n` 才算得出。
+任务书 §5.1 注 2 已改写；已要求管理员改 `RESULTS_AUDIT_20261111.md:112,165` 并保留更正痕迹。
+
+**A3 已消解**：任务书 §1 的 md5 表 22:20 已更新为 `c2ee079f…` / `87e8245b…` / `07e7379d…`，a40 新盘已重传并逐文件核对一致。测试负责人审的是旧表。
+
+**派工**：A1（hc 选轮改发动机级）、A2（补 A3p 控制臂）、B1-B5、C1-C7 已全套发 tmh，顺序 A1 → 确认 A3 → A2 → B1/B2 → 冒烟 → B3/B4/B5 → Gate A。B2（launch 独占创建）必须在冒烟前就位，因为冒烟本身也要走 launch/close 协议。
+
+**证据**：`docs/paper_b_hc/TASK_BOOK.md` §2.1/§3/§5.1/§5.3、`docs/paper_b_hc/CODE_REVIEW_20261111_test_lead.md`、`tmp/codex_brief_x2x3.md`。
+
+---
+
+## D040 · 2026-11-12 00:25 · v9 冻结 + Gate A 首个 treatment 效应（σ=0）（L1）
+
+**基线**：v9 = 代码 `d1e0527` / 锁提交 `6c405ad`，15 个 blob 与 `git cat-file blob d1e0527:<path>` 逐个一致，本地 `code_lock --check` 退出码 0（CRLF 归一化后首次通过），a40 已同步。主控已签发。
+
+**v9 干净 smoke**：`HC-SMOKE-FD001-s101-20261112T0045Z`，15/15 命中、`worktree_dirty=false`、1 epoch、engine 62.593074 / pooled 63.647172、8 件产物、launch/close 均 `written_by=run_hc`。
+
+**共享初始化对照（A3a vs A3p，FD001/seed101，v9）**
+- 共享同一 init：两条 `manifest.init_sha256` 均为 `336074a6e173d8df…`，`config.init_from` 同一文件。
+- A3a = **11.316705661052403**；A3p = **10.895096839289387**；Δ = **+0.421608821763**（A3a 差 3.87%）。
+- 同 seed 重复 σ = **0**：A3a 两次（1640Z / 0030Z）逐位相同。
+- A3p 跨 v6/v8/v9 三个版本三次运行**逐位相同**（10.895096839289387），说明 init remap / CRLF / 锁三批改动未触碰 A3p 前向与训练路径。
+- 方向翻转：v6 无共享初始化时 A3a 10.5455 好 3.2%；v9 共享后 A3a 差 3.87%。→ **初始化控制是必要的**，v6 那个结论是 RNG 流错位假象。
+
+**结论范围**：单 seed、单子集（FD001）的注入点效应量，可测、可复现，但**不能外推为"pre-norm 普遍更好"**；方向与量级需 Gate A 3 seed × 4 子集确认。
+
+**证据**：`docs/paper_b_hc/registry/{launch,close}`、`experiments/hc/<run_id>/manifest.json`、a40 `experiments/hc/`。
+
+---
+
+## D041 · 2026-11-12 16:05 · 撤回「作者必裁测试标签」推论 + 性能保留 / 机制主张撤下（L1）
+
+**逻辑错误（军师只读裁决，主控确认）**：`PAPER_PROTOCOL_MATRIX.md` §5 从
+「作者报告值低于『输出 ≤125 + raw 标签』的 RMSE 下界 `B`」推出「作者必裁测试标签」。
+但下界 `B` 的前提是**推理期输出被 125 截断**；**训练标签 cap 不约束推理期输出**，
+在 cap 125 的标签上训练的模型完全可以在 126–194 外推。因此该推论**不成立**，
+raw 标签 + 外推预测是同样自洽的解释。
+
+**处理（保留原文，追加撤回）**
+
+- `docs/paper_b_baselines/PAPER_PROTOCOL_MATRIX.md` §5：追加撤回块；§10 第 2 句
+  「所以我们的 capped 数字才是同口径」追加撤回。
+- `docs/paper_b_baselines/BASELINE_PROTOCOL_AUDIT.md` §2b：追加 RETRACTED；
+  §8 第 4 条「作者报告值不可能是 raw 标签读数」追加撤回（第 1–3、5 条保留）。
+- 仍然成立的只有算术：**若** `ŷ ≤ 125`，则 raw 口径 RMSE ≥ `B`。前提未核实，
+  `B` 只能作**条件性下界**引用。
+
+**口径处置**
+
+- 主表继续用 capped，理由是**本工作冻结口径**，**不再写"与文献同口径"**。
+- raw 作为更严的敏感性分析并列报告。
+- 对外表述改为「**在自定冻结口径下** RMSE 低于五篇复现值」，不写「与作者同口径下的更低」。
+
+**主张处置（性能保留 / 机制撤下）**
+
+- **保留**：协议对齐后的系统性能结果。
+- **撤下**：MS / SA / HI 各自带来稳定独立增益、冗余已被证明等**机制主张**。
+- 消融负结果表述为「**未检出独立增益**」，不写成「已证明无效」——未检出 ≠ 无效；
+  也**不为让消融显著而换 seed**。
+- Stage D 继续既有接口与因果断言工作；**本裁决未批准其数学正确性/新颖性**。
+
+**待核（燕子只读核文献）**：五篇的同信息输入（尤其 cycle 是否进输入）、测试标签裁剪、
+评估单位、调参预算。核实前，任何"优于文献"的表述都必须带口径限定。
+
+**证据**：`docs/paper_b_baselines/PAPER_PROTOCOL_MATRIX.md` §5/§10、
+`docs/paper_b_baselines/BASELINE_PROTOCOL_AUDIT.md` §2b/§8、
+`docs/paper_b_baselines/DSPT_BASE_FUNCTIONAL_AUDIT.md` §6.4/§7、`RUN_INVENTORY.md` §0、
+`paper_b/reports/CURRENT_STATUS.md` §5–7。
