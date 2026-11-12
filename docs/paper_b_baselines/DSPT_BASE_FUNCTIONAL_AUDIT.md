@@ -545,3 +545,21 @@ python -m paper_b.experiments.audit_arm_table \
 | `paper_b/results/dual_span_effect.json` | real-val dual-span / cycle numbers |
 | `paper_b/experiments/grids/vanilla_features2.json` | the two missing feature-control arms |
 | `paper_b/experiments/grids/audit_van_fd001_a40.json` | same-machine re-run of the two original Vanilla FD001 arms |
+
+> **2026-11-12 复核（实验结果管理员）**：本表 8 个 per-subset 单元格中 **6 个逐位复现**，
+> 2 个不符，**都在 FD001**：
+>
+> | 臂 | 本表 FD001 | 由 `paper_b/results/vanilla_engine_level.csv` 重算 |
+> |---|---|---|
+> | Vanilla raw | 12.142 ± 0.440 | **11.918 ± 0.068** |
+> | Vanilla +3ch+cycle | 11.494 ± 0.873 | **11.448 ± 0.815** |
+>
+> 其余六格（含 `Vanilla +cycle` 与 `Vanilla +3ch` 整行）与重算**完全一致**。
+> 本表注已写明「the two original FD001 arms were re-run there」，故差异属 **FD001 数据版本**不同
+> （CSV 存的是另一批 FD001 结果，±sd 也不同），**不是计算错误**。
+>
+> 受影响的是 `Vanilla raw` 与 `Vanilla +3ch+cycle` 两行的 **mean 列**（12.803 / 11.619 各含一个不符的 FD001 格）；
+> `Vanilla +cycle` 的 **11.758** 与 `Vanilla +3ch` 的 **12.897** 四格全吻合，**成立**。
+>
+> **引用规则**：在 FD001 数据版本统一之前，只写「只加 cycle：同向改善、幅度约 8%」
+> （本表 −8.16%，按 CSV 重算 −7.76%），**不引用 12.803 这一绝对值**。

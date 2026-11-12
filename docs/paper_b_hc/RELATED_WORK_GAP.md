@@ -124,7 +124,7 @@
 
 - **F1 输入信息不对等**：SFI-STHGAT、ST-KDFormer 不喂 cycle，STGATN 把 cycle 当标签。
   我们的 cycle 臂多一个通道。公平的架构比较只有我们自己的 Vanilla 2×2（只加 cycle 编码：
-  12.803 → 11.758）。
+  同向改善、幅度约 8–9%（绝对值复核中，见 `DSPT_BASE_FUNCTIONAL_AUDIT.md` §5.3 更正））。
 - **F2 测试标签口径未核实**：五篇全未声明测试标签是否裁剪、预测是否裁剪。主表用 capped 是
   **本工作冻结口径**，不是"与文献同口径"。
 - **F3 评估单位不一致**：只有 DCCG-Mamba 写明"number of test engines"，其余四篇写"number of
