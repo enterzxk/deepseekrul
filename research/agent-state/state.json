@@ -65,10 +65,11 @@
     }
   ],
   "next_actions": [
-    "主控: 批三 24 格跑完后封口 G2，四子集补齐前不得引用",
-    "tmh: D 按正确性/非坍缩/与直接回归公平比较三条验收，不追性能",
-    "牢莫: D 通过后才设计并运行 E",
-    "管理员: 负结果按编码选择消融登记，不建核心贡献条目"
+    "主控: G2 四子集已封口（FD001 FAILED，FD002/FD004 功效不足，FD003 只报区间），结论按 128 行台账引用",
+    "tmh: 修 D3 到达算子（β=1、D≥0 时 T̂_K<3.72 的解析上界），补失效/精确命中/远期到达/未命中/梯度反例测试；padding 改逐元素零检查",
+    "牢莫: 复核 D3 修订的边界与反例，不新增中期寿命约束",
+    "军师: D3 修完后复审训练准入；未过反例检查不放行训练",
+    "管理员: 负结果按编码选择消融登记；W2 24 格标定 dropout 缺陷记入复现性审计"
   ],
   "selected_idea": null,
   "research_decisions": [
@@ -2108,6 +2109,42 @@
         "若工作标题所指的机制在 D 通过前就被写入正文主张，则该表述越权，需撤回"
       ],
       "reviewer": "codex-subagent"
+    },
+    {
+      "at": "2026-11-12T19:20:00.000Z",
+      "level": "L2",
+      "decision": "revise",
+      "selected_option": "D 返修、暂不放行训练：保留发动机级接口，先修 D3 到达算子与数学声明，补反例测试，再审训练准入；不加中期寿命标签掩盖",
+      "rationale": "军师（L2 顾问）对 STAGE_D_REVIEW_PACKAGE 的只读审查发现 D3 存在解析阻断：当前 β=1 且预测损伤非负时，h_j ≥ σ(−1)，于是 T̂_K ≤ Σ_{k=0}^{K−1} σ(1)^k < 1+e ≈ 3.718，预测 RUL 恒不超过约 3.72 周期，无法覆盖 125 周期目标。现有六条测试主要验证参考递推与 A1 编码接口一致性，未覆盖到达算子，因此不能据此认定 D3 正确。另两处：K 不参与终点损伤计算，拉长 K 无法补救终点锚定；d_interface_contract 的 padding 检查只取最大值，会漏掉全负的非零 padding。裁决为返修，不因接口检查通过而放行训练。",
+      "evidence": [
+        "docs/paper_b_hc/STAGE_D_REVIEW_PACKAGE.md:90：危险率乘积与生存和定义",
+        "docs/paper_b_hc/STAGE_D_REVIEW_PACKAGE.md:184：初始 β=1",
+        "paper_b/hc/test_d_engine.py：前五项测参考递推，第六项测 A1 编码接口一致性",
+        "docs/paper_b_hc/probes/d_interface_contract.py:56：padding 仅检查最大值",
+        "解析推导：β=1、D̂≥0 ⇒ h_j≥σ(−1)≈0.2689 ⇒ T̂_K ≤ (1−σ(1)^K)/(1−σ(1)) < 1+e ≈ 3.718"
+      ],
+      "rejected_options": [
+        {
+          "option": "六条断言通过即认为数学正确",
+          "reason": "未覆盖到达算子、因果扰动及真实损伤网络"
+        },
+        {
+          "option": "把 D-G4 改成相对偏差 2% 或直接换似然",
+          "reason": "不能修复当前算子的解析上界"
+        }
+      ],
+      "scientific_risks": [
+        "原式 S0=1 导致预测至少为 1，而当前已失效时硬到达应为 0；精确命中阈值还存在半周期极限偏差",
+        "K 不参与终点损伤计算，拉长 K 无法补救终点锚定；真正风险是增量集中在寿命末段",
+        "改变 K 可能改变预测与损失；截断预测不等于真实 RUL 的统计下界",
+        "padding 的 max 检查漏掉全负非零值；零输入也不能替代对增量及损失的 valid 掩码"
+      ],
+      "falsification_criteria": [
+        "修订算子未通过已失效、精确命中、远期到达、未命中及梯度检查，不放行训练",
+        "实际网络未通过因果与接口检查，不认定正确性通过",
+        "加入新约束须另行预注册，不作为结果失败后的救援"
+      ],
+      "reviewer": "codex-subagent"
     }
   ],
   "experiment_queue": [],
@@ -2117,6 +2154,6 @@
   "blocked_reason": null,
   "resume_instructions": "Blocked on human authorization. Keep executing every reversible task that does not depend on the blocked decision, and record results; do not idle waiting for an answer.",
   "created_at": "2026-11-08T15:35:53.623Z",
-  "updated_at": "2026-11-12T12:37:05.020Z",
-  "revision": 78
+  "updated_at": "2026-11-12T19:20:00.000Z",
+  "revision": 79
 }
