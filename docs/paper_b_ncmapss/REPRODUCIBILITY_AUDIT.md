@@ -71,7 +71,16 @@ numbers.
 
 ## Open items
 
-- [ ] Confirm the archive hash on the 3090 host and record it here.
-- [ ] Confirm the Python environment path on the 3090 host.
+- [ ] Record the **self-computed** SHA256 of the DS02 archive and a passing
+      `unzip -t` (full ZIP CRC verification) on the 3090 host.
+      **NASA publishes no official checksum for this archive**, so there is
+      nothing to compare against — the audit must not claim "matches the
+      official hash". The two pieces of integrity evidence we can actually offer
+      are (a) the ZIP CRC check covering every member, and (b) our own SHA256
+      recorded before any run and re-checked when the extracted tables are
+      rebuilt.
+- [ ] Record the Python environment path on the 3090 host
+      (`/home/user/miniconda3/envs/ncmapss/bin/python`, Python 3.10.22,
+      torch 2.5.1+cu121, same version set as the A40 environment).
 - [ ] Record the first patch round-trip (patch id, `git am` result) as proof the
       path works end to end.
