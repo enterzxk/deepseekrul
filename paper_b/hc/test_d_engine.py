@@ -273,43 +273,55 @@ def arrival_old_bound(beta=1.0, K=200):
     return (1.0 - (1.0 - h) ** K) / h
 
 
-def arrival(D, nu, beta=4.0, eps=1e-6, K=None):
-    """Direct soft-survival sum: count the steps that have not failed yet.
+def trajectory(D0, nu):
+    """D[...,0] = current damage; D[...,k+1] = D[...,k] + nu[...,k].
 
-    Not a hazard product. For a monotone trajectory the true survival indicator
-    is simply 1[D_k < 1] (no product needed), and its smooth surrogate is
-
-        S_k = sigmoid( beta * (1 - D_k) / (nu_k + eps) )      # cycles remaining
-        T   = clamp( sum_{k=0}^{K-1} S_k - 0.5, 0, K )
-
-    Dividing by the predicted rate makes the argument "cycles remaining" rather
-    than "damage units", so the transition band is ~1/beta CYCLES whatever the
-    rate is, and beta stays O(1).
-
-    Semantics, pinned because the reviewer asked for each case:
-      k = 0 included   an engine already at the threshold gets ~0, not 1;
-      D = 1 exactly    contributes 0.5, which the -0.5 cancels -> hit is exact;
-      D > 1            (1-D)/nu < 0, the term is ~0;
-      not hit in K     every term saturates to 1 -> T = K - 0.5, and the sample
-                       is censored at K (the half-step is the same convention);
-      variable nu      the term is a LOCAL-rate estimate of steps remaining, so
-                       the bias grows with rate curvature (tested below).
+    One definition shared by every test and by the production operator: the
+    reviewer asked for exactly this, because the earlier tests disagreed about
+    whether D[0] was "now" or "one step from now".
     """
-    K = D.shape[-1] if K is None else K
-    z = beta * (1.0 - D[..., :K]) / (nu[..., :K] + eps)
-    return np.clip(_sigmoid(z).sum(axis=-1) - 0.5, 0.0, float(K))
+    return np.concatenate([D0[..., :1], D0[..., :1] + np.cumsum(nu, axis=-1)], axis=-1)
+
+
+def first_passage(D):
+    """Exact first-passage time of a piecewise-linear damage trajectory.
+
+    For each segment [D_k, D_{k+1}] the time spent BELOW the threshold is
+
+        frac_k = clip( (1 - D_k) / (D_{k+1} - D_k), 0, 1 )      if the segment rises
+        frac_k = 1[D_k < 1]                                     if it is flat
+
+    and T = sum_k frac_k. This is not a surrogate: for a piecewise-linear
+    trajectory it is the exact time at which D crosses 1, so
+
+      already failed (D0 >= 1)     -> 0
+      not hit within K             -> K
+      constant rate                -> (1 - D0)/nu exactly
+      crossing inside a segment    -> interpolated, not snapped
+
+    Why the earlier rate-temperature form had to go: dividing by the LOCAL rate
+    lets S rebound when the rate suddenly drops. With D0=0.90, nu0=0.5 and then
+    nu=0.01, that form gives S0=0.69 -> S1~1, which is not a survival function.
+    """
+    lo, hi = D[..., :-1], D[..., 1:]
+    d = hi - lo
+    rising = d > 0
+    safe = np.where(rising, d, 1.0)
+    frac = np.where(rising,
+                    np.clip((1.0 - lo) / safe, 0.0, 1.0),
+                    (lo < 1.0).astype(np.float64))
+    return frac.sum(axis=-1)
+
+
+def arrival(D0, nu):
+    """Convenience: T from the current damage and the predicted rate sequence."""
+    return first_passage(trajectory(D0, nu))
 
 
 def _trajectory(n_star, K, nu=None):
-    """Monotone damage that crosses 1 at step n_star and keeps growing after.
-
-    Deliberately NOT clamped at 1: the predicted trajectory is D_t + sum(nu),
-    which passes the threshold and continues. Clamping would make every step
-    after the crossing contribute sigmoid(0)=0.5 instead of 0 and inflate T.
-    """
+    """Constant-rate trajectory crossing 1 at step n_star (D0 = 0)."""
     nu = 1.0 / n_star if nu is None else nu
-    D = np.arange(K) * nu
-    return D[None, :], np.full((1, K), nu)
+    return np.zeros((1, 1)), np.full((1, K), nu)
 
 
 def test_arrival_old_operator_is_capped():
@@ -322,7 +334,7 @@ def test_arrival_old_operator_is_capped():
     """
     K, n_star = 300, 200
     bound = arrival_old_bound(beta=1.0, K=K)
-    D, nu = _trajectory(n_star, K)
+    D = np.arange(K)[None, :] * (1.0 / n_star)
     T_old = float(arrival_old(D, beta=1.0)[0])
     assert T_old <= bound + 1e-9, 'old operator %.6f exceeded the bound %.6f' % (T_old, bound)
     assert T_old < 3.72, 'old bound %.6f >= 1+e' % T_old
@@ -331,139 +343,228 @@ def test_arrival_old_operator_is_capped():
     T_zero = float(arrival_old(np.zeros((1, K)), beta=1.0)[0])
     assert abs(T_zero - bound) < 1e-9, 'the bound must be attained at D=0: %.6f vs %.6f' % (
         T_zero, bound)
-    T_new = float(arrival(D, nu)[0])
+    T_new = float(arrival(*_trajectory(n_star, K))[0])
     assert abs(T_new - n_star) <= 1.0, 'corrected operator %.3f vs %d' % (T_new, n_star)
 
 
-def test_arrival_representable_range_exceeds_rul_cap():
-    """Constructive: the operator must be able to express RUL > 125.
+def test_arrival_deceleration_no_rebound():
+    """The reviewer's counterexample: a sudden slowdown must not raise survival.
 
-    The reviewer asked for a prescribed trajectory rather than a random init
-    happening to emit a large value: if the operator cannot represent 150 by
-    construction, no weight setting can fix it.
+    D0=0.90, nu=0.5 then 0.01. The rate-temperature form gave S0=0.69 -> S1~1,
+    a survival rebound. The piecewise-linear form gives frac=1,1,... (the whole
+    segment is below the threshold), which is monotone and correct.
     """
+    nu = np.full((1, 21), 0.01)          # the NEXT increment is 0.01 (D1 = 0.91);
+    D = trajectory(np.array([[0.90]]), nu)   # 0.5 is the CURRENT rate, a state,
+    lo, hi = D[0, :-1], D[0, 1:]             # not the next step
+    d = hi - lo
+    frac = np.clip((1.0 - lo) / np.where(d > 0, d, 1.0), 0.0, 1.0)
+    assert np.all(np.diff(frac) <= 1e-12), 'survival rebounded: %s' % np.diff(frac)[:5]
+    assert frac[0] > 0.999, 'first segment is entirely below 1 but scored %.3f' % frac[0]
+    T = float(arrival(np.array([[0.90]]), nu)[0])
+    # crossing happens 10 cycles later at nu=0.01: (1-0.90)/0.01 = 10
+    assert abs(T - 10.0) <= 1.0, 'deceleration arrival %.3f vs 10' % T
+
+
+def test_arrival_stalled_at_threshold():
+    """D already at 1 with a near-zero rate must give 0, not K/2."""
+    nu = np.full((1, 100), 1e-6)
+    T = float(arrival(np.array([[1.0]]), nu)[0])
+    assert T <= 1e-3, 'stalled-at-threshold arrival %.4f should be ~0' % T
+
+
+def test_arrival_representable_range_exceeds_rul_cap():
+    """Constructive: the operator must be able to express RUL > 125."""
     for n_star in (125, 150, 300):
         K = n_star + 100
-        D, nu = _trajectory(n_star, K)
-        T = float(arrival(D, nu)[0])
-        assert abs(T - n_star) <= 1.0, 'n*=%d -> T=%.3f' % (n_star, T)
+        T = float(arrival(*_trajectory(n_star, K))[0])
+        assert abs(T - n_star) <= 1e-6, 'n*=%d -> T=%.6f' % (n_star, T)
     assert float(arrival(*_trajectory(150, 250))[0]) > 125.0
 
 
 def test_arrival_already_failed():
-    """At or past the threshold now -> arrival is 0, not 1 (the S0=1 defect)."""
-    K = 200
-    nu = 1.0 / 150.0
-    D = 1.0 + np.arange(K) * nu
-    T = arrival(D[None, :], np.full((1, K), nu))
-    assert T[0] <= 0.5, 'already-failed arrival %.3f should be ~0' % T[0]
+    """At or past the threshold now -> arrival is 0 (RUL=0 semantics)."""
+    nu = np.full((1, 200), 1.0 / 150.0)
+    T = float(arrival(np.array([[1.0]]), nu)[0])
+    assert T <= 1e-9, 'already-failed arrival %.6f should be 0' % T
 
 
 def test_arrival_exact_hit():
-    """Crossing exactly at k*=50 is reported as 50 +/- 1 cycle."""
-    K, n_star = 200, 50
-    D, nu = _trajectory(n_star, K)
-    T = arrival(D, nu)
-    assert abs(T[0] - n_star) <= 1.0, 'exact hit %.3f vs %d' % (T[0], n_star)
+    """Crossing exactly at k*=50 is reported as 50."""
+    T = float(arrival(*_trajectory(50, 200))[0])
+    assert abs(T - 50.0) <= 1e-6, 'exact hit %.6f vs 50' % T
 
 
 def test_arrival_non_integer_hit():
-    """A crossing between two cycles must land between them, not snap."""
-    K, n_star = 200, 50.5
-    nu = 1.0 / n_star
-    D = np.arange(K) * nu
-    T = float(arrival(D[None, :], np.full((1, K), nu))[0])
-    assert abs(T - n_star) <= 1.0, 'non-integer hit %.3f vs %.1f' % (T, n_star)
+    """A crossing inside a segment is interpolated, not snapped."""
+    T = float(arrival(*_trajectory(50.5, 200))[0])
+    assert abs(T - 50.5) <= 1e-6, 'non-integer hit %.6f vs 50.5' % T
 
 
 def test_arrival_plateau_then_cross():
-    """A flat stretch below the threshold must not be counted as failed."""
+    """A flat stretch below the threshold is counted in full."""
     K, n_star, plateau = 260, 200, 120
-    nu = np.full(K, 1.0 / (n_star - plateau))
-    nu[:plateau] = 0.0
-    D = np.cumsum(nu)
-    T = float(arrival(D[None, :], nu[None, :])[0])
-    assert abs(T - n_star) <= 1.0, 'plateau-then-cross %.3f vs %d' % (T, n_star)
+    nu = np.full((1, K), 1.0 / (n_star - plateau))
+    nu[0, :plateau] = 0.0
+    T = float(arrival(np.zeros((1, 1)), nu)[0])
+    assert abs(T - n_star) <= 1e-6, 'plateau-then-cross %.6f vs %d' % (T, n_star)
 
 
 def test_arrival_variable_rate():
-    """Accelerating degradation: local-rate estimate must stay within 3 cycles.
+    """Accelerating degradation: the piecewise-linear form is EXACT.
 
-    The term is a local-rate estimate of steps remaining, so curvature costs
-    accuracy; this pins how much for a quadratic profile and records that the
-    per-step terms stay non-increasing (no survival rebound).
+    The earlier rate-temperature form needed a 3-cycle tolerance here; an exact
+    operator must meet the same 1-cycle standard as everything else, so the
+    tolerance is tightened to 1e-6 rather than widened.
     """
     K, n_star = 200, 50
     j = np.arange(1, K + 1, dtype=np.float64)
-    nu = j / (n_star * (n_star + 1) / 2.0)     # D_k = k(k+1)/2 / S, crosses at n*
-    D = np.cumsum(nu)
-    T = float(arrival(D[None, :], nu[None, :])[0])
-    assert abs(T - n_star) <= 3.0, 'variable-rate arrival %.3f vs %d' % (T, n_star)
-    z = 4.0 * (1.0 - D) / (nu + 1e-6)
-    terms = _sigmoid(z)
-    assert np.all(np.diff(terms) <= 1e-9), 'survival surrogate rebounds with k'
+    nu = (j / (n_star * (n_star + 1) / 2.0))[None, :]   # D_k = k(k+1)/2 / S
+    T = float(arrival(np.zeros((1, 1)), nu)[0])
+    assert abs(T - n_star) <= 1e-6, 'variable-rate arrival %.6f vs %d' % (T, n_star)
 
 
 def test_arrival_not_hit_within_K():
-    """Never reaching the threshold censors at K, with the documented K-0.5 limit."""
+    """Never reaching the threshold returns exactly K (right censoring)."""
     K = 120
-    nu = 1.0 / 400.0
-    D = np.minimum(0.5, np.arange(K) * nu)
-    T = float(arrival(D[None, :], np.full((1, K), nu))[0])
-    assert abs(T - (K - 0.5)) < 1e-6, 'not-hit arrival %.6f vs K-0.5=%d.5' % (T, K)
+    nu = np.full((1, K), 1.0 / 400.0)
+    T = float(arrival(np.zeros((1, 1)), nu)[0])
+    assert abs(T - K) <= 1e-9, 'not-hit arrival %.6f vs K=%d' % (T, K)
 
 
-def test_arrival_gradient_does_not_vanish():
-    """The operator must pass gradient to D in the transition band.
+def test_arrival_gradient_structure():
+    """Gradient reaches every increment up to the crossing, and nothing after it.
 
-    A hard argmin gives zero gradient everywhere. A soft one gives zero only
-    where it is saturated (sigma ~ 0 or ~ 1), which is correct: those terms are
-    constants with respect to D there. So the test asserts BOTH: non-zero in the
-    band, exactly zero far away.
+    The reviewer corrected an earlier version of this test: an early increment
+    does NOT leave T unchanged. It shifts the cumulative damage, hence the
+    crossing position, hence T. With the crossing inside segment j,
+
+        dT/dnu_i = -1/nu[j+1]      for i <= j
+        dT/dnu_i =  0              for i > j+1
+
+    (the crossing segment also gets -(1-D_j)/nu[j+1]^2 from the denominator).
     """
-    K, n_star = 200, 100
-    D, nu = _trajectory(n_star, K)
-    eps = 1e-3
-    base = arrival(D, nu)[0]
-    for k in (n_star - 2, n_star - 1, n_star, n_star + 1, n_star + 2):
-        Dp = D.copy()
-        Dp[0, k] += eps
-        g = (arrival(Dp, nu)[0] - base) / eps
-        assert abs(g) > 1e-6, 'dT/dD[%d] vanished in the band (%.3e)' % (k, g)
-    Dp = D.copy()
-    Dp[0, 0] += eps
-    g_far = (arrival(Dp, nu)[0] - base) / eps
-    assert abs(g_far) < 1e-9, 'far-field term should be saturated, got %.3e' % g_far
-    # the rate must carry gradient too, otherwise D2 cannot be trained. Note it
-    # cannot be probed AT the crossing: there 1-D = 0, so the term is
-    # rate-insensitive by construction and the gradient is genuinely zero.
+    K, n_star = 200, 100.5                    # interior crossing at segment j=100
+    j = 100
+    D0, nu = _trajectory(n_star, K)           # nu = 1/100.5 everywhere
+    base = float(arrival(D0, nu)[0])
+    assert abs(base - n_star) <= 1e-6
+
+    # early increment: moves the crossing, magnitude -1/nu[j+1]
     nup = nu.copy()
-    nup[0, n_star - 1] *= 1.01
-    assert abs(arrival(D, nup)[0] - base) > 1e-9, 'dT/dnu vanished on the approach'
+    dnu = nup[0, 0] * 0.05
+    nup[0, 0] += dnu
+    d_early = float(arrival(D0, nup)[0]) - base
+    expected = -dnu / nu[0, j + 1]
+    assert abs(d_early - expected) <= 0.1 * abs(expected), (
+        'early increment moved T by %.3e, expected %.3e' % (d_early, expected))
+
+    # increment well after the crossing segment: no effect on T
+    nup = nu.copy()
+    nup[0, j + 5] *= 1.05
+    assert abs(float(arrival(D0, nup)[0]) - base) < 1e-12, (
+        'an increment after the crossing must not move T')
+
+    # the crossing segment itself: gradient through the denominator
+    nup = nu.copy()
+    nup[0, j] *= 1.05
+    assert abs(float(arrival(D0, nup)[0]) - base) > 1e-6, 'crossing segment did not move T'
+
+
+def test_arrival_zero_gradient_trap():
+    """If nu*K <= 1 the trajectory never reaches 1: T = K and the gradient is 0.
+
+    The model would then be stuck at the censoring horizon with no signal to
+    come back. softplus(0)=0.693 gives nu*K ~ 138 >> 1 at init, which is safe,
+    but the trap is asserted so an initialisation change cannot silently open it.
+    """
+    K = 200
+    for nu_val in (1e-3, 1.0 / K * 0.5):
+        nu = np.full((1, K), nu_val)
+        assert nu_val * K < 1.0, 'this case must be unreachable'
+        T = float(arrival(np.zeros((1, 1)), nu)[0])
+        assert abs(T - K) <= 1e-9, 'nu=%.2e should never reach the threshold' % nu_val
+    # just above the boundary the crossing becomes reachable again
+    nu = np.full((1, K), 1.05 / K)
+    assert float(arrival(np.zeros((1, 1)), nu)[0]) < K
+
+
+def test_arrival_requires_monotone_trajectory():
+    """The clip sum equals the first passage only for a monotone trajectory.
+
+    D is built from non-negative increments by construction, so this asserts the
+    precondition rather than an implementation detail: a non-monotone trajectory
+    would turn the sum into "time spent below the threshold", which is a
+    different quantity.
+    """
+    K = 60
+    nu = np.full((1, K), 1.0 / 30.0)
+    D = trajectory(np.zeros((1, 1)), nu)
+    assert np.all(np.diff(D[0]) >= 0), 'trajectory is not monotone'
+    nu_bad = np.full((1, K), 1.0 / 30.0)
+    nu_bad[0, 20] = -0.5                       # negative increment
+    D_bad = trajectory(np.zeros((1, 1)), nu_bad)
+    assert np.any(np.diff(D_bad[0]) < 0), 'the negative increment should break monotonicity'
 
 
 def test_arrival_full_graph_backward():
     """End-to-end: the loss must reach the rate network through the cumsum.
 
-    The finite differences above probe the operator in isolation. This builds
-    D from (D_t, nu) the way the model will, runs a real backward, and requires
-    non-zero gradient on both inputs.
+    The crossing must be INTERIOR to a segment. When it falls exactly on a
+    boundary every segment clamps to 0 or 1 and the gradient is identically
+    zero -- asserted separately below as a documented property, not a bug.
     """
     try:
         import torch
     except Exception:
         _skip('torch not importable here')
-    K, n_star = 120, 60
+    K, n_star = 120, 60.5                    # interior crossing
     D0 = torch.tensor(0.0, requires_grad=True)
     nu = torch.full((1, K), 1.0 / n_star, requires_grad=True)
-    D = D0 + torch.cumsum(nu, dim=-1)
-    z = 4.0 * (1.0 - D) / (nu + 1e-6)
-    T = (torch.sigmoid(z).sum(dim=-1) - 0.5).clamp(min=0.0, max=float(K))
-    loss = (T - n_star) ** 2
+    D = torch.cat([D0.reshape(1, 1), D0.reshape(1, 1) + torch.cumsum(nu, dim=-1)], dim=-1)
+    lo, hi = D[:, :-1], D[:, 1:]
+    d = (hi - lo).clamp(min=1e-12)
+    frac = ((1.0 - lo) / d).clamp(0.0, 1.0)
+    T = frac.sum(dim=-1)
+    loss = (T - (n_star + 10.0)) ** 2      # non-zero residual: at the minimum the gradient is 0 by definition
     loss.backward()
     assert nu.grad is not None and float(nu.grad.abs().sum()) > 0, 'no gradient to nu'
     assert D0.grad is not None and abs(float(D0.grad)) > 0, 'no gradient to D0'
-    assert float(T[0]) > 0.9 * n_star, 'T collapsed to %.2f' % float(T[0])
+    assert abs(float(T[0]) - n_star) <= 1e-4, 'T=%.4f vs %.1f' % (float(T[0]), n_star)
+
+
+def test_arrival_boundary_hit_is_exact():
+    """A crossing exactly on a segment boundary is still reported exactly.
+
+    (An earlier draft asserted zero gradient here; that is wrong. clamp's
+    derivative is 1 ON the boundary, so the adjacent segments -- whose ratio is
+    exactly 1.0 or 0.0 -- still pass gradient. Measured dT/dD0 = -60 at K=120,
+    n*=60. What matters is that the value is exact, which is asserted here.)
+    """
+    K, n_star = 120, 60
+    D0, nu = _trajectory(n_star, K)
+    base = float(arrival(D0, nu)[0])
+    assert abs(base - n_star) <= 1e-9, 'boundary hit %.9f vs %d' % (base, n_star)
+    eps = 1e-3
+    g = (float(arrival(D0 + eps, nu)[0]) - base) / eps
+    assert abs(g) > 1e-6, 'boundary hit lost its gradient entirely (%.3e)' % g
+
+
+def test_arrival_not_hit_has_no_gradient():
+    """Documented property: censored samples carry no gradient.
+
+    A trajectory that never reaches 1 gives T = K for every setting of D and nu,
+    so the loss is flat and the sample is invisible to training. This is the
+    censored-hinge semantics, not a defect -- but it must be reported, because
+    it means early-life windows do not constrain the damage path at all.
+    """
+    K = 120
+    nu = np.full((1, K), 1.0 / 4000.0)
+    base = float(arrival(np.zeros((1, 1)), nu)[0])
+    assert abs(base - K) <= 1e-9
+    for scale in (1.0, 2.0, 5.0):
+        assert abs(float(arrival(np.zeros((1, 1)), nu * scale)[0]) - K) <= 1e-9
+    assert abs(float(arrival(np.array([[0.5]]), nu)[0]) - K) <= 1e-9
 
 
 def main():
