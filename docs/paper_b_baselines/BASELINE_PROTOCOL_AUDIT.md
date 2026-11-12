@@ -164,18 +164,47 @@ different subset coverage.
 
 ## 6. Why is the plain base so strong?
 
-Three effects, all measurable:
+Measured on one scale throughout — validation, engine level, FD001, three seeds
+(`paper_b/results/audit_arm_table.csv`):
 
-1. **Saturation.** A vanilla Transformer with the cycle feature reaches
-   12.60 / 15.05 (FD001, `VAN_dsp_cycle` / `VAN_raw`) while the best DSPT cell
-   reaches 10.29. The whole method space spans ~2 RMSE on FD001–FD003 against a
-   seed spread of 0.2–0.9.
-2. **The cycle feature carries most of the signal.** 173 of 185 runs enable
-   `use_cycle`. Turning it off costs 0.9–2.1 RMSE on FD001
-   (`VAN_raw` 15.05 vs `VAN_dsp_cycle` 12.60).
-3. **The cap compresses the target range.** With labels clipped at 125, the
+| arm | cycle | input | val_eng |
+|---|---|---|---|
+| `VAN_raw` | no | raw | 12.142 |
+| `VAN_raw_cycle` | yes | raw | 11.824 |
+| `VAN_dsp` | no | dsp | 12.077 |
+| `VAN_dsp_cycle` | yes | dsp | 11.494 |
+| `A8_base` (DSPT, all switches off) | yes | raw | 11.085 |
+
+1. **The cycle feature is worth 0.32 RMSE on raw input** (12.142 → 11.824) and
+   0.58 on dsp input (12.077 → 11.494).
+2. **The input representation is worth much less**: 0.07 without cycle, 0.33 with
+   it.
+3. **The DSPT base is 0.41 better than the best vanilla arm** (11.085 vs 11.494),
+   which is roughly twice the cross-machine seed spread (0.22).
+4. **The whole space is narrow**: from the worst vanilla arm to the best DSPT
+   cell is about 1.9 RMSE (12.142 → 10.240), against a seed spread of 0.2–0.9.
+
+**A decomposition that circulates needs a caveat.** The split "cycle 1.046 (70%),
+architecture 0.307 (21%), interaction 0.232, three-channel −0.094" sums to the
+**pooled** gap of 1.492. On engine level the same gap is 1.056, and the four arms
+give cycle 0.318 (30%), architecture 0.409 (39%), input representation 0.065
+(6%), residual interaction 0.264 (25%). The direction survives — the cycle
+feature is a large single contributor — but the 70% headline does not.
+
+The input-representation term is worse than metric-dependent: it **changes sign**
+(+0.065 engine level, −0.094 pooled) while being far below the 0.22 cross-machine
+seed spread either way. It must be reported as "no detectable effect", not as
+helpful or harmful.
+
+Separately, on the **official test set** (capped, FD001) the same arms read 12.60
+(`VAN_dsp_cycle`) and 15.05 (`VAN_raw`) against 10.29 for the best A8 cell.
+Those are test values. They must never be placed in the same sentence as the
+validation numbers above without labelling both.
+
+5. **The cap compresses the target range.** With labels clipped at 125, the
    hardest engines have their target moved toward the model's own saturated
-   output.
+   output — see §2b for why this inflates the reported level without being a
+   leakage problem.
 
 ## 6b. Four different things are called "base"
 
@@ -215,7 +244,11 @@ should not be read as seed-robust.
 | hi | raw | −0.05 | +0.03 | −0.22 | +0.17 |
 
 - `ms` is stable across criteria (helps FD001 and FD003, neutral elsewhere).
-- `hi` is stable across criteria.
+- `hi` is **stably near zero**, not stably useful: −0.03 capped and −0.05 raw on
+  FD001, +0.07/+0.03 on FD002, −0.33/−0.22 on FD003, +0.32/+0.17 on FD004. The
+  direction does not flip with the criterion, which is worth saying; the
+  magnitude is not a gain worth claiming. "Stable" and "effective" are different
+  statements and only the first one is supported.
 - **`sa` flips sign on FD004**: +0.26 under the capped criterion, −0.82 under
   the raw one. Since §8 establishes that capped is the literature-consistent
   criterion, the main table keeps capped and "sa hurts FD004" may be stated —
