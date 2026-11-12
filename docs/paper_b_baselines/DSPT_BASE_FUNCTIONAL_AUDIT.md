@@ -394,6 +394,23 @@ to DSPT-Base only if all six hold:
 Axis 6 is the one this audit adds: it is usually not reported, and it can move RMSE
 by more than any of the modules under study.
 
+**Axis 6, resolved against the five comparison papers** (verified from the full texts,
+2026-11-12). The asymmetry is not hypothetical:
+
+| paper | cycle as input? | evidence |
+|---|---|---|
+| SFI-STHGAT | **no** | inputs split into OCs and "14 informative sensor readings"; cycle and engine ID are in neither group |
+| ST-KDFormer | **no** | input is `L × M`, "M is the number of sensors" |
+| STGATN | **no — it is the output** | `Cycle = f(S_t)`, S_t the sensor state vector |
+| HDA-GNN | unverified | 26 raw columns named, but only "21 sensors" described as fed |
+| DCCG-Mamba | unverified | window length counted *in* cycles, not cycle as a channel |
+
+Consequence for the comparison table: **no architecture-level advantage over
+SFI-STHGAT or ST-KDFormer can be claimed.** Our cycle-consuming arms (A2/A3a/A4/A5)
+run on a strictly larger information set, so the gain belongs to the information, not
+to the architecture. The only fair architecture comparison we hold is our own Vanilla
+2×2, where adding the cycle encoding alone moves 12.803 → 11.758 (§5.3).
+
 ### 6.4 Do MS, SA and HI have any independent gain?
 
 A8 grid, main effect of each switch (mean over the four configs with the switch on,
@@ -407,6 +424,15 @@ minus the four with it off; negative = helps). Validation, engine level, 3 seeds
 
 **No switch shows an independent gain larger than the seed spread.** The strongest
 statement the data supports is narrower:
+
+> **Scope of that statement: 40 epochs.** This grid ran under the frozen protocol
+> (`epochs=40`, `patience=12`, batch 512, d_model 64, 2 layers). The verifiable
+> comparison papers train longer — ST-KDFormer 100 epochs (MultiStepLR ×0.5 at
+> 10/20/30/40), DCCG-Mamba 120 epochs with per-subset hyper-parameter search by a
+> metaheuristic optimiser. A smaller budget compresses the differences between
+> modules, so the correct claim is **"no independent gain detected at 40 epochs, and
+> the budget is below the verifiable comparison papers — an insufficient budget
+> cannot be excluded"**. "Not detected" is not "proven absent".
 
 - `sa` is the only switch with a consistent direction on three subsets (helps by
   0.16–0.46 on FD001–FD003). That is at most ~1 sd, and it reverses on FD004.
