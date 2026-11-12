@@ -473,7 +473,10 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     torch.save(net.state_dict(), out / 'ckpt' / 'best.pt')
     m = dict(arm=arm, subset=subset, seed=int(seed), K=K, s0=s0,
              lam_t=lam_t, lam_s=lam_s, lam_source=lam_src,
-             l_mean=l_mean, head_fingerprint=sh['head_fingerprint'],
+             l_mean=l_mean,
+             # B0 has no damage head, so it has no head fingerprint: recording
+             # the shared one would claim an init the arm never built.
+             head_fingerprint=(None if arm == 'B0' else sh['head_fingerprint']),
              params=nparam, epochs_run=len(history), best_ep=best_ep,
              best_val_engine_mean_rmse=best, elapsed_s=round(time.time() - t0, 1),
              select_on_val=True, budget=dict(epochs=epochs, patience=patience,
