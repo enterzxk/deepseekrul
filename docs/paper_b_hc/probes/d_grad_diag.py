@@ -26,7 +26,7 @@ print('delta.requires_grad', fo['delta'].requires_grad,
       'pred.requires_grad', fo['pred'].requires_grad)
 print('D[-1]', float(fo['D'][-1]), 'delta[0]', float(fo['delta'][0]))
 total, L = losses_for(net, 'B3', fo, float(C.RUL_CAP), 4.5981552723381447e-10,
-                      float(C.RUL_CAP) ** 2)
+                      float(C.RUL_CAP) ** 2, float(C.RUL_CAP) ** 2)
 params = [p for p in net.parameters() if p.requires_grad]
 for k, v in L.items():
     print('%-9s requires_grad=%s value=%.6e' % (k, v.requires_grad, float(v)))

@@ -161,7 +161,7 @@ def rul_loss(pred, r, cap):
                        (pred - r) ** 2)
 
 
-def losses_for(net, arm, fo, cap, s0, lam):
+def losses_for(net, arm, fo, cap, s0, lam_t, lam_s):
     L = dict(rul=rul_loss(fo['pred'], fo['r'], cap).mean())
     if arm in HI_ARMS:
         L['terminal'] = (fo['D'][-1] - 1.0) ** 2
@@ -171,7 +171,7 @@ def losses_for(net, arm, fo, cap, s0, lam):
             L['smooth'] = torch.zeros((), device=fo['delta'].device)
     total = L['rul']
     if 'terminal' in L:
-        total = total + lam * L['terminal'] + lam * L['smooth']
+        total = total + lam_t * L['terminal'] + lam_s * L['smooth']
     return total, L
 
 
@@ -293,7 +293,7 @@ def evaluate(net, arm, eb, dev, K, cap):
 # --------------------------------------------------------------------------- #
 # training
 # --------------------------------------------------------------------------- #
-def term_grads(net, arm, ebt, dev, K, cap, s0, lam, n_eng=3):
+def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3):
     """D4.5: gradient contribution of each loss term, on a fixed sample.
 
     Reports BOTH readings, because the spec is ambiguous and the two disagree:
@@ -314,7 +314,7 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam, n_eng=3):
     for i in range(min(n_eng, len(ebt['lengths']))):
         n = int(ebt['lengths'][i])
         fo = forward_engine(net, arm, ebt, i, n, dev, K)
-        _, L = losses_for(net, arm, fo, cap, s0, lam)
+        _, L = losses_for(net, arm, fo, cap, s0, lam_t, lam_s)
         for k, v in L.items():
             if k not in acc:
                 continue
@@ -322,18 +322,23 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam, n_eng=3):
             acc[k] += float(sum(g.norm() ** 2 for g in gs if g is not None)) ** 0.5
     m = float(min(n_eng, len(ebt['lengths'])))
     unweighted = {k: v / m for k, v in acc.items()}
-    weighted = {k: (v if k == 'rul' else v * lam) for k, v in unweighted.items()}
+    weighted = {k: (v if k == 'rul' else v * (lam_t if k == 'terminal' else lam_s))
+                for k, v in unweighted.items()}
     return dict(unweighted=unweighted, weighted=weighted)
 
 
 def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
               init_from, K, epochs=None, patience=None, batch=None, lr=None,
-              weight_decay=None, lam=None, log=print, budget_override=None):
+              weight_decay=None, lam=None, lam_t=None, lam_s=None, log=print,
+              budget_override=None):
     sh = json.loads(Path(shared_path).read_text(encoding='utf-8'))
     K = int(sh['K'] if K is None else K)
     s0 = float(sh['s0']['used'])
     l_mean = float(sh['l_mean'])
-    lam = float(C.RUL_CAP ** 2 if lam is None else lam)
+    lam_t = float(C.RUL_CAP ** 2 if lam_t is None else lam_t)
+    lam_s = float(C.RUL_CAP ** 2 if lam_s is None else lam_s)
+    if lam is not None:
+        lam_t = lam_s = float(lam)
     epochs = int(C.EPOCHS if epochs is None else epochs)
     patience = int(C.PATIENCE if patience is None else patience)
     batch = int(C.BATCH if batch is None else batch)
@@ -364,7 +369,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         for i in order:
             n = int(ebt['lengths'][i])
             fo = forward_engine(net, arm, ebt, i, n, dev, K)
-            loss, _ = losses_for(net, arm, fo, cap, s0, lam)
+            loss, _ = losses_for(net, arm, fo, cap, s0, lam_t, lam_s)
             # weight by the point count so the accumulated gradient is the mean
             # over the ~`batch` points, not the sum of per-engine means
             (loss * (n / float(batch))).backward()
@@ -382,7 +387,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         sch.step()
 
         ev = evaluate(net, arm, ebv, dev, K, cap)
-        tg = term_grads(net, arm, ebt, dev, K, cap, s0, lam)
+        tg = term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s)
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0
         ratio = {k: (v / mx if mx > 0 else None) for k, v in w.items()}
@@ -412,7 +417,8 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     out = Path(out_dir)
     (out / 'ckpt').mkdir(parents=True, exist_ok=True)
     torch.save(net.state_dict(), out / 'ckpt' / 'best.pt')
-    m = dict(arm=arm, subset=subset, seed=int(seed), K=K, s0=s0, lam=lam,
+    m = dict(arm=arm, subset=subset, seed=int(seed), K=K, s0=s0,
+             lam_t=lam_t, lam_s=lam_s,
              l_mean=l_mean, head_fingerprint=sh['head_fingerprint'],
              params=nparam, epochs_run=len(history), best_ep=best_ep,
              best_val_engine_mean_rmse=best, elapsed_s=round(time.time() - t0, 1),
@@ -494,6 +500,10 @@ def main():
                     default='/media/sangfor/vdb/user/zxk/deepseek-rul/experiments/hc/d')
     ap.add_argument('--device', default='cuda:0')
     ap.add_argument('--epochs', type=int, default=None)
+    ap.add_argument('--lam', type=float, default=None,
+                    help='sets both weights; overridden by --lam-t/--lam-s')
+    ap.add_argument('--lam-t', type=float, default=None)
+    ap.add_argument('--lam-s', type=float, default=None)
     ap.add_argument('--budget-override', default=None)
     a = ap.parse_args()
     dev = torch.device(a.device)
@@ -519,7 +529,8 @@ def main():
         shared = root / ('%s_shared.json' % a.subset)
         out = root / ('%s_%s_s%d' % (a.arm, a.subset, a.seed))
         train_arm(a.arm, a.subset, a.seed, a.data_dir, shared, out, dev,
-                  a.init_from, a.K, epochs=a.epochs,
+                  a.init_from, a.K, epochs=a.epochs, lam=a.lam,
+                  lam_t=a.lam_t, lam_s=a.lam_s,
                   budget_override=a.budget_override)
 
 
