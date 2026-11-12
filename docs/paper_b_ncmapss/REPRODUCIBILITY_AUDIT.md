@@ -30,7 +30,7 @@ is exactly what the slope guard is for.
 
 ## Protocol freeze
 
-The protocol is **frozen at commit `922a2d1`** (branch `ncmapss-ds02`,
+The protocol is **frozen at commit `e7ad15f`** (branch `ncmapss-ds02`,
 2026-11-12). **No §4 or §6 change after this commit until the LOEO development
 results are in.** A change requires a recorded decision first — never edit while
 runs are in flight, because an unrecorded edit leaves runs produced before and
@@ -39,8 +39,8 @@ after it in different protocols with no marker.
 Verify the frozen document:
 
 ```bash
-git rev-parse 922a2d1:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
-# ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1
+git rev-parse e7ad15f:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
+# 35b40d8bce8e2b6ee39408c2e36e39482462f05e
 ```
 
 Every row in `registry/runs.csv` must cite **this blob hash**, not only the
@@ -54,21 +54,33 @@ and leaves the main evidence table.
 |---|---|---|---|
 | `5b228ad` | `6c184bbf…` | void | initial freeze |
 | `7f01909` | `4458d9ea…` | void | §6.3 named the primary metric; §6.4 fixed the relative-segment denominator bug; HI scope narrowed |
-| **`922a2d1`** | **`ebfbfcb8…`** | **current** | two settings decided from the measured file, before any run |
+| `922a2d1` | `ebfbfcb8…` | void | the 125 cap measured inactive, and the epoch budget was restated as optimizer steps |
+| **`e7ad15f`** | **`35b40d8b…`** | **current** | the budget's alignment quantity was wrong: 1000 steps on 380 windows is 1000 passes, 25x the C-MAPSS budget |
 
-The last move needs spelling out, because it is the one that could be mistaken
-for tuning after seeing results. It was not: both numbers come from the file's
-row counts, not from any model output, and no run existed when they were set.
+All three moves were taken from the measured file, with no run in existence. That
+is the only window in which a change like this is a setup decision rather than
+tuning, and the last one closes it: **another move before the first batch is a
+tuning decision, not a setup decision.**
 
-1. **The 125 cap is inactive on this dataset.** The measured longest lifetime is
-   89 flights (dev unit 5) and 76 (test), so `min(raw, 125) == raw` everywhere.
-   The capped criterion carries no information here and is reported as
+What the two measured-data moves fixed:
+
+1. **The 125 cap is inactive on this dataset.** The longest lifetime is 89
+   flights (dev unit 5) and 76 (test), so `min(raw, 125) == raw` everywhere. The
+   capped criterion carries no information here and is reported as
    `inactive (no unit exceeds the cap)` — never as a stricter criterion, and
-   never as a second column printed beside raw.
-2. **40 epochs was 40 gradient steps.** The dev split holds 446 flights, so a
-   fold trains on ~380 windows; with `batch = min(512, 380) = 380` each epoch is
-   a single step. The budget was restated as **1000 optimizer steps**
-   (`epochs = ceil(1000 / ceil(N_train / batch))`), identical for all four rungs.
+   never as a second column printed beside raw. The judgement is computed from
+   the data, so a dataset with any unit above 125 restores it automatically.
+2. **The budget aligns on passes, not steps.** The first attempt aligned on
+   gradient steps (1000), but on a 380-window fold with `batch=380` one step is
+   one pass, so that was 1000 passes — 25x the C-MAPSS budget of 40. The
+   corrected rule is **40 passes with `batch = min(64, N)`**: 380 windows give
+   6 updates per pass and 240 updates in total, against ~1560 on C-MAPSS. Passes
+   are the quantity that governs generalisation; batch was reduced so that a pass
+   is more than a single update.
+3. **The holdout curve is reported as a diagnostic.** Every result row carries
+   the final-epoch value *and* the holdout minimum with its epoch, marked
+   `diagnostic only — not used for model selection`. A fixed budget only hides
+   overfitting when the curve is hidden too.
 
 The earlier move from `5b228ad` had three reasons, still worth keeping in the
 record: §6.3 previously did not say which metric was primary; §6.4 normalised the
