@@ -20,14 +20,21 @@
       "paper_b/ncmapss/protocol.py": null
     },
     "protocol_blob": null,
-    "freeze_commit": "7f01909",
+    "freeze_commit": "922a2d1",
     "protocol_blob_rule": "git rev-parse <freeze_commit>:docs/paper_b_ncmapss/DATASET_PROTOCOL.md; blob resists amend/rebase, a commit hash does not",
-    "known_protocol_blob_at_freeze": "4458d9ea05c965251aabb782bba9765304ebf686",
-    "superseded_anchor": {
-      "freeze_commit": "5b228ad",
-      "protocol_blob": "6c184bbfe395325c367b1e460689b178ae48f1f3",
-      "reason": "协议在开跑前修正三处：§6.3 主指标标注、§6.4 相对分段分母改为该机全寿命、HI 范围收窄（N0–N3 本无 HI 臂）。旧锚整体作废。"
-    },
+    "known_protocol_blob_at_freeze": "ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1",
+    "superseded_anchor": [
+      {
+        "freeze_commit": "5b228ad",
+        "protocol_blob": "6c184bbfe395325c367b1e460689b178ae48f1f3",
+        "reason": "协议在开跑前修正三处：§6.3 主指标标注、§6.4 相对分段分母改为该机全寿命、HI 范围收窄。"
+      },
+      {
+        "freeze_commit": "7f01909",
+        "protocol_blob": "4458d9ea05c965251aabb782bba9765304ebf686",
+        "reason": "按实测文件在跑前改两处：训练预算 40 epochs→1000 优化步（实测每 epoch 仅 1 步）、capped 口径实测失效（最长 dev 89 < 125）。"
+      }
+    ],
     "n3_scope": {
       "rung": "N3",
       "switches": {
@@ -222,16 +229,19 @@
     "sha256": null,
     "shared_by_all_rungs": true,
     "values": {
-      "epochs": 40,
+      "epochs": null,
       "patience": 12,
       "batch": "min(512, N_train)",
       "lr": 0.001,
       "weight_decay": 0.0001,
       "d_model": 64,
       "layers": 2,
-      "dropout": 0.2
+      "dropout": 0.2,
+      "epochs_note": "not used on DS02; see epochs_overridden"
     },
-    "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。"
+    "rule": "四档共用同一计划；只允许改输入宽度（51 列）。哪一档不收敛是要报的发现，不是改超参的许可证。台账记 train_plan_sha256。",
+    "epochs_overridden": "1000 optimizer steps",
+    "epochs_rule": "epochs = ceil(1000 / ceil(N_train / batch))，四档一致；protocol.json 的 epochs=40 在 DS02 侧不使用"
   },
   "condition_encoding": {
     "n_cond": 6,
@@ -299,7 +309,9 @@
     "dispersion": "per-fold seed sd AND cross-fold sd, reported separately, never conflated",
     "ci": "dev: df = n_engines - 1 = 5; seeds are not independent samples",
     "test_dispersion": "test set has 3 engines only: report seed mean ± seed sd per unit (n=3 seeds, 1 unit). Do NOT write a cross-engine 95% CI; minimum two-sided sign-test p with 3 units is 0.25",
-    "insufficient_power_rule": "三台测试机全部改善仍不足以证明总体优越（独立对称符号检验双侧最小 p=0.25）；未拒绝差异不得表述为等效"
+    "insufficient_power_rule": "三台测试机全部改善仍不足以证明总体优越（独立对称符号检验双侧最小 p=0.25）；未拒绝差异不得表述为等效",
+    "capped_criterion": "inactive (no unit exceeds the cap)",
+    "capped_note": "最长 dev 89 周期、test 76，全部 < 125，故 y_true_cap125 == y_true_raw 处处成立；pred.csv 两列照写，但结果表标 inactive，不得与 raw 并排当两个独立口径比较，也不得称 capped 更严格"
   },
   "runs_to_evaluate": [],
   "checkpoints": [],
@@ -318,5 +330,27 @@
     ],
     "rule": "恰好 5 列，每 (unit,cycle) 一行；不得出现裸 y_true（= min(raw,125)，隐式 capped 口径），也不用 engine_id / flight_cycle",
     "criterion": "由 evaluate(criterion=...) 显式选择，CSV 只提供两个标好名的标签"
+  },
+  "measured_scale": {
+    "dev_units": [
+      2,
+      5,
+      10,
+      16,
+      18,
+      20
+    ],
+    "test_units": [
+      11,
+      14,
+      15
+    ],
+    "dev_flights": 446,
+    "test_flights": 202,
+    "train_windows_per_fold": 380,
+    "max_dev_cycle": 89,
+    "max_test_cycle": 76,
+    "rows_per_cycle_note": "unit 14 每周期 1,912 行（Fc=1）、unit 15 为 6,381（Fc=2），其余 11k–13k；飞行时长差约 6 倍，slope 守卫（<10 样本置 NaN）会在这些机上真实触发，不是异常",
+    "source": "experiments/ncmapss/ds02_audit.json（inspect_ds02 实测）"
   }
 }

@@ -1,8 +1,8 @@
 # N-CMAPSS DS02 实验台账 schema
 
-版本：**v5** · 2026-11-12
+版本：**v6** · 2026-11-12
 状态：**schema 已定，0 run**（等数据接入后按此登记）
-最后更新：2026-11-12 21:15 (+08)
+最后更新：2026-11-12 21:50 (+08)
 维护人：实验结果管理员
 适用：`docs/paper_b_ncmapss/registry/`（**与 C-MAPSS 的 `docs/paper_b_hc/registry/` 完全独立，互不引用、互不写入**）
 基准提交：`ac94c29`，分支 `ncmapss-ds02`
@@ -245,13 +245,18 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
 
 | 项 | 值 |
 |---|---|
-| `freeze_commit` | **`7f01909`** |
-| `protocol_blob` | **`4458d9ea05c965251aabb782bba9765304ebf686`** |
-| 核验命令 | `git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
+| `freeze_commit` | **`922a2d1`** |
+| `protocol_blob` | **`ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1`** |
+| 核验命令 | `git rev-parse 922a2d1:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
 
-> 旧锚 `5b228ad` / `6c184bbf…` **已作废**：协议在开跑前修正三处——§6.3 主指标标注、
-> §6.4 相对分段分母改为该机全寿命、HI 范围收窄（N0–N3 本无 HI 臂）。前移理由记在
-> `REPRODUCIBILITY_AUDIT.md`。**`7f01909` 之后协议冻结，直到 LOEO 开发集结果出来为止不再改**。
+> **已作废的旧锚（按时间顺序）**：
+> `5b228ad` / `6c184bbf…` → `7f01909` / `4458d9ea…` → **`922a2d1` / `ebfbfcb8…`（当前）**。
+> 前两次前移的理由：主指标标注、相对分段分母（真 bug）、HI 范围收窄。
+> 本次前移的理由（两条，都来自**实测文件、跑前**）：
+> ① 训练预算按实测数据量改（40 epochs 在 DS02 上只有 40 个梯度步 → 1000 步）；
+> ② capped 口径实测失效（最长 dev 89 周期、test 76，全部 < 125）。
+> 细节见 `REPRODUCIBILITY_AUDIT.md`。**`922a2d1` 之后协议冻结，直到 LOEO 开发集结果出来为止不再改**。
+
 
 ---
 
@@ -268,6 +273,23 @@ eval_start_utc, status, audit_verdict, independent_unit, registry_note, audited_
   指标退化成常数且**不报错**。实现上由数据层传入 `unit_lifetime: dict[unit, max_rul]`，缺了就报错。
 - **`absolute` 的 (75, 25) 是默认值**，可在 DS02 真实 RUL 尺度确认后改**一次**，
   且必须改在冻结之前；看完结果再调 = 协议违规。
+
+---
+
+### 3.5 capped 口径在 DS02 上失效（实测，v6）
+
+实测：dev 最长 **89** 个飞行周期（unit 5），test 最长 **76**。全部 < 125，因此
+`y_true_cap125 == y_true_raw` **处处成立**，capped 不是第二个独立口径。
+
+| 事项 | 规则 |
+|---|---|
+| `pred.csv` 两列 | **照写**（审计要求保留原始与封顶两个标签，用户 §六） |
+| 结果表 | capped 标 `inactive (no unit exceeds the cap)`，**不与 raw 并排印表** |
+| 12 个 `seg_*_capped` 列 | 字段结构不变，照常登记；**报表时标 inactive** |
+| 措辞 | **不得称 capped 为「更严格的口径」**，也不得把 capped 与 raw 的差异算作模型属性——那是标签定义的属性 |
+
+> 这条正好是 C-MAPSS 那晚的反面：那边 cap 生效、capped/raw 差一倍；这边 cap 不生效、两者恒等。
+> 所以「哪个口径更严」不是先验结论，必须按数据集实测，写进台账而不是靠记忆。
 
 ---
 
@@ -377,6 +399,9 @@ docs/paper_b_ncmapss/registry/
     出现裸 `y_true`、`engine_id`、`flight_cycle` 任一 → `fail`。裸 `y_true` 等于 `min(raw,125)`，
     是隐式的 capped 默认口径，和「池化当发动机级」是同一类错误。
 
+19. **训练预算按 1000 步**：从该 run 的 `config.json` 取 `N_train`（训练窗口数）与 `batch`，
+    核对 `epochs_run == ceil(1000 / ceil(N_train / batch))`。不等于 → `fail`（跑错预算）。
+    **故意不加 `n_train_windows` 列**：开跑在即，加列会让写入端和台账错位；该值从 config 取即可。
 ---
 
 ## 9. 开跑前自检（每批 run 之前跑一遍，任何一条不过就不许开跑）
@@ -384,9 +409,9 @@ docs/paper_b_ncmapss/registry/
 ```bash
 cd <repo>
 # 1. 协议没漂移：冻结提交、当前 HEAD、台账三处 blob 必须相同
-git rev-parse 7f01909:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 4458d9ea05c965251aabb782bba9765304ebf686
+git rev-parse 922a2d1:docs/paper_b_ncmapss/DATASET_PROTOCOL.md   # 期望 ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1
 git rev-parse HEAD:docs/paper_b_ncmapss/DATASET_PROTOCOL.md      # 必须与上一行相同
-grep -c 4458d9ea05c965251aabb782bba9765304ebf686 docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
+grep -c ebfbfcb8d41c7f4dd0bfc3d0c35a50225b57d7d1 docs/paper_b_ncmapss/registry/runs.csv  # 每行都要命中
 
 # 2. 工作区干净（3090 是只读消费者）
 git fetch && git reset --hard origin/ncmapss-ds02
