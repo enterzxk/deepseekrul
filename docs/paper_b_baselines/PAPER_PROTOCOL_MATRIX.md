@@ -52,6 +52,89 @@
 
 **读法**：这张表里「未写」占 12 格。它们不是作者疏漏的证据，而是**我们无法核实的证据**——按任务书要求，凡是协议无法核实的比较都要降级。
 
+> **2026-11-12 补充**：本表只覆盖标签与评分。引用前另见
+> **§3.1 文件名→论文对应**（按文件名引用会把 ST-KDFormer 与 SFI-STHGAT 整篇互换）、
+> **§3.2 四条轴**（cycle 输入 / 标签裁剪 / 评估单位 / 调参预算）、
+> **§3.3 四条脚注**（F1–F4，缺任一条的跨论文比较不可引用）。
+
+---
+
+### 3.1 文件名 → 论文对应（2026-11-12 核正，**引用前必须按本表**）
+
+本地 PDF 文本层的文件名与论文**对不上**，按文件名引用会把 ST-KDFormer 与 SFI-STHGAT **整篇互换**。
+
+| 本地文件 | 实际论文 | 编号 / 简称 |
+|---|---|---|
+| `A_Condition-Aware_Spatio-Temporal_Networ.txt` | A Condition-Aware Spatio-Temporal Network（含 SFI 模块） | TIM 75, 2026, 2520317 = **SFI-STHGAT** |
+| `Enhanced_Remaining_Useful_Life_Predictio.txt` | Spatiotemporal **Koopman Dual-Branch** Transformer | TIM 74, 2025, 2550316 = **ST-KDFormer** |
+| `Estimating_Remaining_Useful_Life_of_Airc.txt` | Graph Tensor Fusion Network | TIM 74, 2025, 2518314 = **STGATN** |
+| `Heterogeneous_Dynamic-Aware_GNN_for_RUL_.txt` | HDA-GNN | TIM 74, 2025, 3538014 |
+| `1-s2.0-S1270963826016779-main.txt` | DCCG-Mamba | AST 179, 2026, 113299 |
+
+> 纠正：「SFI-STHGAT」对应 `A_Condition-Aware…`，**不是** `Enhanced…`。以标题为准，不以文件名为准。
+
+### 3.2 四条轴（2026-11-12 新增：输入信息 / 标签裁剪 / 评估单位 / 调参预算）
+
+**轴一：cycle 是否进输入**（原矩阵完全没有这一轴）
+
+| 论文 | 原文依据 | 判定 |
+|---|---|---|
+| **SFI-STHGAT** | 输入分两类：「1) OCs, with three condition features; 2) SMs, with 14 informative sensor readings」；cycle 与 engine ID 在分割时被排除 | **不进输入** |
+| **ST-KDFormer** | 「`X_temporal ∈ R^{L×M}`, M is the number of **sensors**」 | **不进输入** |
+| **STGATN** | 「Cycle = f(S_t)」，S_t 为传感器状态向量 | **cycle 是输出，不是输入** |
+| **HDA-GNN** | 数据 26 列含 cycle，但只写对 21 个传感器筛选 | **未核实** |
+| **DCCG-Mamba** | 窗口长度「number of cycles **in** each input window」——按 cycle 计窗长，不是把 cycle 值当通道 | **未核实** |
+
+**后果**：至少两篇明确不喂 cycle、一篇 cycle 是标签。本工作的 A2/A3a/A4/A5 把 cycle 编码后喂进模型，
+**输入比它们多一个通道**。因此**对这两篇的任何架构级优势都不成立——优势属于信息，不属于架构**。
+真正公平的比较只有本工作自己的 Vanilla 2×2（只加 cycle：12.803 → 11.758）。
+
+**轴二：标签裁剪**
+
+- 训练 cap：SFI-STHGAT 125、ST-KDFormer 125、HDA-GNN 125、DCCG-Mamba **125/130/125/135 按子集**、
+  STGATN 「a maximum RUL is set」但**数值在文本层缺失**。
+- **测试标签与预测裁剪：五篇全部未写。**
+- 故只能记「未写」，**不得推「必裁」**（见 §5 撤回块）。
+
+**轴三：评估单位**
+
+| 论文 | 原文 | 判定 |
+|---|---|---|
+| DCCG-Mamba | 「N is the number of test **engines**」 | 明确按发动机 |
+| SFI-STHGAT | 「N_test = number of test **samples**」 | 未区分样本/发动机 |
+| ST-KDFormer | 「N = number of **samples**」 | 同上 |
+| STGATN | 「N_test = number of testing **samples**」 | 同上 |
+| HDA-GNN | 「N = total number of test **samples**」 | 同上 |
+
+只有 DCCG-Mamba 写清单位。其余四篇若按全窗计，N 大一个量级，早窗被 cap 主导、RMSE 被稀释。
+
+**轴四：调参预算**
+
+| 论文 | 预算 | 可核实度 |
+|---|---|---|
+| **ST-KDFormer** | AdamW, lr 1e-3, MultiStepLR 在 ep 10/20/30/40 各 ×0.5, **100 epochs**, batch 128 | 明文完整 |
+| **DCCG-Mamba** | AdamW, lr 1.5–3.0e-4, wd 1.0–2.0e-4, batch 128/256, **120 epochs**, dropout 0.12–0.22, window 40/50/40/60, **按子集用 DA-MT-MFBO 元启发式逐子集调参** | 明文完整，五篇里调得最狠 |
+| HDA-GNN | 「differentiated learning rate + Adam + dropout」，数值在 Table II | 表未抽出，部分未核实 |
+| SFI-STHGAT | 文本层**无** epochs / learning rate | 未核实 |
+| STGATN | 「hyperparameters in Table III」 | 表未抽出，未核实 |
+
+**本工作预算**：40 epoch / patience 12 / batch 512 / lr 1e-3 / d_model 64 / 2 层。
+对比 ST-KDFormer 的 100 epoch 与 DCCG-Mamba 的 120 epoch + 逐子集元启发式调参，**本工作预算明显更小**。
+
+这条对两个方向**作用相反**：性能上让本工作的优势更保守（可信）；
+**消融上它是混杂变量**——小预算可能本身压不出模块间差异，
+所以「未检出独立增益」应写成「**在 40 epoch 预算下未检出，且该预算小于可核实的对比论文，
+不能排除预算不足**」。结论等级不变，仍是「未检出」。
+
+### 3.3 跨论文比较必须携带的脚注（四条，缺一条即该比较不可引用）
+
+- **F1 输入信息不同**：至少两篇不喂 cycle、一篇 cycle 是标签（轴一）。多一个通道带来的优势属于信息，
+  不属于架构；与这两篇的任何架构级优势不成立。
+- **F2 测试标签口径未核实**：五篇均未声明测试标签是否裁剪（轴二）。「作者必裁」的推论已撤回（§5）。
+- **F3 评估单位不一致**：仅 DCCG-Mamba 写明按发动机，其余四篇为 samples（轴三）。
+- **F4 调参预算不对等**：可核实的两篇为 100 / 120 epoch 且后者逐子集调参，本工作 40 epoch（轴四）。
+  该不对称对性能结论偏保守，但对**消融**是混杂变量。
+
 ---
 
 ## 4. 逐篇证据（原文句）
