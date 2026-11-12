@@ -49,10 +49,19 @@ git rev-parse 9ac1744:docs/paper_b_ncmapss/DATASET_PROTOCOL.md
 # a3c40c634da7a3bb44ace788f74896b17e51c3fb
 ```
 
-Every row in `registry/runs.csv` must cite **this blob hash**, not only the
-commit: a commit can be amended or rebased, a blob hash cannot. A run whose
+Every row in `registry/runs_<subset>.csv` must cite **this blob hash**, not only
+the commit: a commit can be amended or rebased, a blob hash cannot. A run whose
 `protocol_blob` does not match is treated as produced under an unknown protocol
 and leaves the main evidence table.
+
+The ledger is **one file per subset** (`runs_DS02.csv`, `runs_DS05.csv`, …), not
+one combined `runs.csv`. The reason is that the subset list is open — DS01/03/04
+may be added later — and a single table would have to be rewritten on every
+addition, which would change the hash of a subset that had already been sealed.
+`registry/SUBSETS.md` is the index of which files exist, with each one's
+`protocol_blob`, row count and seal state. Because `protocol_blob` is a
+**per-row** field, a sealed subset keeps its own anchor even after the protocol
+moves on; no later anchor can rewrite it.
 
 ### Anchor history
 
