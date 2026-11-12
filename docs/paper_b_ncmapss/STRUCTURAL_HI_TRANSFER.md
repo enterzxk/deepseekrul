@@ -3,6 +3,27 @@
 Status: **design note, nothing measured**. Written before any DS02 result so the
 expectation cannot be fitted to the outcome afterwards.
 
+## Scope: the current round tests no HI
+
+The frozen N0–N3 ladder has **no HI arm**. N3 reads its switches from
+`FREEZE_ABLATION_SEED101.json` → cell `A8_mssa_L70`, and that cell is
+`ms_mode=full, sa_mode=basic, hi_source=none` (verified against
+`paper_b/experiments/grids/ablation8.json`; the freeze manifest's own note says
+"final model remains MS+SA").
+
+Consequences, stated before any number exists:
+
+- This round produces **no cross-dataset HI result**. Nothing in it may be
+  reported as evidence for or against the HI head, in either direction.
+- The test designed below is **pre-registered for N4/N5**, which D043 defers
+  until the C-MAPSS mechanism is frozen.
+- Any table or sentence pairing "DS02" with "HI gain" is wrong until an N4/N5
+  run exists. This matters because the registry records `freeze_source`: a later
+  reader could otherwise infer from "N3 = frozen DSPT" that HI was in scope.
+
+The rest of this file is therefore a **deferred pre-registration**, not a plan
+for the current round.
+
 ## What "structural HI" means here
 
 In the C-MAPSS line, `hi` is an auxiliary supervision head: the model is asked to
