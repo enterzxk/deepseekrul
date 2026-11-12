@@ -236,6 +236,20 @@ $B_0$ 是**初始化后、训练开始前**固定抽取的若干 batch（初版 
 $S_0$ **只测一次、写进 `config.json`、训练全程复用**：
 逐 epoch 重测等于让目标函数随训练漂移，禁止。
 
+**$S_0$ 的三条硬约束**：
+
+1. **detach**：在初始化权重上算，`no_grad`，不带梯度、不参与反传。
+2. **B0–B3 共用同一个 $S_0$**：从**同一份参考 init**（四组共用的那份骨干初始化）算一次，
+   写进共享 config，四个 run 读同一个数值。
+   否则每个 run 的 $S_0$ 不同，$\lambda_S/S_0$ 的**实际权重**就不同，四组对照的公平性直接没了。
+3. **下限** $S_0\leftarrow\max(S_0,\,10^{-12})$：初始化时 $\Delta\delta$ 可能极小，
+   不加下限会让 $\lambda_S/S_0$ 把平滑项梯度放大到失控。
+
+写成一行：
+
+$$S_0=\max\!\Big(10^{-12},\ \ \mathrm{stopgrad}\ \widehat{\mathbb E}_{B_0}\big[(\Delta\delta)^2\big]\Big),\qquad
+\tilde L_\text{smooth}=L_\text{smooth}/S_0 .$$
+
 ### D4.4 量纲检查：从表达式推，不先写结论
 
 时间在本规格里是**离散的、以周期为单位**，因此递推是求和而非积分：
@@ -310,7 +324,12 @@ $L_\text{RUL}$ 的梯度有一半来自"把 $\hat T^\star$ 推过 125"这一个�
 2. `boundary_hit`：$P(\hat T^\star\ge125 \mid r_t\ge125)$。若 < 1，说明有封顶窗口被压到 125 以下、
    对 RMSE 有真实贡献；若 = 1，封顶窗口全部"隐身"。
 3. `rmse_uncensored`：只在 $r_t<125$ 的窗口上算 RMSE。这是不受边界影响的诚实读数。
-4. `rmse_uncapped`：**对未封顶真值 $r_t$ 算 RMSE**。
+4. `rmse_uncapped`：**对未封顶真值 $r_t$ 算 RMSE，但只在 $r_t\le K_\text{model}$ 的窗口上算**，
+   同时报 `frac_r_gt_K`。
+   原因：真值 $r_t$ 最大可达 543，而 $\hat T^\star\le K_\text{model}=200$。FD004 的长引擎在
+   $0.40/0.55$ 两个 cut 上 $r_t=326/244$，都超过 200——若把这些样本算进去，
+   `rmse_uncapped` 会被**系统性压低**（不是抬高），看起来"变好"，实际是截断造成的。
+   被截断的尾部必须单列，不能混进比较。
 5. `rmse_by_censoring`：把 val 窗口按 $r_t<125$ / $r_t\ge125$ 分层，**两层分别报 RMSE**；
    并报封顶层里 $\hat T^\star$ 恰好落在 125 的比例（`exact_boundary`）。
 
@@ -323,6 +342,8 @@ $L_\text{RUL}$ 的梯度有一半来自"把 $\hat T^\star$ 推过 125"这一个�
 
 **判据归属**：D-G1 用封顶指标判（与 Gate A 口径可比），但 `rmse_uncapped` 同时报出。
 若封顶指标改善而 `rmse_uncapped` 恶化，判为**拟合截断**而非真实进步，D-G1 记不过。
+该比较**只在 $r_t\le K_\text{model}$ 的子集上成立**，且四个 run 用同一 val 集，
+`frac_r_gt_K` 应当逐位相同——若不同，说明数据接口有漂移，先查接口再判。
 
 ---
 
