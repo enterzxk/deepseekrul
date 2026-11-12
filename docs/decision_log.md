@@ -1895,3 +1895,29 @@ raw 标签 + 外推预测是同样自洽的解释。
 `docs/paper_b_baselines/BASELINE_PROTOCOL_AUDIT.md` §2b/§8、
 `docs/paper_b_baselines/DSPT_BASE_FUNCTIONAL_AUDIT.md` §6.4/§7、`RUN_INVENTORY.md` §0、
 `paper_b/reports/CURRENT_STATUS.md` §5–7。
+
+---
+
+## D042 · 2026-11-12 17:2x · L2 咨询通道失败记为 UNRESOLVED（配额，非逻辑）（L2-DEGRADED）
+
+**事项**：`docs/paper_b_hc/L2_CONSULT_G2_20261112.md` 原为一次发给 Codex 的 G2 归因咨询，
+内容含五个待裁问题（G2 判"失败"还是"不可辨识"、Fourier 主张是否放弃、是否必须加尺度对齐臂、
+FD002 双口径反号如何记、A3p 的 +3.73% 能写到什么程度）。
+
+**实测失败原因**：**额度上限，不是逻辑失败，也不是模型拒答。**
+
+- 环境：`codex-cli 0.167.0-alpha.3.2`、`model: gpt-6.1-sol`、`sandbox: read-only`、`reasoning effort: max`。
+- 失败点：请求发出后 5 次重连全部超时（`Reconnecting... 2/5 … 5/5`，
+  `Falling back from WebSockets to HTTPS`），随后返回
+  `You've hit your usage limit … try again at Nov 15th, 2026 1:29 PM`。
+- **没有返回任何 JSON 裁决**，故该次咨询**不产生任何 L2 结论**。
+
+**处置（按 `AGENTS.md` §0.0.4）**
+
+1. 文件头标 `UNRESOLVED` + `PENDING-L2`，原文与错误记录**逐字保留**（仅由 UTF-16LE 转码为 UTF-8，未改字符）。
+2. **不伪造 Codex 结论**；G2 归因、Fourier 主张取舍等判断**继续挂起**，不据此推进。
+3. 不依赖该判断的工作照常推进（G2 尺度测量属此类）。
+4. 待额度恢复（原文时点 2026-11-15 13:29）或降级通道可用时补审。
+5. **不转问用户**（§0.0.4 明令）。
+
+**证据**：`docs/paper_b_hc/L2_CONSULT_G2_20261112.md`（含原始错误全文）、`AGENTS.md` §0.0.4。
