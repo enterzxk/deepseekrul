@@ -5,8 +5,9 @@ Cell counts (schema §1.2): N0 = 6 folds x 1 (no seed axis) = 6; N1/N2/N3 =
 
 Per cell this writes, under ``experiments/ncmapss/<run_id>/``:
 
-    pred.csv             unit, cycle, y_true, y_true_raw, y_true_cap125, y_pred
-                         exactly one row per (unit, cycle)
+    pred.csv             unit, cycle, y_true_raw, y_true_cap125, y_pred
+                         exactly one row per (unit, cycle); no bare `y_true`
+                         column, so the criterion is always chosen explicitly
     unit_lifetime.json   unit -> max RUL over that unit's complete trajectory
                          (needed by the relative segment rule; never a feature)
     curve.csv            per-epoch train / holdout loss
@@ -173,8 +174,10 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
             if len(pred) != len(y_raw):
                 raise RuntimeError(f'prediction/label length mismatch {len(pred)} vs {len(y_raw)}')
             import pandas as pd
-            pd.DataFrame(dict(unit=unit, cycle=cyc, y_true=np.minimum(y_raw, CAP),
-                              y_true_raw=y_raw, y_true_cap125=np.minimum(y_raw, CAP),
+            # exactly five columns: no bare `y_true`, because that name would
+            # silently carry the capped label and become a default criterion.
+            pd.DataFrame(dict(unit=unit, cycle=cyc, y_true_raw=y_raw,
+                              y_true_cap125=np.minimum(y_raw, CAP),
                               y_pred=pred)).to_csv(d / 'pred.csv', index=False)
             (d / 'unit_lifetime.json').write_text(json.dumps(data['unit_lifetime'], indent=1))
             pd.DataFrame(res['history']).to_csv(d / 'curve.csv', index=False)
