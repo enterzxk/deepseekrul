@@ -118,6 +118,36 @@ them worth anything.
    rung"** — **not tested.** No cycle-ablated rung was run; N0 is the
    cycle-*only* reference, not its complement.
 
+### Paired contrasts, and what six folds can actually resolve
+
+Folds are paired, so the contrast of interest is the per-fold difference, not the
+difference of two means. Exact two-sided sign tests, `fixed_passes:200`:
+
+| contrast | mean paired difference | sd | folds agreeing | exact two-sided p |
+|---|---|---|---|---|
+| N2 − N1 | **−15.65** | 9.22 | **6/6** | **0.031** |
+| N0 − N1 | **−17.31** | 10.04 | **6/6** | **0.031** |
+| N0 − N2 | −1.65 | 2.40 | 4/6 (N0 better) | 0.69 |
+| N0 − N3 | −4.52 | 5.20 | 5/6 (N0 better) | 0.22 |
+| N3 − N2 | +2.87 | 3.98 | 4/6 (N3 worse) | 0.69 |
+
+Two things follow, and the second one constrains the paper's claims.
+
+1. **Vanilla is beaten by a cycle counter in every single fold** (N0 − N1 = −17.31,
+   6/6). That is the strongest statement in this table, and it is about N1, not
+   about DSPT.
+2. **With six folds the sign test cannot reach 0.05 unless all six agree** — the
+   smallest attainable two-sided p is 2/64 = 0.031. So *by construction* the
+   design can only certify unanimous contrasts, and the only unanimous contrasts
+   here are the two that involve N1 — the rung whose gap to N2 mixes three
+   simultaneous changes. Every contrast that bears on the architecture question
+   (N0 vs N2, N0 vs N3, N3 vs N2) is non-significant, and one of them (N0 vs N2,
+   p = 0.69) is non-significant while pointing the wrong way for the method.
+
+This is not a power complaint to be fixed by more seeds: the unit of replication
+is the engine, and there are six. It is the reason the paper's claim is
+"indistinguishable from a cycle counter on DS02", not "worse" and not "better".
+
 Secondary table (MAE, Bias, NASA score, early/mid/late segments) is not yet
 reported; it is required before any of the above enters the manuscript.
 
