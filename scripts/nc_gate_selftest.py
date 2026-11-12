@@ -12,11 +12,13 @@ from pathlib import Path
 sys.path.insert(0, '.')
 
 from paper_b.ncmapss.data import official_split              # noqa: E402
-from paper_b.ncmapss.run_loeo import (SEEDS, _check_manifest,  # noqa: E402
-                                      _freeze_hash_ok, _load_freeze)
+from paper_b.ncmapss.run_loeo import (SEEDS, _check_epoch_star,  # noqa: E402
+                                      _check_manifest, _freeze_hash_ok,
+                                      _load_freeze)
 
 H5 = 'data/NCMAPSS/extracted/N-CMAPSS_DS02-006.h5'
 SHA = '47971a68b239ecb756833218a95d68ded6eb7e63ee84e86671c8b188de1ca765'
+DEV_LEDGER = 'experiments/ncmapss/DS02/runs_dev.csv'
 SEEDS_BY_RUNG = {'N0': (None,), 'N1': SEEDS, 'N2': SEEDS, 'N3': SEEDS}
 
 
@@ -43,7 +45,25 @@ def main():
     _check_manifest(man, 'DS02', dev, test, SHA, ('N0', 'N1', 'N2', 'N3'), SEEDS_BY_RUNG)
     print('  accepted (good)')
 
+    print('positive: epoch* reproduced from the dev ledger')
+    _check_epoch_star(man, 'DS02', DEV_LEDGER, ('N0', 'N1', 'N2', 'N3'), SEEDS_BY_RUNG)
+    print('  accepted (good)')
+
     print('negative cases')
+    tampered_epoch = dict(man)
+    tampered_epoch['epoch_star_values'] = [
+        dict(c, epoch_star=c['epoch_star'] + 7) if c['subset'] == 'DS02' else c
+        for c in man['epoch_star_values']]
+    expect_fail('manifest froze a different epoch* than the runner derives',
+                lambda: _check_epoch_star(tampered_epoch, 'DS02', DEV_LEDGER,
+                                          ('N0', 'N1', 'N2', 'N3'), SEEDS_BY_RUNG))
+    expect_fail('manifest froze a different fold multiset',
+                lambda: _check_epoch_star(
+                    dict(man, epoch_star_values=[
+                        dict(c, fold_values=[1, 2, 3, 4, 5, 6])
+                        if c['subset'] == 'DS02' else c
+                        for c in man['epoch_star_values']]),
+                    'DS02', DEV_LEDGER, ('N0', 'N1', 'N2', 'N3'), SEEDS_BY_RUNG))
     expect_fail('only N0 requested while the manifest lists four rungs',
                 lambda: _check_manifest(man, 'DS02', dev, test, SHA, ('N0',),
                                         SEEDS_BY_RUNG))

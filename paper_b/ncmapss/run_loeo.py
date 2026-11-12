@@ -602,6 +602,35 @@ def _dev_epoch_star(dev_ledger, rung, seed):
     return int(np.floor(mean + 0.5)), vals
 
 
+def _check_epoch_star(man, subset, dev_ledger, rungs, seeds_by_rung):
+    """Refuse to open if the runner recomputes a different epoch* than was frozen.
+
+    A manifest that carries 40 epoch* values while the runner derives its own is
+    frozen in appearance only: anyone could re-derive a different value after the
+    test engines were scored and still look compliant. This is the same class of
+    hole as a freeze timestamp left outside the hash. The six fold values are
+    compared as a multiset, because their order is presentation and the claim is
+    the six numbers.
+    """
+    frozen = {(c['subset'], c['rung'], c['seed']): c
+              for c in man.get('epoch_star_values', [])}
+    for rung in rungs:
+        for sd in seeds_by_rung[rung]:
+            key = (subset, rung, sd)
+            if key not in frozen:
+                raise SystemExit(f'manifest has no frozen epoch* for {key}')
+            ep, folds = _dev_epoch_star(dev_ledger, rung, sd if sd is not None else '')
+            f = frozen[key]
+            frozen_folds = sorted(int(x) for x in f['fold_values'])
+            if int(f['epoch_star']) != ep or frozen_folds != sorted(folds):
+                raise SystemExit(
+                    f'{key}: the runner computes epoch*={ep} from folds {folds}, '
+                    f'but the manifest froze epoch*={f["epoch_star"]} from '
+                    f'{f["fold_values"]}; refusing to open the test set')
+    print(f'epoch* frozen and reproduced for {sum(len(seeds_by_rung[r]) for r in rungs)} '
+          f'cells of {subset}')
+
+
 def run_test_cell(rung, cfg, path, dev_units, test_units, out_root, ledger, pre,
                   data_sha, subset, dev_ledger, freeze=None):
     """Train on all six dev engines and score the sealed test engines.
@@ -795,6 +824,8 @@ def main():
                              f'current {pre["protocol_blob"]}')
         seeds_by_rung = {'N0': (None,), 'N1': SEEDS, 'N2': SEEDS, 'N3': SEEDS}
         _check_manifest(man, subset, dev_units, test_units, data_sha, rungs, seeds_by_rung)
+        # the frozen epoch* must be the one the runner would derive itself
+        _check_epoch_star(man, subset, dev_ledger, rungs, seeds_by_rung)
         print(f'freeze {man["freeze_id"]}  hash_rule={rule}  '
               f'cells={len(man["runs"])}  anchor={pre["protocol_blob"]}')
         _write_eval_start(man_path, man, rule,
