@@ -163,6 +163,20 @@ FD004 最大：$K=200$、$N=48691$、$d=64$、$h=32$ → 前向约 $2.0\times10^
 若按窗口逐个滚，FD004 一轮就是 $48691\times200\approx9.7\times10^{6}$ 次小网络调用
 （$K=543$ 时 $2.6\times10^{7}$），Python 层开销直接爆炸。这条写进 D7。
 
+**尾部截断的代价（必须报，不许隐去）**：实测真 RUL $>200$ 的窗口占比——
+
+| 子集 | 训练窗 | val 窗 |
+|---|---|---|
+| FD001 | 10.3% | 0.0% |
+| FD002 | 10.6% | 0.0% |
+| FD003 | 24.6% | 0.0% |
+| FD004 | 21.6% | 3.2% |
+
+这些窗口全部 $r_t>200>125$，已按 D4.1 删失，只要 $\hat T^\star\ge125$ 损失就是 0，
+所以**对训练目标没有影响**（这正是 $K$ 可以从 543 砍到 200 的原因）。
+但 $\hat T^\star$ 在 200 处右截断，因此这些窗口上的 $\hat T^\star$ **只是真实 RUL 的下界**，
+不得当成校准过的 RUL 报出去；结果文档必须同时给出上表的占比。
+
 **上限内未达阈值**：$S_K>0$ 时 $\hat T^\star<K$ 仍良定义（有限项和），
 不引入"未命中"特判；封顶状态只通过 $L_\text{RUL}$ 的删失项处理（D4.1）。
 
@@ -172,7 +186,7 @@ FD004 最大：$K=200$、$N=48691$、$d=64$、$h=32$ → 前向约 $2.0\times10^
 
 $$L=L_\text{RUL}+\lambda_T L_\text{terminal}+\lambda_S L_\text{smooth}$$
 
-### D4.1 $L_\text{RUL}$：删失（Tobit）平方误差
+### D4.1 $L_\text{RUL}$：删失 hinge（censored hinge）
 
 $$\ell_t=\begin{cases}
 \big(\hat T^\star_t-r_t\big)^2, & r_t<\texttt{rul\_cap}\quad(\text{未删失})\\[2pt]
@@ -182,6 +196,16 @@ $$\ell_t=\begin{cases}
 **为什么不能直接用 $(\hat T^\star_t-y_t)^2$**：$y_t=\min(r_t,125)$ 把"至少 125"写成"恰好 125"，
 会惩罚 $\hat T^\star>125$ 的预测，等于让模型去拟合截断本身。任务书 §7 D4 要求明确
 "封顶是截断监督目标，不等于真实退化状态"，本节即是它的数学形式。
+
+> **名字要说准：这是 hinge，不是 Tobit 似然。** 单边 hinge 只惩罚"低于 125"，
+> 对 $\hat T^\star>125$ **零惩罚**；真删失正态似然会给 $r\ge125$ 的样本
+> $-\log\int_{125}^{\infty}\mathcal N(u;\hat T^\star,\sigma^2)\,du$，它对
+> $\hat T^\star\gg125$ 仍有（很弱的）梯度，且顺带估出 $\sigma$。
+> 本规格**不采用**似然形式，理由有二：① 冻结协议的指标是封顶 RMSE（平方误差），
+> hinge 与它的口径一致、可比；② 似然要引入 $\sigma$ 与截断正态 CDF 的数值稳定性问题，
+> 初始版不增加自由度。
+> **代价必须写进结果**：hinge 对 $\hat T^\star>125$ 无梯度，因此封顶样本的预测值
+> 不受约束（D4.6 量化其影响）。若将来要报校准过的 RUL 而非排序，应换回似然形式。
 
 **指标口径不变**：论文报的 `val_engine_mean_rmse` 仍在封顶标签上算，
 计算前把 $\hat T^\star$ **截断到 `rul_cap`**。这一步必须写进评估代码并在结果文档注明。
@@ -199,6 +223,19 @@ $$L_\text{smooth}=\frac{1}{|\mathcal{T}|}\sum_{t}\big(\delta_{t+1}-\delta_t\big)
 
 即 $D$ 的二阶差分能量（逐周期增量的变化率），抑制速率抖动。
 
+**必须按数据尺度归一化，否则这一项等于关掉。** 实测 $\delta$ 的逐周期变化极小，
+$(\Delta\delta)^2$ 在 $10^{-8}$ 量级；乘 $\lambda_S=125^2$ 后仍只有 $10^{-4}$，
+相对 $L_\text{RUL}\sim10^{2}$ 完全不产生梯度——D4.5 的梯度比会直接掉到 0，被误判成"辅助任务失效"。
+
+因此定义**归一化平滑项**：
+
+$$\tilde L_\text{smooth}=\frac{L_\text{smooth}}{S_0},\qquad
+S_0=\frac{1}{|B_0|}\sum_{b\in B_0}\frac{1}{|\mathcal T_b|}\sum_t\big(\delta_{t+1}-\delta_t\big)^2 ,$$
+
+$B_0$ 是**初始化后、训练开始前**固定抽取的若干 batch（初版 8 个、固定种子）。
+$S_0$ **只测一次、写进 `config.json`、训练全程复用**：
+逐 epoch 重测等于让目标函数随训练漂移，禁止。
+
 ### D4.4 量纲检查：从表达式推，不先写结论
 
 时间在本规格里是**离散的、以周期为单位**，因此递推是求和而非积分：
@@ -215,10 +252,15 @@ $\nu_t$ 是 $\delta$ 的 EMA，仍是**逐步增量**，故同样无量纲。于
 | $L_\text{terminal}$ | 无量纲 | $(D_{n_e}-1)^2$ |
 | $L_\text{smooth}$ | **无量纲** | $(\delta_{t+1}-\delta_t)^2$，两个无量纲量之差 |
 
-三项可加要求 $\lambda_i L_i$ 同为周期²，故
+三项可加要求 $\lambda_i L_i$ 同为周期²。注意 $\tilde L_\text{smooth}$ 除以 $S_0$（无量纲）后
+量纲不变，故 $\lambda_T$ 与 $\lambda_S$ **同为 $L_\text{scale}^2$**：
 
 $$\lambda_T=c_T\,L_\text{scale}^{2},\qquad \lambda_S=c_S\,L_\text{scale}^{2},
+\qquad L=L_\text{RUL}+\lambda_T L_\text{terminal}+\lambda_S\tilde L_\text{smooth},
 \qquad L_\text{scale}=\texttt{rul\_cap}=125 .$$
+
+归一化只改数值尺度、不改量纲：$L_\text{terminal}$ 与 $\tilde L_\text{smooth}$ 现在都是 $O(1)$，
+$\lambda$ 取 $125^2$ 后三项量级可比，D4.5 的梯度比才有意义。
 
 **两次都取自表达式**：$L_\text{terminal}$ 与 $L_\text{smooth}$ 都是无量纲，
 所以两者都乘 $L_\text{scale}^{2}$，没有 $L_\text{scale}^{4}$。
@@ -269,9 +311,15 @@ $L_\text{RUL}$ 的梯度有一半来自"把 $\hat T^\star$ 推过 125"这一个�
    对 RMSE 有真实贡献；若 = 1，封顶窗口全部"隐身"。
 3. `rmse_uncensored`：只在 $r_t<125$ 的窗口上算 RMSE。这是不受边界影响的诚实读数。
 4. `rmse_uncapped`：**对未封顶真值 $r_t$ 算 RMSE**。
+5. `rmse_by_censoring`：把 val 窗口按 $r_t<125$ / $r_t\ge125$ 分层，**两层分别报 RMSE**；
+   并报封顶层里 $\hat T^\star$ 恰好落在 125 的比例（`exact_boundary`）。
 
 第 4 条是关键：**val 窗口是训练发动机的截断切分，发动机跑到失效，所以 $r_t=n_e-t$ 是已知的**，
 不是未知量。因此可以完全绕开封顶，直接对真实 RUL 评估。这条必须和封顶指标并报。
+
+**D-G4（软硬到达一致）也要分层**：$\overline{\hat T^\star}$ 与 $\overline{T^\text{hard}}$
+的差在**未封顶层**和**封顶层**分别计算。封顶层本来就该落在边界上，混在一起会把
+软到达的系统偏差掩盖掉。
 
 **判据归属**：D-G1 用封顶指标判（与 Gate A 口径可比），但 `rmse_uncapped` 同时报出。
 若封顶指标改善而 `rmse_uncapped` 恶化，判为**拟合截断**而非真实进步，D-G1 记不过。

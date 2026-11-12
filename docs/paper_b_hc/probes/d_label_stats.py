@@ -47,11 +47,30 @@ def main():
                    p95_len=float(np.percentile(lens, 95)),
                    mean_len=float(lens.mean()),
                    max_cycle_raw=float(ctr.max()))
+        # right-truncation of T* at K_model: how many windows have true RUL
+        # beyond it. r = n_e - t is known for every window (see D4.6).
+        n_e_tr = np.repeat(lens, lens.astype(np.int64))
+        rtr = n_e_tr - ctr
+        cva = np.asarray(va['cycle_raw'], np.float32)
+        sizes_va = ds['va'].groupby('unit', sort=True).size().to_numpy()
+        cnts = []
+        for n in sizes_va:
+            seen = set()
+            for f in C.VAL_CUTS:
+                c = int(min(n, max(1, round(f * n))))
+                seen.add(c)
+            cnts.append(len(seen))
+        n_e_va = np.repeat(sizes_va.astype(np.float64), np.asarray(cnts))
+        rva = n_e_va - cva
+        for km in (150, 200):
+            rec['gt%d_train' % km] = float((rtr > km).mean())
+            rec['gt%d_val' % km] = float((rva > km).mean())
         out.append(rec)
-        print('%-6s %8d %8d %7.3f %8d %8d %7.3f %6.0f %6.0f'
+        print('%-6s %8d %8d %7.3f %8d %8d %7.3f %6.0f %6.0f  r>200: %.3f/%.3f'
               % (s, rec['n_train'], rec['cap_train'], rec['frac_train'],
                  rec['n_val'], rec['cap_val'], rec['frac_val'],
-                 rec['max_len'], rec['p95_len']))
+                 rec['max_len'], rec['p95_len'],
+                 rec['gt200_train'], rec['gt200_val']))
     p = ROOT / 'experiments/hc/tmp'
     p.mkdir(parents=True, exist_ok=True)
     (p / 'd_label_stats.json').write_text(json.dumps(out, indent=1))
