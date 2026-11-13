@@ -93,3 +93,9 @@ paper/*.toc
 !/experiments/ida/
 !/experiments/README.md
 /results/
+
+# The live unsealing lock written by the runner. Its content is already tracked as a
+# byte-for-byte snapshot under docs/paper_b_ncmapss/registry/freeze/opens/; keeping the
+# live copy out of git makes preflight's clean-worktree check meaningful. Note this
+# does not protect the file from git clean -fdx -- the snapshot does that.
+docs/paper_b_ncmapss/registry/freeze/*.eval_start.json
