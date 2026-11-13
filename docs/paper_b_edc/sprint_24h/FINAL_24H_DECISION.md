@@ -765,11 +765,12 @@ FD002 / FD003             无门格（B 级，计数见 §0.7）      可用，�
 - [x] **没有混用 capped / uncapped、engine-mean / pooled**——主表统一 `engine_mean_rmse`（capped 125）；`rmse_uncensored` 与 `val_pooled_rmse` 分列另存
 - [x] **没有把 `RUNNING@epN` 中途读数当终值**——本轮踩过一次（`B3-FD004` 的 17.5704 与 ep25 读数相同），核实后确认是 `best_ep=25` 的定义使然，**终值判定一律以 `metrics.json` 为准**
 - [x] **失败实验全部入档**——`FAILED_IDEAS.md`（F1 AAR、F2 M3B 撤回判死）、§3 上表 11 行、`RUN_QUEUE_PLAN.csv` 19 条 `dropped` 均带原因
-- [x] **每个数字都能追到 `run_id` + git SHA + 逐发动机预测**——`SEED_RESULTS.csv` 有 `run_id`/`root`/`preds_md5`，`PER_ENGINE.csv` 有逐发动机预测，`check_decision_numbers.py` 35/35 锚点可复算
+- [~] **每个数字都能追到 `run_id` + 代码指纹 + 逐发动机预测**——**部分勾**：`run_id`/`root`/`preds_md5` 齐、`PER_ENGINE.csv` 有逐发动机预测、`check_decision_numbers.py` **72/72** 锚点可复算。**但 `git_sha` 在两份台账里 `108/108` 全为空**（3090 侧不是 git 仓库），所以**用户要求的「可追溯到 Git SHA」不是靠那一列实现的**，实际链是 `code_files_sha256` → `CODE_FINGERPRINT_TO_COMMIT.csv`：`SEED_RESULTS.csv` 里 `code_files_sha256` 非空 `107/108`；映射表覆盖 `16` 个指纹、**`96` 行**，按行加权 `matched=yes 85` + `commit+patch 2` = **可追 `87/96`（`90.6%`）**，`NO COMMIT 8` 行（**全为 `2d185f6a`**——3090 副本带仓库没有的人手改动）、`blank 1` 行。**两处未闭合**：① 映射表 `n_rows` 合计 `96` 而台账已 `108` 行，**计数没刷**；② 那 8 行确实追不到 commit，**只能写「可复现但不可溯源」**
 - [x] **没有为达到阈值修改冻结协议**——`patience 12`、`T_max=epochs`、`capped 125`、数据划分全程未改；40ep/80ep 的差异作为「不同调度、不可跨比」如实标注
 
-**⚠ 一条未打勾的**（如实留空，不勾）：
+**⚠ 未打勾的**（如实留空，不勾）：
 - [ ] **等参数量对照**——见 §3 第 1 行，**本轮未做**，因此 M2/M3B/M5/M6 的结论不含机制归因
+- [ ] **双卡持续训练、非训练空转 ≤ 15 分钟**——**不达标**：四条超线 **`58.4 / 42.0 / 19.8 / 17.1` 分钟**（`SCHEDULER_STATE` §6）。**这一条只写在非交付文件里是不够的，所以在这里如实留空。**
 
 ## 7. 收尾：唯一经得起全部检验的方向，与一次干净的崩塌
 
