@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Sprint-24h metric aggregation: one reproducible pass over every run dir.
 
 Why this file exists
@@ -62,7 +62,7 @@ Outputs
 ``SEED_RESULTS.csv``    one row per (root, module, subset, seed)
 ``MODULE_RESULTS.csv``  one row per (module, subset, budget), seed mean/sd
 ``PER_ENGINE.csv``      one row per (run, engine) -- paired analysis
-``METRIC_AUDIT.md``     the 口径 check: recomputed vs reported, per run
+``METRIC_AUDIT.md``     the 鍙ｅ緞 check: recomputed vs reported, per run
 
 Exit code is non-zero if any run's recomputed main metric disagrees with its
 ``metrics.json`` beyond ``--tol``; a mismatch means the reported number did not
@@ -646,11 +646,11 @@ MODULE_COLUMNS = [
     "engine_mean_rmse_ci95_hi",
     "tail10_mean", "tail10_sd", "tail10_ci95_lo", "tail10_ci95_hi",
     "best_mean", "ema_min_mean", "epoch_sd_mean", "best_minus_tail10_mean",
-    "tail10_delta_vs_B0_abs", "tail10_delta_vs_B0_pct",
-    "best_delta_vs_B0_abs", "ema_delta_vs_B0_abs", "consistent",
+    "tail10_delta_vs_B0", "tail10_delta_vs_B0_pct",
+    "best_delta_vs_B0", "ema_delta_vs_B0", "consistent",
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
-    "delta_vs_B0_abs", "delta_vs_B0_pct",
+    "delta_vs_B0", "delta_vs_B0_pct",
     "status_mix", "n_truncated", "n_budget_limited",
     "reproducible_cells", "verified_cells", "comparable_cells", "converged_cells",
     "best_ep_max", "epochs_run_max",
@@ -1484,6 +1484,47 @@ def build_thresholds(seed_rows: list[dict[str, Any]],
     return out
 
 
+CONTRACT_SUFFIXES = (
+    ("_abs", "non-negative", lambda v: v >= 0.0),
+    ("_count", "integer", lambda v: float(v).is_integer()),
+    ("_ratio", "finite", lambda v: math.isfinite(v)),
+    ("_pct", "finite", lambda v: math.isfinite(v)),
+)
+
+
+def build_column_contracts(frames: list[tuple[str, list[dict[str, Any]]]]) -> list[dict[str, Any]]:
+    """Test what the column names promise.
+
+    A column name is an assertion that no numeric check covers.  ``_abs`` promises
+    a non-negative quantity; if it stores a signed delta, every reader -- human or
+    script -- reads it as an absolute value and is wrong, while the data itself is
+    perfectly correct.  That is a class of error no value check can catch, because
+    the values agree with their source and disagree only with their own label.
+
+    Five lines of contract turn the label from a comment into an assertion.  A
+    violation means the column must be renamed, not the data changed: the data is
+    right, its self-description is wrong.
+    """
+    out = []
+    for frame, rows in frames:
+        if not rows:
+            continue
+        for col in list(rows[0].keys()):
+            for suf, promise, test in CONTRACT_SUFFIXES:
+                if not col.endswith(suf):
+                    continue
+                nums = [float(r[col]) for r in rows
+                        if isinstance(r.get(col), (int, float)) and r[col] == r[col]]
+                bad = [v for v in nums if not test(v)]
+                out.append(dict(
+                    frame=frame, column=col, promise=promise, n=len(nums),
+                    violations=len(bad),
+                    example=(bad[0] if bad else float("nan")),
+                    verdict=("VIOLATED" if bad else "ok")))
+                break
+    return sorted(out, key=lambda r: (r["verdict"] != "VIOLATED", r["frame"], r["column"]))
+
+
 def build_threshold_stability(seed_rows: list[dict[str, Any]],
                               baseline_module: str) -> list[dict[str, Any]]:
     """Which verdicts would flip if the dispersion estimate moved by 10%?
@@ -2269,16 +2310,16 @@ def main(argv: list[str] | None = None) -> int:
             epoch_sd_mean=mean_sd([x["epoch_sd"] for x in rows])[0],
             best_minus_tail10_mean=mean_sd([x["best_minus_tail10"] for x in rows])[0],
             best_mean=best_mean, ema_min_mean=ema_mean,
-            best_delta_vs_B0_abs=d_best,
-            ema_delta_vs_B0_abs=d_ema,
+            best_delta_vs_B0=d_best,
+            ema_delta_vs_B0=d_ema,
             consistent=consistent,
-            tail10_delta_vs_B0_abs=d_tail,
+            tail10_delta_vs_B0=d_tail,
             tail10_delta_vs_B0_pct=(100.0 * (tail_mean - b0_tail) / b0_tail
                                     if b0_tail not in (None, 0) else float("nan")),
             nasa_mean_mean=nasa_mean, nasa_sum_mean=nasa_sum,
             mae_mean=mae_mean, bias_mean=bias_mean,
             rmse_uncensored_mean=unc_mean, frac_capped_mean=capped_mean,
-            delta_vs_B0_abs=(mean - b0 if b0 is not None else float("nan")),
+            delta_vs_B0=(mean - b0 if b0 is not None else float("nan")),
             delta_vs_B0_pct=(100.0 * (mean - b0) / b0
                              if b0 not in (None, 0) else float("nan")),
             status_mix=";".join(sorted({x["status_detail"] for x in rows})),
@@ -2409,6 +2450,16 @@ def main(argv: list[str] | None = None) -> int:
                "spread", "alpha_shape", "n_pos_a30", "n_neg_a30", "seed_sign_stable",
                "layers_passed", "countable_as_robust",
                "direction_consistent", "verdict"])
+    contracts = build_column_contracts([
+        ("SEED_RESULTS", [r for r in seed_rows if r.get("status") == "usable"]),
+        ("MODULE_RESULTS", module_rows),
+        ("PAIRED_VS_B0", paired),
+        ("STABILITY", stability),
+        ("ALPHA_ROBUSTNESS", alpha_rob),
+        ("THRESHOLDS", thresholds),
+    ])
+    write_csv(os.path.join(args.out_dir, "COLUMN_CONTRACTS.csv"), contracts,
+              ["frame", "column", "promise", "n", "violations", "example", "verdict"])
     write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
               ["gate_run", "gate_root", "module", "subset", "seed", "budget_epochs",
                "formal_run", "formal_root", "gate_md5", "formal_md5", "md5_match",
@@ -2639,8 +2690,8 @@ def main(argv: list[str] | None = None) -> int:
         "|---|---|---|---|---|---|---|---|",
     ] + [
         f"| {r['subset']} | {r['budget_epochs']} | {r['n_seeds']} | "
-        + (f"{r['mean']:.4f} | {r['sd']:.4f} | ±{r['ci_mean']:.3f} | "
-           f"±{r['screen_single']:.3f} | ±{r['paired_3seed']:.3f} |"
+        + (f"{r['mean']:.4f} | {r['sd']:.4f} | 卤{r['ci_mean']:.3f} | "
+           f"卤{r['screen_single']:.3f} | 卤{r['paired_3seed']:.3f} |"
            if r["n_seeds"] > 1 else
            f"{r['mean']:.4f} | n/a (1 seed) | n/a | n/a | n/a |")
         for r in resolution

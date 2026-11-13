@@ -1,5 +1,5 @@
 check,kind,n,distinct,observed,why
-best_val == val_engine_mean_rmse,invariant,71,1,0.0,"metrics.json stores the best-epoch validation value under one name and the pipeline recomputes the same quantity under another: two names, one number, not a second opinion on the model."
-gain_last12 == 0 on converged cells,by_construction,46,1,0.0,"early stopping fires at best_ep + patience, so by definition no improvement exists inside a converged run's final patience window; informative only for budget_limited cells."
+best_val == val_engine_mean_rmse,invariant,73,1,0.0,"metrics.json stores the best-epoch validation value under one name and the pipeline recomputes the same quantity under another: two names, one number, not a second opinion on the model."
+gain_last12 == 0 on converged cells,by_construction,48,1,0.0,"early stopping fires at best_ep + patience, so by definition no improvement exists inside a converged run's final patience window; informative only for budget_limited cells."
 mad_ratio == 1.0 on baseline_selfcheck rows,by_construction,7,1,0.0,"the baseline compared with itself: numerator and denominator are the same six numbers. It tests the arithmetic, not a module."
 params_trainable across arms,constant_output,12,9,nan,"arms with different parameter counts must report different counts; one value for every arm means the field is a constant. Precedent: arm_build_ok.py printed params=119364 for B0/B1/B2/B3 while metrics.json reports 115010/119364/115139/115139 -- and 119364 is B1's true count, which is what makes the wrong number believable."
