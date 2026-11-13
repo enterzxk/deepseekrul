@@ -208,10 +208,17 @@ class DSPTFlight(nn.Module):
     dual_span = True
 
     def __init__(self, d=64, layers=2, heads=4, dropout=0.2, ms_mode='off',
-                 sa_mode='off', n_cond=6, span=SPAN):
+                 sa_mode='off', n_cond=6, span=SPAN, token_layout='sensor_major'):
         super().__init__()
         self.ms_mode = ms_mode
         self.sa_mode = sa_mode
+        #: ``sensor_major`` = one token per sensor (mean/std/slope of the same
+        #: sensor), the specified design. ``statistic_major`` = the grouping the
+        #: first batch produced by accident, kept as the pre-registered N2s arm:
+        #: twelve of its fourteen tokens are one statistic of three sensors, so
+        #: each sequence carries cross-sensor information the specified layout
+        #: pushes down into the pooling step.
+        self.token_layout = token_layout
         self.sensor_in = nn.Linear(N_STATS, d)
         if ms_mode != 'linear_only':
             self.conv3 = nn.Conv1d(d, d, 3, padding=1, groups=d, padding_mode='replicate')
@@ -248,14 +255,18 @@ class DSPTFlight(nn.Module):
 
     def encode(self, x, mask, cond):
         B, L, _ = x.shape
-        # flight_table emits the 42 sensor columns grouped by statistic:
-        # [14 means, 14 stds, 14 slopes], not interleaved per sensor. Reshaping
-        # straight to (N_SENSORS, N_STATS) therefore built each "sensor token" out
-        # of three different sensors' same statistic. Split by statistic first,
-        # then move the sensor axis in front.
-        sensor = (x[..., :N_SENSORS * N_STATS]
-                  .reshape(B, L, N_STATS, N_SENSORS)
-                  .transpose(-1, -2))
+        flat = x[..., :N_SENSORS * N_STATS]
+        if self.token_layout == 'statistic_major':
+            # N2s: three consecutive columns form a token, which on the grouped
+            # layout means "one statistic, three sensors". Explicit, not a bug.
+            sensor = flat.reshape(B, L, N_SENSORS, N_STATS)
+        else:
+            # flight_table emits the 42 sensor columns grouped by statistic:
+            # [14 means, 14 stds, 14 slopes], not interleaved per sensor. Reshaping
+            # straight to (N_SENSORS, N_STATS) would therefore build each "sensor
+            # token" out of three different sensors' same statistic. Split by
+            # statistic first, then move the sensor axis in front.
+            sensor = flat.reshape(B, L, N_STATS, N_SENSORS).transpose(-1, -2)
         ctx = x[..., N_SENSORS * N_STATS:]
         h = self.sensor_in(sensor)                        # (B,L,N,D)
         hh4 = h.permute(0, 2, 3, 1)                       # (B,N,D,L)
@@ -318,6 +329,13 @@ def build(rung, cfg):
         return DSPTFlight(d=cfg['d_model'], layers=cfg['layers'], heads=cfg['heads'],
                           dropout=cfg['dropout'], ms_mode='off', sa_mode='off',
                           n_cond=cfg['n_cond'])
+    if rung == 'N2s':
+        # pre-registered control: the statistic-major token grouping the first
+        # batch produced by accident. Same parameters, same budget, same inputs as
+        # N2; only the token layout differs.
+        return DSPTFlight(d=cfg['d_model'], layers=cfg['layers'], heads=cfg['heads'],
+                          dropout=cfg['dropout'], ms_mode='off', sa_mode='off',
+                          n_cond=cfg['n_cond'], token_layout='statistic_major')
     if rung == 'N3':
         f = cfg['n3']
         return DSPTFlight(d=cfg['d_model'], layers=cfg['layers'], heads=cfg['heads'],
@@ -590,7 +608,7 @@ def main():
           data['drop_info']['n_total'])
     epochs = a.epochs or cfg['epochs']
     rows = [run_rung(r, data, cfg, seed=cfg['seeds'][0], device=device, epochs=epochs)
-            for r in ('N0', 'N1', 'N2', 'N3')]
+            for r in ('N0', 'N1', 'N2', 'N2s', 'N3')]
     for r in rows:
         print(f'{r["rung"]}: final_train={r["final_train_loss"]:.4f} '
               f'holdout={r["final_holdout_loss"]:.4f} params={r["params"]:,} '

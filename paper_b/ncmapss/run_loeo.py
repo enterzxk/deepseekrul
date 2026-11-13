@@ -85,13 +85,13 @@ from .evaluation import loeo_folds
 from .features import SPAN
 from .train import build, fit_rung, load_frozen, load_split, load_subset
 
-RUNGS = ('N0', 'N1', 'N2', 'N3')
+RUNGS = ('N0', 'N1', 'N2', 'N2s', 'N3')
 #: diagnostic arm, never part of the 60-cell grid: vanilla + the operating
 #: condition embedding DSPT gets, used to split the N1-vs-N2 gap into
 #: "tokenisation" and "condition id" (manager request, 2026-11-12)
 DIAG_RUNGS = ('N1c',)
 MODEL_NAMES = {'N0': 'age_only', 'N1': 'vanilla', 'N1c': 'vanilla_cond',
-               'N2': 'dspt_base', 'N3': 'dspt_frozen'}
+               'N2': 'dspt_base', 'N2s': 'dspt_base_statmajor', 'N3': 'dspt_frozen'}
 SEEDS = (101, 202, 303)
 N0_SEED = 101
 CAP = 125.0
@@ -837,7 +837,8 @@ def main():
         if man.get('repo', {}).get('protocol_blob') not in (None, pre['protocol_blob']):
             raise SystemExit(f'manifest protocol_blob {man["repo"]["protocol_blob"]} != '
                              f'current {pre["protocol_blob"]}')
-        seeds_by_rung = {'N0': (None,), 'N1': SEEDS, 'N2': SEEDS, 'N3': SEEDS}
+        seeds_by_rung = {'N0': (None,), 'N1': SEEDS, 'N2': SEEDS, 'N2s': SEEDS,
+                         'N3': SEEDS}
         _check_manifest(man, subset, dev_units, test_units, data_sha, rungs, seeds_by_rung)
         # the frozen epoch* must be the one the runner would derive itself
         _check_epoch_star(man, subset, dev_ledger, rungs, seeds_by_rung)

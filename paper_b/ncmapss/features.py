@@ -29,10 +29,21 @@ N_W = 4
 N_STATS = 3
 N_FEATURES = N_SENSORS * N_STATS + N_W * 2 + 1  # 51
 
+#: Names in the order the array is actually built: statistic-major, not
+#: sensor-major. ``flight_table`` concatenates [14 means, 14 stds, 14 slopes], so
+#: ``FEATURE_NAMES[i]`` names column ``i`` only if this loop is statistic-major.
+#: It was sensor-major while the array was statistic-major, which made the list a
+#: reversed description of the contract it was supposed to document.
 SENSOR_FEATURE_NAMES = tuple(
-    f'Xs_{s}_{stat}' for s in range(N_SENSORS) for stat in ('mean', 'std', 'slope'))
-W_FEATURE_NAMES = tuple(f'W_{j}_{stat}' for j in range(N_W) for stat in ('mean', 'std'))
+    f'Xs_{s}_{stat}' for stat in ('mean', 'std', 'slope') for s in range(N_SENSORS))
+W_FEATURE_NAMES = tuple(f'W_{j}_{stat}' for stat in ('mean', 'std') for j in range(N_W))
 FEATURE_NAMES = SENSOR_FEATURE_NAMES + W_FEATURE_NAMES + ('age_scaled',)
+
+assert len(FEATURE_NAMES) == N_FEATURES, (len(FEATURE_NAMES), N_FEATURES)
+assert SENSOR_FEATURE_NAMES[:N_SENSORS] == tuple(f'Xs_{s}_mean' for s in range(N_SENSORS)), \
+    'sensor feature names must start with the 14 means'
+assert W_FEATURE_NAMES[:N_W] == tuple(f'W_{j}_mean' for j in range(N_W)), \
+    'condition feature names must start with the 4 means'
 
 
 class AgeScaler:

@@ -108,6 +108,14 @@ def main():
 
         # 5. the inspection entry point still imports
         from .inspect_ds02 import main as _  # noqa: F401 - import must not fail
+
+        # 6. the feature-name list describes the array layout, not its reverse
+        from .features import FEATURE_NAMES, N_SENSORS, W_FEATURE_NAMES
+        assert len(FEATURE_NAMES) == 51, len(FEATURE_NAMES)
+        stats = [n.rsplit('_', 1)[1] for n in FEATURE_NAMES[:42]]
+        assert stats == ['mean'] * 14 + ['std'] * 14 + ['slope'] * 14, stats
+        assert W_FEATURE_NAMES[:4] == tuple(f'W_{j}_mean' for j in range(4))
+        assert N_SENSORS == 14
         print('contract test: PASS')
 
 

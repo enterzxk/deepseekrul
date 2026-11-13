@@ -178,7 +178,41 @@ Rules:
   layer and encoder — never in what it is given. N0 receives the age column only.
 - Normalization (z-score) is fitted on the training folds of the current LOEO
   fold and applied unchanged to the held-out unit. Never fitted on the held-out
-  unit, never on a test unit.
+  unit, never on a test unit. **Every one of the 51 columns is z-scored** — the
+  42 sensor statistics and the 8 condition statistics as well as age. This
+  bullet is not age-only: applying it to age alone leaves the sensor block
+  spanning roughly 8.4 orders of magnitude inside a single linear projection.
+- **Column layout is part of the contract.** The 42 sensor-statistic columns are
+  stored grouped by statistic: columns 1–14 are the means of sensors 1–14,
+  columns 15–28 the standard deviations, columns 29–42 the slopes. A consumer
+  that wants one token per sensor must reshape to statistic-major and then
+  transpose to sensor-major; `reshape(14, 3)` applied to the flat order yields
+  triples of three *different* sensors — twelve of the fourteen are the same
+  statistic of three sensors, and two straddle a statistic boundary. That
+  grouping puts same-type statistics in one sequence, which is a different
+  architecture rather than merely a broken one. The first batch, development and
+  test alike, was produced with that mistake, which is why it cannot support a
+  claim about architecture.
+- The feature-name list must agree with this layout. `SENSOR_FEATURE_NAMES` is
+  generated sensor-major while the array is statistic-major, so
+  `feature_names[i]` does not name column `i`; the list is corrected in the same
+  commit.
+- **Pre-registered fifth arm, `N2s`.** The corrected tokenizer gives one token
+  per sensor (that sensor's mean, std and slope). A statistic-major tokenizer —
+  the layout the first batch implemented by accident — is a coherent alternative
+  design, not merely a defect: it places the same statistic of three adjacent
+  sensors in one sequence, so cross-sensor mixing happens inside the sequence
+  rather than only in the attention pool. `N2s` is `N2` with the statistic-major
+  tokenizer, registered as a declared control arm **before** the corrected batch
+  runs, and reported whether it wins or loses. The rest of the ladder is
+  unchanged: `N1`, `N2` and `N3` use the sensor-major tokenizer. This arm was
+  proposed from a development fold, which is what development folds are for; it
+  is not a selection made after seeing sealed test results.
+- **Any loss used to select an epoch is computed with the model in evaluation
+  mode**, with dropout disabled, and the model is returned to training mode
+  before the next epoch. A selection curve computed with dropout active
+  estimates a different quantity; the first batch's `epoch*` was selected that
+  way.
 - `X_v`, `T`, `Y` and `A.hs` are absent by construction; `unit` is a grouping key
   only.
 - `A.Fc` (flight class) and flight duration are **not** among the 51. If either
@@ -463,6 +497,10 @@ semantics match `paper_b/evaluation/evaluate_test.py`: the manifest declares
 *which cells will be evaluated before the test set is opened*, so a manifest
 written after the fact is a rewrite of the evaluation order and is never
 accepted.
+
+A batch produced after an implementation correction is a **repeated evaluation**
+of the same sealed test units. It is reported as such and is never described as
+a first independent test.
 
 ### 6.9 Artifacts
 
