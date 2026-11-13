@@ -60,6 +60,25 @@ N2 与 N2s **同参数量、同输入、同预算，只差 token 布局**——�
 
 **第 3 步不能提前**：新代码的 dev 六折 `epoch*` 现在还不存在，而 §6.10 要求那 52 个数在开封前进哈希。
 
+### 第 3 步的命令（dev 跑完直接执行）
+
+```bash
+python scripts/nc_freeze.py sign \
+  --base docs/paper_b_ncmapss/registry/freeze/NCM-FREEZE-20261112T2001Z.json \
+  --round _r2 --rungs N0,N1,N2,N2s,N3 --seeds 101,202,303 \
+  --supersedes @supersedes_v4.json --sequencing @sequencing_v4.json --extra @extra_v4.json
+```
+
+签名器会自己断言：每格 6 折、格集合 == 52 格完整叉积、`epoch*` 与六折值逐格落盘。
+`extra_v4.json` 必须覆盖 `repo.protocol_blob` → `9fa743d5…`、`repo.freeze_commit` → `a9c906d`、
+`protocol_anchor`（第 16 代）、`test_design`（四项缺陷 + `N2s` 预注册 + 重复评价声明）。
+
+签完立刻自证，四项全 OK 才允许开封：
+
+```bash
+python scripts/nc_freeze.py verify docs/paper_b_ncmapss/registry/freeze/<新 freeze_id>.json
+```
+
 ## 表名
 
 `runs_<subset>_r2.csv`（dev 156 行）与 `runs_<subset>_r2_test.csv`（test 26 行），同 64 列 schema。

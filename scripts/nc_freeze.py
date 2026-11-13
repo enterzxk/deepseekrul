@@ -55,39 +55,58 @@ def round_half_up(x: float) -> int:
     return int(math.floor(x + 0.5))
 
 
-def expected_cells() -> list[tuple]:
+def ledger_path(subset: str, round_tag: str = "") -> str:
+    """Dev ledger for a subset. round_tag is "" for the first batch, "_r2" for the rerun."""
+    return os.path.join(REG, "runs_%s%s.csv" % (subset, round_tag))
+
+
+def expected_cells(rungs=None, seeds=None) -> list[tuple]:
+    """The full cross product. Driven by the manifest's own rung list, so a
+    five-rung manifest (N0/N1/N2/N2s/N3) verifies without touching this file."""
+    rungs = rungs or RUNGS
+    seeds = seeds or SEEDS
     cells = []
     for s in SUBSETS:
-        for r in RUNGS:
-            for sd in (N0_SEEDS if r == "N0" else SEEDS):
+        for r in rungs:
+            for sd in (N0_SEEDS if r == "N0" else seeds):
                 cells.append((s, r, sd))
     return cells
 
 
-def epoch_table() -> dict:
-    """epoch* per cell = round_half_up(mean of the six LOEO epoch* values)."""
+def epoch_table(round_tag: str = "", rungs=None, seeds=None) -> dict:
+    """epoch* per cell = round_half_up(mean of the six LOEO epoch* values).
+
+    Reads the dev ledger for the round. Asserts the seed gate on the way out:
+    N0 exactly one seed per subset, every other rung exactly the declared set.
+    """
     out = {}
     for s in SUBSETS:
-        path = os.path.join(REG, "runs_%s.csv" % s)
+        path = ledger_path(s, round_tag)
         rows = [r for r in csv.DictReader(io.open(path, encoding="utf-8"))
                 if r["selection_rule"] == "inner_val"]
         by = collections.defaultdict(list)
         for r in rows:
             by[(r["rung"], r["seed"])].append(int(r["epochs_run"]))
         for (rung, seed), vals in by.items():
-            assert len(vals) == 6, "%s %s s%s: %d folds" % (s, rung, seed, len(vals))
+            assert len(vals) == 6, "%s %s s%s: %d folds, expected 6" % (s, rung, seed, len(vals))
             vals = sorted(vals)
             out[(s, rung, (int(seed) if seed else None))] = (round_half_up(sum(vals) / 6.0), vals)
+    want = set(expected_cells(rungs, seeds))
+    got = set(out)
+    missing = sorted(want - got)
+    extra = sorted(got - want)
+    assert not missing, "epoch* table is missing cells: %s" % missing[:8]
+    assert not extra, "epoch* table has cells outside the grid: %s" % extra[:8]
     return out
 
 
-def floor_stats() -> dict:
+def floor_stats(round_tag: str = "") -> dict:
     """Count floor-of-20 hits, per rung and overall, from the sealed ledgers."""
     per_rung = collections.Counter()
     per_rung_total = collections.Counter()
     n0_by_subset = {}
     for s in SUBSETS:
-        path = os.path.join(REG, "runs_%s.csv" % s)
+        path = ledger_path(s, round_tag)
         hit = tot = 0
         for r in csv.DictReader(io.open(path, encoding="utf-8")):
             if r["selection_rule"] != "inner_val":
@@ -118,8 +137,10 @@ def cmd_sign(args) -> int:
     now = datetime.now(timezone.utc)
     fid = "NCM-FREEZE-%sZ" % now.strftime("%Y%m%dT%H%M")
 
-    ep = epoch_table()
-    fs = floor_stats()
+    rungs = args.rungs.split(",") if args.rungs else (base.get("rungs") or RUNGS)
+    seeds = [int(x) for x in args.seeds.split(",")] if args.seeds else (base.get("seeds") or SEEDS)
+    ep = epoch_table(args.round or "", rungs, seeds)
+    fs = floor_stats(args.round or "")
 
     m = dict(base)
     m["freeze_id"] = fid
@@ -129,11 +150,17 @@ def cmd_sign(args) -> int:
     m["hash_rule_version"] = "v17: excludes eval_start_utc and freeze_content_sha256 only; freeze_ts_utc IS hashed"
     m["eval_start_utc"] = None
 
+    m["rungs"] = rungs
+    m["seeds"] = seeds
+    m["runs"] = [{"subset": s, "rung": r, "seed": sd} for (s, r, sd) in expected_cells(rungs, seeds)]
+    m["dev_ledger_pattern"] = "docs/paper_b_ncmapss/registry/runs_<subset>%s.csv" % (args.round or "")
     m["supersedes"] = args.supersedes
     m["sequencing"] = args.sequencing
     m["completeness"] = {
-        "assertion": "runs == {DS02,DS05,DS06,DS07} x {N0,N1,N2,N3} x ({N0:[null]} U {N1,N2,N3:[101,202,303]})",
-        "expected_cells": 40,
+        "assertion": "runs == {DS02,DS05,DS06,DS07} x {%s} x ({N0:[null]} U {%s:[%s]})"
+                     % (",".join(rungs), ",".join(r for r in rungs if r != "N0"),
+                        ",".join(str(x) for x in seeds)),
+        "expected_cells": len(expected_cells(rungs, seeds)),
         "observed_cells": len(m["runs"]),
         "excluded_cells": 0,
         "exclusion_list": [],
@@ -149,7 +176,7 @@ def cmd_sign(args) -> int:
             "fold_values": ep[(s, r, sd)][1],
             "rule": "round_half_up(mean(fold_values))",
         }
-        for (s, r, sd) in expected_cells()
+        for (s, r, sd) in expected_cells(rungs, seeds)
     ]
     m["floor_statistics"] = fs
     m["test_design"] = dict(m["test_design"])
@@ -262,20 +289,26 @@ def cmd_verify(args) -> int:
         fail.append("hash mismatch: stored %s, recomputed %s" % (d.get("freeze_content_sha256"), h))
     print("hash            %s  %s" % ("OK" if h == d.get("freeze_content_sha256") else "FAIL", h))
 
+    v_rungs = d.get("rungs") or RUNGS
+    v_seeds = d.get("seeds") or SEEDS
+    v_round = ""
+    pat = d.get("dev_ledger_pattern")
+    if pat and "runs_<subset>" in pat:
+        v_round = pat.split("runs_<subset>", 1)[1].split(".csv", 1)[0]
     got = [(r["subset"], r["rung"], r["seed"]) for r in d.get("runs", [])]
-    want = expected_cells()
+    want = expected_cells(v_rungs, v_seeds)
     if len(got) != len(set(got)):
         fail.append("duplicate cells in runs[]")
     if set(got) != set(want):
-        fail.append("runs[] is not the 40-cell cross product: missing %s extra %s"
-                    % (sorted(set(want) - set(got)), sorted(set(got) - set(want))))
+        fail.append("runs[] is not the %d-cell cross product: missing %s extra %s"
+                    % (len(want), sorted(set(want) - set(got)), sorted(set(got) - set(want))))
     if d.get("completeness", {}).get("excluded_cells", 1) != 0:
         fail.append("completeness.excluded_cells is not 0")
     print("completeness    %s  %d/%d cells, %d exclusions"
-          % ("OK" if set(got) == set(want) and len(got) == 40 else "FAIL",
+          % ("OK" if set(got) == set(want) and len(got) == len(want) else "FAIL",
              len(got), len(want), d.get("completeness", {}).get("excluded_cells", -1)))
 
-    ep = epoch_table()
+    ep = epoch_table(v_round, v_rungs, v_seeds)
     bad = []
     for e in d.get("epoch_star_values", []):
         k = (e["subset"], e["rung"], e["seed"])
@@ -285,11 +318,13 @@ def cmd_verify(args) -> int:
         if e["epoch_star"] != ep[k][0] or e["fold_values"] != ep[k][1]:
             bad.append("%s: manifest %s/%s, ledger %s/%s"
                        % (k, e["epoch_star"], e["fold_values"], ep[k][0], ep[k][1]))
-    if len(d.get("epoch_star_values", [])) != 40:
-        bad.append("epoch_star_values has %d entries, expected 40" % len(d.get("epoch_star_values", [])))
+    if len(d.get("epoch_star_values", [])) != len(want):
+        bad.append("epoch_star_values has %d entries, expected %d"
+                   % (len(d.get("epoch_star_values", [])), len(want)))
     if bad:
         fail.extend(bad)
-    print("epoch_star      %s  40 values recomputed from sealed ledgers" % ("OK" if not bad else "FAIL"))
+    print("epoch_star      %s  %d values recomputed from the dev ledgers"
+          % ("OK" if not bad else "FAIL", len(want)))
     for b in bad:
         print("   %s" % b)
 
@@ -324,6 +359,9 @@ def main(argv=None) -> int:
     s.add_argument("--sequencing", default=None, help="JSON object describing the freeze/eval ordering disclosure")
     s.add_argument("--extra", default=None, help="JSON object merged into the manifest before hashing")
     s.add_argument("--drop", default=None, help="comma-separated top-level keys to remove before hashing")
+    s.add_argument("--round", default="", help="dev ledger suffix: '' for batch 1, '_r2' for the rerun")
+    s.add_argument("--rungs", default=None, help="comma-separated rung list; default from --base")
+    s.add_argument("--seeds", default=None, help="comma-separated seed list; default from --base")
     s.set_defaults(func=cmd_sign)
     v = sub.add_parser("verify")
     v.add_argument("manifest")
