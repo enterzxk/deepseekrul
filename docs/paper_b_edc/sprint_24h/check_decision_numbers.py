@@ -574,6 +574,87 @@ for _k2 in _orphan_q:
                  "gate twin (the delivered ledger is missing a sample): "
                  "%s/%s/%s@%s" % _k2)
 
+# 10.1 the universal negative "no module is distinguishable from its parent" was
+# true while M6 had one seed.  M6 vs B3 on FD004 is now better, so the sentence
+# is false unless it names its subset.  A check cannot judge whether a negative
+# is true, but it can pin the one sentence we know is false unscoped, the same
+# way 9.3 pins a retired number.  Scope tokens are the subset ids.
+_NEG = "没有任何模块能与其母体区分开"
+_SCOPE = re.compile(r"FD00[1-4]")
+_neg_bad = []
+for _f in sorted(HERE.glob("*.md")):
+    if _f.name.startswith("tmp_"):
+        continue
+    for _i, _l in enumerate(_f.read_text(encoding="utf-8").split("\n"), 1):
+        if _NEG in _l and not _SCOPE.search(_l):
+            _neg_bad.append("%s:%d" % (_f.name, _i))
+checks += 1
+print(f"{'PASS' if not _neg_bad else 'FAIL'}  "
+      f"{'10.1 universal negatives name their subset':<52s} "
+      f"unscoped={len(_neg_bad)}")
+for _n in _neg_bad:
+    fails.append("unscoped 'no module is distinguishable from its parent' "
+                 "(false since M6 vs B3 on FD004 is better): " + _n)
+
+# 10.2 a hand-written sample count in prose goes stale silently, and the closing
+# sentence of this sprint wrote it in CHINESE NUMERALS -- a scan for "73 个可用格"
+# returns 0 hits while the sentence says 七十一.  Searching for the representation
+# you expect is the same mistake as searching a number without boundaries.
+# But a bare pattern scan is 50% false positives here: a plan-time snapshot and a
+# subset-specific breakdown are both legitimate.  So the rule is the same shape as
+# 9.3: the number must be either marked as historical, or agree with the block --
+# and a line that names a subset is compared against THAT subset, not the total.
+# A checker that fires on correct prose teaches people to ignore it.
+def _cn2int(tok):
+    if tok.isdigit():
+        return int(tok)
+    d = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+         "六": 6, "七": 7, "八": 8, "九": 9}
+    if "百" in tok:
+        a, _, b = tok.partition("百")
+        return (d.get(a, 1) if a else 1) * 100 + (_cn2int(b) if b else 0)
+    if "十" in tok:
+        a, _, b = tok.partition("十")
+        return (d.get(a, 1) if a else 1) * 10 + (d.get(b, 0) if b else 0)
+    return d.get(tok, -1)
+
+
+_fin = (HERE / "FINAL_24H_DECISION.md").read_text(encoding="utf-8")
+_m = re.search(r"(\d+) usable =", _fin)
+_total = int(_m.group(1)) if _m else -1
+_by_sub = {}
+for _m in re.finditer(r"^(FD00[1-4])\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$",
+                      _fin, re.M):
+    _by_sub[_m.group(1)] = int(_m.group(4))
+_HIST = ("计划时", "当时", "快照", "snapshot", "历史")
+_CNT = re.compile(r"([0-9]+|[零一二三四五六七八九十百]{1,4})\s*个可用格")
+_cnt_bad, _cnt_ok = [], 0
+for _f in sorted(HERE.glob("*.md")):
+    if _f.name.startswith("tmp_"):
+        continue
+    for _i, _l in enumerate(_f.read_text(encoding="utf-8").split("\n"), 1):
+        for _mm in _CNT.finditer(_l):
+            _v = _cn2int(_mm.group(1))
+            if any(_h in _l for _h in _HIST):
+                _cnt_ok += 1
+                continue
+            _sub = re.search(r"FD00[1-4]", _l)
+            _want = _by_sub.get(_sub.group(0)) if _sub else _total
+            if _want is not None and _v == _want:
+                _cnt_ok += 1
+            else:
+                _cnt_bad.append("%s:%d: says %s, block says %s"
+                                % (_f.name, _i, _mm.group(0),
+                                   "%s usable" % _want if not _sub
+                                   else "%s usable in %s" % (_want, _sub.group(0))))
+checks += 1
+print(f"{'PASS' if not _cnt_bad else 'FAIL'}  "
+      f"{'10.2 hand-written counts agree with the block':<52s} "
+      f"ok={_cnt_ok} stale={len(_cnt_bad)} total={_total}")
+for _n in _cnt_bad:
+    fails.append("hand-written usable count disagrees with the generated block "
+                 "(the count lives there and nowhere else): " + _n)
+
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
     print("MISMATCHES:")
