@@ -290,6 +290,25 @@ for _s in _stale:
 for _s in _substale:
     print("  WARN subset tier count " + _s)
 
+# 7.3 negative assertions: "no gate anywhere" / "only in FD001" go stale the
+# moment one gate lands, and a positive-count sweep cannot see them.  This is
+# the fifth iteration of "a negative check decays as the doc grows".
+NEG = re.compile(r"一格都没有|A 级证据仅存在|从未通过|全部无门格|全部 `unverifiable`")
+NEG_OK = ("计划时", "当时", "已作废", "已撤回", "曾", "旧版", "§0.7", "生成块", "WARN")
+_neg = []
+for _d in SWEEP_DOCS:
+    _fp = HERE / _d
+    if not _fp.exists():
+        continue
+    for _i, _line in enumerate(_fp.read_text(encoding="utf-8").split("\n"), 1):
+        if NEG.search(_line) and not any(k in _line for k in NEG_OK):
+            _neg.append("%s:%d" % (_d, _i))
+checks += 1
+print(f"{'PASS' if not _neg else 'FAIL'}  {'7.3 no bare negative gate assertion':<52s} "
+      f"hits={len(_neg)}")
+for _n in _neg:
+    fails.append("negative gate assertion needs a pointer or a 'planned-time' marker: " + _n)
+
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
     print("MISMATCHES:")
