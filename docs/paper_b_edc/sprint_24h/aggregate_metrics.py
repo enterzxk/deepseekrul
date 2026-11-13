@@ -1039,6 +1039,83 @@ def build_budget_pairs(per_engine: list[dict[str, Any]]) -> list[dict[str, Any]]
     return out
 
 
+def mad(vals: list[float]) -> float:
+    """Median absolute deviation: ``median(|x - median(x)|)``.
+
+    This is the definition the sprint's stability claim uses -- B0 0.3596 against
+    M2 0.1387 is 2.592x, the "2.59x" quoted in the documents. The *mean* absolute
+    deviation of the same two cells is 0.7801 against 0.2910, i.e. 2.681x. The two
+    statistics differ by 3% here and by much more elsewhere, so the definition
+    must be stated wherever the number is quoted: mixing them silently produces a
+    ratio that reproduces neither.
+    """
+    if not vals:
+        return float("nan")
+    m = float(statistics.median(vals))
+    return float(statistics.median([abs(v - m) for v in vals]))
+
+
+def build_stability(seed_rows: list[dict[str, Any]],
+                    baseline_module: str) -> list[dict[str, Any]]:
+    """Seed dispersion per cell, with MAD ratios gated on equal sample size.
+
+    MAD is the most outlier-sensitive dispersion here: with four points a single
+    bad seed carries 1/4 of the weight, with six only 1/6.  In this sprint the
+    four-seed B0 MAD is 0.9113 against 0.3597 at six seeds -- a factor of 2.5,
+    which is exactly the ratio the M2 stability claim is about.  An n-mismatched
+    MAD ratio is therefore not a weak piece of evidence, it is a fabricated one:
+    it manufactures the conclusion.
+
+    So the ratio is emitted only when both cells have the same seed count, and
+    the refusal is written into the row rather than left to the reader.
+    """
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable":
+            continue
+        groups.setdefault((r["module"], r["subset"], r.get("budget_epochs")), []).append(r)
+
+    base_n: dict[tuple[str, Any], int] = {}
+    base_mad: dict[tuple[str, Any], float] = {}
+    base_sd: dict[tuple[str, Any], float] = {}
+    for (mod, subset, budget), rs in groups.items():
+        if mod != baseline_module:
+            continue
+        vals = [x["engine_mean_rmse"] for x in rs]
+        base_n[(subset, budget)] = len(vals)
+        base_mad[(subset, budget)] = mad(vals)
+        base_sd[(subset, budget)] = mean_sd(vals)[1]
+
+    out = []
+    for (mod, subset, budget), rs in sorted(groups.items(), key=lambda kv: (kv[0][1], str(kv[0][2]), kv[0][0])):
+        vals = [x["engine_mean_rmse"] for x in rs]
+        n = len(vals)
+        m, sd = mean_sd(vals)
+        bn = base_n.get((subset, budget))
+        bmad = base_mad.get((subset, budget), float("nan"))
+        bsd = base_sd.get((subset, budget), float("nan"))
+        same_n = (bn is not None and n == bn)
+        md = mad(vals)
+        if same_n and n >= 3 and bmad:
+            ratio_ok, ratio, reason = "yes", md / bmad, ""
+        elif bn is None:
+            ratio_ok, ratio, reason = "no", float("nan"), "no baseline cell at this budget"
+        else:
+            ratio_ok = "no"
+            ratio = float("nan")
+            reason = ("n mismatch: %d vs baseline %d -- MAD is outlier-driven, "
+                      "so this ratio would be an artefact of sample size" % (n, bn))
+        out.append(dict(
+            module=mod, subset=subset, budget_epochs=budget, n_seeds=n,
+            seeds=";".join(sorted(str(x["seed"]) for x in rs)),
+            mean=m, sd=sd, mad=md,
+            baseline_n=bn, baseline_sd=bsd, baseline_mad=bmad,
+            sd_ratio=(sd / bsd if bsd else float("nan")),
+            mad_ratio=ratio, mad_ratio_ok=ratio_ok, mad_ratio_reason=reason,
+        ))
+    return out
+
+
 def build_resolution(seed_rows: list[dict[str, Any]],
                      baseline_module: str) -> list[dict[str, Any]]:
     """How small a difference can this cell actually resolve?
@@ -1804,6 +1881,11 @@ def main(argv: list[str] | None = None) -> int:
                "ensemble_nasa_mean", "ensemble_mae", "ensemble_bias",
                "n_engines", "n_cuts", "n_points", "status"])
     resolution = build_resolution(seed_rows, args.paired_baseline)
+    stability = build_stability(seed_rows, args.paired_baseline)
+    write_csv(os.path.join(args.out_dir, "STABILITY.csv"), stability,
+              ["module", "subset", "budget_epochs", "n_seeds", "seeds",
+               "mean", "sd", "mad", "baseline_n", "baseline_sd", "baseline_mad",
+               "sd_ratio", "mad_ratio", "mad_ratio_ok", "mad_ratio_reason"])
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
                "ci_mean", "screen_single", "paired_3seed",
