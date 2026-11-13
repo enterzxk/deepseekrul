@@ -846,7 +846,12 @@ def _ensemble_compare(mine: dict[str, Any], ref: dict[str, Any], cap: float) -> 
     em_m = per_engine_rmse(ref["unit"], ref["ys"], np.clip(mine["preds"][pos], 0, cap))
     em_b = per_engine_rmse(ref["unit"], ref["ys"], np.clip(ref["preds"], 0, cap))
     return dict(
-        ensemble_module_em=em_m, ensemble_b0_em=em_b, diff_em=em_m - em_b,
+        ensemble_module_em=em_m, ensemble_b0_em=em_b,
+        # The sign convention is in the name, not in a footnote.  `diff_em` was
+        # ambiguous in the way that matters: a reader who assumes "module minus
+        # baseline" reads -0.3951 as "worse" when it means "better".  A negative
+        # number here is the module's ensemble having the LOWER error.
+        diff_em_module_minus_b0=em_m - em_b,
         n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
         se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
         pct_vs_b0=(100.0 * (em_m - em_b) / em_b if em_b else float("nan")),
@@ -906,7 +911,8 @@ def build_ensemble_vs(seed_rows: list[dict[str, Any]], cap: float,
             **base,
             n_seeds_b0_matched=(mref["n_seeds"] if mref else 0),
             ensemble_b0_matched_em=(matched["ensemble_b0_em"] if matched else float("nan")),
-            diff_em_matched=(matched["diff_em"] if matched else float("nan")),
+            diff_em_matched_module_minus_b0=(
+                matched["diff_em_module_minus_b0"] if matched else float("nan")),
             mean_diff_matched=(matched["mean_diff"] if matched else float("nan")),
             ci_lo_matched=(matched["ci_lo"] if matched else float("nan")),
             ci_hi_matched=(matched["ci_hi"] if matched else float("nan")),
@@ -1424,11 +1430,12 @@ def build_invariants(seed_rows: list[dict[str, Any]],
     if ensemble_vs:
         same = [r for r in ensemble_vs
                 if r.get("size_matched") == "yes"
-                and isinstance(r.get("diff_em_matched"), (int, float))
-                and r["diff_em_matched"] == r["diff_em_matched"]]
-        gaps2 = [abs(float(r["diff_em_matched"]) - float(r["diff_em"])) for r in same]
+                and isinstance(r.get("diff_em_matched_module_minus_b0"), (int, float))
+                and r["diff_em_matched_module_minus_b0"] == r["diff_em_matched_module_minus_b0"]]
+        gaps2 = [abs(float(r["diff_em_matched_module_minus_b0"])
+                     - float(r["diff_em_module_minus_b0"])) for r in same]
         out.append(dict(
-            check="size_matched=yes => diff_em_matched == diff_em",
+            check="size_matched=yes => matched diff == full diff",
             kind="by_construction", n=len(gaps2),
             distinct=len(set(round(g, 9) for g in gaps2)),
             observed=(max(gaps2) if gaps2 else float("nan")),
@@ -1437,6 +1444,24 @@ def build_invariants(seed_rows: list[dict[str, Any]],
                  "seeds, so it is the same average and must return the same number. "
                  "A gap here would mean the control changed something other than "
                  "the member count.")))
+
+        # The difference column must equal its two parents subtracted, and the
+        # name says which way.  Without this the sign is a convention someone
+        # remembers; with it, a swapped subtraction is a failed check.
+        gaps3 = [abs(float(r["diff_em_module_minus_b0"])
+                     - (float(r["ensemble_module_em"]) - float(r["ensemble_b0_em"])))
+                 for r in ensemble_vs
+                 if isinstance(r.get("diff_em_module_minus_b0"), (int, float))
+                 and r["diff_em_module_minus_b0"] == r["diff_em_module_minus_b0"]]
+        out.append(dict(
+            check="diff_em_module_minus_b0 == module_em - b0_em",
+            kind="by_construction", n=len(gaps3),
+            distinct=len(set(round(g, 9) for g in gaps3)),
+            observed=(max(gaps3) if gaps3 else float("nan")),
+            why=("the sign convention lives in the column name because a footnote "
+                 "is not read by the person scanning a table. Negative means the "
+                 "module ensemble has the LOWER error, i.e. the module is better; "
+                 "before the rename `diff_em` left that to the reader.")))
 
     # Every CI in the two comparison frames must be built from the t quantile of
     # its own df.  A normal critical value looks identical in the output -- it
@@ -2793,10 +2818,11 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "ENSEMBLE_VS_B0.csv"), ens_vs,
               ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",
                "size_matched", "seeds_module", "seeds_b0",
-               "ensemble_module_em", "ensemble_b0_em", "diff_em",
+               "ensemble_module_em", "ensemble_b0_em", "diff_em_module_minus_b0",
                "n_engines", "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "pct_vs_b0", "significant",
-               "n_seeds_b0_matched", "ensemble_b0_matched_em", "diff_em_matched",
+               "n_seeds_b0_matched", "ensemble_b0_matched_em",
+               "diff_em_matched_module_minus_b0",
                "mean_diff_matched", "ci_lo_matched", "ci_hi_matched",
                "significant_matched"])
 
@@ -2959,6 +2985,19 @@ def main(argv: list[str] | None = None) -> int:
         "`direction_vs_B0` must take one of two values, and the contract says in words",
         "that it is a sign, not a decision.  The judgement itself lives in",
         "`SCREEN.csv` (`decision`), where the threshold and the pairing are both named.",
+        "",
+        "## A difference is not self-describing",
+        "",
+        "`ENSEMBLE_VS_B0.csv` used to carry `diff_em`, which is `module_em - b0_em`.",
+        "Nothing in that name says which side is subtracted, so a reader who guesses",
+        "the other way reads `M2`'s `-0.3951` as a regression when it is the module",
+        "ensemble having the LOWER error.  The column is now",
+        "`diff_em_module_minus_b0`: **negative means the module is better.**  The same",
+        "convention holds for `mean_diff` in both `ENSEMBLE_VS_B0.csv` and",
+        "`PAIRED_VS_B0.csv` (module minus baseline, per engine), and for",
+        "`delta_vs_B0` in `MODULE_RESULTS.csv`.  An invariant now checks that the",
+        "difference column equals its two parents subtracted, so a swapped",
+        "subtraction fails the build instead of reversing a conclusion in prose.",
         "",
         "## Run identity comes from the path, not from the ledger label",
         "",
