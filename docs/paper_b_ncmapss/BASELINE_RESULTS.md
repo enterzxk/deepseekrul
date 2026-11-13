@@ -49,22 +49,31 @@ inactive on all four subsets, `max(Y)` = 62–88).
 
 | subset | N0 | N1 | N2 | N3 | test engines | flights |
 |---|---:|---:|---:|---:|---:|---:|
-| DS02 | **9.31** | 25.85 | 14.61 | 18.26 | 3 | 202 |
-| DS05 | **7.96** | 32.66 | 14.48 | 12.35 | 4 | 327 |
-| DS06 | **7.86** | 25.33 | 7.89 | 10.59 | 4 | 322 |
-| DS07 | **9.84** | 24.10 | 11.36 | 11.45 | 4 | 344 |
+| DS02 | **8.30** | 23.19 | 14.20 | 18.13 | 3 | 202 |
+| DS05 | **7.40** | 30.28 | 13.30 | 11.42 | 4 | 327 |
+| DS06 | **6.94** | 23.54 | 7.29 | 10.17 | 4 | 322 |
+| DS07 | **7.54** | 23.26 | 10.57 | 9.89 | 4 | 344 |
 
-Same cells at `inner_val` (`epoch*`):
+**These are per-engine equal-weight values** (the §6.3 primary metric), recomputed
+from `pred.csv`. The runner wrote **pooled** values into the `_unit` columns for
+all 80 test rows — a defect that is unobservable on the development set, because
+each LOEO fold holds out exactly one engine, so pooled and per-engine-equal
+coincide there by construction (480/480 dev rows are identical). It becomes
+visible only on the test set, where 3–4 engines are scored together. The pooled
+numbers remain correct in `_flightpooled`; the `_unit` columns are being
+recomputed at seal time and each row carries a note saying so. **Any table
+aggregated before this fix is a pooled table** — an earlier version of this file
+carried those values.
 
-| subset | N0 | N1 | N2 | N3 |
-|---|---:|---:|---:|---:|
-| DS02 | **8.91** | 23.98 | 20.91 | 23.15 |
-| DS05 | **7.81** | 24.81 | 13.98 | 15.16 |
-| DS06 | **7.86** | 23.78 | 8.95 | 9.68 |
-| DS07 | **10.49** | 25.73 | 14.88 | 16.54 |
+**The `inner_val` test column is not reported yet.** The 80 runner-written rows
+carry pooled values in `_unit` for both evaluation points, so the `inner_val`
+table that an earlier version of this file contained was also pooled. It is
+removed rather than re-annotated: the per-engine recomputation is pending, and a
+wrong-metric table left in an evidence document invites exactly the quoting it
+must not receive. It will be filled from `pred.csv` at seal time.
 
 **Age-only is first in all eight subset × evaluation-point combinations**, not by
-a margin that a reader can wave away: on DS05 the clock is 7.96 against 14.48 for
+a margin that a reader can wave away: on DS05 the clock is 7.40 against 13.30 for
 the best structural rung, a factor of 1.8.
 
 ## Paired contrasts on the test set (15 engines)
@@ -119,17 +128,19 @@ uniform:
 
 | subset | dev N2 − N0 | test N2 − N0 |
 |---|---:|---:|
-| DS02 | +1.65 | +5.30 |
-| DS05 | +1.99 | +6.52 |
-| DS06 | +2.64 | **+0.03** |
-| DS07 | +7.42 | +1.52 |
+| DS02 | +1.65 | +5.90 |
+| DS05 | +1.99 | +5.90 |
+| DS06 | +2.64 | **+0.35** |
+| DS07 | +7.42 | +3.03 |
 
-The pooled means (+3.43 dev, +3.66 test) look like agreement, but they are means
-over a range that spans **0.03 to 6.52** — a factor of 200. On DS06 the gap
-vanishes on test; on DS02 and DS05 it triples. **The pooled agreement is not
-evidence that the dev→test shift is one mechanism**; it is evidence that the sign
-is stable while the size is set by the subset. Any claim of the form "the gap is
-about 3.5" is a statement about the average of four very different numbers.
+The two levels agree on the **sign** in all four subsets, but the size is set by
+the subset: on test the gap runs from **0.35 to 5.90**, a factor of 17. On DS06
+it nearly vanishes; on DS02 and DS05 it roughly triples relative to development.
+**The agreement is about direction, not about an effect size** — any claim of the
+form "the gap is about 3.5" is a statement about the average of four very
+different numbers. (The per-engine paired test gives +3.66 across the 15 test
+engines, which is a different aggregation again: it weights every engine equally
+rather than every subset.)
 
 The one thing the two levels agree on without qualification is that **no
 structural rung beats the clock in any subset, at either evaluation point.**
@@ -201,5 +212,7 @@ These three conditions were written into this file before any result existed.
   `REGISTRY_NOTES` v20).
 - Both evaluation points come from **one training run** with two weight
   snapshots; the 240 development pairs share no checkpoint sha256.
-- `DS02_N0_TEST_f200 = 9.31` matches an earlier code-validation run at 9.310.
-  That is **the same point appearing twice, not independent evidence.**
+- The runner's **pooled** column for DS02 N0 test is 9.31, matching an earlier
+  code-validation run at 9.310. That is **the same point appearing twice, not
+  independent evidence** — and it is the pooled figure; the per-engine primary
+  value for that cell is 8.30.
