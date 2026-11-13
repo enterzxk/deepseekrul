@@ -101,8 +101,8 @@ DEFAULT_ROOTS = [
     "~/sprint24/experiments/hc/d80b160",
     # reproduction-gate roots: scanned so their runs are recorded, flagged
     # archived so they never enter a statistic
-    "~/sprint24/experiments/hc/d80gate",
-    "~/sprint24/experiments/hc/d80b160gate",
+    "~/sprint24/experiments/hc/_gate",
+    "~/sprint24/experiments/hc/_gate160",
 ]
 RUN_RE = re.compile(r"^HC-D-(?P<arm>.+)-(?P<subset>FD00[1-4])-s(?P<seed>\d+)-D1$")
 
@@ -401,6 +401,20 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     row["converged"] = (
         "yes" if (epochs_run is not None and row.get("budget_epochs") is not None
                   and epochs_run < row["budget_epochs"]) else "no")
+    # A run that reached its budget without patience firing never turned around:
+    # every one of the last `patience` epochs held an improvement, so `best_ep`
+    # sits inside the final window and the reported score is a lower bound on a
+    # converged score, not an estimate of it.  The obvious test
+    # (`best_ep == epochs_run`) misses almost every such run: M3B-FD004-s101 is
+    # 39/40 and slips through, while `epochs_run >= budget` catches it.  The two
+    # columns stay separate because a truncated run is still evidence -- it just
+    # cannot be compared against a converged run as if the two were the same
+    # statistic.
+    row["early_stop_margin"] = (
+        None if (epochs_run is None or best_ep is None) else epochs_run - best_ep)
+    row["truncated"] = (
+        "yes" if (epochs_run is not None and row.get("budget_epochs") is not None
+                  and epochs_run >= row["budget_epochs"]) else "")
     row["_per_engine"] = per_engine_rows(eng, ys, clipped)
     return row
 
@@ -544,7 +558,7 @@ SEED_COLUMNS = [
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
-    "converged", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
+    "converged", "truncated", "early_stop_margin", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
@@ -564,7 +578,7 @@ MODULE_COLUMNS = [
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
-    "status_mix", "best_ep_max", "epochs_run_max",
+    "status_mix", "n_truncated", "best_ep_max", "epochs_run_max",
     "params_trainable", "parent", "params_parent", "params_delta", "params_pct", "description",
 ]
 
@@ -932,6 +946,8 @@ def build_gate_check(seed_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             formal_run=ref["run_id"], formal_root=ref["root"],
             gate_md5=r.get("preds_md5"), formal_md5=ref.get("preds_md5"),
             md5_match=("yes" if same_md5 else "no"), delta_value=dv,
+            gate_epochs=r.get("epochs_run"), formal_epochs=ref.get("epochs_run"),
+            epochs_match=("yes" if r.get("epochs_run") == ref.get("epochs_run") else "no"),
             verdict=verdict))
     return out
 
@@ -1588,6 +1604,7 @@ def main(argv: list[str] | None = None) -> int:
             delta_vs_B0_pct=(100.0 * (mean - b0) / b0
                              if b0 not in (None, 0) else float("nan")),
             status_mix=";".join(sorted({x["status_detail"] for x in rows})),
+            n_truncated=sum(1 for x in rows if x.get("truncated") == "yes"),
             best_ep_max=max((x["best_ep"] or 0) for x in rows),
             epochs_run_max=max((x["epochs_run"] or 0) for x in rows),
             params_trainable=rows[0]["params_trainable"],
@@ -1742,6 +1759,21 @@ def main(argv: list[str] | None = None) -> int:
         "| `duplicate_artifact` | identical `preds.csv` md5 (a copy, whatever the label) | no, counted once |",
         "| `cell_conflict` | same cell, different predictions (cannot tell which is right) | no, both dropped |",
         "| `unusable` | ledger marks `usable=no` | no |",
+        "",
+        "## Truncated runs (`truncated=yes`)",
+        "",
+        "A run with `epochs_run >= budget.epochs` never fired patience, so each of",
+        "the last `patience` epochs still held an improvement. Its `best_ep` sits",
+        "inside that final window and the reported score is a **lower bound** on the",
+        "converged score, not an estimate of it. Such a run stays evidence and stays",
+        "in `MODULE_RESULTS`, but it cannot be differenced against an",
+        "`early_stopped` run as if both measured the same quantity: the truncated",
+        "side is inflated, so the converged side looks better than it is.",
+        "",
+        "Test used: `epochs_run >= budget.epochs`. The intuitive test",
+        "`best_ep == epochs_run` catches only the extreme case -- M3B-FD004-s101 is",
+        "39/40 and would pass it. `early_stop_margin = epochs_run - best_ep` is",
+        "exported alongside so the gap to the boundary is visible.",
         "",
         "## Run identity comes from the path, not from the ledger label",
         "",
