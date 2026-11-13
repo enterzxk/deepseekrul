@@ -535,6 +535,88 @@ def paired_stats(diffs: list[float]) -> dict[str, Any]:
                 ci_lo=mean - half, ci_hi=mean + half)
 
 
+def ensemble_vectors(seed_rows: list[dict[str, Any]], cap: float,
+                     min_seeds: int = 2) -> dict[tuple[str, str, Any], dict[str, Any]]:
+    """Ensemble prediction vector per cell, aligned on (engine_id, cut)."""
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or not r.get("preds_path"):
+            continue
+        groups.setdefault(
+            (r["module"], r["subset"], r.get("budget_epochs")), []).append(r)
+    out: dict[tuple[str, str, Any], dict[str, Any]] = {}
+    for key, rows in groups.items():
+        if len(rows) < min_seeds:
+            continue
+        try:
+            per = []
+            labels: dict[tuple[int, int], float] = {}
+            for r in rows:
+                a = read_preds(r["preds_path"])
+                per.append({(int(e), int(c)): float(p) for e, c, p in
+                            zip(a["engine_id"], a["cut"], a["y_pred"])})
+                labels.update({(int(e), int(c)): float(y) for e, c, y in
+                               zip(a["engine_id"], a["cut"], a["y_raw"])})
+            keys = sorted(labels)
+            if any(set(p) != set(keys) for p in per):
+                continue
+            preds = np.mean([np.array([p[k] for k in keys], np.float64)
+                             for p in per], axis=0)
+        except Exception:                             # noqa: BLE001
+            continue
+        out[key] = dict(
+            keys=keys,
+            preds=preds,
+            ys=np.array([min(labels[k], cap) for k in keys], np.float64),
+            unit=np.array([k[0] for k in keys]),
+            n_seeds=len(rows))
+    return out
+
+
+def build_ensemble_vs(seed_rows: list[dict[str, Any]], cap: float,
+                      baseline_module: str) -> list[dict[str, Any]]:
+    """Ensemble against ensemble, paired per engine.
+
+    This is the test the deployment question actually needs: the seed-level CI
+    says how sure we are about a mean over trainings, but the shipped artefact is
+    the averaged prediction, and its error is a different random variable.
+    """
+    vecs = ensemble_vectors(seed_rows, cap)
+    out: list[dict[str, Any]] = []
+    for (mod, subset, budget), mine in sorted(
+            vecs.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2]))):
+        if mod == baseline_module:
+            continue
+        ref = vecs.get((baseline_module, subset, budget))
+        if ref is None or set(mine["keys"]) != set(ref["keys"]):
+            continue
+        idx = {k: i for i, k in enumerate(mine["keys"])}
+        pos = [idx[k] for k in ref["keys"]]
+        units = np.unique(ref["unit"])
+        diffs = []
+        for u in units:
+            m = ref["unit"] == u
+            pm = np.clip(mine["preds"][pos][m], 0.0, cap)
+            pb = np.clip(ref["preds"][m], 0.0, cap)
+            ys = ref["ys"][m]
+            diffs.append(rmse(pm, ys) - rmse(pb, ys))
+        st = paired_stats(diffs)
+        em_m = per_engine_rmse(ref["unit"], ref["ys"], np.clip(mine["preds"][pos], 0, cap))
+        em_b = per_engine_rmse(ref["unit"], ref["ys"], np.clip(ref["preds"], 0, cap))
+        out.append(dict(
+            module=mod, subset=subset, budget_epochs=budget,
+            n_seeds_module=mine["n_seeds"], n_seeds_b0=ref["n_seeds"],
+            ensemble_module_em=em_m, ensemble_b0_em=em_b,
+            diff_em=em_m - em_b,
+            n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
+            se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
+            pct_vs_b0=(100.0 * (em_m - em_b) / em_b if em_b else float("nan")),
+            significant=("yes" if (not math.isnan(st["ci_lo"])
+                                   and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
+        ))
+    return out
+
+
 def build_budget_pairs(per_engine: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Same arm, same seed, two budgets -- is the extra budget worth it?
 
@@ -1169,6 +1251,12 @@ def main(argv: list[str] | None = None) -> int:
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "verdict", "significant"])
+    ens_vs = build_ensemble_vs(seed_rows, args.cap, args.paired_baseline)
+    write_csv(os.path.join(args.out_dir, "ENSEMBLE_VS_B0.csv"), ens_vs,
+              ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",
+               "ensemble_module_em", "ensemble_b0_em", "diff_em",
+               "n_engines", "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
+               "pct_vs_b0", "significant"])
 
     # ---- audit note ------------------------------------------------------- #
     scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
