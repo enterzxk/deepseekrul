@@ -11,7 +11,10 @@ normalises by a condition reference (``baseline``); that is the *input*. CDE
 builds four statistics of the residual over the observed window and lets a head
 predict a correction from them.
 
-Interface (per cycle, one window of ``span`` cycles):
+Shapes, stated once because getting them wrong costs a debugging round:
+``x`` is (B, span, S) -- B cycles, each with a window of ``span`` cycles and S
+sensors; ``baseline`` is (B, S) from the frozen pipeline (one reference per
+cycle) and is broadcast over the window; ``mask`` is (B, span).
 
     e_t          = x_t - baseline_t        condition-matched residual, (B, S)
     trend_t      = least-squares slope of e over the observed window, (B, S)
@@ -39,27 +42,27 @@ class CDEEvidence(nn.Module):
                                   nn.Linear(d_out, d_out))
 
     def forward(self, x, baseline, mask):
-        """x, baseline: (B, span, S); mask: (B, span) -> q: (B, d_out)."""
         B, L, S = x.shape
+        if baseline.dim() == 2:
+            baseline = baseline.unsqueeze(1)        # (B, 1, S) -> broadcast
         m = mask.unsqueeze(-1)                      # (B, L, 1)
         e = (x - baseline) * m                      # condition-matched residual
-        n = m.sum(1).clamp_min(1.0)                 # (B, 1)
-        e_now = e.sum(1) / n                        # (B, S)
+        n = m.sum(1, keepdim=True).clamp_min(1.0)   # (B, 1, 1)
+        e_now = e.sum(1, keepdim=True) / n          # (B, 1, S)
 
-        idx = torch.arange(L, device=x.device, dtype=x.dtype)
-        idx = idx.unsqueeze(0).unsqueeze(-1)        # (1, L, 1)
-        tbar = (m * idx).sum(1) / n                 # (B, 1, 1)
+        idx = torch.arange(L, device=x.device, dtype=x.dtype).reshape(1, L, 1)
+        tbar = (m * idx).sum(1, keepdim=True) / n   # (B, 1, 1)
         cov = (m * (idx - tbar) * e).sum(1)         # (B, S)
-        var = (mask * (idx.squeeze(-1) - tbar.squeeze(-1)) ** 2).sum(1, keepdim=True)
-        trend = cov / var.clamp_min(1e-6)           # (B, S)
+        var = (m * (idx - tbar) ** 2).sum(1, keepdim=True)   # (B, 1, 1)
+        trend = cov / var.clamp_min(1e-6).squeeze(-1)        # (B, S)
 
         d = e[:, 1:] - e[:, :-1]                    # (B, L-1, S)
         step = (mask[:, 1:] * mask[:, :-1]).unsqueeze(-1)
-        n_step = step.sum(1).clamp_min(1.0)         # (B, 1)
-        persistence = ((d > 0).to(d.dtype) * step).sum(1) / n_step   # (B, S)
+        n_step = step.sum(1, keepdim=True).clamp_min(1.0)    # (B, 1, 1)
+        persistence = ((d > 0).to(d.dtype) * step).sum(1) / n_step.squeeze(-1)
 
-        confidence = n / float(L)                   # (B, 1)
-        q = torch.cat([e_now, trend, persistence, confidence], dim=-1)
+        confidence = (n / float(L)).reshape(B, 1)   # (B, 1)
+        q = torch.cat([e_now.reshape(B, S), trend, persistence, confidence], dim=-1)
         return self.proj(q)
 
 
