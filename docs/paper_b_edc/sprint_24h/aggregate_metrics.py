@@ -697,15 +697,21 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- module x subset x budget ---------------------------------------- #
     for rec in noncanon:
+        rid = (rec.get("run_id") or "").strip()
+        # A smoke that was moved aside keeps its trace under the _smoke_ prefix.
+        # Calling that "non canonical" would be true but misleading: the reason
+        # it is not evidence is that it is a smoke.
+        smoke = rid.startswith("_smoke_")
         seed_rows.append(dict(
-            run_id=(rec.get("run_id") or "").strip(),
+            run_id=rid,
             root=(rec.get("root") or "").strip(),
             module=module_of((rec.get("arm") or "").strip()),
             arm=(rec.get("arm") or "").strip(),
             subset=(rec.get("subset") or "").strip(),
             seed=(rec.get("seed") or "").strip(),
             in_ledger="yes", usable=(rec.get("usable") or "").strip().lower(),
-            status="non_canonical_id", status_detail="non_canonical_id",
+            status="smoke_dir" if smoke else "non_canonical_id",
+            status_detail="smoke_dir" if smoke else "non_canonical_id",
             run_dir=(rec.get("run_dir") or "").strip(),
             reported_engine_mean_rmse=rec.get("val_engine_mean_rmse"),
         ))
@@ -867,6 +873,7 @@ def main(argv: list[str] | None = None) -> int:
         "| `smoke_override` | `budget_override` set (smoke run) | no |",
         "| `one_epoch_probe` | `epochs_run <= 1` and budget < 40, no override | no |",
         "| `non_canonical_id` | run id is not `HC-D-{arm}-{subset}-s{seed}-D1` | no |",
+        "| `smoke_dir` | run id carries the `_smoke_` prefix (moved-aside smoke) | no |",
         "| `duplicate_ledger_row` | ledger lists one directory twice | no, counted once |",
         "| `duplicate_artifact` | identical `preds.csv` md5 (a copy, whatever the label) | no, counted once |",
         "| `cell_conflict` | same cell, different predictions (cannot tell which is right) | no, both dropped |",
