@@ -248,7 +248,14 @@ class DSPTFlight(nn.Module):
 
     def encode(self, x, mask, cond):
         B, L, _ = x.shape
-        sensor = x[..., :N_SENSORS * N_STATS].reshape(B, L, N_SENSORS, N_STATS)
+        # flight_table emits the 42 sensor columns grouped by statistic:
+        # [14 means, 14 stds, 14 slopes], not interleaved per sensor. Reshaping
+        # straight to (N_SENSORS, N_STATS) therefore built each "sensor token" out
+        # of three different sensors' same statistic. Split by statistic first,
+        # then move the sensor axis in front.
+        sensor = (x[..., :N_SENSORS * N_STATS]
+                  .reshape(B, L, N_STATS, N_SENSORS)
+                  .transpose(-1, -2))
         ctx = x[..., N_SENSORS * N_STATS:]
         h = self.sensor_in(sensor)                        # (B,L,N,D)
         hh4 = h.permute(0, 2, 3, 1)                       # (B,N,D,L)
