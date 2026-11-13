@@ -66,7 +66,7 @@ MSE + 0.1×标准化传感器重建误差（含固定微小basis惩罚）。raw�
 
 五个主臂 raw/fe/delta/supported/common 加 age-MLP、W-only参考，共504次真实训练；另24个确定性年龄先验。
 原始Y单位为航班周期，训练统一cap125，raw主指标与cap125敏感性分别保存；预测仅
-下界0，不上限截断。完整预算见包内PROTOCOL.json：24训练进程小时、12GiB显存。
+下界0，不上限截断。完整预算见包内PROTOCOL.json：36共享GPU墙钟小时、12GiB显存。
 
 每seed保留initial/checkpoint、optimizer、配置哈希、源数据/cache/执行哈希、实际
 更新次数、梯度记录、所有heldout逐航班预测、参数量和训练时间。seal逐文件验哈希；

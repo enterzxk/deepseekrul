@@ -32,7 +32,7 @@
   "test_access": "forbidden; no_test_loader; historical_test_already_opened_elsewhere",
   "training_runs": 504,
   "additional_deterministic_age_prior_folds": 24,
-  "maximum_gpu_training_hours": 24,
+  "maximum_gpu_training_hours": 36,
   "gpu_budget_accounting": "one_shared_GPU_elapsed_wall_hours_across_disjoint_concurrent_subset_workers; per_cell_process_hours_reported_separately",
   "maximum_device_memory_MiB": 12000,
   "primary_gain_gate": "common_vs_raw_and_fe: >=2% lower_engine_mean_RMSE_on_at_least_two_subsets; no_subset_worse_by_more_than_2%; beat_age_reference",
