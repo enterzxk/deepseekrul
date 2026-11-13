@@ -76,10 +76,10 @@ def damage_by_cycle(net, arm, eb, dev, K, subset):
             n = int(eb['lengths'][i])
             fo = forward_engine(net, arm, eb, i, n, dev, K)
             r = fo['r'].cpu().numpy()
-            if 'D' in fo:
-                D = fo['D'].cpu().numpy()
-            else:
-                D = (np.arange(1, n + 1) / l_mean).astype(np.float32)
+            # Use the model's own output ordering for EVERY arm: -pred. Using D
+            # would compare different quantities across arms (B2 has a damage path,
+            # B0 does not) and the question is what the model's prediction ranks.
+            D = -fo['pred'].detach().cpu().numpy()
             eid = int(eb['engine_id'][i])
             for t in range(n):
                 rows.append((eid, t + 1, float(D[t]), float(r[t])))
