@@ -293,6 +293,11 @@ for _s in _substale:
 # 7.3 negative assertions: "no gate anywhere" / "only in FD001" go stale the
 # moment one gate lands, and a positive-count sweep cannot see them.  This is
 # the fifth iteration of "a negative check decays as the doc grows".
+# 7.3 is a REGRESSION GUARD, not a guarantee: a blacklist only covers the
+# phrasings that have already occurred, and the space of prose variants is
+# unbounded (seven realistic variants slipped through on first test).  The only
+# real guarantee is 7.4 below -- check that the POINTER is present, because the
+# set of places that should carry one is enumerable.
 NEG = re.compile(r"一格都没有|A 级证据仅存在|从未通过|全部无门格|全部 `unverifiable`")
 NEG_OK = ("计划时", "当时", "已作废", "已撤回", "曾", "旧版", "§0.7", "生成块", "WARN")
 _neg = []
@@ -308,6 +313,31 @@ print(f"{'PASS' if not _neg else 'FAIL'}  {'7.3 no bare negative gate assertion'
       f"hits={len(_neg)}")
 for _n in _neg:
     fails.append("negative gate assertion needs a pointer or a 'planned-time' marker: " + _n)
+
+# 7.4 positive check: every line that talks about evidence tiers must carry a
+# pointer to the generated block.  Positive checks miss (a position is either
+# listed or not), negative checks both miss and over-fire; a positive one has a
+# finite, enumerable failure set, which is why this is the guarantee and 7.3 is
+# only the alarm.
+TIERWORD = re.compile(r"A 级|B 级|A 格|B 格")
+_tier_doc = HERE / TIER_DOC
+_tlines = _tier_doc.read_text(encoding="utf-8").split("\n")
+# lines inside section 0.7 do not need a pointer to themselves
+_lo = next((i for i, l in enumerate(_tlines) if l.startswith("## 0.7")), -1)
+_hi = next((i for i, l in enumerate(_tlines) if _lo >= 0 and i > _lo and l.startswith("## ")), len(_tlines))
+_nopointer = []
+for _i, _line in enumerate(_tlines, 1):
+    if TIER_BEGIN in _line or TIER_END in _line:
+        continue
+    if _lo + 1 <= _i <= _hi:          # inside 0.7 itself
+        continue
+    if TIERWORD.search(_line) and "§0.7" not in _line:
+        _nopointer.append("%s:%d  %s" % (TIER_DOC, _i, _line.strip()[:60]))
+checks += 1
+print(f"{'PASS' if not _nopointer else 'FAIL'}  {'7.4 every tier mention carries a pointer':<52s} "
+      f"missing={len(_nopointer)}")
+for _n in _nopointer:
+    fails.append("tier mention without a §0.7 pointer: " + _n)
 
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
