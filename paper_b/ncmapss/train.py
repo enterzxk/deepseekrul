@@ -43,7 +43,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .features import (N_FEATURES, N_SENSORS, N_STATS, SPAN, AgeScaler,
+from .features import (N_FEATURES, N_SENSORS, N_STATS, SPAN, AgeScaler, FeatScaler,
                        build_matrix, filter_low_confidence, flight_table,
                        make_windows)
 
@@ -330,8 +330,8 @@ def asymmetric_loss(pred, y):
 def load_split(path, train_units, cfg, split='dev', subset=None, fitted=None):
     """Build features, condition ids and windows for one split of one subset.
 
-    ``fitted`` carries ``(CondEncoder, AgeScaler)`` already fitted on the
-    training engines. On the dev split they are fitted here, on ``train_units``
+    ``fitted`` carries ``(CondEncoder, AgeScaler, FeatScaler)`` already fitted on
+    the training engines. On the dev split they are fitted here, on ``train_units``
     only, so every LOEO fold is fold-local. The test split must be handed the
     transforms fitted on all six dev engines: standardising test features with a
     statistic computed on the test rows themselves would leak the test set into
@@ -361,9 +361,10 @@ def load_split(path, train_units, cfg, split='dev', subset=None, fitted=None):
     if fitted is None:
         tr = np.isin(tbl['unit'], list(train_units))
         scaler = AgeScaler().fit(tbl['cycle'][tr])
+        fscaler = FeatScaler().fit(tbl['features'][tr])
     else:
-        scaler = fitted[1]
-    X = build_matrix(tbl, scaler)
+        scaler, fscaler = fitted[1], fitted[2]
+    X = build_matrix(tbl, scaler, fscaler)
     d = make_windows(X, tbl['unit'], tbl['cycle'], y=y_flight)
     d['cond'] = tbl['cond']
     d['drop_info'] = drop_info
@@ -372,7 +373,7 @@ def load_split(path, train_units, cfg, split='dev', subset=None, fitted=None):
     d['subset'] = subset or Path(path).stem
     d['split'] = split
     d['unit_lifetime'] = _lifetime(path, split)
-    return d, (ce, scaler)
+    return d, (ce, scaler, fscaler)
 
 
 def load_subset(path, train_units, cfg, root=ROOT, subset=None):

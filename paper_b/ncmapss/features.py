@@ -52,6 +52,35 @@ class AgeScaler:
         return (np.asarray(cycles, dtype=np.float64) / self.scale).astype(np.float32)
 
 
+class FeatScaler:
+    """Per-column z-score for the 50 physical statistics, fitted on the training engines.
+
+    Protocol 4.1 requires the normalisation to be fitted on the training folds of
+    the current LOEO fold. Without it the 50 columns span about 8.4 orders of
+    magnitude (8208 for a sensor mean, 3e-5 for a slope), so a single linear
+    projection over them is dominated by the largest columns and the age column --
+    the only one previously scaled -- cannot compete. The floor on the standard
+    deviation keeps a constant column from producing infinities.
+    """
+
+    def __init__(self, floor=1e-8):
+        self.floor = float(floor)
+        self.mu = None
+        self.sd = None
+
+    def fit(self, F):
+        F = np.asarray(F, dtype=np.float64)
+        self.mu = F.mean(axis=0)
+        self.sd = np.maximum(F.std(axis=0), self.floor)
+        return self
+
+    def transform(self, F):
+        if self.mu is None:
+            raise AssertionError('FeatScaler.transform called before fit')
+        F = np.asarray(F, dtype=np.float64)
+        return ((F - self.mu) / self.sd).astype(np.float32)
+
+
 def _group_index(unit, cycle):
     """Stable group id per (unit, cycle), in first-appearance order, plus sorted order."""
     key = np.stack([np.asarray(unit, np.int64), np.asarray(cycle, np.int64)], axis=1)
@@ -191,10 +220,19 @@ def filter_low_confidence(table):
     return out, info
 
 
-def build_matrix(table, age_scaler):
-    """Append the scaled age column -> (n_flights, 51) float32."""
+def build_matrix(table, age_scaler, feat_scaler=None):
+    """Append the scaled age column -> (n_flights, 51) float32.
+
+    ``feat_scaler`` standardises the 50 physical columns; it is fitted on the
+    training engines only. Passing ``None`` reproduces the pre-fix pipeline that
+    produced the sealed batch, which is what ``feat_scaler=None`` is for -- the
+    sealed numbers are reproducible from commit ad53371, not from HEAD.
+    """
+    F = table['features']
+    if feat_scaler is not None:
+        F = feat_scaler.transform(F)
     age = age_scaler.transform(table['cycle']).reshape(-1, 1)
-    X = np.concatenate([table['features'], age], axis=1).astype(np.float32)
+    X = np.concatenate([F, age], axis=1).astype(np.float32)
     if X.shape[1] != N_FEATURES:
         raise AssertionError(f'feature matrix has {X.shape[1]} columns, contract says {N_FEATURES}')
     return X
