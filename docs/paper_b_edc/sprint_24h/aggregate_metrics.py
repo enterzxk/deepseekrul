@@ -286,7 +286,8 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
                     epoch_sd=float("nan"), best_val=float("nan"),
                     best_minus_tail10=float("nan"), ema_min=float("nan"),
                     gain_last1=float("nan"), gain_last3=float("nan"),
-                    gain_last5=float("nan"))
+                    gain_last5=float("nan"), gain_last6=float("nan"),
+                    gain_last12=float("nan"))
     tail = curve[-10:] if len(curve) >= 10 else curve
     best = min(curve)
     t_mean, t_sd = mean_sd(tail)
@@ -314,6 +315,8 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
         gain_last1=gain(1),
         gain_last3=gain(3),
         gain_last5=gain(5),
+        gain_last6=gain(6),
+        gain_last12=gain(12),
     )
 
 
@@ -590,7 +593,7 @@ SEED_COLUMNS = [
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
     "converged", "truncated", "budget_status", "early_stop_margin",
-    "gain_last1", "gain_last3", "gain_last5",
+    "gain_last1", "gain_last3", "gain_last5", "gain_last6", "gain_last12",
     "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
@@ -1289,6 +1292,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
             budget=r.get("budget_epochs"),
             bs=r.get("budget_status"),
             g5=r.get("gain_last5"),
+            g12=r.get("gain_last12"),
             em=r["engine_mean_rmse"])
 
     # index the baseline by (subset, budget, seed)
@@ -1322,7 +1326,14 @@ def build_paired(seed_rows: list[dict[str, Any]],
             module_em=m["em"], b0_em=b0_em,
             module_budget_status=m["bs"], baseline_budget_status=meta[bkey]["bs"],
             module_gain_last5=m["g5"], baseline_gain_last5=meta[bkey]["g5"],
+            module_gain_last12=m["g12"], baseline_gain_last12=meta[bkey]["g12"],
             headroom=headroom,
+            headroom12=max([g for g in (m["g12"], meta[bkey]["g12"])
+                            if isinstance(g, (int, float)) and g == g], default=float("nan")),
+            headroom12_over_effect=(
+                max([g for g in (m["g12"], meta[bkey]["g12"])
+                     if isinstance(g, (int, float)) and g == g], default=float("nan"))
+                / abs(st["mean"]) if st["mean"] else float("nan")),
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
@@ -1375,6 +1386,21 @@ def build_paired(seed_rows: list[dict[str, Any]],
                                      and r["baseline_gain_last5"] == r["baseline_gain_last5"]),
                                     default=float("nan")),
             headroom=headroom,
+            module_gain_last12=max((r["module_gain_last12"] for r in rows
+                                    if isinstance(r.get("module_gain_last12"), (int, float))
+                                    and r["module_gain_last12"] == r["module_gain_last12"]),
+                                   default=float("nan")),
+            baseline_gain_last12=max((r["baseline_gain_last12"] for r in rows
+                                      if isinstance(r.get("baseline_gain_last12"), (int, float))
+                                      and r["baseline_gain_last12"] == r["baseline_gain_last12"]),
+                                     default=float("nan")),
+            headroom12=max((r["headroom12"] for r in rows
+                            if isinstance(r.get("headroom12"), (int, float))
+                            and r["headroom12"] == r["headroom12"]), default=float("nan")),
+            headroom12_over_effect=max((r["headroom12_over_effect"] for r in rows
+                                        if isinstance(r.get("headroom12_over_effect"), (int, float))
+                                        and r["headroom12_over_effect"] == r["headroom12_over_effect"]),
+                                       default=float("nan")),
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
@@ -1752,6 +1778,8 @@ def main(argv: list[str] | None = None) -> int:
                "module_em", "b0_em", "pct_vs_b0", "verdict", "significant",
                "module_budget_status", "baseline_budget_status",
                "module_gain_last5", "baseline_gain_last5", "headroom",
+               "module_gain_last12", "baseline_gain_last12", "headroom12",
+               "headroom12_over_effect",
                "pair_status", "judgeable"])
     ensemble = build_ensemble(seed_rows, args.cap)
     # stage-2 bar: a module is only a contribution if its ensemble beats the
