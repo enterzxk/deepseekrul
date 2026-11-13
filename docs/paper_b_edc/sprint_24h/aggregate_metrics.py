@@ -1142,6 +1142,19 @@ def build_stability(seed_rows: list[dict[str, Any]],
         bsd = base_sd.get((subset, budget), float("nan"))
         same_n = (bn is not None and n == bn)
         md = mad(vals)
+        # MAD's robustness is a property of large n, not of MAD.  With n=3 the
+        # median is the middle value, so one of the three deviations is exactly
+        # zero and MAD equals the distance to the *nearer* neighbour -- the
+        # farthest point does not participate at all.  B3 FD004 shows the size of
+        # the blind spot: sd 0.3050 against MAD 0.0040, a 76x gap, because s101
+        # sits 0.35 away and is invisible to the median.
+        if n >= 5:
+            mad_valid, mad_valid_reason = "yes", ""
+        else:
+            mad_valid = "no"
+            mad_valid_reason = (
+                "n=%d < 5: MAD degenerates to nearest-neighbour distance, the "
+                "outlier is invisible by construction -- use sd" % n)
         if same_n and n >= 3 and bmad:
             ratio_ok, ratio, reason = "yes", md / bmad, ""
         elif bn is None:
@@ -1160,6 +1173,7 @@ def build_stability(seed_rows: list[dict[str, Any]],
             baseline_n=bn, baseline_sd=bsd, baseline_mad=bmad,
             sd_ratio=(sd / bsd if bsd else float("nan")),
             mad_ratio=ratio, mad_ratio_ok=ratio_ok, mad_ratio_reason=reason,
+            mad_valid=mad_valid, mad_valid_reason=mad_valid_reason,
             # A selfcheck ratio is 1.0 by construction -- the same numbers
             # compared with themselves.  It tests the arithmetic, not a module,
             # so it must never be counted as evidence for one.
@@ -2275,7 +2289,7 @@ def main(argv: list[str] | None = None) -> int:
               ["module", "subset", "budget_epochs", "n_seeds", "comparison_kind", "seeds",
                "mean", "sd", "mad", "baseline_n", "baseline_sd", "baseline_mad",
                "sd_ratio", "mad_ratio", "mad_ratio_ok", "mad_ratio_reason",
-               "informative"])
+               "mad_valid", "mad_valid_reason", "informative"])
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
                "ci_mean", "screen_single", "single_vs_mean", "paired_3seed",
