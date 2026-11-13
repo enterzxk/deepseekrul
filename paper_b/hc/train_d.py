@@ -46,13 +46,18 @@ from .data_d import engine_batch, train_lifetime_mean
 from .hi_d import DSPT_HC_Structured
 
 ARMS = ('B0', 'B1', 'B2', 'B3')
-HI_ARMS = ('B1', 'B2', 'B3')
-ARRIVAL_ARMS = ('B2', 'B3')
+# M3-B: the age-anchored increment. Same arrival machinery as B3, only the
+# increment parameterisation changes (delta = lambda0 * exp(clamp(u))), so it is
+# a one-variable ablation of B3 rather than a new pipeline.
+ANCHORED_ARMS = ('M3B',)
+HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS
+ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
 # frozen 48-cell matrix -- adding them to ARMS would silently change it -- but
 # they share the data interface, the censored hinge and the evaluator, which is
 # what makes their numbers comparable to B0-B3.
 SPRINT_ARMS = ('AGE', 'AAR')
+ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS
 
 
 class ResidualHead(nn.Module):
@@ -180,6 +185,7 @@ def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
         hi_source=bb['hi_source'], hi_mono=bb['hi_mono'],
         use_pad_mask=True, n_cond=cfg['n_cond'],
         l_mean=(None if (arm == 'B0' or arm in SPRINT_ARMS) else l_mean),
+        anchored=(arm in ANCHORED_ARMS),
         head_seed=(None if arm == 'B0' else head_seed))
     ck = torch.load(init_from, map_location='cpu', weights_only=True)
     sd = dict(ck['state_dict'] if 'state_dict' in ck else ck)
@@ -730,7 +736,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('stage', choices=['prepare', 'train', 'audit', 'id'])
     ap.add_argument('--subset', default='FD001')
-    ap.add_argument('--arm', default='B3', choices=ARMS + SPRINT_ARMS)
+    ap.add_argument('--arm', default='B3', choices=ALL_ARMS)
     ap.add_argument('--seed', type=int, default=101)
     ap.add_argument('--K', type=int, default=600)
     ap.add_argument('--head-seed', type=int, default=101)

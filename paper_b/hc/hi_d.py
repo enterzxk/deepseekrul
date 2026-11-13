@@ -53,11 +53,30 @@ def mean_life_bias(l_mean):
 class DamageRateHead(nn.Module):
     """f_theta (increment) and g_phi (future rate). The only new parameters."""
 
-    def __init__(self, d_model, hidden=32, fixed_rate=False, l_mean=None):
+    def __init__(self, d_model, hidden=32, fixed_rate=False, l_mean=None,
+                 anchored=False, anchor_clip=1.0):
         super().__init__()
         self.fixed_rate = bool(fixed_rate)
+        # Age-anchored increment (M3-B): delta_t = lambda0 * exp(clamp(u(z_t))),
+        # lambda0 = 1/L_mean of the TRAINING split. The last layer is zero-init,
+        # so at step 0 u == 0 and delta == lambda0 exactly -- the damage path is
+        # then D_t = t/L_mean, i.e. the age timer. That is the whole point of the
+        # arm: whatever the sensor modulation buys has to show up as a departure
+        # from that timer, and if it never departs then the structured HI is just
+        # re-parameterising cycle and the route is dead.
+        self.anchored = bool(anchored)
+        self.anchor_clip = float(anchor_clip)
+        self.anchor_lambda0 = None
         self.delta = nn.Sequential(nn.Linear(d_model, hidden), nn.GELU(),
                                    nn.Linear(hidden, 1))
+        if self.anchored:
+            if l_mean is None:
+                raise ValueError('anchored increment needs l_mean (training split)')
+            self.anchor_lambda0 = 1.0 / float(l_mean)
+            self.anchor = nn.Sequential(nn.Linear(d_model, hidden), nn.GELU(),
+                                        nn.Linear(hidden, 1))
+            nn.init.zeros_(self.anchor[2].weight)
+            nn.init.zeros_(self.anchor[2].bias)
         # inputs: z_t (d), D_t, nu_t, and the two fixed bases of k
         self.rate = nn.Sequential(nn.Linear(d_model + 2 + 2, hidden), nn.GELU(),
                                   nn.Linear(hidden, 1))
@@ -99,6 +118,10 @@ class DamageRateHead(nn.Module):
 
     def increment(self, z):
         """(B, L, d) -> (B, L) non-negative per-cycle damage increments."""
+        if self.anchored:
+            u = self.anchor(z).squeeze(-1)
+            return self.anchor_lambda0 * torch.exp(
+                torch.clamp(u, -self.anchor_clip, self.anchor_clip))
         return F.softplus(self.delta(z)).squeeze(-1)
 
     def future_rates(self, D_t, nu_t, z_t, K):
@@ -125,7 +148,7 @@ class DSPT_HC_Structured(DSPT_HC):
     """Frozen backbone + structured HI. No bypass regression head is used."""
 
     def __init__(self, fixed_rate=False, K=200, rate_alpha=0.2, l_mean=None,
-                 head_seed=None, **kw):
+                 head_seed=None, anchored=False, anchor_clip=1.0, **kw):
         super().__init__(**kw)
         # The new head must be reproducible on its own: loading the shared
         # backbone overwrites every backbone tensor but leaves head.* at whatever
@@ -134,13 +157,15 @@ class DSPT_HC_Structured(DSPT_HC):
         # not depend on the backbone's construction order.
         if head_seed is None:
             self.head = DamageRateHead(self.d_model, fixed_rate=fixed_rate,
-                                       l_mean=l_mean)
+                                       l_mean=l_mean, anchored=anchored,
+                                       anchor_clip=anchor_clip)
         else:
             cpu_state = torch.random.get_rng_state()
             cuda_state = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
             torch.manual_seed(int(head_seed))
             self.head = DamageRateHead(self.d_model, fixed_rate=fixed_rate,
-                                       l_mean=l_mean)
+                                       l_mean=l_mean, anchored=anchored,
+                                       anchor_clip=anchor_clip)
             torch.random.set_rng_state(cpu_state)
             if cuda_state is not None:
                 torch.cuda.set_rng_state_all(cuda_state)
