@@ -128,8 +128,12 @@ def main():
                  'cde.py identical at s101/s202/HEAD: %s' % hashes)
 
     src = blob('HEAD', TRAIN).decode('utf-8')
-    diag = span(src, 'def term_grads(', '\ndef ') | call_site_lines(
-        src, r'term_grads\(net, arm, ebt')
+    # line numbers in the a->b diff refer to b's file, so the span has to come
+    # from b's source too -- reading it off HEAD breaks as soon as anything
+    # above term_grads() changes, which is exactly what the fingerprint fix did
+    src_b = blob(b, TRAIN).decode('utf-8')
+    diag = span(src_b, 'def term_grads(', '\ndef ') | call_site_lines(
+        src_b, r'term_grads\(net, arm, ebt')
     touched = changed_lines(git('diff', a, b, '--', TRAIN).decode('utf-8'))
     outside = [n for n in touched if n not in diag]
     ok &= report('B', not outside,
