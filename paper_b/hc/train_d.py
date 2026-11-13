@@ -36,6 +36,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from ..training.metrics import per_engine_rmse, rmse, summarize
@@ -47,6 +48,67 @@ from .hi_d import DSPT_HC_Structured
 ARMS = ('B0', 'B1', 'B2', 'B3')
 HI_ARMS = ('B1', 'B2', 'B3')
 ARRIVAL_ARMS = ('B2', 'B3')
+# Sprint arms (Baseline B and the age-only control). They are NOT part of the
+# frozen 48-cell matrix -- adding them to ARMS would silently change it -- but
+# they share the data interface, the censored hinge and the evaluator, which is
+# what makes their numbers comparable to B0-B3.
+SPRINT_ARMS = ('AGE', 'AAR')
+
+
+class ResidualHead(nn.Module):
+    """r_theta(z_t) for Baseline B. Last layer is zero-initialised.
+
+    Zero init is the definition of the baseline, not a trick: at step 0 the
+    prediction is exactly the age prior, so any improvement later is attributable
+    to the sensor residual rather than to a lucky random head. Gradient still
+    reaches the hidden layer from step 1 (dL/dW1 = W2^T dL/dpre with W2 = 0 at
+    step 0, nonzero after).
+    """
+
+    def __init__(self, d_model, hidden=32):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(d_model, hidden), nn.GELU(),
+                                 nn.Linear(hidden, 1))
+        nn.init.zeros_(self.net[2].weight)
+        nn.init.zeros_(self.net[2].bias)
+
+    def forward(self, z):
+        return self.net(z).reshape(-1)
+
+
+def fit_age_prior(ebt, cap, min_alive=5):
+    """A[t] = mean over training engines alive at t of min(n_e - t, cap).
+
+    This is the least-squares optimal prediction from age alone for the capped
+    label, fitted on the TRAINING split only. Cycles with fewer than
+    ``min_alive`` engines alive have no reliable mean, so the last supported
+    value is carried forward (flat extrapolation) rather than extrapolating a
+    trend that the data does not support.
+    """
+    lens = np.asarray(ebt['lengths'], np.int64)
+    Tmax = int(lens.max())
+    tot = np.zeros(Tmax + 2, np.float64)
+    cnt = np.zeros(Tmax + 2, np.int64)
+    for n in lens:
+        r = np.minimum(n - np.arange(1, n + 1, dtype=np.float64), cap)
+        tot[1:n + 1] += r
+        cnt[1:n + 1] += 1
+    A = np.zeros(Tmax + 2, np.float32)
+    supported = np.nonzero(cnt >= min_alive)[0]
+    if supported.size == 0:
+        supported = np.nonzero(cnt > 0)[0]
+    if supported.size == 0:
+        raise RuntimeError('age prior: no cycle has an alive engine')
+    last = float(tot[supported[-1]] / cnt[supported[-1]])
+    # one pass: supported cycles use their own mean, everything after the last
+    # supported cycle is flat, everything before is the first supported mean
+    first = float(tot[supported[0]] / cnt[supported[0]])
+    A[:] = last
+    A[:supported[0]] = first
+    for t in supported:
+        A[t] = tot[t] / cnt[t]
+    A[0] = A[1] if Tmax >= 1 else first
+    return A
 
 
 def run_id(arm, subset, seed):
@@ -117,7 +179,7 @@ def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
         ms_mode=bb['ms_mode'], sa_mode=bb['sa_mode'],
         hi_source=bb['hi_source'], hi_mono=bb['hi_mono'],
         use_pad_mask=True, n_cond=cfg['n_cond'],
-        l_mean=(None if arm == 'B0' else l_mean),
+        l_mean=(None if (arm == 'B0' or arm in SPRINT_ARMS) else l_mean),
         head_seed=(None if arm == 'B0' else head_seed))
     ck = torch.load(init_from, map_location='cpu', weights_only=True)
     sd = dict(ck['state_dict'] if 'state_dict' in ck else ck)
@@ -144,6 +206,12 @@ def trainable(net, arm):
             keep = False
         if arm in ARRIVAL_ARMS and name.startswith('reg_head.'):
             keep = False
+        if arm in SPRINT_ARMS:
+            # AGE is a fitted curve: nothing to train. AAR trains the backbone
+            # plus the residual head only -- the damage and regression heads are
+            # not part of Baseline B and must not drift into being one.
+            keep = (arm == 'AAR') and not (name.startswith('head.')
+                                           or name.startswith('reg_head.'))
         p.requires_grad_(keep)
         if keep:
             out.append(p)
@@ -174,6 +242,21 @@ def engine_tensors(eb, i, n, dev):
 
 def forward_engine(net, arm, eb, i, n, dev, K):
     """One engine: z_t (fp32), damage path, and the RUL prediction."""
+    if arm in SPRINT_ARMS:
+        # Age prior (and, for AAR, a sensor residual on top of it). AGE never
+        # touches the encoder -- it is a fitted curve, so running it through the
+        # backbone would only cost time and add nothing.
+        r = torch.from_numpy(np.asarray(eb['r'][i, :n], np.float32)).to(dev)
+        cyc = torch.from_numpy(np.asarray(eb['cycle_raw'][i, :n], np.float32)).to(dev)
+        idx = cyc.long().clamp(0, net.age_prior.numel() - 1)
+        pred = net.age_prior[idx]
+        if arm == 'AAR':
+            x, m, b, cy, cd, _ = engine_tensors(eb, i, n, dev)
+            with torch.autocast(device_type='cuda', dtype=torch.bfloat16,
+                                enabled=(dev.type == 'cuda')):
+                z = net.pooled_feature(x, m, b, cy, cd)
+            pred = pred + net.residual(z.float())
+        return dict(pred=pred, r=r, n=n)
     x, m, b, cy, cd, r = engine_tensors(eb, i, n, dev)
     with torch.autocast(device_type='cuda', dtype=torch.bfloat16,
                         enabled=(dev.type == 'cuda')):
@@ -474,20 +557,34 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     dev = torch.device(dev)
     net, new_keys = build_d(arm, subset, K, l_mean, int(sh['head_seed']), dev,
                             init_from, seed=seed)
-    params = trainable(net, arm)
-    nparam = module_counts(net, arm)
     ebt = engine_batch(subset, data_dir, C.SPAN, C.VAL_CUTS, split='train')
     ebv = engine_batch(subset, data_dir, C.SPAN, C.VAL_CUTS, split='val')
-    opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
-    sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
+    prior_sha = None
+    if arm in SPRINT_ARMS:
+        prior = fit_age_prior(ebt, cap)
+        net.register_buffer('age_prior', torch.from_numpy(prior).to(dev))
+        if arm == 'AAR':
+            net.residual = ResidualHead(net.d_model).to(dev)
+        prior_sha = hashlib.sha256(np.ascontiguousarray(prior, '<f4').tobytes()
+                                   ).hexdigest()[:16]
+        log('  age prior: %d cycles, A(1)=%.3f A(Tmax)=%.3f sha=%s'
+            % (prior.size - 2, float(prior[1]), float(prior[-3]), prior_sha))
+    params = trainable(net, arm)
+    nparam = module_counts(net, arm)
+    opt = (torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+           if params else None)
+    sch = (torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
+           if opt is not None else None)
     g = torch.Generator(device='cpu').manual_seed(int(seed))
     E = len(ebt['lengths'])
 
     best, best_state, best_ep, history = float('inf'), None, -1, []
-    for ep in range(1, epochs + 1):
+    n_epochs = epochs if params else 1   # AGE is a fitted curve: one pass is the answer
+    for ep in range(1, n_epochs + 1):
         net.train()
         order = torch.randperm(E, generator=g).tolist()
-        opt.zero_grad(set_to_none=True)
+        if opt is not None:
+            opt.zero_grad(set_to_none=True)
         acc, pts, tot, seen = {}, 0, 0.0, 0
 
         def _step(acc, pts):
@@ -496,10 +593,11 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             total = L['rul']
             if 'terminal' in L:
                 total = total + lam_t * L['terminal'] + lam_s * L['smooth']
-            total.backward()
-            torch.nn.utils.clip_grad_norm_(params, 1.0)
-            opt.step()
-            opt.zero_grad(set_to_none=True)
+            if opt is not None:
+                total.backward()
+                torch.nn.utils.clip_grad_norm_(params, 1.0)
+                opt.step()
+                opt.zero_grad(set_to_none=True)
             return float(total.detach()) * pts, pts
 
         for i in order:
@@ -517,10 +615,12 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             dl, dp = _step(acc, pts)
             tot += dl
             seen += dp
-        sch.step()
+        if sch is not None:
+            sch.step()
 
         ev = evaluate(net, arm, ebv, dev, K, cap)
-        tg = term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s)
+        tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s)
+              if params else dict(unweighted={}, weighted={}, values={}))
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0
         ratio = {k: (v / mx if mx > 0 else None) for k, v in w.items()}
@@ -556,7 +656,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
              l_mean=l_mean,
              # B0 has no damage head, so it has no head fingerprint: recording
              # the shared one would claim an init the arm never built.
-             head_fingerprint=(None if arm == 'B0' else sh['head_fingerprint']),
+             head_fingerprint=(None if (arm == 'B0' or arm in SPRINT_ARMS)
+                               else sh['head_fingerprint']),
+             age_prior_sha256=prior_sha,
              frozen_sha256=frozen_sha, code_fingerprint=code_fingerprint(),
              ref_batch_epoch_log_engines=[int(x) for x in ebt['engine_id'][:3]],
              ref_batch_calibration='first 8 training engines, index order (see d45_init.json)',
@@ -628,7 +730,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('stage', choices=['prepare', 'train', 'audit', 'id'])
     ap.add_argument('--subset', default='FD001')
-    ap.add_argument('--arm', default='B3', choices=ARMS)
+    ap.add_argument('--arm', default='B3', choices=ARMS + SPRINT_ARMS)
     ap.add_argument('--seed', type=int, default=101)
     ap.add_argument('--K', type=int, default=600)
     ap.add_argument('--head-seed', type=int, default=101)
@@ -679,4 +781,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
