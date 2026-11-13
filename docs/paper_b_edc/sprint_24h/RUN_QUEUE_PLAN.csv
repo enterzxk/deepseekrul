@@ -1,0 +1,64 @@
+row_id,module,variant,arm,subset,seed,budget,status,val_eng,epochs_run,best_ep,root,blocker,note
+BASE-A,baseline,BaselineA_strongest_DSPT_with_cycle,?,FD001-4,101/202/303,?,pending:config,,,,,,"需确认 Paper A 最强 DSPT 配置与 checkpoint；规格要求与新模型同协议同窗口"
+BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,101,40,done,19.6073,40,35,d,,"age prior(训练集拟合)+传感器残差；残差头近零初始化"
+BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,101,80,done,18.6545,56,44,d/probe80,,"80ep；已判死(对 B0 差 7.1)"
+BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,202,40,done,18.4935,40,38,d,,
+BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,303,40,done,20.2226,40,29,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,101,80,done,11.5578,53,41,d/probe80,,"冲刺主基线；n=6 均值 11.6964 sd 1.1833"
+BASE-0,baseline,B0_direct_regression,B0,FD001,202,80,done,11.2542,73,61,d80,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,303,80,done,11.7741,43,31,d80,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,404,80,done,13.9589,22,10,d80,,"坏 seed：ep10 后无改善，ep22 早停"
+BASE-0,baseline,B0_direct_regression,B0,FD001,505,80,done,11.0548,50,38,d80,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,606,80,done,10.5784,71,59,d80,,"B0 最好的 seed"
+BASE-0,baseline,B0_direct_regression,B0,FD001,101,40,done,13.2252,40,30,d,,"40ep 历史"
+BASE-0,baseline,B0_direct_regression,B0,FD001,202,40,done,13.5125,40,32,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,303,40,done,12.1445,40,28,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD001,101,160,done,12.4999,40,28,d80b160,,"T_max=160 调度伤到 B0，比 80ep 差 0.94"
+BASE-0,baseline,B0_direct_regression,B0,FD002,101,40,done,11.3071,40,34,d,,"FD002 仅此一格"
+BASE-0,baseline,B0_direct_regression,B0,FD004,101,40,done,13.6192,40,38,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD004,202,40,done,13.0323,40,32,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD004,303,40,done,13.7900,40,39,d,,
+BASE-0,baseline,B0_direct_regression,B0,FD004,101,80,done,12.7852,77,65,d80,,
+BASE-0,baseline,B0_direct_regression,B0,FD004,202,80,done,13.9196,26,14,d80,,
+BASE-0,baseline,B0_direct_regression,B0,FD004,303,80,done,13.0615,68,56,d80,,
+M1-A,M1,age_only,AGE,FD001,101,40,done,30.5856,1,1,d,,"fitted curve，1 pass 即终值"
+M1-B,M1,age_plus_DSPT_residual,AAR,FD001,101,40,done,19.6073,40,35,d,,"= Baseline B"
+M1-B,M1,age_plus_DSPT_residual,AAR,FD001,101,80,done,18.6545,56,44,d/probe80,,"判死"
+M1-C,M1,age_plus_condition_matched_residual,?,FD001,101,80,blocked:code,,,,,,"未实现；需在 AAR 残差支路接条件匹配"
+M1-D,M1,full_DSPT_direct,?,FD001,101,80,pending:config,,,,,,"= Baseline A，待确认配置"
+M2,M2,CDE_full,M2,FD001,101,80,done,10.6506,67,55,d80,,"六 seed 配对 mean -0.890 CI[-2.36,+0.58] ns；5/6 偏向 M2"
+M2,M2,CDE_full,M2,FD001,202,80,done,11.2512,52,40,d80,,
+M2,M2,CDE_full,M2,FD001,303,80,done,10.6648,52,40,d80,,
+M2,M2,CDE_full,M2,FD001,404,80,done,10.5208,39,27,d80,,
+M2,M2,CDE_full,M2,FD001,505,80,done,10.5172,78,66,d80,,
+M2,M2,CDE_full,M2,FD001,606,80,done,11.2348,39,27,d80,,"预注册第 6 seed"
+M2,M2,CDE_full,M2,FD001,101,40,done,11.2725,40,40,d40diag,,"best_ep==epochs_run，40 预算内未收敛"
+M2-A,M2,raw_3ch_input,?,FD001,101,80,blocked:code,,,,,,"消融：只用原始三通道"
+M2-B,M2,plus_condition_matched_trend,?,FD001,101,80,blocked:code,,,,,,"消融：+工况匹配趋势"
+M2-C,M2,trend_plus_persistence,?,FD001,101,80,blocked:code,,,,,,"消融：+持续性"
+M2-D,M2,trend_plus_confidence,?,FD001,101,80,blocked:code,,,,,,"消融：+证据置信度"
+M3-A,M3,original_damage_increment,B3,FD001,101,80,done,14.6884,69,57,d80,,"= M3 消融母体"
+M3-B,M3,age_anchored_increment,M3B,FD001,101,80,done,13.5826,79,67,d80,,"80ep 未收敛，是下界"
+M3-B,M3,age_anchored_increment,M3B,FD001,101,160,done,11.8805,100,88,d80diag,,"160ep 收敛；曲线 sd 1.35，best 是噪声最小值"
+M3-C,M3,age_anchored_plus_same_age_rank,?,FD001,101,80,blocked:code,,,,,,"ADC 核心：L_rank=relu(margin-D_A+D_B)，只用训练集构对；tmh 负责"
+M3-D,M3,age_anchored_plus_rank_plus_CDE,?,FD001,101,80,blocked:code,,,,,,"依赖 M3-C 与 M2"
+M4,M4,condition_aware_pooling,M4,FD001,101,80,failed:training,69.5273,13,1,d80,,"两次塌陷：预测被 clip 到 0，raw 输出全非正"
+M4-A,M4,learned_sensor_pooling,?,FD001,101,80,blocked:code,,,,,,"需先修 M4 塌陷"
+M4-B,M4,original_sensor_attention,?,FD001,101,80,blocked:code,,,,,,
+M4-D,M4,condition_plus_evidence_reliability,?,FD001,101,80,blocked:code,,,,,,"依赖 M4-C 修复"
+M5-A,M5,no_DPC,B0,FD001,101,80,done,11.5578,53,41,d/probe80,,"DPC 关闭时即 B0"
+M5-B,M5,single_span,?,FD001,101,80,blocked:code,,,,,,"span 消融：单跨度"
+M5-C,M5,multi_span,M5,FD001,101,80,running,,,,d80,,"份额标定 0.05；g_ratio dpc=5.488e-02 正确；盯 g_ratio 是否爬到 1.0"
+M5-D,M5,condition_matched_multi_span,?,FD001,101,80,blocked:code,,,,,,
+M6-A,M6,fixed_future_rate,B2,FD001,101,80,queued,,,,,,"B2 代码在册但 3090 无正式格；M6 的消融母体之一"
+M6-B,M6,free_variable_rate,B3,FD001,101,80,done,14.6884,69,57,d80,,"= B3"
+M6-C,M6,age_prior_plus_fixed_evidence,?,FD001,101,80,blocked:code,,,,,,"M6 主体：EFR 证据门控未来速率；牢莫负责"
+M6-D,M6,age_prior_plus_adaptive_evidence,?,FD001,101,80,blocked:code,,,,,,"依赖 M6-C"
+M6-E,M6,cycle_concat_param_matched,?,FD001,101,80,blocked:code,,,,,,"等参数量对照"
+M7-A,M7,original_stage_D,B3,FD001,101,80,done,14.6884,69,57,d80,,"= B3"
+M7-B,M7,stage_D_plus_SCR,M7,FD001,101,80,done,13.9169,80,75,d80,,"跑满 80 未收敛，是上界；alive 全程 ~1e-4"
+M7-C,M7,ADC_plus_SCR,?,FD001,101,80,blocked:code,,,,,,"依赖 M3-C"
+X-FD002,cross,winner_on_FD002,?,FD002,101,80,queued,,,,,,"FD002 目前只有 B0 一格；优胜模块需覆盖"
+X-FD003,cross,winner_on_FD003,?,FD003,101,80,queued,,,,,,"FD003 完全空白"
+X-FD004,cross,winner_on_FD004,?,FD004,101,80,queued,,,,,,"FD004 只有 B0 40/80ep 与 3 seed"
+X-ENS,cross,module_ensemble_vs_B0_ensemble,?,FD001,101-303,80,queued,,,,,,"M2 六 seed 集成待出；B0 六 seed 集成待出"
