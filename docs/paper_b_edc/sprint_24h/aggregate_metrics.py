@@ -1061,13 +1061,20 @@ def build_stability(seed_rows: list[dict[str, Any]],
 
     MAD is the most outlier-sensitive dispersion here: with four points a single
     bad seed carries 1/4 of the weight, with six only 1/6.  In this sprint the
-    four-seed B0 MAD is 0.9113 against 0.3597 at six seeds -- a factor of 2.5,
-    which is exactly the ratio the M2 stability claim is about.  An n-mismatched
-    MAD ratio is therefore not a weak piece of evidence, it is a fabricated one:
-    it manufactures the conclusion.
+    four-seed B0 median absolute deviation is 0.7302 against 0.3596 at six seeds,
+    so the same comparison reads 5.26x instead of 2.59x -- **a mismatch of sample
+    size alone doubles the ratio, in the direction the claim wants it**.
 
-    So the ratio is emitted only when both cells have the same seed count, and
-    the refusal is written into the row rather than left to the reader.
+    The general statement is the one to keep: the error is not random.  Its size
+    and sign depend on which seeds happen to be missing, so an n-mismatched ratio
+    is neither a conservative estimate nor a noisy one -- it is a number whose
+    bias cannot be bounded at all, which is why no amount of care in the prose
+    substitutes for refusing to print it.
+
+    ``comparison_kind`` separates the two things this table now holds: a
+    ``baseline_selfcheck`` row compares the baseline with itself and is 1.0 by
+    construction -- it tests the arithmetic, not a module; only
+    ``module_vs_baseline`` rows are evidence about a module.
     """
     groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
     for r in seed_rows:
@@ -1107,6 +1114,8 @@ def build_stability(seed_rows: list[dict[str, Any]],
                       "so this ratio would be an artefact of sample size" % (n, bn))
         out.append(dict(
             module=mod, subset=subset, budget_epochs=budget, n_seeds=n,
+            comparison_kind=("baseline_selfcheck" if mod == baseline_module
+                             else "module_vs_baseline"),
             seeds=";".join(sorted(str(x["seed"]) for x in rs)),
             mean=m, sd=sd, mad=md,
             baseline_n=bn, baseline_sd=bsd, baseline_mad=bmad,
@@ -1883,7 +1892,7 @@ def main(argv: list[str] | None = None) -> int:
     resolution = build_resolution(seed_rows, args.paired_baseline)
     stability = build_stability(seed_rows, args.paired_baseline)
     write_csv(os.path.join(args.out_dir, "STABILITY.csv"), stability,
-              ["module", "subset", "budget_epochs", "n_seeds", "seeds",
+              ["module", "subset", "budget_epochs", "n_seeds", "comparison_kind", "seeds",
                "mean", "sd", "mad", "baseline_n", "baseline_sd", "baseline_mad",
                "sd_ratio", "mad_ratio", "mad_ratio_ok", "mad_ratio_reason"])
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
