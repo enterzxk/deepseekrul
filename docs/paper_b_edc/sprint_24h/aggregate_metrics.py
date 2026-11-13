@@ -2411,7 +2411,13 @@ def main(argv: list[str] | None = None) -> int:
             r["status_detail"] = (
                 "cell_conflict: same (module,subset,seed,budget), different predictions")
     live = {(r["root"], r["run_id"]) for r in seed_rows if r.get("status") == "usable"}
-    per_engine = [e for e in per_engine if (e["root"], e["run_id"]) in live]
+    # `_gate*` cells are decided LATER (the pairing pass below turns the ones with
+    # no formal twin into samples), so filtering them out here would drop a new
+    # sample before anything had a chance to recognise it.  Keep them for now and
+    # re-apply the filter after the gate pass.
+    per_engine = [e for e in per_engine
+                  if (e["root"], e["run_id"]) in live
+                  or str(e.get("root", "")).startswith("_gate")]
 
     # ---- the four independent axes ---------------------------------------- #
     # reproducible / verified / comparable / converged are independent: a number
@@ -2525,6 +2531,12 @@ def main(argv: list[str] | None = None) -> int:
         r["verified"] = "no"
         r["verified_note"] = ("lives under a _gate* root but reproduces no formal cell: "
                               "a NEW sample, not a gate reproduction")
+
+    # the gate pass above may have promoted `_gate*` cells to samples, so the
+    # per-engine view has to be cut again with the final status
+    live_final = {(r["root"], r["run_id"]) for r in seed_rows if r.get("status") == "usable"}
+    per_engine = [e for e in per_engine
+                  if (e["root"], e["run_id"]) in live_final]
 
     # comparable: the parent has a cell for this subset at this budget, so the
     # two rows can be differenced under one schedule.
