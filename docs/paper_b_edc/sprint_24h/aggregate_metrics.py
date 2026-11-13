@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import os
@@ -179,11 +180,20 @@ def read_preds(path: str) -> dict[str, np.ndarray]:
     return out
 
 
+def file_md5(path: str) -> str:
+    h = hashlib.md5()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     """Recompute every metric of one run from its predictions."""
     with open(os.path.join(run_dir, "metrics.json")) as fh:
         meta = json.load(fh)
-    a = read_preds(os.path.join(run_dir, "preds.csv"))
+    preds_path = os.path.join(run_dir, "preds.csv")
+    a = read_preds(preds_path)
 
     eng, cuts = a["engine_id"], a["cut"]
     y_raw, y_pred = a["y_raw"], a["y_pred"]
@@ -204,6 +214,7 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     nasa_sum, nasa_mean = nasa_score(clipped, ys)
 
     row: dict[str, Any] = dict(
+        preds_md5=file_md5(preds_path),
         n_points=int(ys.size),
         n_engines=int(np.unique(eng).size),
         n_cuts=int(np.unique(cuts).size),
@@ -382,7 +393,7 @@ def write_csv(path: str, rows: list[dict[str, Any]], columns: list[str]) -> None
 
 SEED_COLUMNS = [
     "run_id", "root", "root_ledger", "module", "arm", "subset", "seed",
-    "status", "status_detail", "in_ledger", "usable",
+    "status", "status_detail", "in_ledger", "usable", "preds_md5",
     "n_points", "n_engines", "n_cuts",
     "engine_mean_rmse", "pooled_rmse", "nasa_sum", "nasa_mean", "mae", "bias",
     "late_frac", "severe_late", "max_late",
@@ -692,13 +703,27 @@ def main(argv: list[str] | None = None) -> int:
             reported_engine_mean_rmse=rec.get("val_engine_mean_rmse"),
         ))
 
-    # ---- one number per cell ---------------------------------------------- #
-    # A cell is (module, subset, seed, budget).  Two directories can claim the
-    # same cell: a copied run (identical artifacts) or two genuinely different
-    # trainings that collided on a run id.  The first is a duplicate to drop,
-    # the second is a conflict where neither number can be trusted -- silently
-    # averaging them would be the worst option.
+    # ---- one number per artifact, then one number per cell ----------------- #
+    # First net: identical bytes are a copy, whatever the label says.  Second
+    # net: two different artifacts claiming one cell is a conflict -- there is
+    # no way to tell which number is real, so neither is used.
     ROOT_PREF = {"d": 0, "d80": 1, "d/probe80": 2, "probe80": 3}
+    artifacts: dict[str, list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or not r.get("preds_md5"):
+            continue
+        artifacts.setdefault(r["preds_md5"], []).append(r)
+    for _md5, rows in artifacts.items():
+        if len(rows) < 2:
+            continue
+        rows.sort(key=lambda r: (ROOT_PREF.get(r["root"], 9),
+                                 str(r.get("created_utc") or "")))
+        keep = rows[0]
+        for r in rows[1:]:
+            r["status"] = "duplicate_artifact"
+            r["status_detail"] = (
+                f"duplicate_artifact: identical preds.csv as {keep['root']}/{keep['run_id']}")
+
     cells: dict[tuple, list[dict[str, Any]]] = {}
     for r in seed_rows:
         if r.get("status") != "usable":
@@ -707,21 +732,13 @@ def main(argv: list[str] | None = None) -> int:
             (r["module"], r["subset"], r["seed"], r.get("budget_epochs")), []).append(r)
     for _key, rows in cells.items():
         if len(rows) < 2:
-            continue
-        vals = {round(float(r["engine_mean_rmse"]), 12) for r in rows}
-        if len(vals) == 1:
-            rows.sort(key=lambda r: (ROOT_PREF.get(r["root"], 9),
-                                     str(r.get("created_utc") or "")))
-            keep = rows[0]
-            for r in rows[1:]:
-                r["status"] = "duplicate_cell"
-                r["status_detail"] = (
-                    f"duplicate_cell: same artifacts as {keep['root']}/{keep['run_id']}")
-        else:
             for r in rows:
-                r["status"] = "cell_conflict"
-                r["status_detail"] = (
-                    "cell_conflict: same (module,subset,seed,budget) with different results")
+                r["status_detail"] = r.get("status_detail") or "ok"
+            continue
+        for r in rows:
+            r["status"] = "cell_conflict"
+            r["status_detail"] = (
+                "cell_conflict: same (module,subset,seed,budget), different predictions")
     live = {(r["root"], r["run_id"]) for r in seed_rows if r.get("status") == "usable"}
     per_engine = [e for e in per_engine if (e["root"], e["run_id"]) in live]
 
@@ -844,8 +861,8 @@ def main(argv: list[str] | None = None) -> int:
         "| `one_epoch_probe` | `epochs_run <= 1` and budget < 40, no override | no |",
         "| `non_canonical_id` | run id is not `HC-D-{arm}-{subset}-s{seed}-D1` | no |",
         "| `duplicate_ledger_row` | ledger lists one directory twice | no, counted once |",
-        "| `duplicate_cell` | same cell as another root, identical artifacts (a copy) | no, counted once |",
-        "| `cell_conflict` | same cell, different results (cannot tell which is right) | no, both dropped |",
+        "| `duplicate_artifact` | identical `preds.csv` md5 (a copy, whatever the label) | no, counted once |",
+        "| `cell_conflict` | same cell, different predictions (cannot tell which is right) | no, both dropped |",
         "| `unusable` | ledger marks `usable=no` | no |",
         "",
         "## Run identity comes from the path, not from the ledger label",
