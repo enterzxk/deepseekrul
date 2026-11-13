@@ -188,6 +188,73 @@ def file_md5(path: str) -> str:
     return h.hexdigest()
 
 
+def read_history(run_dir: str) -> list[float]:
+    """Per-epoch validation curve, or [] when the run has no history file."""
+    path = os.path.join(run_dir, "history.json")
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path) as fh:
+            hist = json.load(fh)
+    except Exception:                                 # noqa: BLE001
+        return []
+    out = []
+    for h in hist:
+        v = h.get("val_engine_mean_rmse")
+        if v is not None:
+            out.append(float(v))
+    return out
+
+
+EMA_ALPHA = 0.3
+
+
+def ema_min(curve: list[float], alpha: float = EMA_ALPHA) -> float:
+    """Minimum of the exponential moving average of the validation curve.
+
+    A compromise between the two biased extremes: the raw minimum favours a
+    noisy arm (a minimum order statistic), and the tail mean is distorted by
+    patience (every arm stops about 12 epochs after its best).  Smoothing keeps
+    the location of the dip but discounts a single lucky epoch.
+    """
+    if not curve:
+        return float("nan")
+    e = curve[0]
+    best = e
+    for x in curve[1:]:
+        e = alpha * x + (1.0 - alpha) * e
+        best = min(best, e)
+    return float(best)
+
+
+def curve_stats(curve: list[float]) -> dict[str, Any]:
+    """Convergence-level statistics for one arm.
+
+    ``best_ep`` is the minimum of the curve, i.e. a minimum order statistic: the
+    noisier the arm, the lower its minimum is pushed, so best-vs-best comparisons
+    systematically favour the unstable arm.  The tail mean measures the level the
+    arm actually sits at once it stops improving, and the epoch-to-epoch sd says
+    how much of that curve is noise.  Both are reported; neither replaces the
+    frozen engine-mean RMSE, which still scores the selected checkpoint.
+    """
+    if not curve:
+        return dict(n_epochs=0, tail10_mean=float("nan"), tail10_sd=float("nan"),
+                    epoch_sd=float("nan"), best_val=float("nan"),
+                    best_minus_tail10=float("nan"), ema_min=float("nan"))
+    tail = curve[-10:] if len(curve) >= 10 else curve
+    best = min(curve)
+    t_mean, t_sd = mean_sd(tail)
+    return dict(
+        n_epochs=len(curve),
+        tail10_mean=t_mean,
+        tail10_sd=t_sd,
+        epoch_sd=(float(statistics.stdev(curve)) if len(curve) > 1 else 0.0),
+        best_val=best,
+        best_minus_tail10=(t_mean - best),
+        ema_min=ema_min(curve),
+    )
+
+
 def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     """Recompute every metric of one run from its predictions."""
     with open(os.path.join(run_dir, "metrics.json")) as fh:
@@ -274,6 +341,10 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
         l_mean=meta.get("l_mean"),
     )
     row["status_detail"] = classify(row)
+    row.update(curve_stats(read_history(run_dir)))
+    row["converged"] = (
+        "yes" if (epochs_run is not None and row.get("budget_epochs") is not None
+                  and epochs_run < row["budget_epochs"]) else "no")
     row["_per_engine"] = per_engine_rows(eng, ys, clipped)
     return row
 
@@ -298,6 +369,11 @@ def classify(row: dict[str, Any]) -> str:
         return "unknown"
     if er <= 1 and (budget is None or budget < 40):
         return "one_epoch_probe"
+    # A run whose best epoch is 1 or 2 and then stops improving for a whole
+    # patience window never trained: patience fired on a curve that only went
+    # up.  That is a broken run, not a statement about the module.
+    if be is not None and be <= 2 and er >= 5:
+        return "degenerate_curve"
     if budget is not None and er >= budget:
         return "complete"
     if patience and (er - be) >= patience:
@@ -403,6 +479,8 @@ SEED_COLUMNS = [
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override",
+    "converged", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
+    "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
     "run_dir", "preds_path",
@@ -414,6 +492,10 @@ MODULE_COLUMNS = [
     "engine_mean_rmse_max", "engine_mean_rmse_cv_pct",
     "engine_mean_rmse_se_over_seeds", "engine_mean_rmse_ci95_lo",
     "engine_mean_rmse_ci95_hi",
+    "tail10_mean", "tail10_sd", "tail10_ci95_lo", "tail10_ci95_hi",
+    "best_mean", "ema_min_mean", "epoch_sd_mean", "best_minus_tail10_mean",
+    "tail10_delta_vs_B0_abs", "tail10_delta_vs_B0_pct",
+    "best_delta_vs_B0_abs", "ema_delta_vs_B0_abs", "consistent",
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
@@ -899,10 +981,17 @@ def main(argv: list[str] | None = None) -> int:
             (row["module"], row["subset"], row.get("budget_epochs")), []).append(row)
 
     baseline: dict[tuple[str, Any], float] = {}
+    baseline_tail: dict[tuple[str, Any], float] = {}
+    baseline_best: dict[tuple[str, Any], float] = {}
+    baseline_ema: dict[tuple[str, Any], float] = {}
     for (mod, subset, budget), rows in groups.items():
         if mod == "B0_direct_rul":
             v, _ = mean_sd([x["engine_mean_rmse"] for x in rows])
             baseline[(subset, budget)] = v
+            baseline_tail[(subset, budget)], _ = mean_sd(
+                [x["tail10_mean"] for x in rows])
+            baseline_best[(subset, budget)], _ = mean_sd([x["best_val"] for x in rows])
+            baseline_ema[(subset, budget)], _ = mean_sd([x["ema_min"] for x in rows])
 
     module_rows: list[dict[str, Any]] = []
     for (mod, subset, budget), rows in sorted(
@@ -916,6 +1005,31 @@ def main(argv: list[str] | None = None) -> int:
         unc_mean, _ = mean_sd([x["rmse_uncensored"] for x in rows])
         capped_mean, _ = mean_sd([x["frac_capped"] for x in rows])
         b0 = baseline.get((subset, budget))
+        tail_mean, tail_sd = mean_sd([x["tail10_mean"] for x in rows])
+        tail_se = (tail_sd / math.sqrt(len(rows))) if len(rows) > 1 else float("nan")
+        tail_half = (t975(len(rows) - 1) * tail_se if len(rows) > 1 else float("nan"))
+        b0_tail = baseline_tail.get((subset, budget))
+        best_mean, _ = mean_sd([x["best_val"] for x in rows])
+        ema_mean, _ = mean_sd([x["ema_min"] for x in rows])
+        d_best = best_mean - baseline_best.get((subset, budget), float("nan"))
+        d_ema = ema_mean - baseline_ema.get((subset, budget), float("nan"))
+        d_tail = tail_mean - b0_tail if b0_tail is not None else float("nan")
+        # The three readings are biased in different directions, so a conclusion
+        # needs the same sign in all three.  Flat (within 0.01) counts as no
+        # direction, and the baseline is not compared with itself.
+        deltas = [d_best, d_ema, d_tail]
+        if mod == "B0_direct_rul":
+            consistent = "n/a (baseline)"
+        elif any(math.isnan(d) for d in deltas):
+            consistent = "unknown"
+        elif all(abs(d) < 0.01 for d in deltas):
+            consistent = "flat"
+        elif all(d > 0 for d in deltas):
+            consistent = "yes (worse)"
+        elif all(d < 0 for d in deltas):
+            consistent = "yes (better)"
+        else:
+            consistent = "no (flips)"
         # cross-seed uncertainty: the second variance source.  A single-seed
         # engine-level CI says nothing about it, and with 3 seeds df=2 the
         # interval is wide -- that width is the honest picture, not a defect.
@@ -932,6 +1046,18 @@ def main(argv: list[str] | None = None) -> int:
             engine_mean_rmse_se_over_seeds=se_seeds,
             engine_mean_rmse_ci95_lo=mean - half,
             engine_mean_rmse_ci95_hi=mean + half,
+            tail10_mean=tail_mean, tail10_sd=tail_sd,
+            tail10_ci95_lo=tail_mean - tail_half,
+            tail10_ci95_hi=tail_mean + tail_half,
+            epoch_sd_mean=mean_sd([x["epoch_sd"] for x in rows])[0],
+            best_minus_tail10_mean=mean_sd([x["best_minus_tail10"] for x in rows])[0],
+            best_mean=best_mean, ema_min_mean=ema_mean,
+            best_delta_vs_B0_abs=d_best,
+            ema_delta_vs_B0_abs=d_ema,
+            consistent=consistent,
+            tail10_delta_vs_B0_abs=d_tail,
+            tail10_delta_vs_B0_pct=(100.0 * (tail_mean - b0_tail) / b0_tail
+                                    if b0_tail not in (None, 0) else float("nan")),
             nasa_mean_mean=nasa_mean, nasa_sum_mean=nasa_sum,
             mae_mean=mae_mean, bias_mean=bias_mean,
             rmse_uncensored_mean=unc_mean, frac_capped_mean=capped_mean,
@@ -1032,6 +1158,7 @@ def main(argv: list[str] | None = None) -> int:
         "| `early_stopped` | patience fired: `epochs_run - best_ep >= patience` | yes |",
         "| `n/a_by_design` | zero trainable parameters (AGE) | yes |",
         "| `interrupted` | stopped early without patience firing | no |",
+        "| `degenerate_curve` | `best_ep <= 2` and the run continued past 5 epochs -- never trained | no |",
         "| `smoke_override` | `budget_override` set (smoke run) | no |",
         "| `one_epoch_probe` | `epochs_run <= 1` and budget < 40, no override | no |",
         "| `non_canonical_id` | run id is not `HC-D-{arm}-{subset}-s{seed}-D1` | no |",
