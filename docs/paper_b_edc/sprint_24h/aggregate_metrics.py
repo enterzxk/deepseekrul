@@ -1328,6 +1328,21 @@ def build_alpha_robustness(seed_rows: list[dict[str, Any]]) -> list[dict[str, An
             layers = 1
         else:
             layers = 0
+        # Shape, not just size.  ema_min with a small alpha keeps an early deep
+        # dip alive; a large alpha smooths it away.  So a wide alpha spread means
+        # the gain sits in a few epochs rather than along the curve -- and under
+        # `best` the two look identical, because both lower the minimum.  This
+        # column is what separates them, which is the actual reason ema_min is
+        # computed at all: diagnosis, not judgement.
+        spread = (max(vals) - min(vals)) if len(vals) > 1 else float("nan")
+        if spread != spread:
+            alpha_shape = "n/a"
+        elif spread <= 0.7:
+            alpha_shape = "persistent"
+        elif spread > 1.5:
+            alpha_shape = "early_dip"
+        else:
+            alpha_shape = "unclear"
         out.append(dict(
             module=mod, parent=parent, subset=subset, budget_epochs=budget,
             n_pairs=len(pairs),
@@ -1335,7 +1350,7 @@ def build_alpha_robustness(seed_rows: list[dict[str, Any]]) -> list[dict[str, An
                        and deltas[0.3] < 0 else "worse"),
             delta_a10=deltas[0.1], delta_a20=deltas[0.2],
             delta_a30=deltas[0.3], delta_a50=deltas[0.5],
-            spread=(max(vals) - min(vals)) if len(vals) > 1 else float("nan"),
+            spread=spread, alpha_shape=alpha_shape,
             n_pos_a30=n_pos, n_neg_a30=n_neg,
             seed_sign_stable=seed_stable,
             layers_passed=layers,
@@ -2195,7 +2210,7 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "ALPHA_ROBUSTNESS.csv"), alpha_rob,
               ["module", "parent", "subset", "budget_epochs", "n_pairs", "direction",
                "delta_a10", "delta_a20", "delta_a30", "delta_a50",
-               "spread", "n_pos_a30", "n_neg_a30", "seed_sign_stable",
+               "spread", "alpha_shape", "n_pos_a30", "n_neg_a30", "seed_sign_stable",
                "layers_passed", "countable_as_robust",
                "direction_consistent", "verdict"])
     write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
