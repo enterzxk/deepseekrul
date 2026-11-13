@@ -509,11 +509,24 @@ for _n in _dropped:
 # search for 1.5156 matches 11.51561101173279 in PER_ENGINE.csv, and a checker
 # that fires on a per-engine RMSE teaches people to ignore it.
 _DEAD = [("1.5156", r"(?<![\d.])1\.5156(?!\d)"),
-         ("1.5157", r"(?<![\d.])1\.5157(?!\d)")]
-_MARK = ("作废", "已替换", "复现不出", "改判", "retired", "superseded")
+         ("1.5157", r"(?<![\d.])1\.5157(?!\d)"),
+         # the A40 probe pair.  The 3090 same-protocol values are +296.35% and
+         # +0.44%; these two are the retired historical ones, and they were still
+         # sitting unmarked in FAILED_IDEAS while FINAL quoted the new pair as a
+         # paper pillar -- two delivered files disagreeing about whether the
+         # permutation test had been run at all.
+         ("+195.4%", r"(?<![\d.])195\.4\s*%"),
+         ("+1.81%", r"(?<![\d.])1\.81\s*%")]
+_MARK = ("作废", "已替换", "复现不出", "改判", "退役", "已撤", "旧值",
+         "retired", "superseded")
 _dead_hits, _dead_unmarked = 0, []
+# PROVENANCE_AUDIT.csv exists to record where each number came from, so an old
+# value appearing there WITH its origin is the file doing its job, not a claim
+# that it is current.  Demanding a retirement marker inside a provenance ledger
+# is the wrong requirement and would train people to ignore 9.3.
+_EXEMPT = {"PROVENANCE_AUDIT.csv"}
 for _f in sorted(HERE.glob("*.md")) + sorted(HERE.glob("*.csv")):
-    if _f.name.startswith("tmp_"):
+    if _f.name.startswith("tmp_") or _f.name in _EXEMPT:
         continue
     for _i, _l in enumerate(_f.read_text(encoding="utf-8").split("\n"), 1):
         for _name, _pat in _DEAD:
