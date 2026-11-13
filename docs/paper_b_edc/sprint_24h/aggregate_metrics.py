@@ -99,8 +99,23 @@ DEFAULT_ROOTS = [
     "~/sprint24/experiments/hc/d80diag",
     "~/sprint24/experiments/hc/d40diag",
     "~/sprint24/experiments/hc/d80b160",
+    # reproduction-gate roots: scanned so their runs are recorded, flagged
+    # archived so they never enter a statistic
+    "~/sprint24/experiments/hc/d80gate",
+    "~/sprint24/experiments/hc/d80b160gate",
 ]
 RUN_RE = re.compile(r"^HC-D-(?P<arm>.+)-(?P<subset>FD00[1-4])-s(?P<seed>\d+)-D1$")
+
+# Roots whose runs are kept as records but must never enter statistics.  A
+# reproduction gate re-runs a cell that already exists: if its predictions match
+# it is a duplicate, and if they differ it silently doubles n_seeds and rewrites
+# the very sd the gate was meant to validate.  Gates are therefore archived, not
+# aggregated.
+ARCHIVED_ROOTS = {"d80gate", "d80b160gate"}
+
+
+def is_archived_root(root: str) -> bool:
+    return root in ARCHIVED_ROOTS or os.path.basename(root.rstrip("/")).startswith("_")
 
 # display names: arm -> module label.  Longest key wins, so "M2B" is matched
 # before any shorter arm that happens to be a prefix.
@@ -470,7 +485,8 @@ def discover(root: str, pattern: str) -> list[dict[str, Any]]:
         info = parse_run_id(name)
         if info is None:
             continue
-        info.update(run_id=name, run_dir=path, root=label, in_ledger="no")
+        info.update(run_id=name, run_dir=path, root=label, in_ledger="no",
+                    archived=("yes" if is_archived_root(label) else ""))
         found.append(info)
     return found
 
@@ -518,7 +534,7 @@ def write_csv(path: str, rows: list[dict[str, Any]], columns: list[str]) -> None
 
 SEED_COLUMNS = [
     "run_id", "root", "root_ledger", "module", "arm", "subset", "seed",
-    "status", "status_detail", "in_ledger", "usable", "preds_md5",
+    "status", "status_detail", "in_ledger", "usable", "archived", "preds_md5",
     "n_points", "n_engines", "n_cuts",
     "engine_mean_rmse", "pooled_rmse", "nasa_sum", "nasa_mean", "mae", "bias",
     "late_frac", "severe_late", "max_late",
@@ -1279,6 +1295,9 @@ def main(argv: list[str] | None = None) -> int:
             work.append(dict(
                 run_id=rid, run_dir=run_dir, root=root, root_ledger=ledger_root,
                 dup_of=dup_of, in_ledger="yes",
+                archived=("yes" if (is_archived_root(root)
+                                    or (rec.get("archived") or "").strip().lower() == "yes")
+                          else ""),
                 ledger_usable=(rec.get("usable") or "yes").strip().lower(),
                 ledger_status=(rec.get("status") or "").strip(), **info))
             seen.add((root, rid))
@@ -1309,10 +1328,16 @@ def main(argv: list[str] | None = None) -> int:
         base_row = dict(
             run_id=w["run_id"], root=w["root"], module=module, arm=w["arm"],
             subset=w["subset"], seed=w["seed"], in_ledger=w["in_ledger"],
+            archived=w.get("archived") or "",
             root_ledger=w.get("root_ledger"),
             usable=("" if w["ledger_usable"] is None else w["ledger_usable"]),
         )
         run_dir = w.get("run_dir")
+        if w.get("archived") == "yes":
+            seed_rows.append({**base_row, "status": "archived",
+                              "status_detail": "archived root: kept as a record, not aggregated",
+                              "run_dir": run_dir})
+            continue
         if w.get("dup_of"):
             seed_rows.append({**base_row, "status": "duplicate_ledger_row",
                               "status_detail": f"duplicate_ledger_row: same directory as {w['dup_of']}",
