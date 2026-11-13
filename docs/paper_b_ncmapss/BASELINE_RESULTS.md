@@ -65,12 +65,21 @@ recomputed at seal time and each row carries a note saying so. **Any table
 aggregated before this fix is a pooled table** — an earlier version of this file
 carried those values.
 
-**The `inner_val` test column is not reported yet.** The 80 runner-written rows
-carry pooled values in `_unit` for both evaluation points, so the `inner_val`
-table that an earlier version of this file contained was also pooled. It is
-removed rather than re-annotated: the per-engine recomputation is pending, and a
-wrong-metric table left in an evidence document invites exactly the quoting it
-must not receive. It will be filled from `pred.csv` at seal time.
+Same cells at `inner_val` (`epoch*`), per-engine equal weight, taken from the
+sealed test tables:
+
+| subset | N0 | N1 | N2 | N3 |
+|---|---:|---:|---:|---:|
+| DS02 | **7.96** | 23.01 | 19.33 | 21.72 |
+| DS05 | **7.16** | 24.41 | 13.17 | 14.68 |
+| DS06 | **6.87** | 23.52 | 8.52 | 9.22 |
+| DS07 | **8.01** | 25.41 | 13.54 | 15.35 |
+
+The two evaluation points disagree about **how badly** the structural rungs lose,
+while agreeing that they do: N2 − N0 is +5.90 / +5.90 / +0.35 / +3.03 at
+`fixed_passes:200` and +11.37 / +6.01 / +1.65 / +5.53 at `inner_val`. On the test
+set the self-selected stopping point is the **harsher** column, not the kinder
+one. Both are reported; neither is selected.
 
 **Age-only is first in all eight subset × evaluation-point combinations**, not by
 a margin that a reader can wave away: on DS05 the clock is 7.40 against 13.30 for
@@ -196,6 +205,13 @@ These three conditions were written into this file before any result existed.
 - **No cross-subset comparison of absolute levels.** Each subset has its own
   lifetime distribution and fold difficulty. The pooled tests pool *directions*,
   not magnitudes.
+- **No segment table in this file.** The `seg_*` columns are per-engine
+  equal-weight over the engines where that segment is non-empty, and the
+  non-empty set differs per segment: on DS02 the `early_absolute` segment
+  (RUL ≥ 75) contains **only unit 14**, because the other two test engines live
+  58 and 66 flights. That cell is a **single-engine number**, not a three-engine
+  mean, and segment results will be reported separately with the engine count
+  printed beside every cell.
 
 ## Provenance
 
