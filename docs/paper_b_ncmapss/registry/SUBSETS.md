@@ -1,7 +1,7 @@
 # N-CMAPSS 子集台账索引
 
 状态：四个子集全部封存
-最后更新：2026-11-13 10:52 (+08)
+最后更新：2026-11-13 10:58 (+08)
 维护人：实验结果管理员（单一写入者）
 
 > 每子集一张台账（`runs_<subset>.csv`），同一套 64 列 schema（见 `SCHEMA.md`）。
@@ -39,6 +39,13 @@
 **一条必须跟着数字走的前提**：`seg_early_absolute_*` 只统计 RUL ≥ 75 的飞行，寿命不到 75 的机在该段没有行——
 DS02 只有 unit 14 一台（11、15 的寿命是 58/66），DS05/DS06 各 3 台（unit 9 缺席），DS07 4 台全在。
 **DS02 的 `seg_early_absolute_*` 是单机数字**，不要当成 3 台机的均值引用。
+
+**但「逐机等权」并非在所有格子上都能被断言**：若各机在该段贡献的样本数相同，两种聚合在代数上恒等。
+80 行 × 20 列 = 1600 格里 **240 格是 `degenerate`**——`seg_late_absolute_*` 四个子集**全部**（该段恒为每机 25 个飞行）、
+`seg_mid_absolute_*` 的 DS07（四台机寿命都 ≥ 75，各 50 个）、`seg_early_absolute_*` 的 DS02（只有 unit 14）；
+`pass_coincident` 为 **0**。逐格标定见 [TEST_AGGREGATION_CALIBER.md](TEST_AGGREGATION_CALIBER.md)，
+重算 `python scripts/nc_agg_caliber.py`。
+**封存表字节不变**——数值本来就对，退化只说明该列在这些行上不携带聚合口径的信息。
 
 ## 全量机械审计（封表前做的，不是抽样）
 
