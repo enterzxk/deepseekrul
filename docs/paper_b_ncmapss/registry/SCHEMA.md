@@ -126,17 +126,29 @@
 
 ## 2. run_id 命名（强制）
 
+第 1 批（已封存的 560 行）用：
+
 ```
 ^(N0|N1|N1c|N2|N3)_LOEO-<engine>(_s<seed>)?_ev<stop>$
 ```
 
-示例：`N0_LOEO-2_ev20`、`N1_LOEO-2_s101_ev200`。
+第 2 批（重跑）起用，**同一张表内两种格式不混用**：
+
+```
+^(DS02|DS05|DS06|DS07)_(N0|N1|N2|N2s|N3)_LOEO-<engine>(_s<seed>)?_(iv|f200)$
+```
+
+示例：`N0_LOEO-2_ev20`、`N1_LOEO-2_s101_ev200`（第 1 批）；
+`DS02_N0_LOEO-2_iv`、`DS02_N1_LOEO-2_s101_f200`（第 2 批）。
 
 - `<engine>`：该折**留出**的发动机号（不是折序号）
 - `_s<seed>`：**N0 省略**（无 seed 轴）
-- `<stop>`：评价点，`epoch*` 的实际值（如 `ev20`、`ev63`）或固定 `ev200`
+- `<stop>`：第 1 批记 `epoch*` 的实际值（如 `ev20`、`ev63`）或固定 `ev200`；
+  第 2 批改记**评价点标签** `iv` / `f200`——实际遍数在 `epochs_run` / `best_epoch` 列，不再重复编进 id
+- **为什么第 2 批要带子集前缀**：重跑的产物与台账都落在 `experiments/ncmapss_r2/<subset>/`，
+  子集信息在 `run_id` 里就不必再靠列补；而第 1 批的 `run_id` 嵌在 120 个 `preds_path` 里，改名要动 120 条路径
 - **不用时间戳**：同一 (rung, fold, seed, stop) 在协议冻结后只允许存在一次，重跑按 §3.7 作废旧行
-- 这条格式是**从实际产物反推**的（`preds_path` 里嵌着 run_id，120/120），改 schema 而不改 120 行数据
+- 第 1 批这条格式是**从实际产物反推**的，所以改 schema 而不改那 120 行数据
 
 - `phase`：`dev` | `test` | `diag`（`diag` 只用于 `runs_diag.csv`）
 - `rung`：`N0` | `N1` | `N2` | `N3`（N4/N5 等 C-MAPSS 机制冻结后再加，编号先占位）
