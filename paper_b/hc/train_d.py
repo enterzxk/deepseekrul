@@ -156,11 +156,19 @@ def code_fingerprint():
     names = ('arrival.py', 'hi_d.py', 'data_d.py', 'train_d.py', 'config_hc.py')
     h = hashlib.sha256()
     missing = []
+    per_file = {}
     for n in names:
         p = here / n
         h.update(n.encode())
         if p.exists():
-            h.update(p.read_bytes())
+            # Hash the LF-normalised bytes, i.e. what the git blob holds. The
+            # repo has core.autocrlf=true, so a Windows checkout has CRLF while
+            # a Linux checkout has LF; hashing raw working-tree bytes gives one
+            # commit two different fingerprints, which is the same "it changed
+            # but nobody can say why" failure this field exists to prevent.
+            b = p.read_bytes().replace(b'\r\n', b'\n')
+            h.update(b)
+            per_file[n] = hashlib.sha256(b).hexdigest()[:32]
         else:
             missing.append(n)
     git_sha = None
@@ -172,7 +180,17 @@ def code_fingerprint():
     except Exception:
         git_sha = None
     return dict(files=list(names), files_sha256=h.hexdigest()[:32],
-                git_sha=git_sha, missing=missing)
+                file_sha256=per_file, git_sha=git_sha, missing=missing)
+
+
+# Snapshot at import, not when metrics.json is written. code_fingerprint() reads
+# the files on disk, so calling it at the end of a run records whatever was
+# synced into the tree *during* training rather than the code that was loaded at
+# step 0. That is how four runs on one snapshot ended up recorded under two
+# different fingerprints, and why an archived run showed a hash that matches no
+# commit. With the snapshot taken here, a mid-run sync can no longer rewrite
+# history: the run reports what it actually imported.
+_FP_AT_IMPORT = code_fingerprint()
 
 
 def _now():
@@ -739,7 +757,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
              head_fingerprint=(None if (arm == 'B0' or arm in SPRINT_ARMS)
                                else sh['head_fingerprint']),
              age_prior_sha256=prior_sha,
-             frozen_sha256=frozen_sha, code_fingerprint=code_fingerprint(),
+             frozen_sha256=frozen_sha, code_fingerprint=_FP_AT_IMPORT,
              ref_batch_epoch_log_engines=[int(x) for x in ebt['engine_id'][:3]],
              ref_batch_calibration='first 8 training engines, index order (see d45_init.json)',
              params=nparam, epochs_run=len(history), best_ep=best_ep,
