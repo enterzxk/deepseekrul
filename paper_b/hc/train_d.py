@@ -576,7 +576,7 @@ def evaluate(net, arm, eb, dev, K, cap):
 # training
 # --------------------------------------------------------------------------- #
 def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
-               scr=False, lam_a=0.0):
+               scr=False, lam_a=0.0, lam_dpc=0.0):
     """D4.5: gradient norm of the BATCH-AGGREGATED term, not of a mean of norms.
 
     ``||grad sum_i L_i||`` is what the optimiser produces; averaging per-engine
@@ -602,7 +602,8 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
         for k, v in term_sums(net, arm, fo, cap, scr=scr).items():
             acc[k] = acc[k] + v if k in acc else v
     L = aggregate(acc, s0)
-    w = {'rul': 1.0, 'terminal': lam_t, 'smooth': lam_s, 'alive': lam_a}
+    w = {'rul': 1.0, 'terminal': lam_t, 'smooth': lam_s, 'alive': lam_a,
+         'dpc': lam_dpc}
     unweighted, weighted = {}, {}
     for k, v in L.items():
         gs = torch.autograd.grad(v, params, retain_graph=True, allow_unused=True)
@@ -738,7 +739,8 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
 
         ev = evaluate(net, arm, ebv, dev, K, cap)
         tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s,
-                         scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0))
+                         scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0),
+                         lam_dpc=(lam_dpc or 0.0))
               if params else dict(unweighted={}, weighted={}, values={}))
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0

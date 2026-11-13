@@ -66,3 +66,13 @@ acc = T.term_sums(m5, 'M5', f5, 125.0)
 L = T.aggregate(acc, 1.0)
 print('GATE3b terms=%s  dpc=%.6f' % (sorted(L), float(L['dpc'])))
 print('M5 GATE OK')
+
+# 4. the gradient-diagnostics path that crashed the first dispatch
+s0 = float(sh['s0']['used'])
+cap = 125.0
+tg = T.term_grads(m5, 'M5', ebt, dev, int(sh['K']), cap, s0, cap ** 2, cap ** 2,
+                  n_eng=2, lam_dpc=40000.0)
+print('GATE4 term_grads keys=%s dpc_norm=%s' % (sorted(tg['weighted']),
+                                                tg['weighted'].get('dpc')))
+assert 'dpc' in tg['weighted'], 'term_grads still missing dpc'
+print('M5 GATE4 OK')
