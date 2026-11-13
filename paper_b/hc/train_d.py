@@ -527,6 +527,17 @@ def metrics_from_arrays(preds, ys_raw, units, cuts, cap, K):
              boundary_hit=float((preds[capd] >= cap).mean()) if capd.any() else None,
              exact_boundary=(float((np.abs(preds[capd] - cap) < 1e-6).mean())
                              if capd.any() else None),
+             # Pre-clip diagnostics (2026-11-13). The clip hides failure
+             # magnitude: M4 froze at val_eng = 69.527 for 13 epochs because
+             # every raw prediction went negative and np.clip squashed it to 0,
+             # and from the clipped side alone we could not tell -5 from -500.
+             # Recording the raw side is what makes that diagnosable at all.
+             pred_raw_min=float(preds.min()) if preds.size else None,
+             pred_raw_mean=float(preds.mean()) if preds.size else None,
+             pred_raw_max=float(preds.max()) if preds.size else None,
+             frac_pred_nonpositive=(float((preds <= 0.0).mean())
+                                    if preds.size else None),
+             frac_pred_at_cap=float((preds >= cap).mean()) if preds.size else None,
              rmse_by_censoring=dict(
                  uncensored=(float(np.sqrt(np.mean((clipped[unc] - ys_raw[unc]) ** 2)))
                              if unc.any() else None),
@@ -763,6 +774,20 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             sch.step()
 
         ev = evaluate(net, arm, ebv, dev, K, cap)
+        # Degenerate-output sentinel (2026-11-13). A cell whose predictions all
+        # sit on a clip boundary has a val metric that is a constant unrelated to
+        # its input: M4 did exactly that for 13 epochs (val_eng = 69.527, 15
+        # decimals unchanged) and cost a full cell before anyone noticed. Stop on
+        # the first such epoch instead of waiting for patience, and say why.
+        fz = ev.get('frac_pred_nonpositive')
+        if fz is not None and fz > 0.5:
+            log('  DEGENERATE ep%03d: %.1f%% of raw predictions are <= 0, so the '
+                'metric measures the clip, not the model (raw min=%.3f mean=%.3f). '
+                'Stopping -- this cell is not a module result.'
+                % (ep, 100.0 * fz, ev['pred_raw_min'], ev['pred_raw_mean']))
+            raise SystemExit(
+                'DEGENERATE: %.1f%% of predictions at the clip boundary (ep%d); '
+                'refusing to burn the remaining budget' % (100.0 * fz, ep))
         tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s,
                          scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0),
                          lam_dpc=((lam_dpc or 0.0) * (rul0 or 1.0) / (dpc0 or 1.0)))
