@@ -698,15 +698,73 @@ def build_resolution(seed_rows: list[dict[str, Any]],
         if n < 2:
             out.append(dict(subset=subset, budget_epochs=budget, n_seeds=n,
                             mean=mean, sd=float("nan"), ci_mean=float("nan"),
-                            screen_single=float("nan"), paired_3seed=float("nan")))
+                            screen_single=float("nan"), paired_3seed=float("nan"),
+                            sd_first3=float("nan"), screen_first3=float("nan"),
+                            paired_first3=float("nan")))
             continue
         t = t975(n - 1)
+        first3 = vals[:3]                      # the thresholds the sprint started with
+        _, sd3 = mean_sd(first3) if len(first3) > 1 else (float("nan"), float("nan"))
         out.append(dict(
             subset=subset, budget_epochs=budget, n_seeds=n, mean=mean, sd=sd,
             ci_mean=t * sd / math.sqrt(n),
             screen_single=2.0 * math.sqrt(2.0) * sd,
-            paired_3seed=t * math.sqrt(2.0) * sd / math.sqrt(n)))
+            paired_3seed=t * math.sqrt(2.0) * sd / math.sqrt(n),
+            sd_first3=sd3,
+            screen_first3=(2.0 * math.sqrt(2.0) * sd3 if len(first3) > 1 else float("nan")),
+            paired_first3=(t975(len(first3) - 1) * math.sqrt(2.0) * sd3 / math.sqrt(len(first3))
+                           if len(first3) > 1 else float("nan"))))
     return out
+
+
+def build_verdict_shift(module_rows: list[dict[str, Any]],
+                        resolution: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Which verdicts change when the seed variance is estimated properly?
+
+    The sprint's thresholds came from three seeds.  With five the baseline sd is
+    4.4x larger, so a gap that was 'clearly worse' under the old width can be
+    'indistinguishable' under the new one.  Listing those flips is the honest
+    accounting: it shows how an underestimated seed variance manufactures
+    significant-looking conclusions.
+    """
+    res = {(r["subset"], r["budget_epochs"]): r for r in resolution}
+
+    def verdict(delta: float, half: float) -> str:
+        if math.isnan(half):
+            return "n/a"
+        if abs(delta) <= half:
+            return "indistinguishable"
+        return "worse" if delta > 0 else "better"
+
+    out = []
+    for m in module_rows:
+        if m["module"] == "B0_direct_rul":
+            continue
+        r = res.get((m["subset"], m["budget_epochs"]))
+        if r is None or math.isnan(r["paired_first3"]):
+            continue
+        delta = m["engine_mean_rmse_mean"] - r["mean"]
+        # The right width depends on the comparison, not on habit.  A single run
+        # against a multi-seed mean is NOT paired: its error carries the run's own
+        # seed noise plus the uncertainty of the baseline mean, so the screen for
+        # independent single runs applies.  Only when several seeds are matched
+        # one-to-one does the paired width apply.
+        single = m["n_seeds"] < 2
+        half_old = r["screen_first3"] if single else r["paired_first3"]
+        half_new = r["screen_single"] if single else r["paired_3seed"]
+        v_old = verdict(delta, half_old)
+        v_new = verdict(delta, half_new)
+        out.append(dict(
+            module=m["module"], subset=m["subset"], budget_epochs=m["budget_epochs"],
+            n_seeds_module=m["n_seeds"], n_seeds_b0=r["n_seeds"],
+            comparison=("single vs mean" if single else "paired"),
+            module_mean=m["engine_mean_rmse_mean"], b0_mean=r["mean"],
+            delta=delta,
+            half_first3=half_old, half_all=half_new,
+            verdict_first3=v_old, verdict_all=v_new,
+            flips=("yes" if v_old != v_new else "no"),
+        ))
+    return sorted(out, key=lambda r: (r["flips"] != "yes", r["module"], r["subset"]))
 
 
 def build_ensemble(seed_rows: list[dict[str, Any]], cap: float) -> list[dict[str, Any]]:
@@ -1245,7 +1303,14 @@ def main(argv: list[str] | None = None) -> int:
     resolution = build_resolution(seed_rows, args.paired_baseline)
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
-               "ci_mean", "screen_single", "paired_3seed"])
+               "ci_mean", "screen_single", "paired_3seed",
+               "sd_first3", "screen_first3", "paired_first3"])
+    shift = build_verdict_shift(module_rows, resolution)
+    write_csv(os.path.join(args.out_dir, "VERDICT_SHIFT.csv"), shift,
+              ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",
+               "comparison", "module_mean", "b0_mean", "delta",
+               "half_first3", "half_all",
+               "verdict_first3", "verdict_all", "flips"])
     budget_pairs = build_budget_pairs(per_engine)
     write_csv(os.path.join(args.out_dir, "BUDGET_VS.csv"), budget_pairs,
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
