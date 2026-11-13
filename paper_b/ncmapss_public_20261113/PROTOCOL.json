@@ -1,0 +1,81 @@
+{
+  "protocol_id": "PB-NCMAPSS-FULL-AIDGN-UNIFIED-20261113-V1",
+  "model": "complete pinned author AIDGN; uniform observable-input migration",
+  "author_commit": "d1ac173b13659af1854cf500a9b1cba8367353fe",
+  "shared_data_execution_sha256": "0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009",
+  "subsets": [
+    "DS02",
+    "DS05",
+    "DS06",
+    "DS07"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "window_catalog": [
+    [
+      1,
+      50
+    ],
+    [
+      1,
+      512
+    ],
+    [
+      20,
+      16
+    ],
+    [
+      70,
+      4
+    ],
+    [
+      70,
+      512
+    ]
+  ],
+  "inner_selection_seed": 101,
+  "inner_validation_rule": "cyclic next development engine after outer heldout in sorted engine list; fit remaining four engines",
+  "window_selection": "lowest inner-engine flight-end raw RMSE; ties by total points then history then points",
+  "epochs": 200,
+  "batch": 64,
+  "learning_rates": {
+    "DS02": 0.0005,
+    "DS05": 0.001,
+    "DS06": 0.001,
+    "DS07": 0.001
+  },
+  "optimizer": "Adam",
+  "weight_decay": 0,
+  "gradient_clipping": "none; finite gradient norm recorded",
+  "label_cap": 125.0,
+  "target_transform": "min(raw_Y,125)/125; retain original positive abs output head; predictions multiplied by125",
+  "source_original_minmax_replaced": "fixed125 instead of label-derived source max_life",
+  "input": "W4+measured_Xs14; observed cycle/train_q95 supplied to original OCC aging input",
+  "forbidden_inputs": [
+    "X_v",
+    "T",
+    "hs",
+    "Fc",
+    "unit_ID",
+    "duration"
+  ],
+  "prediction_time": "end_of_current_flight",
+  "preprocessing_fit": "only_current_inner_four_or_outer_five_training_engines",
+  "epoch_selection": "none; fixed200; outer heldout constructed only after final fit",
+  "inner_trainings": 120,
+  "outer_trainings": 72,
+  "total_trainings": 192,
+  "primary_metric": "engine-equal flight-end raw RMSE; three seed means and SD; NASA sum/mean separate",
+  "no_test_loader": true,
+  "maximum_shared_gpu_wall_hours": 24,
+  "maximum_device_memory_MiB": 12000,
+  "maximum_cell_seconds": 3600,
+  "original_protocol_status": "not_reproduced_here; original virtual inputs/global-label-cap/random-window-validation differ",
+  "comparison_limit": "window/point resolution selected by inner validation; external ranking is not a same-information module ablation",
+  "failure_branch": "preserve all attempts; no silently dropping the expensive full-resolution candidate, no simplified GNN replacement",
+  "physical_normalization": "author MinMax[-1,1], train-only; constants/near-constants use handled range1 and map -1; heldout values never clipped",
+  "learning_rate_schedule": "constant; unified fixed200 rule replaces author's validation-adaptive LR and early stop"
+}

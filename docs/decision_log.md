@@ -1940,3 +1940,12 @@ rank/support机制可能没有实际作用；balancedOT线性池化恒退化均�
 2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。
 
 2026-11-13 启动前硬件预算修订（L1，0次正式训练）：GPU现有其他任务负载升高，V4实测含25%余量预测26.95小时，超过自主设定24小时；扩为既有a40共享GPU36小时，不新增付费、不更改方法/seed/训练passes/数据/评价门，不操作其他任务。重新实测验收后才launch。原e00fef3源及V4未通过admission记录保留，不称训练结果。
+
+
+## 2026-11-14 · 新NC公开强基线与负对照查新（Codex L2/L1）
+
+继续冻结504格；其来源、软件与首批实际训练审计通过。
+否决between/within covariance subtraction为新方法立项：对应cPCA/dPCA/MNF，且自相关可伪造低频方向；未新增该路线GPU。
+AIDGN完整作者模型迁移：原class SHA22101fe6bc88fa792b68c909e21d70718e85b919097bf00b177586154ff245b6，128/512/72等native参数保留，原abs head故用cap125/125正标签，保留作者[-1,1]MinMax、train-only；observed-cycle/q95替代native1e-5缩放。原norm01误标已于0真实训练时修正。
+窗口五候选包含full70x512，inner4+cyclic-next验证选，再outer5三seed重训。统一fixed200 constantLR/MSE/Adam，作者valLR/earlystop与原污染标签不迁移、不冒称原recipe数值复现。
+V3实际source/native/shape/FP32grad/预处理合同全部PASS，含25%margin预算12.95h<24h；允许120inner+72outer启动，不改504或PaperA。

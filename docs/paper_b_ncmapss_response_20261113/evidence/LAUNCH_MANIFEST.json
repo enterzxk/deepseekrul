@@ -1,0 +1,26 @@
+{
+  "started_utc": "2026-11-13T14:29:22.866546+00:00",
+  "pid": 2331438,
+  "source_git_commit": "2e57e8ae68f194d73ba0a94fcd45437507f33d58",
+  "execution_sha256": "0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009",
+  "protocol_sha256": "e0524b827022745593ad70eeefd544de3aa06b0497f4457ba63f0c796bd95726",
+  "preflight_sha256": "7dc1bdb40289b223f87d53c60d8bb40798e7b13e99339723f905310d2218cd1e",
+  "calibration_sha256": "590ff7182b3dd81910bd5863b57743c8bd0da921ac669e516e3de620c161456b",
+  "expected_training_runs": 504,
+  "subsets": [
+    "DS02",
+    "DS05",
+    "DS06",
+    "DS07"
+  ],
+  "strategy": "four disjoint subset workers sharing one GPU; fixed identical training protocol",
+  "maximum_wall_hours_on_one_shared_gpu": 36,
+  "official_test_read": false,
+  "python": "3.9.25 (main, Nov  3 2025, 22:33:05) \n[GCC 11.2.0]",
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "OPENBLAS_NUM_THREADS": "1"
+  }
+}

@@ -907,3 +907,17 @@ $lo_0=lo+\hat q$、$hi_0=hi-\hat q$；E 把扩张项换成 $q_E\cdot s$，同一
 2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。
 
 2026-11-13 启动前硬件预算修订（L1，0次正式训练）：GPU现有其他任务负载升高，V4实测含25%余量预测26.95小时，超过自主设定24小时；扩为既有a40共享GPU36小时，不新增付费、不更改方法/seed/训练passes/数据/评价门，不操作其他任务。重新实测验收后才launch。原e00fef3源及V4未通过admission记录保留，不称训练结果。
+
+
+## N-CMAPSS正式开发训练启动（2026-11-13）
+
+源提交2e57e8ae68f194d73ba0a94fcd45437507f33d58；执行0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009。
+远端a40：/media/sangfor/vdb/user/zxk/ncmapss_response_20261113/formal_2e57e8ae。
+父PID2331438；四子集worker2331541/2331542/2331543/2331544。七模式、六折、三seed504次真实训练，36共享GPU墙钟小时上限。
+实际启动已核实；当前状态见docs/paper_b_ncmapss_response_20261113/evidence/STATUS.json，首批未完成，未作任何增益判断。
+当前仅开发集，禁止TEST。原DSPT/Paper A/R2均无改动。源码后续只允许新增审计/文档，不改变冻结五个执行文件。
+恢复：读远端STATUS.json；失败看formal_supervisor.log及formal_2e57e8ae/worker_*.log。不能重复launch（CLAIM独占）。
+完成后核summary/DEVELOPMENT_LOEO.md与全checkpoint重载预测审计，再提交结果；四篇新NC论文统一重训尚未开始，仍PARTIAL。
+
+
+2026-11-14恢复点：prototype504在a40 formal_2e57e8ae继续，最近状态快照141格，非最终。完整AIDGN独立包ncmapss_public_20261113已通过V3真实验收，192train拟立即launch；新Bayes完整模型adapter由另agent写，尚未真实训练。不可重复launch现有504，不修改五生产文件。

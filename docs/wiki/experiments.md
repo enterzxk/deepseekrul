@@ -84,3 +84,16 @@
 
 
 2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。
+
+
+## N-CMAPSS正式开发训练启动（2026-11-13）
+
+源提交2e57e8ae68f194d73ba0a94fcd45437507f33d58；执行0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009。
+远端a40：/media/sangfor/vdb/user/zxk/ncmapss_response_20261113/formal_2e57e8ae。
+父PID2331438；四子集worker2331541/2331542/2331543/2331544。七模式、六折、三seed504次真实训练，36共享GPU墙钟小时上限。
+实际启动已核实；当前状态见docs/paper_b_ncmapss_response_20261113/evidence/STATUS.json，首批未完成，未作任何增益判断。
+当前仅开发集，禁止TEST。原DSPT/Paper A/R2均无改动。源码后续只允许新增审计/文档，不改变冻结五个执行文件。
+恢复：读远端STATUS.json；失败看formal_supervisor.log及formal_2e57e8ae/worker_*.log。不能重复launch（CLAIM独占）。
+完成后核summary/DEVELOPMENT_LOEO.md与全checkpoint重载预测审计，再提交结果；四篇新NC论文统一重训尚未开始，仍PARTIAL。
+
+- AIDGN新NC迁移预注册：120inner+72outer，五窗口及完整来源见AIDGN_UNIFIED_MIGRATION_PLAN.md；先V3真实验收后launch。prototype504独立运行不合并内层记录。

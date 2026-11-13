@@ -1,0 +1,283 @@
+{
+  "status": "PASS",
+  "admission": true,
+  "execution_sha256": "502b09982cd06870bee7620d5a1a953621046f52bf775824b32a49d2470be23a",
+  "software": {
+    "software_contracts_only": true,
+    "device": "cuda:0",
+    "real_data_read": false,
+    "official_test_read": false,
+    "training_performed": false,
+    "optimization_steps": 0,
+    "manifest": {
+      "manifest_mismatch_rejected": true,
+      "source_mismatch_rejected": true,
+      "wrong_commit_rejected": true,
+      "source_sha256": "22101fe6bc88fa792b68c909e21d70718e85b919097bf00b177586154ff245b6"
+    },
+    "packing": {
+      "registered_shapes": [
+        {
+          "history": 1,
+          "points": 50,
+          "batch": 1,
+          "T": 50
+        },
+        {
+          "history": 1,
+          "points": 512,
+          "batch": 1,
+          "T": 512
+        },
+        {
+          "history": 20,
+          "points": 16,
+          "batch": 1,
+          "T": 320
+        },
+        {
+          "history": 70,
+          "points": 4,
+          "batch": 1,
+          "T": 280
+        },
+        {
+          "history": 70,
+          "points": 512,
+          "batch": 1,
+          "T": 35840
+        }
+      ],
+      "only_raw_age_windows_read": true,
+      "past_only_and_zero_padding": true,
+      "future_values_irrelevant": true,
+      "unit_identity_scope": "validated by bundle caller; pack validates index-causality only"
+    },
+    "author_api_and_grad": {
+      "exact_author_class": true,
+      "exact_eval_output_and_state_api": true,
+      "parameters": 100024,
+      "finite_fp32_gradients": true,
+      "nonzero_parameter_gradient": true,
+      "observed_nonzero_age_gradient": true,
+      "parameters_without_gradient": 0,
+      "optimization_steps": 0,
+      "provenance": {
+        "repository": "TCCofWANG/AIDGN-RUL",
+        "commit": "d1ac173b13659af1854cf500a9b1cba8367353fe",
+        "sha256": "22101fe6bc88fa792b68c909e21d70718e85b919097bf00b177586154ff245b6",
+        "git_blob_sha1": "c579f656c449d6b37e460b557b0bc86b08120b52",
+        "source_url": "https://github.com/TCCofWANG/AIDGN-RUL/blob/d1ac173b13659af1854cf500a9b1cba8367353fe/Model/AIDGN.py",
+        "license_status": "no_explicit_repository_license_found_in_pinned_tree",
+        "source_modified": false,
+        "default_verification": {
+          "parser_defaults": {
+            "input_length": 50,
+            "AATE_dim": 16,
+            "d_model": 128,
+            "dropout": 0.1,
+            "nlayer": 1,
+            "hop": 1,
+            "loss_type": "MSE",
+            "is_minmax": true,
+            "batch_size": 128,
+            "train_epochs": 300,
+            "ablation_mode": "linear"
+          },
+          "model_constants": {
+            "AATE_dim": 16,
+            "hidden_dim": 128,
+            "fc_layer_dim": 512,
+            "fc_dropout": 0.1,
+            "nlayer": 1,
+            "hop": 1,
+            "outlayer": "Linear",
+            "reshape": true
+          },
+          "actual_learning_rate": {
+            "DS02": 0.0005,
+            "DS05": 0.001,
+            "DS06": 0.001,
+            "DS07": 0.001
+          },
+          "references": {
+            "parser": "N_CMAPSS_train.py:75,82,91-94,111,113,125",
+            "nc_overrides": "configs/hparams.py:214,233,252,271,290",
+            "constructor": "Experiment/Experiment.py:201-213",
+            "optimizer": "Experiment/Experiment.py:238-243",
+            "loss": "Experiment/Experiment.py:538-548"
+          }
+        },
+        "author_native_defaults": {
+          "AATE_dim": 16,
+          "hidden_dim": 128,
+          "fc_layer_dim": 512,
+          "fc_dropout": 0.1,
+          "nlayer": 1,
+          "hop": 1,
+          "outlayer": "Linear",
+          "reshape": true,
+          "feature_num": 20,
+          "sequence_len": 50,
+          "feature_fc_layer_dim": 80,
+          "supports": null
+        },
+        "constructor_rules": {
+          "feature_num": "input_feature; source NC20, migration observed18",
+          "sequence_len": "input_length; source50, migration history*points",
+          "hidden_dim": "d_model=128",
+          "fc_layer_dim": "4*hidden_dim=512",
+          "feature_fc_layer_dim": "4*feature_num; source80, migration72",
+          "fc_dropout": "dropout=0.1",
+          "AATE_dim": 16,
+          "nlayer": 1,
+          "hop": 1,
+          "outlayer": "Linear forced by Experiment._get_model",
+          "reshape": "True forced by author AIDGN.__init__",
+          "supports": null
+        },
+        "author_training_defaults": {
+          "epochs": 300,
+          "batch_size": 128,
+          "is_minmax": true,
+          "loss": "MSE",
+          "optimizer": "Adam",
+          "actual_weight_decay": 0.0,
+          "early_stop_patience": 10,
+          "learning_rate_patience": 10,
+          "learning_rate_factor": 0.3,
+          "source": "N_CMAPSS_train.py:72,75,84,125,199-202; Experiment.py:242-243,538-548"
+        },
+        "author_optimizer": {
+          "name": "Adam",
+          "actual_weight_decay": 0.0,
+          "note": "Experiment._select_optimizer passes lr only; declared hparams weight_decay=1e-4 is unused"
+        },
+        "manifest_sha256": "29aaea27669ea96b903651558caecf038a2e9bfd2e4b253777f6b11953ad248d",
+        "author_file": "/media/sangfor/vdb/user/zxk/ncmapss_public_aidgn_20261114/sources/aidgn/Model/AIDGN.py",
+        "migration": {
+          "feature_num": 18,
+          "sequence_len": 50,
+          "history": 1,
+          "points": 50,
+          "aging": "observed cycle / training-only q95, supplied by bundle['age']; not labels or lifetime",
+          "additional_temporal_head": false,
+          "model_math_modified": false,
+          "device_compatibility_only": "author_model.device assigned to current input.device",
+          "target_semantics": {
+            "name": "MSE",
+            "default_target": "RUL/max_life (is_minmax=True)",
+            "head": "absolute nonnegative native output; no target centering in adapter",
+            "migration": "controller may use min(raw_RUL,125)/125 and invert by *125; adapter does not read/transform labels"
+          }
+        }
+      }
+    },
+    "five_B1_shapes": [
+      {
+        "history": 1,
+        "points": 50,
+        "T": 50,
+        "batch": 1,
+        "parameters": 100024,
+        "finite_fp32_output": true,
+        "peak_allocated_MiB": 65.4423828125
+      },
+      {
+        "history": 1,
+        "points": 512,
+        "T": 512,
+        "batch": 1,
+        "parameters": 241396,
+        "finite_fp32_output": true,
+        "peak_allocated_MiB": 66.013671875
+      },
+      {
+        "history": 20,
+        "points": 16,
+        "T": 320,
+        "batch": 1,
+        "parameters": 182644,
+        "finite_fp32_output": true,
+        "peak_allocated_MiB": 65.775390625
+      },
+      {
+        "history": 70,
+        "points": 4,
+        "T": 280,
+        "batch": 1,
+        "parameters": 170404,
+        "finite_fp32_output": true,
+        "peak_allocated_MiB": 65.7265625
+      },
+      {
+        "history": 70,
+        "points": 512,
+        "T": 35840,
+        "batch": 1,
+        "parameters": 11051764,
+        "finite_fp32_output": true,
+        "peak_allocated_MiB": 117.16015625
+      }
+    ],
+    "author_source_unchanged": true,
+    "status": "PASS"
+  },
+  "rows": [
+    {
+      "history": 1,
+      "points": 50,
+      "sequence_len": 50,
+      "batch": 64,
+      "median_batch_seconds": 0.06651467306073755,
+      "parameters": 100024,
+      "peak_MiB": 79.2451171875,
+      "last_gradient_norm": 0.8438558578491211
+    },
+    {
+      "history": 1,
+      "points": 512,
+      "sequence_len": 512,
+      "batch": 64,
+      "median_batch_seconds": 0.06333129794802517,
+      "parameters": 241396,
+      "peak_MiB": 94.1787109375,
+      "last_gradient_norm": 0.9900001287460327
+    },
+    {
+      "history": 20,
+      "points": 16,
+      "sequence_len": 320,
+      "batch": 64,
+      "median_batch_seconds": 0.06976643204689026,
+      "parameters": 182644,
+      "peak_MiB": 88.0009765625,
+      "last_gradient_norm": 0.9772297739982605
+    },
+    {
+      "history": 70,
+      "points": 4,
+      "sequence_len": 280,
+      "batch": 64,
+      "median_batch_seconds": 0.06705465994309634,
+      "parameters": 170404,
+      "peak_MiB": 86.71435546875,
+      "last_gradient_norm": 0.8835880756378174
+    },
+    {
+      "history": 70,
+      "points": 512,
+      "sequence_len": 35840,
+      "batch": 64,
+      "median_batch_seconds": 0.1609258329262957,
+      "parameters": 11051764,
+      "peak_MiB": 1577.9931640625,
+      "last_gradient_norm": 0.5044031739234924
+    }
+  ],
+  "projected_serial_hours_with_25pct_margin": 10.712962276302278,
+  "optimizer_updates": 0,
+  "NASA_data_or_labels_read": false,
+  "official_test_read": false,
+  "interpretation": "real original-model forward/backward; no training or benefit claim"
+}
