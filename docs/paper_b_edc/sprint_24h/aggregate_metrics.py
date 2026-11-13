@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Sprint-24h metric aggregation: one reproducible pass over every run dir.
 
 Why this file exists
@@ -628,7 +628,7 @@ SEED_COLUMNS = [
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
     "converged", "truncated", "budget_status", "early_stop_margin",
-    "reproducible", "verified", "verified_note", "comparable", "fp_short",
+    "reproducible", "verified", "verified_note", "evidence_tier", "comparable", "fp_short",
     "gain_last1", "gain_last3", "gain_last5", "gain_last6", "gain_last12",
     "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
@@ -652,7 +652,7 @@ MODULE_COLUMNS = [
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0", "delta_vs_B0_pct",
     "status_mix", "n_truncated", "n_budget_limited",
-    "reproducible_cells", "verified_cells", "comparable_cells", "converged_cells",
+    "reproducible_cells", "verified_cells", "evidence_tier", "comparable_cells", "converged_cells",
     "best_ep_max", "epochs_run_max",
     "params_trainable", "parent", "params_parent", "params_delta", "params_pct", "description",
 ]
@@ -2204,6 +2204,7 @@ def main(argv: list[str] | None = None) -> int:
         if twin is None or twin is r:
             r["verified"] = "no"
             r["verified_note"] = "no gate twin"
+            r["evidence_tier"] = "B"
             continue
         md5_ok = twin.get("preds_md5") == r.get("preds_md5")
         v_a, v_b = twin.get("engine_mean_rmse"), r.get("engine_mean_rmse")
@@ -2216,6 +2217,13 @@ def main(argv: list[str] | None = None) -> int:
         # produced the same predictions.
         ok = md5_ok and val_ok and ep_ok and be_ok
         r["verified"] = "yes" if ok else "no"
+        # Evidence tier follows the gate, not the subset name.  A = a gate twin
+        # reproduced this cell on the current HEAD (all four items); B = usable
+        # but no gate.  Writing "FD004 is B" in prose would freeze tonight's
+        # queue state into the document; deriving it means the tier rises by
+        # itself when the FD004 gate cells land, and no number changes because a
+        # gate is a reproduction, not new data.
+        r["evidence_tier"] = "A" if ok else "B"
         r["verified_note"] = ("md5+val+ep+best" if ok else
                               "partial: " + "+".join(
                                   n for n, f in (("md5", md5_ok), ("val", val_ok),
@@ -2330,6 +2338,9 @@ def main(argv: list[str] | None = None) -> int:
                 sum(1 for x in rows if x.get("reproducible") == "yes"), len(rows)),
             verified_cells="%d/%d" % (
                 sum(1 for x in rows if x.get("verified") == "yes"), len(rows)),
+            evidence_tier=("A" if all(x.get("evidence_tier") == "A" for x in rows)
+                           else ("B" if all(x.get("evidence_tier") == "B" for x in rows)
+                                 else "mixed")),
             comparable_cells="%d/%d" % (
                 sum(1 for x in rows if x.get("comparable") == "yes"), len(rows)),
             converged_cells="%d/%d" % (
