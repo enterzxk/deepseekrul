@@ -232,6 +232,29 @@ def file_md5(path: str) -> str:
     return h.hexdigest()
 
 
+def files_fingerprint(run_dir: str) -> str:
+    """Short hash of the run's per-file code fingerprint, or '' when absent.
+
+    The gate cells are the reference: they were launched from the current HEAD, so
+    a cell sharing their fingerprint was run by the same code.  A cell that does
+    not share it is not wrong -- the gates exist precisely because some old cells
+    turned out to be numerically identical across fingerprints -- but it has not
+    been *shown* equivalent, and that difference is what `verified` records.
+    """
+    path = os.path.join(run_dir, "metrics.json")
+    if not os.path.isfile(path):
+        return ""
+    try:
+        with open(path) as fh:
+            cf = (json.load(fh).get("code_fingerprint") or {})
+    except Exception:                                 # noqa: BLE001
+        return ""
+    files = cf.get("files_sha256") or {}
+    if not files:
+        return ""
+    return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()[:16]
+
+
 def read_history(run_dir: str) -> list[float]:
     """Per-epoch validation curve, or [] when the run has no history file."""
     path = os.path.join(run_dir, "history.json")
@@ -405,6 +428,13 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
         frozen_sha256=meta.get("frozen_sha256"),
         l_mean=meta.get("l_mean"),
     )
+    row["fp_short"] = files_fingerprint(run_dir)
+    # reproducible: an independent recomputation from preds.csv lands on the
+    # number the run itself reported.  It says nothing about which code ran.
+    d_rep = row.get("delta_vs_reported")
+    row["reproducible"] = (
+        "yes" if isinstance(d_rep, (int, float)) and d_rep == d_rep
+        and abs(d_rep) <= 1e-6 else "no")
     row["status_detail"] = classify(row)
     ov = row.get("budget_override")
     er1 = row.get("epochs_run")
@@ -593,6 +623,7 @@ SEED_COLUMNS = [
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
     "converged", "truncated", "budget_status", "early_stop_margin",
+    "reproducible", "verified", "verified_note", "comparable", "fp_short",
     "gain_last1", "gain_last3", "gain_last5", "gain_last6", "gain_last12",
     "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
@@ -614,7 +645,9 @@ MODULE_COLUMNS = [
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
-    "status_mix", "n_truncated", "n_budget_limited", "best_ep_max", "epochs_run_max",
+    "status_mix", "n_truncated", "n_budget_limited",
+    "reproducible_cells", "verified_cells", "comparable_cells", "converged_cells",
+    "best_ep_max", "epochs_run_max",
     "params_trainable", "parent", "params_parent", "params_delta", "params_pct", "description",
 ]
 
@@ -1121,6 +1154,11 @@ def build_stability(seed_rows: list[dict[str, Any]],
             baseline_n=bn, baseline_sd=bsd, baseline_mad=bmad,
             sd_ratio=(sd / bsd if bsd else float("nan")),
             mad_ratio=ratio, mad_ratio_ok=ratio_ok, mad_ratio_reason=reason,
+            # A selfcheck ratio is 1.0 by construction -- the same numbers
+            # compared with themselves.  It tests the arithmetic, not a module,
+            # so it must never be counted as evidence for one.
+            informative=("yes" if ratio_ok == "yes" and mod != baseline_module
+                         else "no"),
         ))
     return out
 
@@ -1723,6 +1761,52 @@ def main(argv: list[str] | None = None) -> int:
     live = {(r["root"], r["run_id"]) for r in seed_rows if r.get("status") == "usable"}
     per_engine = [e for e in per_engine if (e["root"], e["run_id"]) in live]
 
+    # ---- the four independent axes ---------------------------------------- #
+    # reproducible / verified / comparable / converged are independent: a number
+    # can be any combination.  Keeping them apart is what turns tonight's
+    # arguments ("is 2.59 verified or just reproducible?", "is -0.713 confounded
+    # by budget?") into a table lookup instead of a discussion.
+    # `verified` is NOT "same fingerprint as the gate".  The gates exist because
+    # a different fingerprint can still be numerically identical -- G1 proved
+    # exactly that -- so the test is a formal twin: a run in a `_gate` root with
+    # the same (module, subset, seed, budget) and the same predictions.  That is
+    # the only sense in which an old cell is known to be current-HEAD equivalent.
+    gate_twins: dict[tuple, dict[str, Any]] = {}
+    for r in seed_rows:
+        if str(r.get("root", "")).startswith("_gate") and r.get("preds_md5"):
+            gate_twins[(r["module"], r["subset"], r.get("budget_epochs"), r["seed"])] = r
+    for r in seed_rows:
+        twin = gate_twins.get((r["module"], r["subset"], r.get("budget_epochs"), r["seed"]))
+        if twin is None or twin is r:
+            r["verified"] = "no"
+            r["verified_note"] = "no gate twin"
+            continue
+        md5_ok = twin.get("preds_md5") == r.get("preds_md5")
+        v_a, v_b = twin.get("engine_mean_rmse"), r.get("engine_mean_rmse")
+        val_ok = (v_a is not None and v_b is not None and abs(v_a - v_b) <= 1e-6)
+        ep_ok = twin.get("epochs_run") == r.get("epochs_run")
+        be_ok = twin.get("best_ep") == r.get("best_ep")
+        # All four, not just the bytes.  Early stopping has drifted independently
+        # of the values before, so a matching md5 with a different epochs_run
+        # would mean the two runs are not the same experiment even though they
+        # produced the same predictions.
+        ok = md5_ok and val_ok and ep_ok and be_ok
+        r["verified"] = "yes" if ok else "no"
+        r["verified_note"] = ("md5+val+ep+best" if ok else
+                              "partial: " + "+".join(
+                                  n for n, f in (("md5", md5_ok), ("val", val_ok),
+                                                 ("ep", ep_ok), ("best", be_ok)) if f))
+
+    # comparable: the parent has a cell for this subset at this budget, so the
+    # two rows can be differenced under one schedule.
+    present = {(r["module"], r["subset"], r.get("budget_epochs"))
+               for r in seed_rows if r.get("status") == "usable"}
+    for r in seed_rows:
+        parent = baseline_for(r["module"])
+        r["comparable"] = (
+            "yes" if (parent, r["subset"], r.get("budget_epochs")) in present
+            else "no")
+
     groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
     for row in seed_rows:
         if row.get("status") != "usable":
@@ -1818,6 +1902,14 @@ def main(argv: list[str] | None = None) -> int:
             n_truncated=sum(1 for x in rows if x.get("truncated") == "yes"),
             n_budget_limited=sum(1 for x in rows
                                  if x.get("budget_status") == "budget_limited"),
+            reproducible_cells="%d/%d" % (
+                sum(1 for x in rows if x.get("reproducible") == "yes"), len(rows)),
+            verified_cells="%d/%d" % (
+                sum(1 for x in rows if x.get("verified") == "yes"), len(rows)),
+            comparable_cells="%d/%d" % (
+                sum(1 for x in rows if x.get("comparable") == "yes"), len(rows)),
+            converged_cells="%d/%d" % (
+                sum(1 for x in rows if x.get("budget_status") == "converged"), len(rows)),
             best_ep_max=max((x["best_ep"] or 0) for x in rows),
             epochs_run_max=max((x["epochs_run"] or 0) for x in rows),
             params_trainable=rows[0]["params_trainable"],
@@ -1894,7 +1986,8 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "STABILITY.csv"), stability,
               ["module", "subset", "budget_epochs", "n_seeds", "comparison_kind", "seeds",
                "mean", "sd", "mad", "baseline_n", "baseline_sd", "baseline_mad",
-               "sd_ratio", "mad_ratio", "mad_ratio_ok", "mad_ratio_reason"])
+               "sd_ratio", "mad_ratio", "mad_ratio_ok", "mad_ratio_reason",
+               "informative"])
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
                "ci_mean", "screen_single", "paired_3seed",
@@ -2007,6 +2100,30 @@ def main(argv: list[str] | None = None) -> int:
         "curves, not one curve and its continuation. A budget-limited run is neither",
         "optimistic nor pessimistic -- it is a **different protocol**. The only",
         "correct statement is `result under the 40ep protocol, not extrapolated`.",
+        "",
+        "### The four independent axes",
+        "",
+        "`reproducible` / `verified` / `comparable` / `converged` are independent;",
+        "a number can be any combination, and `n` is a fifth axis kept in its own",
+        "column. Keeping them apart turns an argument into a table lookup.",
+        "",
+        "| axis | question | how it is decided |",
+        "|---|---|---|",
+        "| `reproducible` | can another person get this number from these files? |",
+        "  recomputation from `preds.csv` matches `metrics.json` |",
+        "| `verified` | was this cell shown current-HEAD equivalent? |",
+        "  a `_gate` twin exists at the same (module, subset, seed, budget) and",
+        "  **all four** of `preds_md5`, `val`, `epochs_run`, `best_ep` match |",
+        "| `comparable` | can the two sides be differenced? | the parent has a cell",
+        "  at the same subset and budget |",
+        "| `converged` | did patience fire? | `epochs_run < budget` |",
+        "",
+        "`verified` is not a fingerprint comparison. The gates exist because a",
+        "different fingerprint can be numerically identical -- G1 proved exactly",
+        "that -- so judging by fingerprint would mark the one verified cell as",
+        "unverified. All four items are required because early stopping has drifted",
+        "independently of the values: matching bytes with a different `epochs_run`",
+        "means the two runs are not the same experiment.",
         "",
         "### `budget_status`, `headroom` and `judgeable`",
         "",
