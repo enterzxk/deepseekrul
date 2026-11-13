@@ -732,7 +732,8 @@ def _selfcheck_degenerate_guard():
 def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
               init_from, K, epochs=None, patience=None, batch=None, lr=None,
               weight_decay=None, lam=None, lam_t=None, lam_s=None, log=print,
-              budget_override=None, scr=False, lam_a=None, lam_dpc=None):
+              budget_override=None, scr=False, lam_a=None, lam_dpc=None,
+              lam_rank=None, rank_gap=None, rank_margin=None):
     # Identity comes from the arm name. --scr survives only as a compatibility
     # flag and is rejected unless the arm is already M7 (see main()).
     scr = bool(scr or (arm in SCR_ARMS))
@@ -772,6 +773,13 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     # overshoot and is O(1e-2), so the default mirrors lam_T.
     lam_a = float(C.RUL_CAP ** 2 if lam_a is None else lam_a)
     lam_dpc = float(1.0 if lam_dpc is None else lam_dpc)
+    # M3-C ranking. lam_rank is a SHARE of the initial RUL loss, not an absolute
+    # weight: the M5 cell spent a whole run learning that a fixed weight on a
+    # term whose own scale moves is not a test of anything (40000 -> the auxiliary
+    # dominated, 0.05 -> five orders of magnitude too small).
+    lam_rank = float(0.05 if lam_rank is None else lam_rank)
+    rank_gap = float(10.0 if rank_gap is None else rank_gap)
+    rank_margin = float(0.05 if rank_margin is None else rank_margin)
     epochs = int(C.EPOCHS if epochs is None else epochs)
     patience = int(C.PATIENCE if patience is None else patience)
     batch = int(C.BATCH if batch is None else batch)
@@ -806,7 +814,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     # Without this, lam_dpc is an absolute weight on a term whose scale moves:
     # measured 0.0052 -> 0.0960 over 15 epochs (18x), which took the gradient
     # share from 15% to 100% and stopped being a test of M5.
-    dpc0 = rul0 = None
+    dpc0 = rul0 = rank0 = None
     if arm in DPC_ARMS:
         was_training = net.training
         net.eval()
@@ -827,6 +835,35 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         # "fraction of the initial RUL loss" and does not drift when L_dpc moves.
         log('  dpc0=%.6f rul0=%.2f from %d engines -> lam_dpc is a SHARE of rul0'
             % (dpc0, rul0, len(dvals)))
+    if arm in RANK_ARMS:
+        # Same pattern as M5: measure both scales in ONE detached pass at init,
+        # then the term is lam_rank * (L_rank/rank0) * rul0, so lam_rank is
+        # literally "fraction of the initial RUL loss" and cannot drift.
+        was_training = net.training
+        net.eval()
+        with torch.no_grad():
+            _fos, _rvals = [], []
+            _E = len(ebt['lengths'])
+            _n_eng = min(24, _E)
+            _idx = [int(round(k * (_E - 1) / max(1, _n_eng - 1)))
+                    for k in range(_n_eng)]
+            for _i in _idx:
+                _n = int(ebt['lengths'][_i])
+                _fo = forward_engine(net, arm, ebt, _i, _n, dev, K)
+                _fos.append(dict(D=_fo['D'], r=_fo['r']))
+                _rvals.append(float(rul_loss(_fo['pred'], _fo['r'], cap).mean()))
+            _s, _c = rank_pair_loss(_fos, rank_margin, rank_gap)
+            rank0 = (float(_s) / float(_c)) if _s is not None else 0.0
+            rul0 = float(np.mean(_rvals)) if _rvals else 1.0
+        net.train(was_training)
+        if _c <= 0 or rank0 <= 0.0:
+            raise AssertionError(
+                'M3C: no separable same-age pair at init (%d engines, %d compared '
+                'points, gap_r=%.1f); the ranking term would start inert and could '
+                'not break the age tie' % (_n_eng, _c, rank_gap))
+        log('  rank0=%.6f margin=%.4f rul0=%.2f from %d engines, %d compared '
+            'points -> lam_rank is a SHARE of rul0'
+            % (rank0, rank_margin, rul0, _n_eng, _c))
     opt = (torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
            if params else None)
     sch = (torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
@@ -843,8 +880,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         if opt is not None:
             opt.zero_grad(set_to_none=True)
         acc, pts, tot, seen = {}, 0, 0.0, 0
+        batch_fos = []   # M3C: (D, r) per engine of the current batch, for ranking
 
-        def _step(acc, pts):
+        def _step(acc, pts, fos):
             """One optimiser step on the batch-aggregated loss."""
             L = aggregate(acc, s0)
             total = L['rul']
@@ -856,6 +894,13 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             if 'dpc' in L:
                 total = total + lam_dpc * (L['dpc'] / dpc0) * rul0
                 diag['dpc'] = float(L['dpc'].detach())
+            if arm in RANK_ARMS and len(fos) > 1:
+                rs, rn = rank_pair_loss(fos, rank_margin, rank_gap)
+                if rs is not None:
+                    L_rank = rs / float(rn)
+                    total = total + lam_rank * (L_rank / rank0) * rul0
+                    diag['rank'] = float(L_rank.detach())
+                    diag['rank_points'] = int(rn)
             if opt is not None:
                 total.backward()
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -866,16 +911,18 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         for i in order:
             n = int(ebt['lengths'][i])
             fo = forward_engine(net, arm, ebt, i, n, dev, K)
+            if arm in RANK_ARMS:
+                batch_fos.append(dict(D=fo['D'], r=fo['r']))
             for k, v in term_sums(net, arm, fo, cap, scr=(arm in SCR_ARMS)).items():
                 acc[k] = acc[k] + v if k in acc else v
             pts += n
             if pts >= batch:
-                dl, dp = _step(acc, pts)
+                dl, dp = _step(acc, pts, batch_fos)
                 tot += dl
                 seen += dp
-                acc, pts = {}, 0
+                acc, pts, batch_fos = {}, 0, []
         if pts > 0:
-            dl, dp = _step(acc, pts)
+            dl, dp = _step(acc, pts, batch_fos)
             tot += dl
             seen += dp
         if sch is not None:
@@ -910,10 +957,11 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                             grad_terms_unweighted=tg['unweighted'],
                             grad_terms_weighted=w, grad_ratio=ratio))
         if ep % 5 == 0 or ep == 1:
-            log('  ep%03d loss=%.4f val_eng=%.4f alive=%s dpc=%s g_ratio=%s'
+            log('  ep%03d loss=%.4f val_eng=%.4f alive=%s dpc=%s rank=%s g_ratio=%s'
                 % (ep, tl, ev['val_engine_mean_rmse'],
                    ('%.3e' % diag['alive']) if 'alive' in diag else '-',
                    ('%.4f' % diag['dpc']) if 'dpc' in diag else '-',
+                   ('%.4f' % diag['rank']) if 'rank' in diag else '-',
                    {k: ('%.3e' % v if v is not None else None)
                     for k, v in ratio.items()}))
         if ev['val_engine_mean_rmse'] < best - 1e-4:
@@ -949,6 +997,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                                              batch_points=batch, lr=lr,
                                              weight_decay=weight_decay),
              budget_override=budget_override,
+             rank_loss=(dict(lam_share=lam_rank, gap_r=rank_gap,
+                             margin_d=rank_margin, rank0=rank0, rul0=rul0)
+                        if arm in RANK_ARMS else None),
              created_utc=_now())
     m.update(ev)
     m['grad_terms_last_unweighted'] = history[-1]['grad_terms_unweighted']
@@ -1033,6 +1084,12 @@ def main():
     ap.add_argument('--lam-a', type=float, default=None)
     ap.add_argument('--lam-dpc', type=float, default=None,
                     help='M5: weight on the multi-span latent consistency loss')
+    ap.add_argument('--lam-rank', type=float, default=None,
+                    help='M3C: same-age ranking weight, as a SHARE of the initial RUL loss')
+    ap.add_argument('--rank-gap', type=float, default=None,
+                    help='M3C: minimum true-RUL difference (cycles) for a same-age pair')
+    ap.add_argument('--rank-margin', type=float, default=None,
+                    help='M3C: required damage gap between two same-age engines')
     a = ap.parse_args()
     if a.scr and a.arm not in SCR_ARMS:
         raise SystemExit('--scr is no longer an identity: use --arm M7 '
@@ -1066,7 +1123,9 @@ def main():
                   a.init_from, a.K, epochs=a.epochs, lam=a.lam,
                   lam_t=a.lam_t, lam_s=a.lam_s,
                   budget_override=a.budget_override,
-                  scr=a.scr, lam_a=a.lam_a, lam_dpc=a.lam_dpc)
+                  scr=a.scr, lam_a=a.lam_a, lam_dpc=a.lam_dpc,
+                  lam_rank=a.lam_rank, rank_gap=a.rank_gap,
+                  rank_margin=a.rank_margin)
 
 
 if __name__ == '__main__':
