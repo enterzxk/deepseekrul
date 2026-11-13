@@ -453,6 +453,101 @@ def paired_stats(diffs: list[float]) -> dict[str, Any]:
                 ci_lo=mean - half, ci_hi=mean + half)
 
 
+def build_ensemble(seed_rows: list[dict[str, Any]], cap: float) -> list[dict[str, Any]]:
+    """Seed-ensemble baseline: average predictions of the same cell over seeds.
+
+    Averaging happens on the raw predictions, then the frozen clip is applied
+    once, so the ensemble is scored exactly like a single run.  Labels are
+    checked to be identical across seeds -- if they differ, the runs are not the
+    same split and averaging them would be meaningless.
+
+    The pairwise columns exist to answer a different question from the headline
+    gain: if a 2-seed ensemble already reaches the 3-seed value, the gain is
+    saturated and adding seeds buys nothing.
+    """
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or not r.get("preds_path"):
+            continue
+        groups.setdefault(
+            (r["module"], r["subset"], r.get("budget_epochs")), []).append(r)
+
+    out: list[dict[str, Any]] = []
+    for (mod, subset, budget), rows in sorted(
+            groups.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2]))):
+        if len(rows) < 2:
+            continue
+        rows.sort(key=lambda x: x["seed"])
+        per_seed: list[dict[tuple[int, int], float]] = []
+        labels: dict[tuple[int, int], float] = {}
+        engines: set[int] = set()
+        cuts: set[int] = set()
+        try:
+            for r in rows:
+                a = read_preds(r["preds_path"])
+                d = {(int(e), int(c)): float(p)
+                     for e, c, p in zip(a["engine_id"], a["cut"], a["y_pred"])}
+                lab = {(int(e), int(c)): float(y)
+                       for e, c, y in zip(a["engine_id"], a["cut"], a["y_raw"])}
+                if labels and set(lab) != set(labels):
+                    raise ValueError("different (engine_id, cut) sets across seeds")
+                for k, v in lab.items():
+                    if k in labels and abs(labels[k] - v) > 1e-9:
+                        raise ValueError(f"label mismatch at {k}: {labels[k]} vs {v}")
+                labels.update(lab)
+                per_seed.append(d)
+                engines.update(e for e, _ in d)
+                cuts.update(c for _, c in d)
+        except Exception as exc:                      # noqa: BLE001
+            out.append(dict(module=mod, subset=subset, budget_epochs=budget,
+                            n_seeds=len(rows), status=f"error: {exc}"))
+            continue
+
+        keys = sorted(labels)
+        ys = np.array([min(labels[k], cap) for k in keys], np.float64)
+        unit = np.array([k[0] for k in keys])
+
+        def score(preds: np.ndarray) -> dict[str, float]:
+            clipped = np.clip(preds, 0.0, cap)
+            n_sum, n_mean = nasa_score(clipped, ys)
+            return dict(em=per_engine_rmse(unit, ys, clipped), nasa_mean=n_mean,
+                        mae=mae(clipped, ys), bias=float(np.mean(clipped - ys)))
+
+        seed_ems = [r["engine_mean_rmse"] for r in rows]
+        mean_em, sd_em = mean_sd(seed_ems)
+        ens = np.mean([np.array([s[k] for k in keys], np.float64) for s in per_seed], axis=0)
+        ens_stats = score(ens)
+
+        # pairwise ensembles: the saturation check
+        pair_ems: list[float] = []
+        for i in range(len(per_seed)):
+            for j in range(i + 1, len(per_seed)):
+                p = (np.array([per_seed[i][k] for k in keys], np.float64)
+                     + np.array([per_seed[j][k] for k in keys], np.float64)) / 2.0
+                pair_ems.append(score(p)["em"])
+        p_mean, p_sd = mean_sd(pair_ems)
+
+        out.append(dict(
+            module=mod, subset=subset, budget_epochs=budget,
+            n_seeds=len(rows),
+            seeds=";".join(str(r["seed"]) for r in rows),
+            seed_ems=";".join(f"{v:.4f}" for v in seed_ems),
+            mean_seed_em=mean_em, sd_seed_em=sd_em,
+            ensemble_em=ens_stats["em"],
+            gain_abs=(mean_em - ens_stats["em"]),
+            gain_pct=(100.0 * (mean_em - ens_stats["em"]) / mean_em if mean_em else float("nan")),
+            pair_mean_em=p_mean, pair_sd_em=p_sd,
+            pair_min_em=(min(pair_ems) if pair_ems else float("nan")),
+            pair_max_em=(max(pair_ems) if pair_ems else float("nan")),
+            ensemble_nasa_mean=ens_stats["nasa_mean"],
+            ensemble_mae=ens_stats["mae"],
+            ensemble_bias=ens_stats["bias"],
+            n_engines=len(engines), n_cuts=len(cuts), n_points=len(keys),
+            status="ok",
+        ))
+    return out
+
+
 def build_paired(seed_rows: list[dict[str, Any]],
                  per_engine: list[dict[str, Any]],
                  baseline_module: str) -> list[dict[str, Any]]:
@@ -825,6 +920,14 @@ def main(argv: list[str] | None = None) -> int:
                "n_seeds", "seeds", "n_engines",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "module_em", "b0_em", "pct_vs_b0", "verdict", "significant"])
+    ensemble = build_ensemble(seed_rows, args.cap)
+    write_csv(os.path.join(args.out_dir, "ENSEMBLE_RESULTS.csv"), ensemble,
+              ["module", "subset", "budget_epochs", "n_seeds", "seeds",
+               "seed_ems", "mean_seed_em", "sd_seed_em", "ensemble_em",
+               "gain_abs", "gain_pct", "pair_mean_em", "pair_sd_em",
+               "pair_min_em", "pair_max_em",
+               "ensemble_nasa_mean", "ensemble_mae", "ensemble_bias",
+               "n_engines", "n_cuts", "n_points", "status"])
 
     # ---- audit note ------------------------------------------------------- #
     scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
