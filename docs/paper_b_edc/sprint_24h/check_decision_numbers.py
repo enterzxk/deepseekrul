@@ -195,10 +195,19 @@ def tier_block():
     ua = sum(1 for r in usable if r.get("evidence_tier") == "A")
     ub = sum(1 for r in usable if r.get("evidence_tier") == "B")
     arch, smoke = by.get("archived", []), by.get("smoke_dir", [])
+    # `usable` counts RUN DIRECTORIES, not samples: the same (arm, subset, seed)
+    # gets one row per budget (40/80/160), so B0 FD001 alone is 12 directories for
+    # 6 seeds.  Printing only the directory count invites reading it as n, which
+    # would be wrong by 13 here.  Both numbers belong in the block.
+    _cells = {(r.get("arm"), r.get("subset"), r.get("seed")) for r in usable}
     out = [TIER_BEGIN, "```",
            "as of   SEED_RESULTS.csv  sha256 %s  rows %d" % (sha, len(rows)),
            "        %d usable = %d A + %d B          <- same denominator"
            % (len(usable), ua, ub),
+           "        %d distinct (arm, subset, seed)  <- usable counts DIRECTORIES,"
+           % len(_cells),
+           "                                            not samples; one seed gets"
+           " one row per budget",
            "        %d archived + %d smoke        <- gate twins are the other side, not new cells"
            % (len(arch), len(smoke)),
            "",

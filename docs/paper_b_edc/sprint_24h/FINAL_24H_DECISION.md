@@ -590,6 +590,8 @@ derived(est)  由 est 派生的                  门槛 3.35 = 2√2 × 1.1833
 ```
 as of   SEED_RESULTS.csv  sha256 2c60b7f9718c  rows 108
         75 usable = 30 A + 45 B          <- same denominator
+        62 distinct (arm, subset, seed)  <- usable counts DIRECTORIES,
+                                            not samples; one seed gets one row per budget
         32 archived + 1 smoke        <- gate twins are the other side, not new cells
 
 subset  usable-A  usable-B  usable  rows
