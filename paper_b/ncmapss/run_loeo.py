@@ -399,7 +399,16 @@ def run_fold(rung, fold_idx, held_out, cfg, data, out_root, ledger, pre, data_sh
                 if ep not in snaps:
                     raise RuntimeError(f'no snapshot at epoch {ep}')
                 d = Path(out_root) / f'{run_id}_{tag}'
-                d.mkdir(parents=True, exist_ok=True)
+                # atomic claim on the output directory: mkdir without exist_ok is
+                # the check. A pre-flight "does it exist" test leaves a window, and
+                # the round-2 accident happened precisely because nothing refused
+                # to write into an existing run directory.
+                try:
+                    d.mkdir(parents=True, exist_ok=False)
+                except FileExistsError:
+                    raise RuntimeError(
+                        f'{d} already exists; refusing to overwrite an earlier run. '
+                        'Point --out-root at a new directory for a new round.')
                 pred = _predict_held_out(rung, cfg, data, dev, snaps[ep],
                                          res['target_mu'], res['target_sd'])
                 if len(pred) != len(y_raw):
@@ -709,7 +718,16 @@ def run_test_cell(rung, cfg, path, dev_units, test_units, out_root, ledger, pre,
                 if ep not in snaps:
                     raise RuntimeError(f'no snapshot at epoch {ep}')
                 d = Path(out_root) / f'{run_id}_{tag}'
-                d.mkdir(parents=True, exist_ok=True)
+                # atomic claim on the output directory: mkdir without exist_ok is
+                # the check. A pre-flight "does it exist" test leaves a window, and
+                # the round-2 accident happened precisely because nothing refused
+                # to write into an existing run directory.
+                try:
+                    d.mkdir(parents=True, exist_ok=False)
+                except FileExistsError:
+                    raise RuntimeError(
+                        f'{d} already exists; refusing to overwrite an earlier run. '
+                        'Point --out-root at a new directory for a new round.')
                 pred = _predict_held_out(rung, cfg, test_data, dev_, snaps[ep],
                                          res['target_mu'], res['target_sd'])
                 if len(pred) != len(y_raw):
