@@ -61,6 +61,29 @@ sources are reported separately and must not be confused:**
   differences.  This is the interval a paper claim needs; with 3 seeds df=2 and
   t=4.303, so it is wide, and that width is the honest picture.
 
+### ⏳ = the number is right, its basis is gone
+
+A derived number is only valid together with the four things it was computed from:
+
+```
+basis = (seed set, n, caliber, budget)
+```
+
+If any of the four changes, the number is void **even when its value is
+bit-identical**. Two rows below carry ⏳ because of exactly that:
+
+| row | value | basis when computed | current basis | why it is void |
+|---|---|---|---|---|
+| `M2 / FD002 / 40` (both tables) | `+0.2731` | `(s101, 1, engine-level, 40)` | B0 has 3 seeds on FD002 | the baseline was a single B0 run, and `B0-s101 = 11.3071` happens to be the lowest of the three, so the effect is inflated by roughly a factor of two. The 3-seed value is **deliberately not quoted here**: it is still a single-arm-vs-mean comparison, and the final number is a paired 3v3 that has not landed yet |
+
+**The values are not edited.** They were correct on their own basis, and
+overwriting them would destroy the provenance of that basis. The status is what
+changes: these rows are `pending 3v3` and must not be quoted as the current
+M2-vs-B0 effect on FD002.
+
+This is a different failure from a wrong number: no numeric anchor can catch it,
+because the digits keep matching their source. What changed is the denominator.
+
 ### Per seed (engine-level CI)
 
 | module | subset | budget | seed | engines | mean diff | 95% CI | t | vs B0 | sig |
@@ -85,7 +108,7 @@ sources are reported separately and must not be confused:**
 | M2 | FD001 | 80 | 404 | 20 | -3.4381 | [-6.124, -0.752] | -2.68 | -24.6% | yes |
 | M2 | FD001 | 80 | 505 | 20 | -0.5377 | [-2.301, +1.226] | -0.64 | -4.9% | no |
 | M2 | FD001 | 80 | 606 | 20 | +0.6564 | [-0.742, +2.055] | +0.98 | +6.2% | no |
-| M2 | FD002 | 40 | 101 | 52 | +0.2731 | [-0.579, +1.125] | +0.63 | +2.4% | no |
+| M2 | FD002 | 40 | 101 | 52 | +0.2731 | [-0.579, +1.125] | +0.63 | +2.4% | no ⏳ |
 | M2 | FD003 | 80 | 101 | 20 | -1.0406 | [-2.994, +0.913] | -1.11 | -8.0% | no |
 | M2 | FD003 | 80 | 202 | 20 | -0.9102 | [-2.469, +0.649] | -1.22 | -7.0% | no |
 | M2 | FD004 | 40 | 101 | 50 | -0.6414 | [-1.244, -0.039] | -2.09 | -4.7% | yes |
@@ -120,7 +143,7 @@ sources are reported separately and must not be confused:**
 | B3_HI_var_rate | FD001 | 80 | 101;202;303 | +2.9071 | [+2.418, +3.396] | +25.59 | 2 | +25.2% | yes |
 | M2 | FD001 | 40 | 101 | -1.9527 | n/a (1 seed) | +nan | 0 | -14.8% | no |
 | M2 | FD001 | 80 | 101;202;303;404;505;606 | -0.8898 | [-2.362, +0.583] | -1.55 | 5 | -7.6% | no |
-| M2 | FD002 | 40 | 101 | +0.2731 | n/a (1 seed) | +nan | 0 | +2.4% | no |
+| M2 | FD002 | 40 | 101 | +0.2731 | n/a (1 seed) | +nan | 0 | +2.4% | no ⏳ |
 | M2 | FD003 | 80 | 101;202 | -0.9754 | [-1.804, -0.147] | -14.96 | 1 | -7.5% | yes |
 | M2 | FD004 | 40 | 101 | -0.6414 | n/a (1 seed) | +nan | 0 | -4.7% | no |
 | M3B | FD001 | 160 | 101 | -0.6194 | n/a (1 seed) | +nan | 0 | -5.0% | no |
