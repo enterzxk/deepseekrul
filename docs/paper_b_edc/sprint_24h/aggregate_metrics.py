@@ -549,7 +549,7 @@ MODULE_COLUMNS = [
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
     "status_mix", "best_ep_max", "epochs_run_max",
-    "params_trainable", "description",
+    "params_trainable", "parent", "params_parent", "params_delta", "params_pct", "description",
 ]
 
 USABLE = {"complete", "early_stopped", "n/a_by_design", "override_run"}
@@ -1519,8 +1519,30 @@ def main(argv: list[str] | None = None) -> int:
             best_ep_max=max((x["best_ep"] or 0) for x in rows),
             epochs_run_max=max((x["epochs_run"] or 0) for x in rows),
             params_trainable=rows[0]["params_trainable"],
+            parent=baseline_for(mod),
             description=MODULE_DESC.get(mod, ""),
         ))
+
+    # Parameter cost is only meaningful against the module's own parent: the
+    # arms sit on three different bases (B0, B3, M3B), so one global denominator
+    # produces numbers that are arithmetically right and conceptually wrong.
+    params_by_module: dict[str, float] = {}
+    for r in module_rows:
+        p = r.get("params_trainable")
+        if p is not None:
+            params_by_module.setdefault(r["module"], p)
+    for r in module_rows:
+        parent = r["parent"]
+        p = r.get("params_trainable")
+        pp = params_by_module.get(parent)
+        if p is None or pp in (None, 0):
+            r["params_parent"] = pp
+            r["params_delta"] = float("nan")
+            r["params_pct"] = float("nan")
+            continue
+        r["params_parent"] = pp
+        r["params_delta"] = p - pp
+        r["params_pct"] = 100.0 * (p - pp) / pp
 
     os.makedirs(args.out_dir, exist_ok=True)
     seed_path = os.path.join(args.out_dir, "SEED_RESULTS.csv")
