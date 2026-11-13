@@ -1,7 +1,7 @@
 # N-CMAPSS 子集台账索引
 
 状态：四个子集全部封存
-最后更新：2026-11-13 03:35 (+08)
+最后更新：2026-11-13 10:52 (+08)
 维护人：实验结果管理员（单一写入者）
 
 > 每子集一张台账（`runs_<subset>.csv`），同一套 64 列 schema（见 `SCHEMA.md`）。
@@ -14,6 +14,31 @@
 | DS05 | `runs_DS05.csv` | 120 | **sealed** | `b889bd2` | `a3c40c634da7a3bb44ace788f74896b17e51c3fb` | `7cf4e237237952385425d07b2b2a68518b0e63b813c3d5e191492daf47dc6b6a` | `pass`——480 行全量机械审计，0 失败 |
 | DS06 | `runs_DS06.csv` | 120 | **sealed** | `b889bd2` | `a3c40c634da7a3bb44ace788f74896b17e51c3fb` | `9ae1f8759a92acb95360dbf2cfe7ca73a7c6c444cdfd70e8e64077a5bdeddbda` | `pass` |
 | DS07 | `runs_DS07.csv` | 120 | **sealed** | `b889bd2` | `a3c40c634da7a3bb44ace788f74896b17e51c3fb` | `affae9e5693a2909a3d8a94be6be07e8e6db71924376c8ac325d25aaa98dc1fe` | `pass` |
+
+## 测试批（`phase=test`，第 15 代锚）
+
+测试行**不进**已封存的 dev 表——那四张表只许追加 `superseded` 行。测试批另开四张表，同一套 64 列 schema。
+
+| subset | 台账文件 | 行数 | status | git_sha | protocol_blob | 文件 sha256 | 审计 |
+|---|---|---:|---|---|---|---|---|
+| DS02 | `runs_DS02_test.csv` | 20 | **sealed** | `ad53371` | `6ec1c014008df80156a13101fb600c9e3e00cfdc` | `2f1483ec642dcf0bdf786360dc798872eaa96cd4c3a30d516962af1fa40a5bc0` | `pass` |
+| DS05 | `runs_DS05_test.csv` | 20 | **sealed** | `ad53371` | `6ec1c014008df80156a13101fb600c9e3e00cfdc` | `2c0829e4e3eb2f8b3c0d79552da710c0b583bedbed03b3a4a43ca7e1644707da` | `pass` |
+| DS06 | `runs_DS06_test.csv` | 20 | **sealed** | `ad53371` | `6ec1c014008df80156a13101fb600c9e3e00cfdc` | `20133e0db6997e4dd90eaf84093d66e41a2eaa677c9cab2dc2a2333d069f01dd` | `pass` |
+| DS07 | `runs_DS07_test.csv` | 20 | **sealed** | `ad53371` | `6ec1c014008df80156a13101fb600c9e3e00cfdc` | `142686ce9eb17213fa806a8cf1478d733317c9310a235682ee9529b978c25237` | `pass` |
+
+**封表前的全量机械审计（80 行逐行，0 失败）**：`ckpt_sha256` 与磁盘实算一致、`n_flights`/`n_units` 与 `pred.csv` 一致、机号等于清单的 `test_units`、`freeze_id`/`protocol_blob`/`data_sha256` 与清单一致、`eval_start_utc` 等于 opens 记录且晚于 `freeze_ts_utc`、`coincident` 全 `false`（40 对里没有一对数值相同）。
+
+### 20 个聚合列按逐机等权从 `pred.csv` 复算
+
+运行器的 `metrics()` 在测试行把**池化值写进了 `_unit` 和 `seg_*` 两类列**——它对整条误差向量算 RMSE，从不分机。dev 上恒等（每折只留出一台机，池化 == 逐机等权），所以 480/480 相等**不是检查通过，是一个不可能失败的检查**。
+
+封表时这 **20 列**（8 个 `_unit` + 12 个 `seg_*`）全部从 `pred.csv` 按逐机等权重算，`_flightpooled` 两列保持运行器的池化值（已核一致）。`metrics.json` 里的池化原值不丢。每行 `registry_note` 都带 `AGG=per_unit_equal_weight` 与 `n_units`。
+
+**`seg_*` 的口径此前没在任何地方声明过**——这次一并定死：12 个 `seg_*` 列 = 先按机算该段 RMSE，再对**该段非空的机**等权平均。
+
+**一条必须跟着数字走的前提**：`seg_early_absolute_*` 只统计 RUL ≥ 75 的飞行，寿命不到 75 的机在该段没有行——
+DS02 只有 unit 14 一台（11、15 的寿命是 58/66），DS05/DS06 各 3 台（unit 9 缺席），DS07 4 台全在。
+**DS02 的 `seg_early_absolute_*` 是单机数字**，不要当成 3 台机的均值引用。
 
 ## 全量机械审计（封表前做的，不是抽样）
 
@@ -46,10 +71,13 @@ DS02 封存行的 `audit_verdict=partial`，原因是**试点批**（`git_sha=49
 
 ## 行数模型
 
-每子集：dev 60 次训练 × 2 评价点 = **120 行**；test 路径尚未实现，本批不产生 test 行。
-四子集合计 480 行。
+每子集：dev 60 次训练 × 2 评价点 = **120 行**；test 10 格 × 2 评价点 = **20 行**。
+四子集合计 **480 dev + 80 test = 560 行**。
 
 ## 不对称说明
 
 DS02 试点批无权重、四子集有权重（两个评价点各一份 `ckpt_ev<epoch>.pt`，240/240 对 sha256 互不相同）。
 **不要为了形式整齐去重跑 DS02**——重跑本身又是一次新 run。
+
+测试批的代码是 `ad53371`，dev 两批是 `49f6939` / `b889bd2`：测试路径在 `b889bd2` 时还不存在（§6.10 之后才定义），所以 md5 必然不同。
+`data.py` / `features.py` / `evaluation.py` 三份逐字节未变，变的只有 `train.py`（加 `load_split(fitted=)` 与 `fit_rung(no_holdout=)`）和 `run_loeo.py`（加测试路径与闸门）。

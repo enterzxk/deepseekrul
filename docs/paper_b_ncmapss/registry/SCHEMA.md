@@ -216,7 +216,7 @@ freeze_ts_utc, eval_start_utc, status, audit_verdict, coincident, independent_un
 | 40 | `nasa_cap125_unit` | capped 口径 NASA Score |
 | 41 | `rmse_raw_flightpooled` | 所有飞行段混算（不按机等权），raw 口径。**补充**，不是主口径 |
 | 42 | `rmse_cap125_flightpooled` | 同上，capped 口径 |
-| 43 | `seg_early_relative_capped` | early 段 RMSE，相对分段（按该机**完整寿命**的三分位），capped 口径 |
+| 43 | `seg_early_relative_capped` | early 段 RMSE，相对分段（按该机**完整寿命**的三分位），capped 口径。**口径：先按机算该段 RMSE，再对「该段非空的机」等权平均** |
 | 44 | `seg_early_relative_raw` | early 段 RMSE，相对分段（按该机**完整寿命**的三分位），raw 口径 |
 | 45 | `seg_early_absolute_capped` | early 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），capped 口径 |
 | 46 | `seg_early_absolute_raw` | early 段 RMSE，绝对分段（RUL 阈值，见 `seg_boundaries`），raw 口径 |
@@ -589,6 +589,23 @@ for (rung, eng), seeds in by_cell.items():
     所以本网格里不存在「只有单评价点的档」。`n/a` 是不可达值——留着它等于给写入端一个
     合法但错误的取值，而审计会把 `n/a` 当成「没填」放过去。半年后看到 `n/a` 的人
     不会知道它是不可达，只会以为是漏写，所以这里把「为什么不可达」写死。
+
+21. **按机聚合的量必须在 `n_units > 1` 的行上单独断言**：判据是「逐机值与池化值在该行**不相等**」。
+    若两者恒等，这条检查是**空的，不算通过**。
+    **`n_units == 1` 时任何「先按机算再平均」的量在构造上都退化**：每折只留一台机，逐机等权 == 池化。
+    所以 dev 的 480/480 相等不是检查通过，是一个**不可能失败的检查**。
+    实测：测试批 80 行的 `_unit` 与 `seg_*` 共 **20 列**全部是池化值（0/80 等于逐机值，最大偏离 3.85），
+    而 dev 480 行 480/480 恒等——**这个缺陷只在 `n_units > 1` 的行上可观测**。
+    `phase=test` 的行必须同时满足：
+    - `_unit` 八列 == `pred.csv` 逐机等权复算；
+    - `_flightpooled` 两列 == `pred.csv` 池化复算。
+    两条都过才算 `pass`。**不要用「有没有列不同」当探测器**——`seg_early_absolute_raw` 在某一行上
+    池化与逐机都是 1.261（各机该段 RMSE 恰好接近），差值法会判它通过。**必须逐列独立复算再比，20 列各算各的。**
+
+22. **分段列的「非空机」前提必须跟着数字走**：`seg_early_absolute_*` 只统计 RUL ≥ 75 的飞行，
+    寿命不到 75 的机在该段没有行。DS02 测试集只有 unit 14 一台落进该段（11/15 的寿命是 58/66），
+    DS05/DS06 各 3 台（unit 9 缺席），DS07 4 台全在。
+    **DS02 的 `seg_early_absolute_*` 是单机数字**，引用时必须说明，不许当成 3 台机的均值。
 
 ## 9. 开跑前自检（每批 run 之前跑一遍，任何一条不过就不许开跑）
 
