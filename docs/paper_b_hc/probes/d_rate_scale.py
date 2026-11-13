@@ -30,7 +30,16 @@ def build(dev, l_mean, K, head_seed=101):
         hi_source=bb['hi_source'], hi_mono=bb['hi_mono'], use_pad_mask=True,
         n_cond=cfg['n_cond'], l_mean=l_mean, head_seed=head_seed)
     ck = torch.load(TMP + '/wave1_init_A1_s101.pt', map_location='cpu', weights_only=True)
-    net.load_state_dict(dict(ck['state_dict'] if 'state_dict' in ck else ck), strict=False)
+    sd = dict(ck['state_dict'] if 'state_dict' in ck else ck)
+    # The init checkpoint is a B0 file, so the damage head is legitimately absent.
+    # Everything else must be present: a bare strict=False would also accept a
+    # checkpoint that lost the backbone, and the rate scale would then be measured
+    # on a random network with nothing to show for it.
+    missing, unexpected = net.load_state_dict(sd, strict=False)
+    bad = [k for k in missing if not k.startswith('head.')]
+    if bad or unexpected:
+        raise SystemExit('init mismatch: missing=%s unexpected=%s (only head.* may '
+                         'be absent from a B0 init)' % (bad, unexpected))
     return net.to(dev).eval()
 
 

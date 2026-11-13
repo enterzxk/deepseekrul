@@ -48,7 +48,17 @@ def main():
     ck = Path(a.run_dir) / 'ckpt' / 'best.pt'
     if not ck.exists():
         raise SystemExit('no checkpoint: %s' % ck)
-    net.load_state_dict(torch.load(ck, map_location=dev), strict=False)
+    sd = torch.load(ck, map_location=dev)
+    # strict=False here was the same silent fallback that produced M4's three
+    # "collapses": a checkpoint missing the damage head loads cleanly, the probe
+    # then measures a randomly initialised head, and the D statistics look
+    # perfectly plausible. The checkpoint comes from this same build path, so
+    # nothing may be missing.
+    missing = sorted(k for k in net.state_dict() if k not in sd)
+    if missing:
+        raise SystemExit('checkpoint %s lacks %d tensor(s): %s. Refusing to probe '
+                         'a partly random model.' % (ck, len(missing), missing[:8]))
+    net.load_state_dict(sd, strict=True)
     net.eval()
 
     eb = engine_batch(a.subset, DATA, C.SPAN, C.VAL_CUTS, split=a.split)
