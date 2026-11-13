@@ -448,6 +448,60 @@ else:
     for _n in _bad:
         fails.append("E10 cell drift: " + _n)
 
+# 9.1 two columns encode the same fact: `status` and `usable`.  The generated
+# 0.7 block counts status == "usable"; an ad-hoc reader counts usable == "yes".
+# If they ever disagree, two people report two sample sizes from one file, and
+# neither is obviously wrong.  Blank is a third value and is the dangerous one:
+# `usable != "no"` counts it as a sample, so 73 becomes 78.
+_rows9 = load("SEED_RESULTS.csv")
+_bad9 = [r for r in _rows9
+         if (r.get("status") == "usable") != (r.get("usable") == "yes")]
+_blank9 = [r for r in _rows9 if (r.get("usable") or "") == ""]
+_blank_on_usable = [r for r in _blank9 if r.get("status") == "usable"]
+checks += 1
+print(f"{'PASS' if not _bad9 else 'FAIL'}  {'9.1 status and usable agree':<52s} "
+      f"rows={len(_rows9)} disagree={len(_bad9)} blank={len(_blank9)} "
+      f"blank_on_usable={len(_blank_on_usable)}")
+for _n in _bad9:
+    fails.append("status/usable disagree: %s %s %s root=%s status=%s usable=%r"
+                 % (_n.get("arm"), _n.get("subset"), _n.get("seed"),
+                    _n.get("root"), _n.get("status"), _n.get("usable")))
+
+# 9.2 a root named _gate* is a reproduction root, so a cell under it is normally
+# a byte-identical twin of a cell outside it.  But the ledger used to identify
+# gate cells by ROOT NAME, which is a label, not a property -- _gate80 is running
+# four cells that are new samples under a gate-named root, and a name-based rule
+# eats them silently.  Match by preds_md5 (a property) and check BOTH directions,
+# because there are two ways to get this wrong and only one of them is loud:
+#   twin  -> must NOT be counted (else the same run is a sample twice)
+#   novel -> MUST be counted (else a real run disappears)
+# A one-sided check only catches the first, and the first is the harmless one.
+_orig = {}
+for _r in _rows9:
+    if not (_r.get("root") or "").startswith("_gate"):
+        _orig.setdefault(_r.get("preds_md5"), []).append(_r)
+_gate_rows = [r for r in _rows9 if (r.get("root") or "").startswith("_gate")]
+_double = [r for r in _gate_rows
+           if r.get("preds_md5") in _orig
+           and (r.get("status") == "usable" or r.get("usable") == "yes")]
+_dropped = [r for r in _gate_rows
+            if r.get("preds_md5") not in _orig
+            and not (r.get("status") == "usable" and r.get("usable") == "yes")]
+_n_twin = len(_gate_rows) - len([r for r in _gate_rows if r.get("preds_md5") not in _orig])
+_n_novel = len(_gate_rows) - _n_twin
+checks += 1
+print(f"{'PASS' if not _double and not _dropped else 'FAIL'}  "
+      f"{'9.2 gate-named cells are counted exactly once':<52s} "
+      f"gate_rows={len(_gate_rows)} twin={_n_twin} novel={_n_novel} "
+      f"double_counted={len(_double)} dropped={len(_dropped)}")
+for _n in _double:
+    fails.append("gate twin counted as a sample (same run twice): %s %s %s root=%s"
+                 % (_n.get("arm"), _n.get("subset"), _n.get("seed"), _n.get("root")))
+for _n in _dropped:
+    fails.append("gate-named cell with no original was dropped as a reproduction "
+                 "(it is a new sample): %s %s %s root=%s"
+                 % (_n.get("arm"), _n.get("subset"), _n.get("seed"), _n.get("root")))
+
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
     print("MISMATCHES:")
