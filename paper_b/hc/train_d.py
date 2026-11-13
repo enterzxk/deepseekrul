@@ -681,7 +681,7 @@ def evaluate(net, arm, eb, dev, K, cap):
 # training
 # --------------------------------------------------------------------------- #
 def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
-               scr=False, lam_a=0.0, lam_dpc=0.0):
+               scr=False, lam_a=0.0, lam_dpc=0.0, rank_cfg=None):
     """D4.5: gradient norm of the BATCH-AGGREGATED term, not of a mean of norms.
 
     ``||grad sum_i L_i||`` is what the optimiser produces; averaging per-engine
@@ -698,9 +698,14 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
     """
     params = [p for p in net.parameters() if p.requires_grad]
     acc = {}
+    _fos = []
     for i in range(min(n_eng, len(ebt['lengths']))):
         n = int(ebt['lengths'][i])
         fo = forward_engine(net, arm, ebt, i, n, dev, K)
+        if rank_cfg is not None:
+            # M3C: the ranking term needs pairs, so it is built from the same
+            # reference engines the other terms use, not from a private batch.
+            _fos.append(dict(D=fo['D'], r=fo['r']))
         # scr must be threaded through here, otherwise the SCR term never enters
         # grad_terms and the only record of the alive penalty is a single-batch
         # log line -- which cannot answer "was the constraint ever triggered".
@@ -709,6 +714,13 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
     L = aggregate(acc, s0)
     w = {'rul': 1.0, 'terminal': lam_t, 'smooth': lam_s, 'alive': lam_a,
          'dpc': lam_dpc}
+    if rank_cfg is not None and len(_fos) > 1:
+        _rs, _rn = rank_pair_loss(_fos, rank_cfg['margin'], rank_cfg['gap'])
+        if _rs is not None:
+            # Same weight the optimiser applies to L_rank, so g_ratio['rank'] is
+            # the gradient share and can be compared with lam_rank directly.
+            L['rank'] = _rs / float(_rn)
+            w['rank'] = rank_cfg['lam_rank'] * rank_cfg['rul0'] / rank_cfg['rank0']
     unweighted, weighted = {}, {}
     for k, v in L.items():
         gs = torch.autograd.grad(v, params, retain_graph=True, allow_unused=True)
@@ -966,7 +978,10 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                 'refusing to burn the remaining budget' % (100.0 * fz, ep))
         tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s,
                          scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0),
-                         lam_dpc=((lam_dpc or 0.0) * (rul0 or 1.0) / (dpc0 or 1.0)))
+                         lam_dpc=((lam_dpc or 0.0) * (rul0 or 1.0) / (dpc0 or 1.0)),
+                         rank_cfg=(dict(margin=rank_margin, gap=rank_gap,
+                                        lam_rank=lam_rank, rank0=rank0, rul0=rul0)
+                                   if arm in RANK_ARMS else None))
               if params else dict(unweighted={}, weighted={}, values={}))
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0
