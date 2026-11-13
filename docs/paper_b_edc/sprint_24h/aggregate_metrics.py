@@ -344,6 +344,21 @@ def load_ledger(path: str) -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
+def derive_root(run_dir: str, base: str) -> str:
+    """Root label from the path, not from the ledger's ``root`` column.
+
+    A ledger can carry ``root=d80`` while its ``run_dir`` points at ``d/`` (that
+    happened: two rows did, and trusting the label invented a duplicate cell
+    that did not exist on disk).  The directory is the identity, so the label
+    has to follow the directory.
+    """
+    rel = os.path.relpath(os.path.realpath(run_dir), os.path.realpath(base))
+    parts = rel.split(os.sep)
+    if len(parts) >= 4 and parts[0] == "experiments" and parts[1] == "hc":
+        return "/".join(parts[2:-1])
+    return os.path.basename(os.path.dirname(rel))
+
+
 # --------------------------------------------------------------------------- #
 # aggregation helpers
 # --------------------------------------------------------------------------- #
@@ -366,8 +381,8 @@ def write_csv(path: str, rows: list[dict[str, Any]], columns: list[str]) -> None
 
 
 SEED_COLUMNS = [
-    "run_id", "root", "module", "arm", "subset", "seed", "status", "status_detail",
-    "in_ledger", "usable",
+    "run_id", "root", "root_ledger", "module", "arm", "subset", "seed",
+    "status", "status_detail", "in_ledger", "usable",
     "n_points", "n_engines", "n_cuts",
     "engine_mean_rmse", "pooled_rmse", "nasa_sum", "nasa_mean", "mae", "bias",
     "late_frac", "severe_late", "max_late",
@@ -538,6 +553,8 @@ def main(argv: list[str] | None = None) -> int:
     work: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     noncanon: list[dict[str, str]] = []
+    dir_owner: dict[str, str] = {}
+    root_mismatch: list[str] = []
 
     if args.run_list:
         for rec in load_ledger(args.run_list):
@@ -550,7 +567,7 @@ def main(argv: list[str] | None = None) -> int:
                 # number that nobody should ever aggregate under a formal arm
                 noncanon.append(rec)
                 continue
-            root = (rec.get("root") or "formal").strip()
+            ledger_root = (rec.get("root") or "formal").strip()
             run_dir = (rec.get("run_dir") or "").strip()
             run_dir = os.path.join(base, run_dir) if run_dir else None
             if run_dir is None or not os.path.isdir(run_dir):
@@ -560,8 +577,21 @@ def main(argv: list[str] | None = None) -> int:
                     if os.path.isdir(cand):
                         run_dir = cand
                         break
+            root = derive_root(run_dir, base) if run_dir else ledger_root
+            if run_dir and root != ledger_root:
+                root_mismatch.append(dict(
+                    run_id=rid, ledger_root=ledger_root, path_root=root,
+                    rel=os.path.relpath(run_dir, base)))
+            dup_of = None
+            if run_dir:
+                rp = os.path.realpath(run_dir)
+                if rp in dir_owner:
+                    dup_of = dir_owner[rp]
+                else:
+                    dir_owner[rp] = f"{root}/{rid}"
             work.append(dict(
-                run_id=rid, run_dir=run_dir, root=root, in_ledger="yes",
+                run_id=rid, run_dir=run_dir, root=root, root_ledger=ledger_root,
+                dup_of=dup_of, in_ledger="yes",
                 ledger_usable=(rec.get("usable") or "yes").strip().lower(),
                 ledger_status=(rec.get("status") or "").strip(), **info))
             seen.add((root, rid))
@@ -592,9 +622,15 @@ def main(argv: list[str] | None = None) -> int:
         base_row = dict(
             run_id=w["run_id"], root=w["root"], module=module, arm=w["arm"],
             subset=w["subset"], seed=w["seed"], in_ledger=w["in_ledger"],
+            root_ledger=w.get("root_ledger"),
             usable=("" if w["ledger_usable"] is None else w["ledger_usable"]),
         )
         run_dir = w.get("run_dir")
+        if w.get("dup_of"):
+            seed_rows.append({**base_row, "status": "duplicate_ledger_row",
+                              "status_detail": f"duplicate_ledger_row: same directory as {w['dup_of']}",
+                              "run_dir": run_dir})
+            continue
         if not run_dir or not os.path.isdir(run_dir):
             # a queued/running cell has no directory yet; say so instead of
             # calling it missing
@@ -807,9 +843,26 @@ def main(argv: list[str] | None = None) -> int:
         "| `smoke_override` | `budget_override` set (smoke run) | no |",
         "| `one_epoch_probe` | `epochs_run <= 1` and budget < 40, no override | no |",
         "| `non_canonical_id` | run id is not `HC-D-{arm}-{subset}-s{seed}-D1` | no |",
+        "| `duplicate_ledger_row` | ledger lists one directory twice | no, counted once |",
         "| `duplicate_cell` | same cell as another root, identical artifacts (a copy) | no, counted once |",
         "| `cell_conflict` | same cell, different results (cannot tell which is right) | no, both dropped |",
         "| `unusable` | ledger marks `usable=no` | no |",
+        "",
+        "## Run identity comes from the path, not from the ledger label",
+        "",
+        "The ledger's `root` column is not trusted.  A row can say `root=d80` while",
+        "its `run_dir` points into `d/`; believing the label turns one directory into",
+        "two cells and inflates the seed count.  `root` is therefore derived from",
+        "`run_dir` (`d`, `d80`, `d/probe80`), rows that resolve to the same real path",
+        "are collapsed as `duplicate_ledger_row`, and any label/path disagreement is",
+        "listed here.",
+        "",
+        "| run_id | ledger says | path says | path |",
+        "|---|---|---|---|",
+    ] + [
+        f"| {m['run_id']} | `{m['ledger_root']}` | `{m['path_root']}` | `{m['rel']}` |"
+        for m in root_mismatch
+    ] + [
         "",
         "## Paired vs " + args.paired_baseline + " (same seed, same engines)",
         "",
