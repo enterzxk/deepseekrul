@@ -192,7 +192,15 @@ def set_seed(seed):
 # model
 # --------------------------------------------------------------------------- #
 def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
-    """Build one arm. The head init is seeded and identical for B1/B2/B3."""
+    """Build one arm. The head init is seeded and identical for B1/B2/B3.
+
+    An unknown arm name is a hard error. The dispatch below has no final else,
+    so before this check an unregistered or misspelled arm silently built B0 --
+    the run then produced a genuine B0 result under another arm's run_id, which
+    is the kind of failure that poisons the ledger rather than crashing.
+    """
+    if arm not in ALL_ARMS:
+        raise ValueError('unknown arm %r; known: %s' % (arm, list(ALL_ARMS)))
     cfg = dict(C.hc_config('A1', subset, seed))
     bb = cfg['backbone']
     kw = dict(
