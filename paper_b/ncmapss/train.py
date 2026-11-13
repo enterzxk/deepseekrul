@@ -494,8 +494,14 @@ def fit_rung(rung, data, cfg, seed, device='cpu', epochs=None, batch=None,
         if no_holdout:
             va_loss = float('nan')
         else:
+            # evaluation mode: dropout off. `_loss_on` only disables gradients, so
+            # without this the selection curve is a random function of the dropout
+            # mask and every epoch* was chosen on a noisy curve. The model goes back
+            # to training mode immediately afterwards.
+            net.eval()
             va_loss = _loss_on(net, x[va_idx], mask[va_idx], cond[va_idx], y[va_idx],
                                bs, device, train=False)
+            net.train()
         hist.append(dict(epoch=ep, train_loss=tr_loss, holdout_loss=va_loss))
         if va_loss < best_va - 1e-4:
             best_va, best_ep = va_loss, ep
