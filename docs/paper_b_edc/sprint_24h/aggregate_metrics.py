@@ -872,10 +872,18 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 base = stats.get(baseline_module, {}).get(key)
             if base is None or base["n"] < 1:
                 continue
-            k = 2.0 * math.sqrt(2.0)
-            thr3 = ([k * base["sd_best"], k * base["sd_ema"], k * base["sd_tail"]]
-                    if base["n"] > 1 else [float("nan")] * 3)
+            sds = ([base["sd_best"], base["sd_ema"], base["sd_tail"]]
+                   if base["n"] > 1 else [float("nan")] * 3)
+            thr3 = [threshold("screen_single", s, n=base["n"])["value"] for s in sds]
             single_thr = thr3[0]
+            # The threshold itself is derived(est(n)): move sd by 10% and it moves.
+            # An effect inside that band has a verdict that depends on the
+            # dispersion estimate rather than on the effect, so it gets its own
+            # category instead of being reported as "below threshold".
+            thr3_lo = [threshold("screen_single", s * 0.9, n=base["n"])["value"]
+                       for s in sds]
+            thr3_hi = [threshold("screen_single", s * 1.1, n=base["n"])["value"]
+                       for s in sds]
             for seed, row in sorted(mine["rows"].items()):
                 # Prefer the parent run on the SAME seed: seed difficulty spans
                 # 11.05-13.96 on B0, so comparing a single run to the parent's
@@ -891,12 +899,27 @@ def build_screen(seed_rows: list[dict[str, Any]],
                          row["tail10_mean"] - base["tail"]]
                     cmp_kind = "vs parent mean"
                 v, driver = verdict(d, thr3)
-                dec, why = decide(v, base["n"])
+                # The floor must count the *module's* seeds, not the parent's.
+                # Passing base["n"] let a module with a single seed be promoted
+                # whenever its parent happened to have three -- which is exactly
+                # what the floor exists to stop.  M6-FD004-s101 is that case: one
+                # module seed against a three-seed parent read as "promote".
+                dec, why = decide(v, mine["n"])
+                dec_base = dec
+                lo0, hi0 = thr3_lo[0], thr3_hi[0]
+                if lo0 == lo0 and hi0 == hi0 and lo0 <= abs(d[0]) <= hi0:
+                    dec = "indeterminate"
+                    why = ("|delta| %.4f lies inside the threshold band [%.4f, %.4f]: "
+                           "the threshold is derived from an sd estimated from %d "
+                           "seeds, so its own position is uncertain and this design "
+                           "cannot decide" % (abs(d[0]), lo0, hi0, base["n"]))
                 out.append(dict(
                     arm=mod, baseline=used_parent, subset=subset, seed=seed, budget=budget,
                     comparison=cmp_kind,
                     n_baseline=base["n"], sd_baseline=base["sd"],
                     threshold_kind="single-run screen", threshold=single_thr,
+                    threshold_lo=thr3_lo[0], threshold_hi=thr3_hi[0],
+                    decision_base=dec_base,
                     best=row["best_val"], ema_min=row["ema_min"],
                     tail10=row["tail10_mean"],
                     delta_best=d[0], delta_ema=d[1], delta_tail10=d[2],
@@ -2371,6 +2394,7 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "SCREEN.csv"), screen,
               ["arm", "baseline", "subset", "seed", "budget", "comparison", "n_baseline",
                "sd_baseline", "threshold_kind", "threshold",
+               "threshold_lo", "threshold_hi", "decision_base",
                "best", "ema_min", "tail10",
                "delta_best", "delta_ema", "delta_tail10", "consistent",
                "verdict", "decision", "decision_driver", "reason", "converged"])
