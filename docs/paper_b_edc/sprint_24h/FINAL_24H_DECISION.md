@@ -828,7 +828,7 @@ s303  12.5362  11.9254    +0.6108    M2 更差   ← 反号
 | `PROVENANCE_AUDIT.csv` | 463 个数字追到 `metrics.json` | **是** |
 | 管线复算 `max|Δ|` | 重跑后与报告值差 | **是** |
 | `INVARIANT_CHECK.csv` | 三条恒等式 | **是** |
-| `GATE_CHECK.csv` | 17 个门格四项全同 | 否（生成状态） |
+| `GATE_CHECK.csv` | **`30` 行：`29` 行有正式对照且逐字节全同；第 `30` 行是 `_verify` 的 5ep override 负对照、`formal_root` 为空，不是「全同」的一员** | 否（生成状态） |
 | `STABILITY.csv` | 等 n 门与 `mad_valid` | 否（诊断） |
 | `THRESHOLDS.csv` / `THRESHOLD_STABILITY.csv` | 门槛值与 ±10% 脆弱性 | 否（生成/诊断） |
 
