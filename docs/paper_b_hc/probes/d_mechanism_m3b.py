@@ -52,7 +52,20 @@ def load_arm(arm, subset, dev, run_dir=None):
         ck = Path(run_dir) / 'ckpt' / 'best.pt'
         if not ck.exists():
             raise SystemExit('no checkpoint at %s' % ck)
-        net.load_state_dict(torch.load(ck, map_location=dev), strict=False)
+        sd = torch.load(ck, map_location=dev)
+        # strict=False used to be here, and it is the same silent fallback that
+        # already cost this sprint three days of M4: a checkpoint missing the
+        # module under test (cde/csr/dpc/efr/residual) loads cleanly, the probe
+        # then measures a randomly initialised head, and the number looks
+        # perfectly reasonable. Refuse instead -- a missing tensor is a `not_run`
+        # with a reason, never a number.
+        missing = sorted(k for k in net.state_dict() if k not in sd)
+        if missing:
+            raise SystemExit(
+                'checkpoint %s lacks %d tensor(s) the arm builds: %s. Refusing to '
+                'probe a partly random model; record this arm as not_run.'
+                % (ck, len(missing), missing[:8]))
+        net.load_state_dict(sd, strict=True)
     trainable(net, arm)
     net.eval()
     return net, sh
