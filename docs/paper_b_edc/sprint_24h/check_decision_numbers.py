@@ -9,7 +9,9 @@ Usage:  python check_decision_numbers.py
 Exit code 0 = every anchor reproduces; 1 = at least one mismatch (details printed).
 """
 import csv
+import io
 import math
+import re
 import statistics as st
 import sys
 from pathlib import Path
@@ -138,6 +140,32 @@ if "B0" in nasa and "M2" in nasa:
           f"CI=[{m - half:+.3f},{m + half:+.3f}]")
     close("M2 vs B0 NASA paired mean", m, 0.7531, 5e-4)
     close("M2 vs B0 NASA half-width", half, 1.6233, 5e-4)
+
+
+# ---------------------------------------------------------------- §0.6 门槛常数
+# 文档 §0.6 里手写的每个门槛值，必须与 THRESHOLDS.csv 的 value 逐值相同。
+# 判据：把 CSV 里四个子集的 16 个值按 %.4f 格式化，逐个断言它出现在 §0.6 区块里。
+_doc = io.open(HERE / "FINAL_24H_DECISION.md", encoding="utf-8").read()
+_m = re.search(r"^## 0\.6 .*?^## 1\. ", _doc, re.S | re.M)
+if _m:
+    _blk = _m.group(0)
+    _thr = load("THRESHOLDS.csv")
+    _seen = 0
+    for _r in _thr:
+        if _r.get("subset") in ("FD001", "FD002", "FD003", "FD004") \
+                and str(_r.get("budget_epochs")) in ("40", "80") and _r.get("value"):
+            _want = float(_r["value"])
+            _txt = "%.4f" % _want
+            checks += 1
+            _ok = _txt in _blk
+            _seen += 1
+            if not _ok:
+                fails.append("0.6 threshold %s@%s %s = %s not found in doc"
+                             % (_r["subset"], _r["budget_epochs"], _r["kind"], _txt))
+    print(f"{'PASS' if not fails else 'FAIL'}  {'0.6 thresholds match THRESHOLDS.csv':<52s} n={_seen}")
+else:
+    checks += 1
+    fails.append("0.6 section not found in FINAL_24H_DECISION.md")
 
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
