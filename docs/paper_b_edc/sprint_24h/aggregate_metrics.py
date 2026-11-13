@@ -580,9 +580,16 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             ledger_root = (rec.get("root") or "formal").strip()
             run_dir = (rec.get("run_dir") or "").strip()
-            run_dir = os.path.join(base, run_dir) if run_dir else None
-            if run_dir is None or not os.path.isdir(run_dir):
-                run_dir = None
+            if run_dir:
+                # the ledger's path is authoritative: if it does not exist yet
+                # (a running cell), the run is not there.  Searching other roots
+                # for the same run id would silently substitute a *different*
+                # cell -- d80/HC-D-B0-FD004-s101 is running while
+                # d/HC-D-B0-FD004-s101 is finished, and they are not the same run.
+                run_dir = os.path.join(base, run_dir)
+                if not os.path.isdir(run_dir):
+                    run_dir = None
+            else:
                 for r in roots:
                     cand = os.path.join(r, rid)
                     if os.path.isdir(cand):
