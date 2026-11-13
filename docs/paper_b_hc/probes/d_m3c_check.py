@@ -122,8 +122,12 @@ def part2(args):
           net_c.head.fingerprint() == net_b.head.fingerprint(),
           'M3C=%s M3B=%s' % (net_c.head.fingerprint(), net_b.head.fingerprint()))
 
-    ebt = T.engine_batch(args.subset, args.data_dir, 200, (2, 3), split='train')
-    ebv = T.engine_batch(args.subset, args.data_dir, 200, (2, 3), split='val')
+    # Use the same span/cuts the training run uses, so the engine set and the
+    # trajectories are the ones the arm will actually see.
+    ebt = T.engine_batch(args.subset, args.data_dir, T.C.SPAN, T.C.VAL_CUTS,
+                         split='train')
+    ebv = T.engine_batch(args.subset, args.data_dir, T.C.SPAN, T.C.VAL_CUTS,
+                         split='val')
     tr_ids = set(int(x) for x in ebt['engine_id'])
     va_ids = set(int(x) for x in ebv['engine_id'])
     check('B4 pairs can only come from train engines', tr_ids.isdisjoint(va_ids),
