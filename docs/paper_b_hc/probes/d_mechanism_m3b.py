@@ -135,7 +135,24 @@ def main():
     ap.add_argument('--device', default='cpu')
     ap.add_argument('--bucket', type=int, default=20)
     ap.add_argument('--perm-seeds', type=int, nargs='+', default=[0, 1, 2])
+    # Paths were hard-coded to the a40 tree, so the probe could not run where the
+    # checkpoints now live. Overrides keep the old defaults and make the probe
+    # host-independent.
+    ap.add_argument('--root', default=None, help='repo root (default: a40 path)')
+    ap.add_argument('--data-dir', default=None)
+    ap.add_argument('--init-from', default=None)
+    ap.add_argument('--shared-dir', default=None)
+    ap.add_argument('--out-dir', default=None, help='where the mech_*.json record goes')
     a = ap.parse_args()
+    global ROOT, DATA, INIT, SHARED
+    if a.root:
+        ROOT = a.root
+    if a.data_dir:
+        DATA = a.data_dir
+    if a.init_from:
+        INIT = a.init_from
+    if a.shared_dir:
+        SHARED = a.shared_dir
     dev = torch.device(a.device)
 
     net, sh = load_arm(a.arm, a.subset, dev, a.run_dir)
