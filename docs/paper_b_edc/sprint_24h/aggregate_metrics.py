@@ -453,6 +453,47 @@ def paired_stats(diffs: list[float]) -> dict[str, Any]:
                 ci_lo=mean - half, ci_hi=mean + half)
 
 
+def build_resolution(seed_rows: list[dict[str, Any]],
+                     baseline_module: str) -> list[dict[str, Any]]:
+    """How small a difference can this cell actually resolve?
+
+    Derived from the baseline's own seed spread, so the thresholds move with the
+    data instead of being hand-carried constants:
+
+    * ``screen_single`` -- two independent single-seed runs of equal noise differ
+      with sd ``sqrt(2)*sd``; 2 sd is the practical screen.  A module whose
+      single-seed delta is below this cannot be promoted on one seed.
+    * ``ci_mean`` -- the baseline's own 3-seed mean interval.
+    * ``paired_3seed`` -- an arm-vs-arm difference averaged over the same seeds
+      cancels the shared seed difficulty, so it is ``sqrt(2)*sd/sqrt(n)`` wide.
+
+    All three scale with ``sd``, which is per-cell: a module with a larger spread
+    gets a wider threshold.  A single global constant is therefore wrong.
+    """
+    groups: dict[tuple[str, Any], list[float]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or r.get("module") != baseline_module:
+            continue
+        groups.setdefault((r["subset"], r.get("budget_epochs")), []).append(
+            r["engine_mean_rmse"])
+    out = []
+    for (subset, budget), vals in sorted(groups.items(), key=lambda kv: (kv[0][0], str(kv[0][1]))):
+        n = len(vals)
+        mean, sd = mean_sd(vals)
+        if n < 2:
+            out.append(dict(subset=subset, budget_epochs=budget, n_seeds=n,
+                            mean=mean, sd=float("nan"), ci_mean=float("nan"),
+                            screen_single=float("nan"), paired_3seed=float("nan")))
+            continue
+        t = t975(n - 1)
+        out.append(dict(
+            subset=subset, budget_epochs=budget, n_seeds=n, mean=mean, sd=sd,
+            ci_mean=t * sd / math.sqrt(n),
+            screen_single=2.0 * math.sqrt(2.0) * sd,
+            paired_3seed=t * math.sqrt(2.0) * sd / math.sqrt(n)))
+    return out
+
+
 def build_ensemble(seed_rows: list[dict[str, Any]], cap: float) -> list[dict[str, Any]]:
     """Seed-ensemble baseline: average predictions of the same cell over seeds.
 
@@ -921,13 +962,31 @@ def main(argv: list[str] | None = None) -> int:
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "module_em", "b0_em", "pct_vs_b0", "verdict", "significant"])
     ensemble = build_ensemble(seed_rows, args.cap)
+    # stage-2 bar: a module is only a contribution if its ensemble beats the
+    # baseline ensemble, not the baseline mean -- averaging seeds is free.
+    base_ens = {(e["subset"], e["budget_epochs"]): e["ensemble_em"]
+                for e in ensemble if e.get("module") == args.paired_baseline
+                and e.get("status") == "ok"}
+    for e in ensemble:
+        ref = base_ens.get((e.get("subset"), e.get("budget_epochs")))
+        if ref and e.get("status") == "ok" and e.get("module") != args.paired_baseline:
+            e["vs_b0_ensemble_abs"] = e["ensemble_em"] - ref
+            e["vs_b0_ensemble_pct"] = 100.0 * (e["ensemble_em"] - ref) / ref
+        else:
+            e["vs_b0_ensemble_abs"] = float("nan")
+            e["vs_b0_ensemble_pct"] = float("nan")
     write_csv(os.path.join(args.out_dir, "ENSEMBLE_RESULTS.csv"), ensemble,
               ["module", "subset", "budget_epochs", "n_seeds", "seeds",
                "seed_ems", "mean_seed_em", "sd_seed_em", "ensemble_em",
                "gain_abs", "gain_pct", "pair_mean_em", "pair_sd_em",
                "pair_min_em", "pair_max_em",
+               "vs_b0_ensemble_abs", "vs_b0_ensemble_pct",
                "ensemble_nasa_mean", "ensemble_mae", "ensemble_bias",
                "n_engines", "n_cuts", "n_points", "status"])
+    resolution = build_resolution(seed_rows, args.paired_baseline)
+    write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
+              ["subset", "budget_epochs", "n_seeds", "mean", "sd",
+               "ci_mean", "screen_single", "paired_3seed"])
 
     # ---- audit note ------------------------------------------------------- #
     scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
@@ -1034,6 +1093,26 @@ def main(argv: list[str] | None = None) -> int:
         + f" | {p['t']:+.2f} | {p['n_seeds'] - 1} | {p['pct_vs_b0']:+.1f}% | "
           f"{p['significant']} |"
         for p in paired if p["level"] == "module"
+    ] + [
+        "",
+        "## Resolution (what difference can this cell resolve)",
+        "",
+        "Derived from the baseline's own seed spread, so it refreshes with the data.",
+        "`screen_single` is the two-sigma width of a difference between two",
+        "independent single-seed runs; `paired_3seed` is the width of an arm-vs-arm",
+        "difference averaged over the same seeds.  Both scale with `sd`, which is",
+        "per-cell: a module with a larger spread needs a wider threshold, so no",
+        "single global constant applies to every module.",
+        "",
+        "| subset | budget | seeds | mean | sd | mean CI half-width | single-seed screen | paired 3-seed half-width |",
+        "|---|---|---|---|---|---|---|---|",
+    ] + [
+        f"| {r['subset']} | {r['budget_epochs']} | {r['n_seeds']} | "
+        + (f"{r['mean']:.4f} | {r['sd']:.4f} | ±{r['ci_mean']:.3f} | "
+           f"±{r['screen_single']:.3f} | ±{r['paired_3seed']:.3f} |"
+           if r["n_seeds"] > 1 else
+           f"{r['mean']:.4f} | n/a (1 seed) | n/a | n/a | n/a |")
+        for r in resolution
     ] + [
         "",
         "## Per-run check",
