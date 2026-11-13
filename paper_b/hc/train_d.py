@@ -50,14 +50,19 @@ ARMS = ('B0', 'B1', 'B2', 'B3')
 # increment parameterisation changes (delta = lambda0 * exp(clamp(u))), so it is
 # a one-variable ablation of B3 rather than a new pipeline.
 ANCHORED_ARMS = ('M3B',)
-HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS
-ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS
+# M7 (SCR) is a formal arm, not a flag. run_id() keys on the arm, so a flag
+# would collide with B3's directory and the guard would (correctly) refuse the
+# second run. M7 builds and runs exactly like B3; the only difference is the
+# alive penalty on top of the loss.
+SCR_ARMS = ('M7',)
+HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
+ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
 # frozen 48-cell matrix -- adding them to ARMS would silently change it -- but
 # they share the data interface, the censored hinge and the evaluator, which is
 # what makes their numbers comparable to B0-B3.
 SPRINT_ARMS = ('AGE', 'AAR')
-ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS
+ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS
 
 
 class ResidualHead(nn.Module):
@@ -533,6 +538,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
               init_from, K, epochs=None, patience=None, batch=None, lr=None,
               weight_decay=None, lam=None, lam_t=None, lam_s=None, log=print,
               budget_override=None, scr=False, lam_a=None):
+    # Identity comes from the arm name. --scr survives only as a compatibility
+    # flag and is rejected unless the arm is already M7 (see main()).
+    scr = bool(scr or (arm in SCR_ARMS))
     sh = json.loads(Path(shared_path).read_text(encoding='utf-8'))
     K = int(sh['K'] if K is None else K)
     s0 = float(sh['s0']['used'])
@@ -602,6 +610,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     E = len(ebt['lengths'])
 
     best, best_state, best_ep, history = float('inf'), None, -1, []
+    diag = {}   # last-batch loss terms that are not in the gradient-ratio probe
     n_epochs = epochs if params else 1   # AGE is a fitted curve: one pass is the answer
     for ep in range(1, n_epochs + 1):
         net.train()
@@ -618,6 +627,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                 total = total + lam_t * L['terminal'] + lam_s * L['smooth']
             if 'alive' in L:
                 total = total + lam_a * L['alive']
+                diag['alive'] = float(L['alive'].detach())
             if opt is not None:
                 total.backward()
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -628,7 +638,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         for i in order:
             n = int(ebt['lengths'][i])
             fo = forward_engine(net, arm, ebt, i, n, dev, K)
-            for k, v in term_sums(net, arm, fo, cap, scr=scr).items():
+            for k, v in term_sums(net, arm, fo, cap, scr=(arm in SCR_ARMS)).items():
                 acc[k] = acc[k] + v if k in acc else v
             pts += n
             if pts >= batch:
@@ -656,8 +666,9 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                             grad_terms_unweighted=tg['unweighted'],
                             grad_terms_weighted=w, grad_ratio=ratio))
         if ep % 5 == 0 or ep == 1:
-            log('  ep%03d loss=%.4f val_eng=%.4f g_ratio=%s'
+            log('  ep%03d loss=%.4f val_eng=%.4f alive=%s g_ratio=%s'
                 % (ep, tl, ev['val_engine_mean_rmse'],
+                   ('%.3e' % diag['alive']) if 'alive' in diag else '-',
                    {k: ('%.3e' % v if v is not None else None)
                     for k, v in ratio.items()}))
         if ev['val_engine_mean_rmse'] < best - 1e-4:
@@ -773,9 +784,12 @@ def main():
     ap.add_argument('--lam-s', type=float, default=None)
     ap.add_argument('--budget-override', default=None)
     ap.add_argument('--scr', action='store_true',
-                    help='M7: add lam_A * mean(relu(D-1)^2) over alive cycles')
+                    help='deprecated compatibility flag; M7 is selected by --arm M7')
     ap.add_argument('--lam-a', type=float, default=None)
     a = ap.parse_args()
+    if a.scr and a.arm not in SCR_ARMS:
+        raise SystemExit('--scr is no longer an identity: use --arm M7 '
+                         '(a flag would share %s\'s run directory)' % a.arm)
     dev = torch.device(a.device)
     root = Path(a.root)
 
@@ -800,10 +814,7 @@ def main():
         print('\nhead init identical across B1/B2/B3: %s' % next(iter(fps.values())))
     else:
         shared = root / ('%s_shared.json' % a.subset)
-        rid = run_id(a.arm, a.subset, a.seed)
-        if a.scr:
-            rid += '_SCR'
-        out = root / rid
+        out = root / run_id(a.arm, a.subset, a.seed)
         train_arm(a.arm, a.subset, a.seed, a.data_dir, shared, out, dev,
                   a.init_from, a.K, epochs=a.epochs, lam=a.lam,
                   lam_t=a.lam_t, lam_s=a.lam_s,
