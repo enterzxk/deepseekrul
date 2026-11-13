@@ -292,7 +292,7 @@ def rul_loss(pred, r, cap):
                        (pred - r) ** 2)
 
 
-def term_sums(net, arm, fo, cap):
+def term_sums(net, arm, fo, cap, scr=False):
     """Per-engine SUMS and counts, never means.
 
     Why sums: the batch loss is a reduction over engines, and ||sum_i L_i|| is
@@ -319,6 +319,15 @@ def term_sums(net, arm, fo, cap):
         else:
             out['smooth_sum'] = torch.zeros((), device=fo['delta'].device)
             out['smooth_n'] = torch.ones((), device=fo['delta'].device)
+        if scr:
+            # M7 SCR: while the engine is still alive the damage must stay below
+            # the threshold. r_t == 0 is the failure cycle, which 'terminal'
+            # already anchors, so the mask is strict.
+            alive = fo['r'] > 0.0
+            if bool(alive.any()):
+                over = torch.relu(fo['D'][alive] - 1.0) ** 2
+                out['alive_sum'] = over.sum()
+                out['alive_n'] = torch.tensor(float(over.numel()), device=over.device)
     return out
 
 
@@ -328,15 +337,19 @@ def aggregate(acc, s0):
     if 'term_sum' in acc:
         L['terminal'] = acc['term_sum'] / acc['term_n'].clamp_min(1.0)
         L['smooth'] = acc['smooth_sum'] / acc['smooth_n'].clamp_min(1.0) / s0
+    if 'alive_sum' in acc:
+        L['alive'] = acc['alive_sum'] / acc['alive_n'].clamp_min(1.0)
     return L
 
 
-def losses_for(net, arm, fo, cap, s0, lam_t, lam_s):
+def losses_for(net, arm, fo, cap, s0, lam_t, lam_s, lam_a=0.0):
     """Single-engine convenience wrapper (probes only). Batch code uses sums."""
     L = aggregate(term_sums(net, arm, fo, cap), s0)
     total = L['rul']
     if 'terminal' in L:
         total = total + lam_t * L['terminal'] + lam_s * L['smooth']
+    if 'alive' in L:
+        total = total + lam_a * L['alive']
     return total, L
 
 
@@ -519,7 +532,7 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3):
 def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
               init_from, K, epochs=None, patience=None, batch=None, lr=None,
               weight_decay=None, lam=None, lam_t=None, lam_s=None, log=print,
-              budget_override=None):
+              budget_override=None, scr=False, lam_a=None):
     sh = json.loads(Path(shared_path).read_text(encoding='utf-8'))
     K = int(sh['K'] if K is None else K)
     s0 = float(sh['s0']['used'])
@@ -547,6 +560,10 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     lam_s = float(C.RUL_CAP ** 2 if lam_s is None else lam_s)
     if lam is not None:
         lam_t = lam_s = float(lam)
+    # M7 SCR weight. Kept in the same unit as lam_T (cycles^2) so the two
+    # penalties are dimensionally comparable: L_alive is a mean squared damage
+    # overshoot and is O(1e-2), so the default mirrors lam_T.
+    lam_a = float(C.RUL_CAP ** 2 if lam_a is None else lam_a)
     epochs = int(C.EPOCHS if epochs is None else epochs)
     patience = int(C.PATIENCE if patience is None else patience)
     batch = int(C.BATCH if batch is None else batch)
@@ -599,6 +616,8 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             total = L['rul']
             if 'terminal' in L:
                 total = total + lam_t * L['terminal'] + lam_s * L['smooth']
+            if 'alive' in L:
+                total = total + lam_a * L['alive']
             if opt is not None:
                 total.backward()
                 torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -609,7 +628,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         for i in order:
             n = int(ebt['lengths'][i])
             fo = forward_engine(net, arm, ebt, i, n, dev, K)
-            for k, v in term_sums(net, arm, fo, cap).items():
+            for k, v in term_sums(net, arm, fo, cap, scr=scr).items():
                 acc[k] = acc[k] + v if k in acc else v
             pts += n
             if pts >= batch:
@@ -753,6 +772,9 @@ def main():
     ap.add_argument('--lam-t', type=float, default=None)
     ap.add_argument('--lam-s', type=float, default=None)
     ap.add_argument('--budget-override', default=None)
+    ap.add_argument('--scr', action='store_true',
+                    help='M7: add lam_A * mean(relu(D-1)^2) over alive cycles')
+    ap.add_argument('--lam-a', type=float, default=None)
     a = ap.parse_args()
     dev = torch.device(a.device)
     root = Path(a.root)
@@ -778,11 +800,15 @@ def main():
         print('\nhead init identical across B1/B2/B3: %s' % next(iter(fps.values())))
     else:
         shared = root / ('%s_shared.json' % a.subset)
-        out = root / run_id(a.arm, a.subset, a.seed)
+        rid = run_id(a.arm, a.subset, a.seed)
+        if a.scr:
+            rid += '_SCR'
+        out = root / rid
         train_arm(a.arm, a.subset, a.seed, a.data_dir, shared, out, dev,
                   a.init_from, a.K, epochs=a.epochs, lam=a.lam,
                   lam_t=a.lam_t, lam_s=a.lam_s,
-                  budget_override=a.budget_override)
+                  budget_override=a.budget_override,
+                  scr=a.scr, lam_a=a.lam_a)
 
 
 if __name__ == '__main__':
