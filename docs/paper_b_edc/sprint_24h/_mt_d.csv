@@ -1,0 +1,3 @@
+﻿arm,subset,seed,status,reason,val_rmse,rank_acc,pairs,perm_mean,degrad_abs,degrad_pct,run_dir,note
+AAR,FD001,101,ok,,19.6061,0.6676,31886,35.8614,+16.2553,+82.91%,experiments/hc/d/HC-D-AAR-FD001-s101-D1,prediction is reg_head(z) (+correction); no arrival operator
+AGE,FD001,101,ok,,30.5856,n/a,0,30.5856,+0.0000,+0.00%,experiments/hc/d/HC-D-AGE-FD001-s101-D1,"age-only control: never reads sensors, so 0 degradation is by construction"

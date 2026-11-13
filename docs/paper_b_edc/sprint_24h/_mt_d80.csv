@@ -1,0 +1,6 @@
+﻿arm,subset,seed,status,reason,val_rmse,rank_acc,pairs,perm_mean,degrad_abs,degrad_pct,run_dir,note
+B1,FD001,101,ok,,11.4116,0.7990,31886,50.1757,+38.7641,+339.69%,experiments/hc/d80/HC-D-B1-FD001-s101-D1,prediction is reg_head(z) (+correction); no arrival operator
+M3C,FD001,101,ok,,14.4749,0.7428,31886,36.3108,+21.8360,+150.85%,experiments/hc/d80/HC-D-M3C-FD001-s101-D1,"arrival operator accumulates damage monotonically, which itself suppresses permutation degradation; pct is NOT a sensor share"
+M4,FD001,101,ok,,14.5376,0.7509,31886,20.0335,+5.4958,+37.80%,experiments/hc/d80/HC-D-M4-FD001-s101-D1,prediction is reg_head(z) (+correction); no arrival operator
+M5,FD001,101,ok,,15.2158,0.6937,31886,19.1350,+3.9192,+25.76%,experiments/hc/d80/HC-D-M5-FD001-s101-D1,prediction is reg_head(z) (+correction); no arrival operator
+M7,FD001,101,ok,,13.9254,0.7260,31867,44.3318,+30.4064,+218.35%,experiments/hc/d80/HC-D-M7-FD001-s101-D1,"arrival operator accumulates damage monotonically, which itself suppresses permutation degradation; pct is NOT a sensor share"
