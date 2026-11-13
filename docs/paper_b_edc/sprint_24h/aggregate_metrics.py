@@ -415,6 +415,19 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     row["truncated"] = (
         "yes" if (epochs_run is not None and row.get("budget_epochs") is not None
                   and epochs_run >= row["budget_epochs"]) else "")
+    # The one column a reader needs in order to know which two rows may be
+    # differenced.  A pair is only interpretable when both sides share a status:
+    # comparing a converged run with a budget-limited one mixes two different
+    # quantities and cannot be repaired by a wider threshold.
+    sd0 = row.get("status_detail")
+    if sd0 == "n/a_by_design":
+        row["budget_status"] = "n/a"
+    elif epochs_run is None or row.get("budget_epochs") is None:
+        row["budget_status"] = "unknown"
+    elif epochs_run >= row["budget_epochs"]:
+        row["budget_status"] = "budget_limited"
+    else:
+        row["budget_status"] = "converged"
     row["_per_engine"] = per_engine_rows(eng, ys, clipped)
     return row
 
@@ -558,7 +571,7 @@ SEED_COLUMNS = [
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
-    "converged", "truncated", "early_stop_margin", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
+    "converged", "truncated", "budget_status", "early_stop_margin", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
@@ -578,7 +591,7 @@ MODULE_COLUMNS = [
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
-    "status_mix", "n_truncated", "best_ep_max", "epochs_run_max",
+    "status_mix", "n_truncated", "n_budget_limited", "best_ep_max", "epochs_run_max",
     "params_trainable", "parent", "params_parent", "params_delta", "params_pct", "description",
 ]
 
@@ -1202,6 +1215,26 @@ def build_ensemble(seed_rows: list[dict[str, Any]], cap: float) -> list[dict[str
     return out
 
 
+def classify_pair(module_status: Any, baseline_status: Any) -> tuple[str, str]:
+    """Can these two rows be differenced at all?
+
+    ``budget_status`` describes how a run ended, and two runs only measure the
+    same quantity when it ended the same way.  ``converged`` vs
+    ``budget_limited`` is the dangerous mix: the truncated side stopped inside
+    the window where patience had not yet fired, so its score is not the same
+    statistic -- and since the LR schedule is ``CosineAnnealingLR(T_max=epochs)``
+    the two budgets are two different curves, so no monotone bound repairs it
+    either.  Such a pair keeps its arithmetic but is marked ``CONFOUNDED`` and
+    must stay out of any judgment table.
+    """
+    pair = (module_status, baseline_status)
+    if any(s in (None, "", "unknown", "n/a") for s in pair):
+        return "unknown", "no"
+    if module_status == baseline_status:
+        return "same:" + str(module_status), "yes"
+    return "CONFOUNDED", "no"
+
+
 def build_paired(seed_rows: list[dict[str, Any]],
                  per_engine: list[dict[str, Any]],
                  baseline_module: str) -> list[dict[str, Any]]:
@@ -1224,6 +1257,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
             module=r["module"], subset=r["subset"], seed=r["seed"],
             root=r["root"],
             budget=r.get("budget_epochs"),
+            bs=r.get("budget_status"),
             em=r["engine_mean_rmse"])
 
     # index the baseline by (subset, budget, seed)
@@ -1246,6 +1280,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
         diffs = [mine[i] - theirs[i] for i in common]
         st = paired_stats(diffs)
         b0_em = meta[bkey]["em"]
+        pair_status, judgeable = classify_pair(m["bs"], meta[bkey]["bs"])
         out.append(dict(
             level="seed",
             module=m["module"], subset=m["subset"], budget_epochs=m["budget"],
@@ -1253,6 +1288,8 @@ def build_paired(seed_rows: list[dict[str, Any]],
             n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
             se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
             module_em=m["em"], b0_em=b0_em,
+            module_budget_status=m["bs"], baseline_budget_status=meta[bkey]["bs"],
+            pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
             significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
@@ -1267,6 +1304,19 @@ def build_paired(seed_rows: list[dict[str, Any]],
         seed_means = [r["mean_diff"] for r in rows]
         st = paired_stats(seed_means)                 # df = n_seeds - 1
         b0_em, _ = mean_sd([r["b0_em"] for r in rows])
+        # A roll-up inherits the weakest link: one confounded seed pair makes the
+        # whole module-level difference uninterpretable, however many clean pairs
+        # sit beside it.
+        statuses = {r["pair_status"] for r in rows}
+        if "CONFOUNDED" in statuses:
+            pair_status = "CONFOUNDED"
+        elif len(statuses) == 1:
+            only = next(iter(statuses))
+            pair_status = only if only.startswith("same:") else "unknown"
+        else:
+            pair_status = "unknown"
+        judgeable = ("yes" if pair_status in ("same:converged", "same:budget_limited")
+                     and all(r["judgeable"] == "yes" for r in rows) else "no")
         out.append(dict(
             level="module",
             module=mod, subset=subset, budget_epochs=budget,
@@ -1277,6 +1327,9 @@ def build_paired(seed_rows: list[dict[str, Any]],
             mean_diff=st["mean"], sd_diff=st["sd"], se=st["se"], t=st["t"],
             ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
             module_em=float("nan"), b0_em=b0_em,
+            module_budget_status=";".join(sorted({str(r["module_budget_status"]) for r in rows})),
+            baseline_budget_status=";".join(sorted({str(r["baseline_budget_status"]) for r in rows})),
+            pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
             significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
@@ -1605,6 +1658,8 @@ def main(argv: list[str] | None = None) -> int:
                              if b0 not in (None, 0) else float("nan")),
             status_mix=";".join(sorted({x["status_detail"] for x in rows})),
             n_truncated=sum(1 for x in rows if x.get("truncated") == "yes"),
+            n_budget_limited=sum(1 for x in rows
+                                 if x.get("budget_status") == "budget_limited"),
             best_ep_max=max((x["best_ep"] or 0) for x in rows),
             epochs_run_max=max((x["epochs_run"] or 0) for x in rows),
             params_trainable=rows[0]["params_trainable"],
@@ -1648,7 +1703,9 @@ def main(argv: list[str] | None = None) -> int:
               ["level", "module", "subset", "budget_epochs", "seed", "root",
                "n_seeds", "seeds", "n_engines",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
-               "module_em", "b0_em", "pct_vs_b0", "verdict", "significant"])
+               "module_em", "b0_em", "pct_vs_b0", "verdict", "significant",
+               "module_budget_status", "baseline_budget_status",
+               "pair_status", "judgeable"])
     ensemble = build_ensemble(seed_rows, args.cap)
     # stage-2 bar: a module is only a contribution if its ensemble beats the
     # baseline ensemble, not the baseline mean -- averaging seeds is free.
@@ -1774,6 +1831,34 @@ def main(argv: list[str] | None = None) -> int:
         "`best_ep == epochs_run` catches only the extreme case -- M3B-FD004-s101 is",
         "39/40 and would pass it. `early_stop_margin = epochs_run - best_ep` is",
         "exported alongside so the gap to the boundary is visible.",
+        "",
+        "### No direction is assigned, on purpose",
+        "",
+        "It is tempting to say a truncated score is an upper bound on the converged",
+        "score, because `best` is `min(epoch 1..B)` and a larger B can only lower a",
+        "minimum. That argument is wrong here: the schedule is",
+        "`CosineAnnealingLR(T_max=epochs)`, so 40 and 80 epochs are two different",
+        "curves, not one curve and its continuation. A budget-limited run is neither",
+        "optimistic nor pessimistic -- it is a **different protocol**. The only",
+        "correct statement is `result under the 40ep protocol, not extrapolated`.",
+        "",
+        "### `budget_status` and `pair_status`",
+        "",
+        "`budget_status` is the column that decides which two rows may be",
+        "differenced: `converged` (patience fired), `budget_limited` (reached the",
+        "budget with patience still pending), `n/a` (zero-parameter arm), `unknown`.",
+        "",
+        "`PAIRED_VS_B0.csv` carries `module_budget_status`,",
+        "`baseline_budget_status`, `pair_status` and `judgeable`. Only",
+        "`judgeable=yes` rows belong in a judgment table:",
+        "",
+        "| pair_status | meaning | usable |",
+        "|---|---|---|",
+        "| `same:converged` | both sides early-stopped | yes |",
+        "| `same:budget_limited` | both sides stopped at the budget | yes, as a",
+        "  same-protocol difference -- never as a converged level |",
+        "| `CONFOUNDED` | one converged, one budget-limited | no |",
+        "| `unknown` | a status is missing | no |",
         "",
         "## Run identity comes from the path, not from the ledger label",
         "",
