@@ -51,7 +51,7 @@ DATA   /home/user/rulb/data/CMAPSS
 | 19 | M6 | FD004 | 101 | 80 | `_gate80` | pending |
 
 优先级：**#14/#15（`M6` s202/s303）不要降**——它是今晚唯一还有机会把 `M6 vs B3`
-从 `undecidable` 翻成 `better` 的比较（`margin 0.128`，补到 3v3 后门槛会明显变窄）。
+从 `undecidable` 翻成 `better` 的比较（`margin 0.587`，补到 3v3 后门槛会明显变窄）。**注：原记 `margin 0.128` 基于已作废的门槛 `1.5157`。**
 
 ## 3. 已完成的门格（`_gate`，FD004）
 
