@@ -697,24 +697,29 @@ def build_screen(seed_rows: list[dict[str, Any]],
     screen, while matched seeds get a paired half-width computed from the observed
     spread of the differences and the number of PAIRS.
     """
-    def verdict(deltas: list[float], thresholds: list[float]) -> str:
-        """Each reading is compared with its OWN half-width.
+    def verdict(deltas: list[float], thresholds: list[float]) -> tuple[str, str]:
+        """Direction and the metric that drove it.
 
-        Using the best-checkpoint half-width for the tail10 difference is what
-        made M3B read as 'better': the tail delta was large but its own paired
-        spread was larger still.  A reading only counts as beyond the threshold
-        when it exceeds the width measured for that same reading.
+        The two directions are deliberately NOT symmetric:
+          * "worse" needs only ONE reading beyond its own width -- a single clear
+            regression is enough to say an arm is not harmless;
+          * "better" needs ALL THREE beyond their own widths -- one flattering
+            reading must not carry a promotion.
+        Each reading is compared with the width measured for that same reading.
         """
         if any(math.isnan(d) for d in deltas) or any(math.isnan(t) for t in thresholds):
-            return "n/a"
+            return "n/a", ""
         signs = {d > 0 for d in deltas if abs(d) >= 0.01}
         if len(signs) > 1:
-            return "undetermined (metrics disagree)"
+            return "undetermined (metrics disagree)", ""
         if not signs:
-            return "indistinguishable (flat)"
-        if all(abs(d) > t for d, t in zip(deltas, thresholds)):
-            return "worse" if True in signs else "better"
-        return "indistinguishable"
+            return "indistinguishable (flat)", ""
+        names = ("best", "ema_min", "tail10")
+        beyond = [n for n, d, t in zip(names, deltas, thresholds) if abs(d) > t]
+        worse = True in signs
+        if worse:
+            return ("worse" if beyond else "indistinguishable"), ";".join(beyond)
+        return ("better" if len(beyond) == 3 else "indistinguishable"), ";".join(beyond)
 
     def decide(v: str, n_evidence: int) -> tuple[str, str]:
         """Map a verdict to a decision, with the promotion floor enforced here.
@@ -780,7 +785,7 @@ def build_screen(seed_rows: list[dict[str, Any]],
                     d = [row["best_val"] - base["best"], row["ema_min"] - base["ema"],
                          row["tail10_mean"] - base["tail"]]
                     cmp_kind = "vs parent mean"
-                v = verdict(d, thr3)
+                v, driver = verdict(d, thr3)
                 dec, why = decide(v, base["n"])
                 out.append(dict(
                     arm=mod, baseline=used_parent, subset=subset, seed=seed, budget=budget,
@@ -792,7 +797,8 @@ def build_screen(seed_rows: list[dict[str, Any]],
                     delta_best=d[0], delta_ema=d[1], delta_tail10=d[2],
                     consistent=("yes" if len({x > 0 for x in d if abs(x) >= 0.01}) <= 1
                                 else "no"),
-                    verdict=v, decision=dec, reason=why,
+                    verdict=v, decision=dec, reason=why, decision_driver=driver,
+                    threshold_ema=thr3[1], threshold_tail=thr3[2],
                     converged=row.get("converged")))
 
             shared = sorted(set(mine["rows"]) & set(base["rows"]))
@@ -806,7 +812,7 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 half3 = [tf * paired_stats(x)["sd"] for x in (db, de, dt)]
                 half = half3[0]
                 mean_d = [st["mean"], float(np.mean(de)), float(np.mean(dt))]
-                v = verdict(mean_d, half3)
+                v, driver = verdict(mean_d, half3)
                 dec, why = decide(v, len(shared))
                 # A paired interval from one or two pairs has df=1, where t=12.7:
                 # it is so wide that it rules nothing out.  Too little data is not
@@ -829,13 +835,15 @@ def build_screen(seed_rows: list[dict[str, Any]],
                     comparison="paired",
                     n_baseline=base["n"], sd_baseline=base["sd"],
                     threshold_kind="paired half-width", threshold=half,
+                    threshold_ema=half3[1], threshold_tail=half3[2],
                     best=mean_sd([mine["rows"][s]["best_val"] for s in shared])[0],
                     ema_min=mean_sd([mine["rows"][s]["ema_min"] for s in shared])[0],
                     tail10=mean_sd([mine["rows"][s]["tail10_mean"] for s in shared])[0],
                     delta_best=mean_d[0], delta_ema=mean_d[1], delta_tail10=mean_d[2],
                     consistent=("yes" if len({x > 0 for x in mean_d if abs(x) >= 0.01}) <= 1
                                 else "no"),
-                    verdict=v, decision=dec, reason=why, converged=""))
+                    verdict=v, decision=dec, reason=why, decision_driver=driver,
+                    converged=""))
     # When a cell has a paired row, that row is the module-level statement (it
     # uses every seed).  The per-seed rows are components; leaving them with
     # their own promote/eliminate invites picking whichever single row reads
@@ -845,7 +853,22 @@ def build_screen(seed_rows: list[dict[str, Any]],
     for r in out:
         if (r["arm"], r["subset"], r["budget"]) in paired_cells and not str(r["seed"]).startswith("paired("):
             r["decision"] = "component"
-            r["reason"] = "single-seed component; the module verdict is the paired row"
+            # A component label must not swallow the per-metric verdict: the row
+            # can be clearly worse on the robust readings while the paired row has
+            # no power, and both facts have to stay visible.
+            parts = []
+            for nm, dk, tk in (("best", "delta_best", "threshold"),
+                               ("ema_min", "delta_ema", "threshold_ema"),
+                               ("tail10", "delta_tail10", "threshold_tail")):
+                dv, tv = r.get(dk), r.get(tk)
+                if dv is None or tv is None or (isinstance(tv, float) and math.isnan(tv)):
+                    parts.append(f"{nm} n/a")
+                    continue
+                parts.append(f"{nm} {dv:+.2f} vs {tv:.2f} "
+                             f"{'out' if abs(dv) > tv else 'in'}")
+            n_out = sum(1 for p in parts if p.endswith(" out"))
+            r["reason"] = (f"component; module verdict is the paired row; "
+                           + " | ".join(parts) + f" -> {n_out}/3 beyond")
     return out
 
 
@@ -1554,7 +1577,7 @@ def main(argv: list[str] | None = None) -> int:
                "sd_baseline", "threshold_kind", "threshold",
                "best", "ema_min", "tail10",
                "delta_best", "delta_ema", "delta_tail10", "consistent",
-               "verdict", "decision", "reason", "converged"])
+               "verdict", "decision", "decision_driver", "reason", "converged"])
     budget_pairs = build_budget_pairs(per_engine)
     write_csv(os.path.join(args.out_dir, "BUDGET_VS.csv"), budget_pairs,
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
