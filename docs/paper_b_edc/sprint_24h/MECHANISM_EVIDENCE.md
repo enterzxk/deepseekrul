@@ -370,6 +370,7 @@ CONTRACT OK  (3/3)
 | 11 | **测量值可以陈述，界必须能推导** | `ABLATION_RESULTS` §5.2 · `FINAL_24H_DECISION` §0.4 |
 | 12 | **报任何差值必须能指出两端的两个数是谁**（哪个臂 / 哪个 seed / 哪个子集 / 哪个预算）；指不出来就不许进正文 | `ABLATION_RESULTS` §5.3 / §2.5 · `FINAL_24H_DECISION` Q7 · `MECHANISM_EVIDENCE` 第 17 条 |
 | 13 | **方差比较先问「有没有零假设」**：有正式检验 → F + p + 两个 df 作主判据、MAD 佐证；无检验 → 只用 MAD，不得写「显著」 | `ABLATION_RESULTS` §5.4 / §5.1 · `MECHANISM_EVIDENCE` E5.1 · `FINAL_24H_DECISION` §0 摘要 / §2 |
+| 14 | **「门槛」只给配对且等 n 的差**；单格对均值一律标 `unpaired`，只能写「距门槛多远」，不得判 `judgeable` | `ABLATION_RESULTS` §5.5 / §5.3 · `FINAL_24H_DECISION` §0.3 |
 
 **执行方式（可查，不靠记）**：改任何一条纪律时，先按上表把文件列全，**逐文件 grep 该纪律涉及的那个数/那句话**，确认全部改完再提交。本轮第 1 条就是这样发现的：grep `压小 3.5|差 3.5 倍|方差压小了 3.5` 在改完后为空，才算改完。
 
