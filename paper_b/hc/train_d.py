@@ -687,21 +687,27 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     # Without this, lam_dpc is an absolute weight on a term whose scale moves:
     # measured 0.0052 -> 0.0960 over 15 epochs (18x), which took the gradient
     # share from 15% to 100% and stopped being a test of M5.
-    dpc0 = None
+    dpc0 = rul0 = None
     if arm in DPC_ARMS:
         was_training = net.training
         net.eval()
         with torch.no_grad():
-            vals = []
+            dvals, rvals = [], []
             for _i in range(min(8, len(ebt['lengths']))):
                 _n = int(ebt['lengths'][_i])
                 _fo = forward_engine(net, arm, ebt, _i, _n, dev, K)
                 _d, _k = net.dpc.loss(_fo['z'])
                 if _k:
-                    vals.append(float(_d))
+                    dvals.append(float(_d))
+                    rvals.append(float(rul_loss(_fo['pred'], _fo['r'], cap).mean()))
         net.train(was_training)
-        dpc0 = max(1e-12, float(np.mean(vals))) if vals else 1.0
-        log('  dpc0 (init, detached) = %.6f from %d engines' % (dpc0, len(vals)))
+        dpc0 = max(1e-12, float(np.mean(dvals))) if dvals else 1.0
+        rul0 = max(1e-12, float(np.mean(rvals))) if rvals else 1.0
+        # Both scales are measured in the SAME init pass and detached. The loss
+        # term is then lam_dpc * (L_dpc/dpc0) * rul0, so lam_dpc is literally
+        # "fraction of the initial RUL loss" and does not drift when L_dpc moves.
+        log('  dpc0=%.6f rul0=%.2f from %d engines -> lam_dpc is a SHARE of rul0'
+            % (dpc0, rul0, len(dvals)))
     opt = (torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
            if params else None)
     sch = (torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
@@ -729,7 +735,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                 total = total + lam_a * L['alive']
                 diag['alive'] = float(L['alive'].detach())
             if 'dpc' in L:
-                total = total + lam_dpc * (L['dpc'] / dpc0)
+                total = total + lam_dpc * (L['dpc'] / dpc0) * rul0
                 diag['dpc'] = float(L['dpc'].detach())
             if opt is not None:
                 total.backward()
@@ -759,7 +765,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         ev = evaluate(net, arm, ebv, dev, K, cap)
         tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s,
                          scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0),
-                         lam_dpc=((lam_dpc or 0.0) / (dpc0 or 1.0)))
+                         lam_dpc=((lam_dpc or 0.0) * (rul0 or 1.0) / (dpc0 or 1.0)))
               if params else dict(unweighted={}, weighted={}, values={}))
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0
