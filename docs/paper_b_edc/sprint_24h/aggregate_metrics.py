@@ -1360,6 +1360,93 @@ def build_alpha_robustness(seed_rows: list[dict[str, Any]]) -> list[dict[str, An
     return out
 
 
+Z975 = 1.959964
+
+
+def threshold(kind: str, sd: float, n: int | None = None, n2: int | None = None,
+              sd_diff: float | None = None) -> dict[str, Any]:
+    """The single place every threshold comes from.
+
+    Scattered constants do not contradict each other -- they are each correct in
+    their own context -- but nothing is responsible for keeping them consistent,
+    and they drifted into two conventions (normal 2*sqrt(2) for the screen,
+    t quantiles for the paired half-width).  One function is responsible.
+
+    The two conventions were not equally wrong.  ``screen_single`` compares two
+    single observations, so no residual df exists and the normal quantile is the
+    only one available; it is a screening rule, not a test of a mean.  Using it
+    where a mean interval belongs is what produced the 43% gap on FD004, because
+    t inflates relative to the normal as n falls: 10% at n=6, 52% at n=3.
+    """
+    if kind == "screen_single":
+        se = sd * math.sqrt(2.0)
+        return dict(df=None, crit=Z975, se=se, value=Z975 * se,
+                    formula="z(0.975) * sd * sqrt(2)",
+                    bias_direction="exact for its own question; anti-conservative "
+                                   "if used where a mean interval belongs")
+    if kind == "single_vs_mean":
+        df = n - 1
+        se = sd * math.sqrt(1.0 + 1.0 / n)
+        return dict(df=df, crit=t975(df), se=se, value=t975(df) * se,
+                    formula="t(df=%d) * sd * sqrt(1 + 1/%d)" % (df, n),
+                    bias_direction="exact under normality")
+    if kind == "paired":
+        indep = sd_diff is None
+        d = (sd * math.sqrt(2.0)) if indep else sd_diff
+        df = n - 1
+        se = d / math.sqrt(n)
+        return dict(df=df, crit=t975(df), se=se, value=t975(df) * se,
+                    formula="t(df=%d) * %s / sqrt(%d)" % (
+                        df, "sd*sqrt(2)" if indep else "sd_diff", n),
+                    bias_direction=("conservative (independent-arm assumption "
+                                    "sd_diff = sd*sqrt(2))" if indep else "exact"))
+    if kind == "unpaired":
+        df = n + n2 - 2
+        se = sd * math.sqrt(1.0 / n + 1.0 / n2)
+        return dict(df=df, crit=t975(df), se=se, value=t975(df) * se,
+                    formula="t(df=%d) * sd * sqrt(1/%d + 1/%d)" % (df, n, n2),
+                    bias_direction="exact under equal variances")
+    if kind == "ci_mean":
+        df = n - 1
+        se = sd / math.sqrt(n)
+        return dict(df=df, crit=t975(df), se=se, value=t975(df) * se,
+                    formula="t(df=%d) * sd / sqrt(%d)" % (df, n),
+                    bias_direction="exact under normality")
+    raise ValueError("unknown threshold kind: %r" % (kind,))
+
+
+def build_thresholds(seed_rows: list[dict[str, Any]],
+                     baseline_module: str) -> list[dict[str, Any]]:
+    """Every threshold in use, with its kind, df, formula and bias direction.
+
+    The point is not the numbers -- it is that a reader can see which question
+    each one answers.  ``screen_single`` and ``single_vs_mean`` differ by 43% on
+    FD004 and answer different questions; putting them in one table under one
+    column name is how the 43% became invisible.
+    """
+    groups: dict[tuple[str, Any], list[float]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or r.get("module") != baseline_module:
+            continue
+        groups.setdefault((r["subset"], r.get("budget_epochs")), []).append(
+            r["engine_mean_rmse"])
+    out = []
+    for (subset, budget), vals in sorted(groups.items(),
+                                         key=lambda kv: (kv[0][0], str(kv[0][1]))):
+        n = len(vals)
+        if n < 2:
+            continue
+        mean, sd = mean_sd(vals)
+        for kind in ("screen_single", "single_vs_mean", "paired", "ci_mean"):
+            th = threshold(kind, sd, n=n)
+            out.append(dict(
+                subset=subset, budget_epochs=budget, n_seeds=n, sd=sd,
+                kind=kind, df=th["df"], crit=th["crit"], se=th["se"],
+                value=th["value"], formula=th["formula"],
+                bias_direction=th["bias_direction"]))
+    return out
+
+
 def build_resolution(seed_rows: list[dict[str, Any]],
                      baseline_module: str) -> list[dict[str, Any]]:
     """How small a difference can this cell actually resolve?
@@ -1399,12 +1486,16 @@ def build_resolution(seed_rows: list[dict[str, Any]],
         _, sd3 = mean_sd(first3) if len(first3) > 1 else (float("nan"), float("nan"))
         out.append(dict(
             subset=subset, budget_epochs=budget, n_seeds=n, mean=mean, sd=sd,
-            ci_mean=t * sd / math.sqrt(n),
-            screen_single=2.0 * math.sqrt(2.0) * sd,
-            paired_3seed=t * math.sqrt(2.0) * sd / math.sqrt(n),
+            ci_mean=threshold("ci_mean", sd, n=n)["value"],
+            screen_single=threshold("screen_single", sd, n=n)["value"],
+            single_vs_mean=threshold("single_vs_mean", sd, n=n)["value"],
+            paired_3seed=threshold("paired", sd, n=n)["value"],
             sd_first3=sd3,
-            screen_first3=(2.0 * math.sqrt(2.0) * sd3 if len(first3) > 1 else float("nan")),
-            paired_first3=(t975(len(first3) - 1) * math.sqrt(2.0) * sd3 / math.sqrt(len(first3))
+            screen_first3=(threshold("screen_single", sd3, n=len(first3))["value"]
+                           if len(first3) > 1 else float("nan")),
+            single_vs_mean_first3=(threshold("single_vs_mean", sd3, n=len(first3))["value"]
+                                   if len(first3) > 1 else float("nan")),
+            paired_first3=(threshold("paired", sd3, n=len(first3))["value"]
                            if len(first3) > 1 else float("nan"))))
     return out
 
@@ -2187,8 +2278,12 @@ def main(argv: list[str] | None = None) -> int:
                "informative"])
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
-               "ci_mean", "screen_single", "paired_3seed",
-               "sd_first3", "screen_first3", "paired_first3"])
+               "ci_mean", "screen_single", "single_vs_mean", "paired_3seed",
+               "sd_first3", "screen_first3", "single_vs_mean_first3", "paired_first3"])
+    thresholds = build_thresholds(seed_rows, args.paired_baseline)
+    write_csv(os.path.join(args.out_dir, "THRESHOLDS.csv"), thresholds,
+              ["subset", "budget_epochs", "n_seeds", "sd", "kind", "df",
+               "crit", "se", "value", "formula", "bias_direction"])
     shift = build_verdict_shift(module_rows, resolution)
     write_csv(os.path.join(args.out_dir, "VERDICT_SHIFT.csv"), shift,
               ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",

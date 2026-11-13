@@ -1,0 +1,29 @@
+subset,budget_epochs,n_seeds,sd,kind,df,crit,se,value,formula,bias_direction
+FD001,160,2,1.0867448819614167,screen_single,,1.959964,1.536889350909384,3.0122477997657597,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD001,160,2,1.0867448819614167,single_vs_mean,1,12.706,1.3309852206933028,16.911498214129104,t(df=1) * sd * sqrt(1 + 1/2),exact under normality
+FD001,160,2,1.0867448819614167,paired,1,12.706,1.0867448819614167,13.80818047020176,t(df=1) * sd*sqrt(2) / sqrt(2),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD001,160,2,1.0867448819614167,ci_mean,1,12.706,0.7684446754546919,9.763858046327314,t(df=1) * sd / sqrt(2),exact under normality
+FD001,40,3,0.7212918041730151,screen_single,,1.959964,1.0200606518900366,1.9992821555210036,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD001,40,3,0.7212918041730151,single_vs_mean,2,4.303,0.8328760346071221,3.5838655769144463,t(df=2) * sd * sqrt(1 + 1/3),exact under normality
+FD001,40,3,0.7212918041730151,paired,2,4.303,0.5889322919584578,2.5341756522972436,t(df=2) * sd*sqrt(2) / sqrt(3),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD001,40,3,0.7212918041730151,ci_mean,2,4.303,0.4164380173035611,1.7919327884572234,t(df=2) * sd / sqrt(3),exact under normality
+FD001,80,6,1.1833289177757613,screen_single,,1.959964,1.673479804266759,3.279960171089894,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD001,80,6,1.1833289177757613,single_vs_mean,5,2.571,1.2781413128387176,3.286101315308343,t(df=5) * sd * sqrt(1 + 1/6),exact under normality
+FD001,80,6,1.1833289177757613,paired,5,2.571,0.6831952692177045,1.7564950371587182,t(df=5) * sd*sqrt(2) / sqrt(6),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD001,80,6,1.1833289177757613,ci_mean,5,2.571,0.4830920077384077,1.2420295518954463,t(df=5) * sd / sqrt(6),exact under normality
+FD002,40,3,0.1277988390806182,screen_single,,1.959964,0.180734851483347,0.35423380245270675,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD002,40,3,0.1277988390806182,single_vs_mean,2,4.303,0.14756938829063315,0.6349910778145944,t(df=2) * sd * sqrt(1 + 1/3),exact under normality
+FD002,40,3,0.1277988390806182,paired,2,4.303,0.10434731515585743,0.44900649711565455,t(df=2) * sd*sqrt(2) / sqrt(3),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD002,40,3,0.1277988390806182,ci_mean,2,4.303,0.07378469414531659,0.31749553890729726,t(df=2) * sd / sqrt(3),exact under normality
+FD003,80,3,0.5836177984210448,screen_single,,1.959964,0.8253602057693686,1.6176762903405548,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD003,80,3,0.5836177984210448,single_vs_mean,2,4.303,0.6739037860444939,2.899807991349457,t(df=2) * sd * sqrt(1 + 1/3),exact under normality
+FD003,80,3,0.5836177984210448,paired,2,4.303,0.4765219369793499,2.050473894822143,t(df=2) * sd*sqrt(2) / sqrt(3),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD003,80,3,0.5836177984210448,ci_mean,2,4.303,0.336951893022247,1.4499039956747288,t(df=2) * sd / sqrt(3),exact under normality
+FD004,40,3,0.3974461984671171,screen_single,,1.959964,0.5620738041858259,1.101644421547268,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD004,40,3,0.3974461984671171,single_vs_mean,2,4.303,0.45893133934676694,1.9747815532091382,t(df=2) * sd * sqrt(1 + 1/3),exact under normality
+FD004,40,3,0.3974461984671171,paired,2,4.303,0.3245134621511236,1.3963814276362847,t(df=2) * sd*sqrt(2) / sqrt(3),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD004,40,3,0.3974461984671171,ci_mean,2,4.303,0.2294656696733835,0.9873907766045692,t(df=2) * sd / sqrt(3),exact under normality
+FD004,80,3,0.5915084878440215,screen_single,,1.959964,0.8365193257678164,1.6395477638091926,z(0.975) * sd * sqrt(2),exact for its own question; anti-conservative if used where a mean interval belongs
+FD004,80,3,0.5915084878440215,single_vs_mean,2,4.303,0.6830151693693886,2.939014273796479,t(df=2) * sd * sqrt(1 + 1/3),exact under normality
+FD004,80,3,0.5915084878440215,paired,2,4.303,0.4829646579143731,2.0781969230055473,t(df=2) * sd*sqrt(2) / sqrt(3),conservative (independent-arm assumption sd_diff = sd*sqrt(2))
+FD004,80,3,0.5915084878440215,ci_mean,2,4.303,0.34150758468469433,1.4695071368982398,t(df=2) * sd / sqrt(3),exact under normality
