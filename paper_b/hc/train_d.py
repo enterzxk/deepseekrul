@@ -44,6 +44,7 @@ from . import config_hc as C
 from .arrival import first_passage
 from .data_d import engine_batch, train_lifetime_mean
 from .hi_d import DSPT_HC_Structured
+from .csr_pool import DSPT_CSR, remap_b0_state_dict, CSR_ALLOWED_MISSING
 
 ARMS = ('B0', 'B1', 'B2', 'B3')
 # M3-B: the age-anchored increment. Same arrival machinery as B3, only the
@@ -55,6 +56,14 @@ ANCHORED_ARMS = ('M3B',)
 # second run. M7 builds and runs exactly like B3; the only difference is the
 # alive penalty on top of the loss.
 SCR_ARMS = ('M7',)
+# M4 (CSR) rides the B0 backbone on purpose: B0 is the only arm proven strong,
+# and attaching a module to B3 would make the result unattributable -- exactly
+# the trap M3B fell into (it needs a B3 cell just to say what it beat). A formal
+# arm, not a flag, so run_id()/ledger/report split automatically.
+CSR_ARMS = ('M4',)
+# Arms with no damage head in play: the head exists in the module (same build
+# path as B0) but is never trained and never used by the prediction.
+NOHEAD_ARMS = ('B0',) + CSR_ARMS
 HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
@@ -62,7 +71,7 @@ ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 # they share the data interface, the censored hinge and the evaluator, which is
 # what makes their numbers comparable to B0-B3.
 SPRINT_ARMS = ('AGE', 'AAR')
-ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS
+ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS + CSR_ARMS
 
 
 class ResidualHead(nn.Module):
@@ -182,20 +191,27 @@ def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
     """Build one arm. The head init is seeded and identical for B1/B2/B3."""
     cfg = dict(C.hc_config('A1', subset, seed))
     bb = cfg['backbone']
-    net = DSPT_HC_Structured(
+    kw = dict(
         fixed_rate=(arm == 'B2'), K=int(K), cycle_mode='none',
         num_sensors=14, d_model=cfg['d_model'], num_layers=cfg['layers'],
         dropout=cfg['dropout'], max_span=cfg['span'],
         ms_mode=bb['ms_mode'], sa_mode=bb['sa_mode'],
         hi_source=bb['hi_source'], hi_mono=bb['hi_mono'],
         use_pad_mask=True, n_cond=cfg['n_cond'],
-        l_mean=(None if (arm == 'B0' or arm in SPRINT_ARMS) else l_mean),
+        l_mean=(None if (arm in NOHEAD_ARMS or arm in SPRINT_ARMS) else l_mean),
         anchored=(arm in ANCHORED_ARMS),
-        head_seed=(None if arm == 'B0' else head_seed))
+        head_seed=(None if arm in NOHEAD_ARMS else head_seed))
+    if arm in CSR_ARMS:
+        net = DSPT_CSR(csr_mode='cond', **kw)
+    else:
+        net = DSPT_HC_Structured(**kw)
     ck = torch.load(init_from, map_location='cpu', weights_only=True)
     sd = dict(ck['state_dict'] if 'state_dict' in ck else ck)
+    if arm in CSR_ARMS:
+        sd = remap_b0_state_dict(sd)
     missing, unexpected = net.load_state_dict(sd, strict=False)
-    bad = [m for m in missing if not m.startswith('head.')]
+    allowed = CSR_ALLOWED_MISSING if arm in CSR_ARMS else ('head.',)
+    bad = [m for m in missing if not m.startswith(allowed)]
     if bad or unexpected:
         raise RuntimeError('init mismatch: missing=%s unexpected=%s' % (bad, unexpected))
     return net.to(dev), sorted(missing)
@@ -213,7 +229,7 @@ def trainable(net, arm):
     out = []
     for name, p in net.named_parameters():
         keep = True
-        if arm == 'B0' and name.startswith('head.'):
+        if arm in NOHEAD_ARMS and name.startswith('head.'):
             keep = False
         if arm in ARRIVAL_ARMS and name.startswith('reg_head.'):
             keep = False
