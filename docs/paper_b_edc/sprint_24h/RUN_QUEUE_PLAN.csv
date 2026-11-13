@@ -1,4 +1,7 @@
 row_id,module,variant,arm,subset,seed,budget,status,val_eng,epochs_run,best_ep,root,blocker,note
+GATE-FD001,gate,reproduce_same_code_state,(all arms),FD001,-,80,done,n/a,,,_gate+_gate160,,17/17 verified：_gate 16 格 + _gate160 1 格（B0@160 s101）；四项全同判据 = val / epochs_run / best_ep / preds_sha256；权威清单见台账 is_gate_cell=yes 且 subset=FD001
+GATE-FD004,gate,reproduce_same_code_state,(all arms),FD004,-,40,in_progress,n/a,,,_gate,,15 格 = 原门格清单 13 + M6 s202/s303 两格（为把 M6 vs B3 补成 3v3 配对）；已落 8 格 = B0 x3 / B3 x3 / M6-s101 / M2-s101；待落 7 格 = M4 / M3B / M3C x2 / M7 / M6 x2；权威清单见台账 is_gate_cell=yes 且 subset=FD004
+GATE-FD004@80,gate,budget_homogeneity_control,(B3+M6),FD004,-,80,not_run,n/a,,,_gate80,,_gate80 四格 = B3 s101/s202/s303 + M6 s101 各 80ep；五个 shared JSON 已与 _gate 逐字节相同（预检通过）所以与 40ep 格只差调度曲线；目录名与 40ep 门格完全相同、run_id 不含 budget，所以必须落独立根；目前 0/4
 BASE-A,baseline,BaselineA_strongest_DSPT_with_cycle,?,FD001-4,101/202/303,?,dropped,,,,,Baseline A config never pinned in this sprint; AAR used as AgePrior reference,需确认 Paper A 最强 DSPT 配置与 checkpoint；规格要求与新模型同协议同窗口
 BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,101,40,done,19.6073,40,35,d,,age prior(训练集拟合)+传感器残差；残差头近零初始化
 BASE-B,baseline,BaselineB_AgePrior_plus_SensorResidual,AAR,FD001,101,80,done,18.6545,56,44,d/probe80,,80ep；已判死(对 B0 差 7.1)
@@ -40,7 +43,7 @@ M2-D,M2,trend_plus_confidence,?,FD001,101,80,dropped,,,,,variant never implement
 M3-A,M3,original_damage_increment,B3,FD001,101,80,done,14.6884,69,57,d80,,= M3 消融母体
 M3-B,M3,age_anchored_increment,M3B,FD001,101,80,done,13.5826,79,67,d80,,80ep 未收敛，是下界
 M3-B,M3,age_anchored_increment,M3B,FD001,101,160,done,11.8805,100,88,d80diag,,160ep 收敛；曲线 sd 1.35，best 是噪声最小值
-M3-C,M3,age_anchored_plus_same_age_rank,?,FD001,101,80,dropped,,,,,variant never implemented; module tested in its base form,ADC 核心：L_rank=relu(margin-D_A+D_B)，只用训练集构对；tmh 负责
+M3-C,M3,age_anchored_plus_same_age_rank,M3C,FD001,101,80,done,n/a,,,d80,,已实现并跑了两轮 4 格（variant age_anchored_plus_same_age_rank 就是 M3C 的定义 = M3B + L_rank）；FD001 s101/s202 + FD004 s101/s202 均在 d80 根、usable=yes；FD004 s303 在跑；原 dropped 是「还没实现」时写的，实现后没回填
 M3-D,M3,age_anchored_plus_rank_plus_CDE,?,FD001,101,80,dropped,,,,,variant never implemented; module tested in its base form,依赖 M3-C 与 M2
 M4,M4,condition_aware_pooling,M4,FD001,101,80,done,14.5396,25,13,d80,,两次塌陷：预测被 clip 到 0，raw 输出全非正
 M4-A,M4,learned_sensor_pooling,?,FD001,101,80,dropped,,,,,variant never implemented; module tested in its base form,需先修 M4 塌陷
