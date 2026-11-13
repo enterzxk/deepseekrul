@@ -26,6 +26,7 @@ Usage
 import argparse
 import csv
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -94,9 +95,16 @@ def main():
         r = subprocess.run(cmd, capture_output=True, text=True)
         rec_path = recdir / ('mech_%s_%s.json' % (arm, a.subset))
         if r.returncode != 0 or not rec_path.exists():
-            msg = (r.stderr or r.stdout or 'no record').strip().splitlines()
+            # Keep the line that names the failure, not just the last line: a
+            # traceback's final source line ("sd = torch.load(...)") is not the
+            # error, and reporting only that sent a whole night's run down the
+            # wrong path. Fall back to the tail when no marker matches.
+            msg = [l for l in (r.stderr or r.stdout or '').splitlines() if l.strip()]
+            key = next((l for l in reversed(msg)
+                        if re.search(r'(Error|Refusing|REFUSED|SystemExit)', l)), None)
+            tail = ' / '.join(l.strip() for l in msg[-2:]) if msg else 'no record'
             row['status'] = 'error'
-            row['reason'] = msg[-1] if msg else 'no record'
+            row['reason'] = ('%s || tail: %s' % (key.strip(), tail)) if key else tail
             rows.append(row)
             print('%-4s error    %s' % (arm, row['reason']))
             continue

@@ -197,7 +197,14 @@ def main():
                degradation=float(np.mean(perm_rmse)) - base['val_engine_mean_rmse'],
                degradation_pct=100.0 * (np.mean(perm_rmse) / base['val_engine_mean_rmse'] - 1.0))
     print(json.dumps(rec, indent=1))
-    out = Path(ROOT) / 'experiments/hc/d' / ('mech_%s_%s.json' % (a.arm, a.subset))
+    # --out-dir existed but was never used: the path was rebuilt from ROOT, so a
+    # caller that passed --root <run root> got
+    # <root>/experiments/hc/d/mech_*.json -- a directory that does not exist, and
+    # write_text raised FileNotFoundError on all 13 arms. The driver then reported
+    # it as a load error because it only kept the last stderr line.
+    outdir = Path(a.out_dir) if a.out_dir else (Path(ROOT) / 'experiments/hc/d')
+    outdir.mkdir(parents=True, exist_ok=True)
+    out = outdir / ('mech_%s_%s.json' % (a.arm, a.subset))
     out.write_text(json.dumps(rec, indent=1), encoding='utf-8')
     print('record -> %s' % out)
 
