@@ -590,21 +590,32 @@ for (rung, eng), seeds in by_cell.items():
     合法但错误的取值，而审计会把 `n/a` 当成「没填」放过去。半年后看到 `n/a` 的人
     不会知道它是不可达，只会以为是漏写，所以这里把「为什么不可达」写死。
 
-21. **按机聚合的量：判据是「各机在该聚合集合里的样本数」，不是数值比较。**
-    若每台机贡献的样本数相同（含只有一台机的情形），池化 == 逐机等权 在代数上恒等：
-    池化 = (Σ_e S_e)/(E·k) = (1/E)Σ_e (S_e/k)。这一行的这一列**不携带聚合口径的信息**，
-    必须标 **degenerate，不是 pass**。
-    **三态**：degenerate（按计数判）/ pass / pass_coincident（各机样本数不同、数值却相等——
-    这是真的通过，但要标出来，免得以后有人把「相等」读成「没有差别」）/ ail。
-    **不许用数值差当探测器**：它分不开「代数恒等」和「碰巧相等」，而这正是两种不同的成因。
-    实测（80 行 × 20 列 = 1600 格）：pass **1360**、degenerate **240**、pass_coincident **0**。
-    - seg_late_absolute_*：**80/80 行退化**——该段恒为每机 25 个飞行（RUL 0–24），与寿命无关；
-    - seg_mid_absolute_*：DS07 的 20 行退化（四台机寿命都 ≥ 75，各 50 个飞行）；
-    - seg_early_absolute_*：DS02 的 20 行退化（只有 unit 14 够到 RUL ≥ 75，counts=[1]）；
-    - 8 个 _unit 列与 6 个 *_relative 列：全部 pass（各机飞行数不等）。
-    phase=test 的行必须同时满足：_unit 八列 == pred.csv 逐机等权复算；_flightpooled 两列 ==
-    pred.csv 池化复算。**逐列独立复算，20 列各算各的**，不许用「有没有列不同」代替。
-    明细见 [TEST_AGGREGATION_CALIBER.md](TEST_AGGREGATION_CALIBER.md)，重算脚本 scripts/nc_agg_caliber.py。
+21. **按机聚合的量：判据按聚合族分，不是一条统一规则。**
+    聚合函数不同，「逐机等权 == 池化」的必然成立条件就不同：
+
+    | 族 | 列 | 必然相等当且仅当 |
+    |---|---|---|
+    | RMSE 族（14 列：2 个 `rmse_*_unit` + 12 个 `seg_*`） | `sqrt(mean)` 非线性 | **恰好一台机贡献数据** |
+    | 线性族（4 列：`mae_*_unit`、`bias_*_unit`） | 池化就是按样本数加权 | 恰好一台机，**或各机样本数相同** |
+    | NASA 族（2 列：`nasa_*_unit`） | 求和 | **恰好一台机** |
+
+    **不许把线性族的判据套到 RMSE 上**：两台机各一个误差 `0`、`2` 时，逐机等权是 `1.000`，
+    池化是 `sqrt(2) = 1.414`——样本数相同却不等。逐机是 `(1/E)Σ_i sqrt(S_i/k_i)`，池化是
+    `sqrt(Σ_i S_i / Σ_i k_i)`，只有 `S_i/k_i` 全相等时才碰巧相同，那是巧合不是结构。
+    NASA 是求和，池化恒比逐机等权大 `E` 倍。
+    **判据要先问「聚合是什么函数」，再问「样本数」，不能反过来。**
+
+    实测（80 行 × 20 列 = 1600 格）：`pass` **1560**、`degenerate` **40**、`pass_coincident` **0**。
+    - RMSE 族：degenerate **40** / ok 1080——全部是 DS02 的 `seg_early_absolute_capped` 与 `_raw`
+      × 20 行，该段只有 unit 14 够到 RUL ≥ 75（11、15 的寿命 58/66），`counts=[1]`；
+    - 线性族：degenerate 0 / ok 320；
+    - NASA 族：degenerate 0 / ok 160。
+    **`seg_late_absolute_*` 不退化**（四台机各 25 个飞行，但 `sqrt` 非线性），
+    DS07 的 `seg_mid_absolute_*` 也不退化（各 50 个）。这两条是本条规则第一版写错的地方。
+
+    三态：`degenerate`（按族判据，**不是 `pass`**）/ `pass` / `pass_coincident`（非退化但数值相等，
+    这是真的通过，标出来免得有人把「相等」读成「没有差别」）/ `fail`。
+    明细见 [TEST_AGGREGATION_CALIBER.md](TEST_AGGREGATION_CALIBER.md)，重算 `scripts/nc_agg_caliber.py`。
 
 22. **分段列的「非空机」前提必须跟着数字走**：`seg_early_absolute_*` 只统计 RUL ≥ 75 的飞行，
     寿命不到 75 的机在该段没有行。DS02 测试集只有 unit 14 一台落进该段（11/15 的寿命是 58/66），

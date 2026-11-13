@@ -59,8 +59,37 @@ def agg(kind, e, ec):
     return sum(nasa(x) for x in e), sum(nasa(x) for x in ec)
 
 
-def state_of(counts, per, pooled):
-    if all(c == counts[0] for c in counts):
+def family_of(column: str) -> str:
+    """Aggregation family - the degeneracy criterion differs per family."""
+    if column.startswith("seg_") or column.startswith("rmse"):
+        return "rmse"
+    if column.startswith("nasa"):
+        return "nasa"
+    return "linear"  # mae, bias
+
+
+def state_of(column, counts, per, pooled):
+    """Degenerate means the two aggregations are identical BY CONSTRUCTION.
+
+    The criterion depends on the family, because the aggregate is a different
+    function of the per-sample errors:
+
+    rmse    sqrt(mean(.)) is not linear. per-unit is (1/E) sum_i sqrt(S_i/k_i),
+            pooled is sqrt(sum_i S_i / sum_i k_i). With one engine they are the
+            same number; with two or more they agree only if every S_i/k_i
+            happens to be equal, which is a coincidence, not structure.
+    linear  mean/|mean| is linear, so equal per-engine counts k give
+            (1/E) sum_i (S_i/k) = sum_i S_i / (E*k) = pooled, identically.
+    nasa    a sum. pooled = sum_i S_i, per-unit = (1/E) sum_i S_i; identical
+            only when one engine contributes, or when every S_i is zero.
+    """
+    fam = family_of(column)
+    single = len(counts) == 1
+    if fam == "rmse" or fam == "nasa":
+        degenerate = single
+    else:
+        degenerate = single or all(c == counts[0] for c in counts)
+    if degenerate:
         return "degenerate"
     return "pass_coincident" if abs(per - pooled) < 1e-12 else "pass"
 
@@ -99,7 +128,8 @@ def main(argv=None):
                                       column="%s_%s_unit" % (kind, suffix),
                                       n=len(counts), counts=counts,
                                       per_unit=mean, pooled=pooled,
-                                      state=state_of(counts, mean, pooled)))
+                                      state=state_of("%s_%s_unit" % (kind, suffix),
+                                                     counts, mean, pooled)))
             for name, tag, crit in SEG_COLS:
                 per, counts, pool = [], [], []
                 for u, v in sorted(by.items()):
@@ -131,7 +161,8 @@ def main(argv=None):
                                   column="seg_%s_%s_%s" % (name, tag, crit),
                                   n=len(counts), counts=counts,
                                   per_unit=sum(per) / len(per), pooled=pooled,
-                                  state=state_of(counts, sum(per) / len(per), pooled)))
+                                  state=state_of("seg_%s_%s_%s" % (name, tag, crit),
+                                                 counts, sum(per) / len(per), pooled)))
 
     st = collections.Counter(c["state"] for c in cells)
     print("cells %d  pass %d  degenerate %d  pass_coincident %d"
