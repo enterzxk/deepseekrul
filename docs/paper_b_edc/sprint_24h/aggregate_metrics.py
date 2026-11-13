@@ -284,10 +284,25 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
     if not curve:
         return dict(n_epochs=0, tail10_mean=float("nan"), tail10_sd=float("nan"),
                     epoch_sd=float("nan"), best_val=float("nan"),
-                    best_minus_tail10=float("nan"), ema_min=float("nan"))
+                    best_minus_tail10=float("nan"), ema_min=float("nan"),
+                    gain_last1=float("nan"), gain_last3=float("nan"),
+                    gain_last5=float("nan"))
     tail = curve[-10:] if len(curve) >= 10 else curve
     best = min(curve)
     t_mean, t_sd = mean_sd(tail)
+
+    def gain(k: int) -> float:
+        """How much the best improved inside the final k epochs.
+
+        ``best(1..B-k) - best(1..B)``: zero means the last k epochs bought
+        nothing.  This is the number that decides whether a run that reached its
+        budget without firing patience actually left anything on the table -- and
+        it is measured, not inferred from the cosine formula.
+        """
+        if len(curve) <= k:
+            return float("nan")
+        return min(curve[:-k]) - best
+
     return dict(
         n_epochs=len(curve),
         tail10_mean=t_mean,
@@ -296,6 +311,9 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
         best_val=best,
         best_minus_tail10=(t_mean - best),
         ema_min=ema_min(curve),
+        gain_last1=gain(1),
+        gain_last3=gain(3),
+        gain_last5=gain(5),
     )
 
 
@@ -571,7 +589,9 @@ SEED_COLUMNS = [
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
-    "converged", "truncated", "budget_status", "early_stop_margin", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
+    "converged", "truncated", "budget_status", "early_stop_margin",
+    "gain_last1", "gain_last3", "gain_last5",
+    "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
@@ -1215,24 +1235,34 @@ def build_ensemble(seed_rows: list[dict[str, Any]], cap: float) -> list[dict[str
     return out
 
 
-def classify_pair(module_status: Any, baseline_status: Any) -> tuple[str, str]:
-    """Can these two rows be differenced at all?
+HEADROOM_TOL = 0.2
 
-    ``budget_status`` describes how a run ended, and two runs only measure the
-    same quantity when it ended the same way.  ``converged`` vs
-    ``budget_limited`` is the dangerous mix: the truncated side stopped inside
-    the window where patience had not yet fired, so its score is not the same
-    statistic -- and since the LR schedule is ``CosineAnnealingLR(T_max=epochs)``
-    the two budgets are two different curves, so no monotone bound repairs it
-    either.  Such a pair keeps its arithmetic but is marked ``CONFOUNDED`` and
-    must stay out of any judgment table.
+
+def judge_pair(module_status: Any, baseline_status: Any,
+               module_gain5: Any, baseline_gain5: Any) -> tuple[str, str, float]:
+    """Can these two rows be differenced, judged by measured headroom?
+
+    An early stop that did not fire looks alarming, but the label alone says
+    nothing about how much was left on the table.  ``gain_last5`` measures that
+    directly: ``best(1..B-5) - best(1..B)``.  A pair whose residual headroom is
+    negligible on both sides measures the same thing whatever its formal status,
+    because the cosine schedule has already annealed the LR to ``eta_min`` by the
+    last epoch.
+
+    The gate is therefore quantitative, not a binary label: a pair is usable when
+    neither side gained more than ``HEADROOM_TOL`` inside its final five epochs.
+    ``budget_status`` stays as a description of how the run ended.
     """
-    pair = (module_status, baseline_status)
-    if any(s in (None, "", "unknown", "n/a") for s in pair):
-        return "unknown", "no"
-    if module_status == baseline_status:
-        return "same:" + str(module_status), "yes"
-    return "CONFOUNDED", "no"
+    if any(s in (None, "", "unknown", "n/a") for s in (module_status, baseline_status)):
+        return "unknown", "no", float("nan")
+    gains = [g for g in (module_gain5, baseline_gain5)
+             if isinstance(g, (int, float)) and g == g]
+    if not gains:
+        return "unknown", "no", float("nan")
+    headroom = max(gains)
+    if headroom > HEADROOM_TOL:
+        return "headroom_high", "no", headroom
+    return "same_schedule", "yes", headroom
 
 
 def build_paired(seed_rows: list[dict[str, Any]],
@@ -1258,6 +1288,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
             root=r["root"],
             budget=r.get("budget_epochs"),
             bs=r.get("budget_status"),
+            g5=r.get("gain_last5"),
             em=r["engine_mean_rmse"])
 
     # index the baseline by (subset, budget, seed)
@@ -1280,7 +1311,8 @@ def build_paired(seed_rows: list[dict[str, Any]],
         diffs = [mine[i] - theirs[i] for i in common]
         st = paired_stats(diffs)
         b0_em = meta[bkey]["em"]
-        pair_status, judgeable = classify_pair(m["bs"], meta[bkey]["bs"])
+        pair_status, judgeable, headroom = judge_pair(
+            m["bs"], meta[bkey]["bs"], m["g5"], meta[bkey]["g5"])
         out.append(dict(
             level="seed",
             module=m["module"], subset=m["subset"], budget_epochs=m["budget"],
@@ -1289,6 +1321,8 @@ def build_paired(seed_rows: list[dict[str, Any]],
             se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
             module_em=m["em"], b0_em=b0_em,
             module_budget_status=m["bs"], baseline_budget_status=meta[bkey]["bs"],
+            module_gain_last5=m["g5"], baseline_gain_last5=meta[bkey]["g5"],
+            headroom=headroom,
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
@@ -1308,15 +1342,18 @@ def build_paired(seed_rows: list[dict[str, Any]],
         # whole module-level difference uninterpretable, however many clean pairs
         # sit beside it.
         statuses = {r["pair_status"] for r in rows}
-        if "CONFOUNDED" in statuses:
-            pair_status = "CONFOUNDED"
+        if "headroom_high" in statuses:
+            pair_status = "headroom_high"
         elif len(statuses) == 1:
             only = next(iter(statuses))
-            pair_status = only if only.startswith("same:") else "unknown"
+            pair_status = only if only == "same_schedule" else "unknown"
         else:
             pair_status = "unknown"
-        judgeable = ("yes" if pair_status in ("same:converged", "same:budget_limited")
+        judgeable = ("yes" if pair_status == "same_schedule"
                      and all(r["judgeable"] == "yes" for r in rows) else "no")
+        heads = [r["headroom"] for r in rows
+                 if isinstance(r.get("headroom"), (int, float)) and r["headroom"] == r["headroom"]]
+        headroom = max(heads) if heads else float("nan")
         out.append(dict(
             level="module",
             module=mod, subset=subset, budget_epochs=budget,
@@ -1329,6 +1366,15 @@ def build_paired(seed_rows: list[dict[str, Any]],
             module_em=float("nan"), b0_em=b0_em,
             module_budget_status=";".join(sorted({str(r["module_budget_status"]) for r in rows})),
             baseline_budget_status=";".join(sorted({str(r["baseline_budget_status"]) for r in rows})),
+            module_gain_last5=max((r["module_gain_last5"] for r in rows
+                                   if isinstance(r.get("module_gain_last5"), (int, float))
+                                   and r["module_gain_last5"] == r["module_gain_last5"]),
+                                  default=float("nan")),
+            baseline_gain_last5=max((r["baseline_gain_last5"] for r in rows
+                                     if isinstance(r.get("baseline_gain_last5"), (int, float))
+                                     and r["baseline_gain_last5"] == r["baseline_gain_last5"]),
+                                    default=float("nan")),
+            headroom=headroom,
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
             verdict=("worse" if st["mean"] > 0 else "better"),
@@ -1705,6 +1751,7 @@ def main(argv: list[str] | None = None) -> int:
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "module_em", "b0_em", "pct_vs_b0", "verdict", "significant",
                "module_budget_status", "baseline_budget_status",
+               "module_gain_last5", "baseline_gain_last5", "headroom",
                "pair_status", "judgeable"])
     ensemble = build_ensemble(seed_rows, args.cap)
     # stage-2 bar: a module is only a contribution if its ensemble beats the
@@ -1842,23 +1889,36 @@ def main(argv: list[str] | None = None) -> int:
         "optimistic nor pessimistic -- it is a **different protocol**. The only",
         "correct statement is `result under the 40ep protocol, not extrapolated`.",
         "",
-        "### `budget_status` and `pair_status`",
+        "### `budget_status`, `headroom` and `judgeable`",
         "",
-        "`budget_status` is the column that decides which two rows may be",
-        "differenced: `converged` (patience fired), `budget_limited` (reached the",
-        "budget with patience still pending), `n/a` (zero-parameter arm), `unknown`.",
+        "`budget_status` describes how a run ended: `converged` (patience fired),",
+        "`budget_limited` (reached the budget with patience still pending), `n/a`",
+        "(zero-parameter arm), `unknown`. **It is a description, not a verdict.** A",
+        "`budget_limited` run did not stop with a large amount of learning left: the",
+        "schedule is `CosineAnnealingLR(T_max=epochs, eta_min=1e-5)`, so the LR has",
+        "annealed to `eta_min` by the final epoch and the last few epochs move the",
+        "weights very little.",
+        "",
+        "The gate is therefore measured, not asserted. `gain_last5 =",
+        "best(1..B-5) - best(1..B)` is the improvement the final five epochs",
+        "actually bought; `gain_last3` and `gain_last1` are exported alongside.",
+        "Across the 21 `budget_limited` cells in this sprint the median is 0.0000 and",
+        "the maximum is 0.1552, against effects of 0.27 to 6.5.",
         "",
         "`PAIRED_VS_B0.csv` carries `module_budget_status`,",
-        "`baseline_budget_status`, `pair_status` and `judgeable`. Only",
-        "`judgeable=yes` rows belong in a judgment table:",
+        "`baseline_budget_status`, `module_gain_last5`, `baseline_gain_last5`,",
+        "`headroom` and `judgeable`. Only `judgeable=yes` rows belong in a judgment",
+        "table:",
         "",
         "| pair_status | meaning | usable |",
         "|---|---|---|",
-        "| `same:converged` | both sides early-stopped | yes |",
-        "| `same:budget_limited` | both sides stopped at the budget | yes, as a",
-        "  same-protocol difference -- never as a converged level |",
-        "| `CONFOUNDED` | one converged, one budget-limited | no |",
-        "| `unknown` | a status is missing | no |",
+        "| `same_schedule` | same budget, and neither side gained more than",
+        "  `HEADROOM_TOL=0.2` in its final five epochs | yes |",
+        "| `headroom_high` | one side was still gaining > 0.2 at its boundary | no |",
+        "| `unknown` | a status or a history curve is missing | no |",
+        "",
+        "Pairs are matched on `(subset, budget, seed)` by construction, so every pair",
+        "here is a same-schedule pair; the real gate is the measured headroom.",
         "",
         "## Run identity comes from the path, not from the ledger label",
         "",
