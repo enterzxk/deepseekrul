@@ -85,6 +85,10 @@ EFR_ARMS = ('M6',)
 # Arms with no damage head in play: the head exists in the module (same build
 # path as B0) but is never trained and never used by the prediction.
 NOHEAD_ARMS = ('B0',) + CSR_ARMS + CDE_ARMS + DPC_ARMS
+# Arms whose prediction comes straight out of reg_head (no damage path at all).
+# forward_engine dispatches on these lists, so an arm missing here falls through
+# to the arrival operator -- see the guard at the end of forward_engine.
+DIRECT_ARMS = ('B0',) + CSR_ARMS
 HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS + EFR_ARMS
 ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS + EFR_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
@@ -355,7 +359,14 @@ def forward_engine(net, arm, eb, i, n, dev, K):
     if arm in DPC_ARMS:
         # B0's prediction path plus the latent sequence the auxiliary needs.
         return dict(pred=net.reg_head(z).reshape(-1), r=r, n=n, z=z)
-    if arm == 'B0':
+    if arm in DIRECT_ARMS:
+        # B0, and every arm riding the B0 backbone with no damage head (M4/CSR).
+        # M4 used to be missing from every branch here, so it fell through to the
+        # arrival operator: it TRAINED reg_head and was EVALUATED through an
+        # untrained damage head, which is why its val predictions were a constant
+        # 0 from ep001 and why three "collapses" looked like a cond_bias problem.
+        # The parity gate passed because it called net(...) directly while the run
+        # evaluates through this function -- gate tests A, run goes B, third time.
         return dict(pred=net.reg_head(z).reshape(-1), r=r, n=n)
     delta = net.head.increment(z.unsqueeze(0)).reshape(-1)
     D = torch.cumsum(delta, dim=0)
@@ -378,6 +389,16 @@ def forward_engine(net, arm, eb, i, n, dev, K):
     elif arm == 'B1':
         out['pred'] = net.reg_head(z).reshape(-1)
     else:
+        # No silent fallthrough. An arm that reaches here without being an
+        # arrival arm would be scored through the damage head it never trained,
+        # which is exactly how M4 produced constant-zero predictions for three
+        # runs. Fail loudly instead.
+        if arm not in ARRIVAL_ARMS:
+            raise ValueError(
+                'forward_engine has no branch for arm %r: it would silently fall '
+                'through to the arrival path. Add it to DIRECT_ARMS / CDE_ARMS / '
+                'EFR_ARMS, or to ARRIVAL_ARMS if it really uses the damage head.'
+                % (arm,))
         out['pred'] = first_passage(D, net.head.future_rates(D, nu, z, K))
     return out
 

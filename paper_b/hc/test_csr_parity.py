@@ -33,7 +33,7 @@ import argparse
 
 import torch
 
-from .train_d import build_d, ALL_ARMS, CSR_ARMS
+from .train_d import build_d, ALL_ARMS, CSR_ARMS, DIRECT_ARMS
 
 
 def make_batch(subset, seed=0, B=2, L=10):
@@ -64,14 +64,34 @@ def main():
     ap.add_argument('--tol', type=float, default=1e-6)
     a = ap.parse_args()
 
-    # --- 0. registration, checked separately from construction -------------
+    # --- 0. registration AND dispatch, checked separately -------------------
     # build_d does NOT validate arm membership: an unregistered name silently
     # builds a plain structured model and returns. Only argparse rejects it. So
     # "build_d('M4') works" proves nothing about dispatchability -- both checks
     # are required, and this one has to come first.
     assert 'M4' in ALL_ARMS, "M4 missing from ALL_ARMS: argparse will reject --arm M4"
     assert 'M4' in CSR_ARMS, "M4 missing from CSR_ARMS: build_d will silently build B0"
-    print('PASS  registered_in_ALL_ARMS        M4 in ALL_ARMS and CSR_ARMS')
+    # The run does NOT call net(...) -- it evaluates through forward_engine. M4
+    # was missing from every branch there and fell through to the arrival
+    # operator, so it trained reg_head and was scored through an untrained
+    # damage head: constant-zero predictions for three runs. This assertion is
+    # the one that would have caught it.
+    assert 'M4' in DIRECT_ARMS, (
+        "M4 missing from DIRECT_ARMS: forward_engine will route it to the arrival "
+        "path and every val prediction will be a constant")
+    print('PASS  registered_in_ALL_ARMS        M4 in ALL_ARMS, CSR_ARMS, DIRECT_ARMS')
+
+    # --- 0b. no silent fallthrough for unknown arms ------------------------
+    from .train_d import forward_engine
+    try:
+        forward_engine(object(), 'NOT_AN_ARM', {}, 0, 1, torch.device('cpu'), 200)
+    except ValueError as e:
+        assert 'no branch for arm' in str(e), e
+        print('PASS  forward_engine_rejects_unknown  ValueError raised as intended')
+    else:
+        raise AssertionError(
+            'forward_engine accepted an unknown arm: it would fall through to the '
+            'arrival path silently')
 
     # --- 1. both arms build through the real entry point -------------------
     b0, _ = build_d('B0', a.subset, 200, None, None, a.device, a.init_from)
