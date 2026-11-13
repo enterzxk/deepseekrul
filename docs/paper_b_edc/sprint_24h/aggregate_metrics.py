@@ -382,7 +382,15 @@ def classify(row: dict[str, Any]) -> str:
     by hand with ``--seed 999`` has no override at all.
     """
     if row.get("budget_override"):
-        return "smoke_override"
+        # budget_override started as the smoke marker, but it is now also used to
+        # tag legitimate re-runs (m4fix3, m3b160, m4fd004).  A run that trained
+        # past one epoch is not a smoke, whatever its override says -- excluding
+        # it silently is how M4's 14.5396 disappeared and made the table look like
+        # it had cherry-picked the good seed.
+        er0 = row.get("epochs_run")
+        if er0 is None or er0 <= 1:
+            return "smoke_override"
+        return "override_run"
     if row.get("params_trainable") == 0:
         return "n/a_by_design"
     be, er = row.get("best_ep"), row.get("epochs_run")
@@ -526,7 +534,7 @@ MODULE_COLUMNS = [
     "params_trainable", "description",
 ]
 
-USABLE = {"complete", "early_stopped", "n/a_by_design"}
+USABLE = {"complete", "early_stopped", "n/a_by_design", "override_run"}
 
 # two-sided 95% t quantiles for small df; 1.96 (normal) beyond the table
 T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
@@ -682,8 +690,19 @@ def build_screen(seed_rows: list[dict[str, Any]],
             return "indistinguishable"
         return "worse" if True in signs else "better"
 
-    def decide(v: str) -> tuple[str, str]:
+    def decide(v: str, n_evidence: int) -> tuple[str, str]:
+        """Map a verdict to a decision, with the promotion floor enforced here.
+
+        A promotion needs at least three seeds on the comparison.  With one or two
+        the interval is computed from a single spread estimate (df=1 gives t=12.7),
+        so a narrow width can be an artefact of two differences that happened to
+        agree -- M2/FD003 flipped twice that way.  The floor is in code, not in a
+        reviewer's memory.
+        """
         if v == "better":
+            if n_evidence < 3:
+                return "hold", (f"would promote, but only {n_evidence} seed(s): "
+                                "the floor is 3, a narrow width from 1-2 seeds is not evidence")
             return "promote", "three readings agree and the gap exceeds the threshold"
         if v == "worse":
             return "eliminate", "three readings agree and the gap exceeds the threshold"
@@ -711,12 +730,24 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 continue
             single_thr = 2.0 * math.sqrt(2.0) * base["sd"] if base["n"] > 1 else float("nan")
             for seed, row in sorted(mine["rows"].items()):
-                d = [row["best_val"] - base["best"], row["ema_min"] - base["ema"],
-                     row["tail10_mean"] - base["tail"]]
+                # Prefer the parent run on the SAME seed: seed difficulty spans
+                # 11.05-13.96 on B0, so comparing a single run to the parent's
+                # mean mixes "the module helped" with "this seed was easy".
+                same = base["rows"].get(seed)
+                if same is not None:
+                    d = [row["best_val"] - same["best_val"],
+                         row["ema_min"] - same["ema_min"],
+                         row["tail10_mean"] - same["tail10_mean"]]
+                    cmp_kind = "same seed"
+                else:
+                    d = [row["best_val"] - base["best"], row["ema_min"] - base["ema"],
+                         row["tail10_mean"] - base["tail"]]
+                    cmp_kind = "vs parent mean"
                 v = verdict(d, single_thr)
-                dec, why = decide(v)
+                dec, why = decide(v, base["n"])
                 out.append(dict(
                     arm=mod, baseline=parent, subset=subset, seed=seed, budget=budget,
+                    comparison=cmp_kind,
                     n_baseline=base["n"], sd_baseline=base["sd"],
                     threshold_kind="single-run screen", threshold=single_thr,
                     best=row["best_val"], ema_min=row["ema_min"],
@@ -738,10 +769,18 @@ def build_screen(seed_rows: list[dict[str, Any]],
                         if len(shared) > 1 else float("nan"))
                 mean_d = [st["mean"], float(np.mean(de)), float(np.mean(dt))]
                 v = verdict(mean_d, half)
-                dec, why = decide(v)
+                dec, why = decide(v, len(shared))
+                # A paired interval from one or two pairs has df=1, where t=12.7:
+                # it is so wide that it cannot rule anything out.  Failing to
+                # detect a difference there is not evidence of no difference, so
+                # the row is held rather than eliminated.
+                if dec == "eliminate" and len(shared) < 3 and v == "indistinguishable":
+                    dec, why = "hold", (f"only {len(shared)} pair(s): interval +/-{half:.2f} "
+                                        "is too wide to eliminate")
                 out.append(dict(
                     arm=mod, baseline=parent, subset=subset,
                     seed=f"paired({len(shared)})", budget=budget,
+                    comparison="paired",
                     n_baseline=base["n"], sd_baseline=base["sd"],
                     threshold_kind="paired half-width", threshold=half,
                     best=mean_sd([mine["rows"][s]["best_val"] for s in shared])[0],
@@ -751,6 +790,16 @@ def build_screen(seed_rows: list[dict[str, Any]],
                     consistent=("yes" if len({x > 0 for x in mean_d if abs(x) >= 0.01}) <= 1
                                 else "no"),
                     verdict=v, decision=dec, reason=why, converged=""))
+    # When a cell has a paired row, that row is the module-level statement (it
+    # uses every seed).  The per-seed rows are components; leaving them with
+    # their own promote/eliminate invites picking whichever single row reads
+    # best, which is exactly the failure the rules forbid.
+    paired_cells = {(r["arm"], r["subset"], r["budget"]) for r in out
+                    if str(r["seed"]).startswith("paired(")}
+    for r in out:
+        if (r["arm"], r["subset"], r["budget"]) in paired_cells and not str(r["seed"]).startswith("paired("):
+            r["decision"] = "component"
+            r["reason"] = "single-seed component; the module verdict is the paired row"
     return out
 
 
@@ -1455,7 +1504,7 @@ def main(argv: list[str] | None = None) -> int:
                "verdict_first3", "verdict_all", "flips"])
     screen = build_screen(seed_rows, resolution, args.paired_baseline)
     write_csv(os.path.join(args.out_dir, "SCREEN.csv"), screen,
-              ["arm", "baseline", "subset", "seed", "budget", "n_baseline",
+              ["arm", "baseline", "subset", "seed", "budget", "comparison", "n_baseline",
                "sd_baseline", "threshold_kind", "threshold",
                "best", "ema_min", "tail10",
                "delta_best", "delta_ema", "delta_tail10", "consistent",
