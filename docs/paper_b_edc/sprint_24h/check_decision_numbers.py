@@ -626,34 +626,88 @@ _by_sub = {}
 for _m in re.finditer(r"^(FD00[1-4])\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$",
                       _fin, re.M):
     _by_sub[_m.group(1)] = int(_m.group(4))
+_sd = load("SEED_RESULTS.csv")
+
+
+def _tally(pred, subset=None):
+    return sum(1 for r in _sd
+               if pred(r) and (subset is None or r.get("subset") == subset))
+
+
+_KINDS = [
+    (r"个可用格", lambda sub: _tally(lambda r: r.get("status") == "usable", sub)),
+    (r"个\s*A\s*级",
+     lambda sub: _tally(lambda r: r.get("gate_status") == "verified", sub)),
+    (r"个\s*门格",
+     lambda sub: _tally(lambda r: r.get("gate_status") == "gate_reproduction", sub)),
+]
 _HIST = ("计划时", "当时", "快照", "snapshot", "历史")
-_CNT = re.compile(r"([0-9]+|[零一二三四五六七八九十百]{1,4})\s*个可用格")
 _cnt_bad, _cnt_ok = [], 0
 for _f in sorted(HERE.glob("*.md")):
     if _f.name.startswith("tmp_"):
         continue
     for _i, _l in enumerate(_f.read_text(encoding="utf-8").split("\n"), 1):
-        for _mm in _CNT.finditer(_l):
-            _v = _cn2int(_mm.group(1))
-            if any(_h in _l for _h in _HIST):
-                _cnt_ok += 1
-                continue
-            _sub = re.search(r"FD00[1-4]", _l)
-            _want = _by_sub.get(_sub.group(0)) if _sub else _total
-            if _want is not None and _v == _want:
-                _cnt_ok += 1
-            else:
-                _cnt_bad.append("%s:%d: says %s, block says %s"
-                                % (_f.name, _i, _mm.group(0),
-                                   "%s usable" % _want if not _sub
-                                   else "%s usable in %s" % (_want, _sub.group(0))))
+        if any(_h in _l for _h in _HIST):
+            continue
+        _sub = re.search(r"FD00[1-4]", _l)
+        _subn = _sub.group(0) if _sub else None
+        for _kind, _fn in _KINDS:
+            _pat = re.compile(r"([0-9]+|[零一二三四五六七八九十百]{1,4})\s*" + _kind)
+            for _mm in _pat.finditer(_l):
+                _v = _cn2int(_mm.group(1))
+                _want = _fn(_subn)
+                if _v == _want:
+                    _cnt_ok += 1
+                else:
+                    _cnt_bad.append("%s:%d: says %s, ledger says %d%s"
+                                    % (_f.name, _i, _mm.group(0).strip(), _want,
+                                       " in %s" % _subn if _subn else " total"))
 checks += 1
 print(f"{'PASS' if not _cnt_bad else 'FAIL'}  "
-      f"{'10.2 hand-written counts agree with the block':<52s} "
+      f"{'10.2 hand-written counts agree with the ledger':<52s} "
       f"ok={_cnt_ok} stale={len(_cnt_bad)} total={_total}")
 for _n in _cnt_bad:
-    fails.append("hand-written usable count disagrees with the generated block "
-                 "(the count lives there and nowhere else): " + _n)
+    fails.append("hand-written count disagrees with the ledger (counts live in "
+                 "the generated block and nowhere else): " + _n)
+
+# 10.3 GATE_CHECK.csv is the artifact the doc points at to say "every gate cell
+# reproduced".  It has 30 rows and SEED_RESULTS has 30 verified cells, so a count
+# comparison passes -- while the two sets are NOT the same set: GATE_CHECK is
+# missing M3C/FD004/s202 and M7/FD004/s101, and carries three rows from roots
+# that are not _gate at all (one of them a _verify override whose formal_root is
+# empty and whose md5 does not match).  Same total, different rows.
+# Compare coverage on (subset, seed) counts instead: arm names differ between the
+# two files (B0_direct_rul vs B0), so any key that includes the arm would have to
+# be mapped by hand, and a hand-built mapping is exactly the kind of thing that
+# silently rots.  Surplus rows are allowed -- an extra duplicate or 160ep gate is
+# still a real check -- but a verified cell with no gate row is a hole.
+_gc = load("GATE_CHECK.csv")
+_seed_cnt, _gate_cnt, _holes = {}, {}, []
+for _r in _rows9:
+    if _r.get("gate_status") == "verified":
+        _k3 = (_r.get("subset"), _r.get("seed"))
+        _seed_cnt[_k3] = _seed_cnt.get(_k3, 0) + 1
+for _r in _gc:
+    _k3 = (_r.get("subset"), _r.get("seed"))
+    _gate_cnt[_k3] = _gate_cnt.get(_k3, 0) + 1
+for _k3, _n in sorted(_seed_cnt.items()):
+    _have = _gate_cnt.get(_k3, 0)
+    if _have < _n:
+        _holes.append("%s/%s verified=%d gate_rows=%d" % (_k3[0], _k3[1], _n, _have))
+_nomatch = [r for r in _gc
+            if r.get("gate_md5") and r.get("formal_md5")
+            and r.get("gate_md5") != r.get("formal_md5")]
+checks += 1
+print(f"{'PASS' if not _holes and not _nomatch else 'FAIL'}  "
+      f"{'10.3 GATE_CHECK covers every verified cell':<52s} "
+      f"gate_rows={len(_gc)} verified={sum(_seed_cnt.values())} "
+      f"holes={len(_holes)} md5_mismatch={len(_nomatch)}")
+for _n in _holes:
+    fails.append("verified cell with no GATE_CHECK row (same total, different "
+                 "rows): " + _n)
+for _n in _nomatch:
+    fails.append("GATE_CHECK row whose md5 does not match its formal run: "
+                 "%s/%s/%s" % (_n.get("subset"), _n.get("module"), _n.get("seed")))
 
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
