@@ -1317,14 +1317,29 @@ def build_alpha_robustness(seed_rows: list[dict[str, Any]]) -> list[dict[str, An
             verdict = "alpha-robust (n=1, per-seed layer vacuous)"
         else:
             verdict = "alpha-robust"
+        # A counter must never merge "passed both layers" with "could not be
+        # tested": those rows look identical in every column except n, so n is
+        # the only thing that separates tested from untested.  Encoding the
+        # distinction as a number means a summary line cannot quietly report
+        # 19 robust results where 5 were measured.
+        if verdict == "alpha-robust":
+            layers = 2
+        elif verdict.startswith("alpha-robust (n=1"):
+            layers = 1
+        else:
+            layers = 0
         out.append(dict(
             module=mod, parent=parent, subset=subset, budget_epochs=budget,
             n_pairs=len(pairs),
+            direction=("improvement" if deltas[0.3] == deltas[0.3]
+                       and deltas[0.3] < 0 else "worse"),
             delta_a10=deltas[0.1], delta_a20=deltas[0.2],
             delta_a30=deltas[0.3], delta_a50=deltas[0.5],
             spread=(max(vals) - min(vals)) if len(vals) > 1 else float("nan"),
             n_pos_a30=n_pos, n_neg_a30=n_neg,
             seed_sign_stable=seed_stable,
+            layers_passed=layers,
+            countable_as_robust="yes" if layers == 2 else "no",
             direction_consistent="yes" if alpha_consistent else "no",
             verdict=verdict))
     return out
@@ -2178,9 +2193,10 @@ def main(argv: list[str] | None = None) -> int:
               ["check", "kind", "n", "distinct", "observed", "why"])
     alpha_rob = build_alpha_robustness(seed_rows)
     write_csv(os.path.join(args.out_dir, "ALPHA_ROBUSTNESS.csv"), alpha_rob,
-              ["module", "parent", "subset", "budget_epochs", "n_pairs",
+              ["module", "parent", "subset", "budget_epochs", "n_pairs", "direction",
                "delta_a10", "delta_a20", "delta_a30", "delta_a50",
                "spread", "n_pos_a30", "n_neg_a30", "seed_sign_stable",
+               "layers_passed", "countable_as_robust",
                "direction_consistent", "verdict"])
     write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
               ["gate_run", "gate_root", "module", "subset", "seed", "budget_epochs",
