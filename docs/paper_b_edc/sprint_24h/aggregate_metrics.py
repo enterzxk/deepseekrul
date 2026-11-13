@@ -676,11 +676,12 @@ def cell_stats(seed_rows: list[dict[str, Any]],
         groups.setdefault((r["subset"], r.get("budget_epochs")), []).append(r)
     out = {}
     for key, rows in groups.items():
-        best, _ = mean_sd([x["best_val"] for x in rows])
-        ema, _ = mean_sd([x["ema_min"] for x in rows])
-        tail, _ = mean_sd([x["tail10_mean"] for x in rows])
+        best, sd_best = mean_sd([x["best_val"] for x in rows])
+        ema, sd_ema = mean_sd([x["ema_min"] for x in rows])
+        tail, sd_tail = mean_sd([x["tail10_mean"] for x in rows])
         em, sd = mean_sd([x["engine_mean_rmse"] for x in rows])
         out[key] = dict(n=len(rows), mean=em, sd=sd, best=best, ema=ema, tail=tail,
+                        sd_best=sd_best, sd_ema=sd_ema, sd_tail=sd_tail,
                         rows={x["seed"]: x for x in rows})
     return out
 
@@ -696,17 +697,24 @@ def build_screen(seed_rows: list[dict[str, Any]],
     screen, while matched seeds get a paired half-width computed from the observed
     spread of the differences and the number of PAIRS.
     """
-    def verdict(deltas: list[float], threshold: float) -> str:
-        if any(math.isnan(d) for d in deltas) or math.isnan(threshold):
+    def verdict(deltas: list[float], thresholds: list[float]) -> str:
+        """Each reading is compared with its OWN half-width.
+
+        Using the best-checkpoint half-width for the tail10 difference is what
+        made M3B read as 'better': the tail delta was large but its own paired
+        spread was larger still.  A reading only counts as beyond the threshold
+        when it exceeds the width measured for that same reading.
+        """
+        if any(math.isnan(d) for d in deltas) or any(math.isnan(t) for t in thresholds):
             return "n/a"
         signs = {d > 0 for d in deltas if abs(d) >= 0.01}
         if len(signs) > 1:
             return "undetermined (metrics disagree)"
         if not signs:
             return "indistinguishable (flat)"
-        if max(abs(d) for d in deltas) < threshold:
-            return "indistinguishable"
-        return "worse" if True in signs else "better"
+        if all(abs(d) > t for d, t in zip(deltas, thresholds)):
+            return "worse" if True in signs else "better"
+        return "indistinguishable"
 
     def decide(v: str, n_evidence: int) -> tuple[str, str]:
         """Map a verdict to a decision, with the promotion floor enforced here.
@@ -754,7 +762,10 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 base = stats.get(baseline_module, {}).get(key)
             if base is None or base["n"] < 1:
                 continue
-            single_thr = 2.0 * math.sqrt(2.0) * base["sd"] if base["n"] > 1 else float("nan")
+            k = 2.0 * math.sqrt(2.0)
+            thr3 = ([k * base["sd_best"], k * base["sd_ema"], k * base["sd_tail"]]
+                    if base["n"] > 1 else [float("nan")] * 3)
+            single_thr = thr3[0]
             for seed, row in sorted(mine["rows"].items()):
                 # Prefer the parent run on the SAME seed: seed difficulty spans
                 # 11.05-13.96 on B0, so comparing a single run to the parent's
@@ -769,7 +780,7 @@ def build_screen(seed_rows: list[dict[str, Any]],
                     d = [row["best_val"] - base["best"], row["ema_min"] - base["ema"],
                          row["tail10_mean"] - base["tail"]]
                     cmp_kind = "vs parent mean"
-                v = verdict(d, single_thr)
+                v = verdict(d, thr3)
                 dec, why = decide(v, base["n"])
                 out.append(dict(
                     arm=mod, baseline=used_parent, subset=subset, seed=seed, budget=budget,
@@ -791,31 +802,23 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 dt = [mine["rows"][s]["tail10_mean"] - base["rows"][s]["tail10_mean"]
                       for s in shared]
                 st = paired_stats(db)
-                half = (t975(len(shared) - 1) * st["sd"] / math.sqrt(len(shared))
-                        if len(shared) > 1 else float("nan"))
+                tf = t975(len(shared) - 1) / math.sqrt(len(shared))
+                half3 = [tf * paired_stats(x)["sd"] for x in (db, de, dt)]
+                half = half3[0]
                 mean_d = [st["mean"], float(np.mean(de)), float(np.mean(dt))]
-                v = verdict(mean_d, half)
+                v = verdict(mean_d, half3)
                 dec, why = decide(v, len(shared))
                 # A paired interval from one or two pairs has df=1, where t=12.7:
-                # it is so wide that it cannot rule anything out.  Failing to
-                # detect a difference there is not evidence of no difference, so
-                # the row is held rather than eliminated -- unless the seeds
-                # themselves disagree in sign, which is a replication failure and
-                # a legitimate reason to stop.
-                signs = {x > 0 for x in db}
-                if dec == "eliminate" and len(shared) < 3 and v == "indistinguishable":
-                    if len(signs) > 1:
-                        favour = sum(1 for x in db if x < 0)
-                        dec = "eliminate"
-                        why = (f"direction disagrees across seeds ({favour}/{len(db)} favour "
-                               "the module): the single-seed effect did not replicate")
-                    else:
-                        dec, why = "hold", (f"only {len(shared)} pair(s): interval +/-{half:.2f} "
-                                            "is too wide to eliminate")
-                if v == "indistinguishable" and len(signs) > 1 and dec != "eliminate":
-                    dec = "eliminate"
-                    why = (f"direction disagrees across seeds "
-                           f"({sum(1 for x in db if x < 0)}/{len(db)} favour the module)")
+                # it is so wide that it rules nothing out.  Too little data is not
+                # a result, so neither promote nor eliminate is allowed -- the row
+                # is held, and the reason says why it has no resolution.
+                if len(shared) < 3 and v in ("indistinguishable", "undetermined (metrics disagree)"):
+                    dec, why = "hold", (f"only {len(shared)} pair(s): half-widths "
+                                        f"{half3[0]:.2f}/{half3[1]:.2f}/{half3[2]:.2f} "
+                                        "are too wide to promote or eliminate")
+                if v == "indistinguishable" and len({x > 0 for x in db}) > 1:
+                    why += (f"; direction disagrees across seeds "
+                            f"({sum(1 for x in db if x < 0)}/{len(db)} favour the module)")
                 capped = [s for s in shared if mine["rows"][s].get("converged") == "no"]
                 if capped:
                     why += (f"; {len(capped)}/{len(shared)} seed(s) hit the budget "
