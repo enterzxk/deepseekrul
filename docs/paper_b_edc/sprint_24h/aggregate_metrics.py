@@ -95,10 +95,6 @@ DEFAULT_ROOTS = [
 ]
 RUN_RE = re.compile(r"^HC-D-(?P<arm>.+)-(?P<subset>FD00[1-4])-s(?P<seed>\d+)-D1$")
 
-# The ledger calls the 40-epoch root "formal"; on disk it is ``d``.  Normalise
-# so a run is not counted twice under two names.
-ROOT_ALIASES = {"d": "formal"}
-
 # display names: arm -> module label.  Longest key wins, so "M2B" is matched
 # before any shorter arm that happens to be a prefix.
 MODULE_LABELS = {
@@ -275,8 +271,10 @@ def classify(row: dict[str, Any]) -> str:
     """Decide whether a finished-looking directory is evidence.
 
     Order matters: a smoke override is never evidence even though its budget
-    was met, and a zero-parameter arm is legitimate even though it ran one
-    epoch.
+    was met; a zero-parameter arm is legitimate even though it ran one epoch;
+    and a one-epoch probe without an override is still a probe -- the
+    ``budget_override`` guard alone does not catch it, because a probe launched
+    by hand with ``--seed 999`` has no override at all.
     """
     if row.get("budget_override"):
         return "smoke_override"
@@ -287,6 +285,8 @@ def classify(row: dict[str, Any]) -> str:
     patience = row.get("budget_patience") or 0
     if be is None or er is None:
         return "unknown"
+    if er <= 1 and (budget is None or budget < 40):
+        return "one_epoch_probe"
     if budget is not None and er >= budget:
         return "complete"
     if patience and (er - be) >= patience:
@@ -323,7 +323,6 @@ def parse_run_id(name: str) -> dict[str, Any] | None:
 def discover(root: str, pattern: str) -> list[dict[str, Any]]:
     root = os.path.expanduser(root)
     label = os.path.basename(root.rstrip("/"))
-    label = ROOT_ALIASES.get(label, label)
     found = []
     if not os.path.isdir(root):
         return found
@@ -538,6 +537,7 @@ def main(argv: list[str] | None = None) -> int:
     # ---- build the work list: ledger first, then unlisted disk runs -------- #
     work: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
+    noncanon: list[dict[str, str]] = []
 
     if args.run_list:
         for rec in load_ledger(args.run_list):
@@ -546,7 +546,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             info = parse_run_id(rid)
             if info is None:
-                print(f"WARN: ledger row is not a run id: {rid}", file=sys.stderr)
+                # not silently dropped: a hand-named directory can hold a real
+                # number that nobody should ever aggregate under a formal arm
+                noncanon.append(rec)
                 continue
             root = (rec.get("root") or "formal").strip()
             run_dir = (rec.get("run_dir") or "").strip()
@@ -594,8 +596,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         run_dir = w.get("run_dir")
         if not run_dir or not os.path.isdir(run_dir):
-            seed_rows.append({**base_row, "status": "missing",
-                              "status_detail": "missing", "run_dir": run_dir})
+            # a queued/running cell has no directory yet; say so instead of
+            # calling it missing
+            pending = (w.get("ledger_status") or "").lower()
+            status = pending if pending in ("running", "queued") else "missing"
+            seed_rows.append({**base_row, "status": status,
+                              "status_detail": status, "run_dir": run_dir})
             continue
         metrics_path = os.path.join(run_dir, "metrics.json")
         preds_path = os.path.join(run_dir, "preds.csv")
@@ -636,6 +642,53 @@ def main(argv: list[str] | None = None) -> int:
                 f"(delta {row['delta_vs_reported']:.3e})")
 
     # ---- module x subset x budget ---------------------------------------- #
+    for rec in noncanon:
+        seed_rows.append(dict(
+            run_id=(rec.get("run_id") or "").strip(),
+            root=(rec.get("root") or "").strip(),
+            module=module_of((rec.get("arm") or "").strip()),
+            arm=(rec.get("arm") or "").strip(),
+            subset=(rec.get("subset") or "").strip(),
+            seed=(rec.get("seed") or "").strip(),
+            in_ledger="yes", usable=(rec.get("usable") or "").strip().lower(),
+            status="non_canonical_id", status_detail="non_canonical_id",
+            run_dir=(rec.get("run_dir") or "").strip(),
+            reported_engine_mean_rmse=rec.get("val_engine_mean_rmse"),
+        ))
+
+    # ---- one number per cell ---------------------------------------------- #
+    # A cell is (module, subset, seed, budget).  Two directories can claim the
+    # same cell: a copied run (identical artifacts) or two genuinely different
+    # trainings that collided on a run id.  The first is a duplicate to drop,
+    # the second is a conflict where neither number can be trusted -- silently
+    # averaging them would be the worst option.
+    ROOT_PREF = {"d": 0, "d80": 1, "d/probe80": 2, "probe80": 3}
+    cells: dict[tuple, list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable":
+            continue
+        cells.setdefault(
+            (r["module"], r["subset"], r["seed"], r.get("budget_epochs")), []).append(r)
+    for _key, rows in cells.items():
+        if len(rows) < 2:
+            continue
+        vals = {round(float(r["engine_mean_rmse"]), 12) for r in rows}
+        if len(vals) == 1:
+            rows.sort(key=lambda r: (ROOT_PREF.get(r["root"], 9),
+                                     str(r.get("created_utc") or "")))
+            keep = rows[0]
+            for r in rows[1:]:
+                r["status"] = "duplicate_cell"
+                r["status_detail"] = (
+                    f"duplicate_cell: same artifacts as {keep['root']}/{keep['run_id']}")
+        else:
+            for r in rows:
+                r["status"] = "cell_conflict"
+                r["status_detail"] = (
+                    "cell_conflict: same (module,subset,seed,budget) with different results")
+    live = {(r["root"], r["run_id"]) for r in seed_rows if r.get("status") == "usable"}
+    per_engine = [e for e in per_engine if (e["root"], e["run_id"]) in live]
+
     groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
     for row in seed_rows:
         if row.get("status") != "usable":
@@ -752,6 +805,10 @@ def main(argv: list[str] | None = None) -> int:
         "| `n/a_by_design` | zero trainable parameters (AGE) | yes |",
         "| `interrupted` | stopped early without patience firing | no |",
         "| `smoke_override` | `budget_override` set (smoke run) | no |",
+        "| `one_epoch_probe` | `epochs_run <= 1` and budget < 40, no override | no |",
+        "| `non_canonical_id` | run id is not `HC-D-{arm}-{subset}-s{seed}-D1` | no |",
+        "| `duplicate_cell` | same cell as another root, identical artifacts (a copy) | no, counted once |",
+        "| `cell_conflict` | same cell, different results (cannot tell which is right) | no, both dropped |",
         "| `unusable` | ledger marks `usable=no` | no |",
         "",
         "## Paired vs " + args.paired_baseline + " (same seed, same engines)",
