@@ -27,19 +27,41 @@ Frozen definitions (source of truth: ``paper_b/training/metrics.py`` and
 asserted against the run's own ``y_cap`` column so a silently different cap
 cannot pass unnoticed.
 
+Run identity
+------------
+``run_id`` is NOT unique: the 80-epoch probes live in a second root
+(``probe80/``) and reuse the formal run ids.  Identity is therefore
+``(root, run_id)``, and every aggregation keeps the root.
+
+Usable runs only
+----------------
+A directory can exist and still not be evidence.  Three cases are excluded from
+``MODULE_RESULTS`` and kept in ``SEED_RESULTS`` with a status:
+
+* ``smoke_override`` -- ``budget_override`` is set (a 1-epoch smoke that landed
+  in the formal root under a formal run id);
+* ``interrupted``    -- training stopped before the budget without patience
+  firing (``epochs_run - best_ep < patience`` and ``epochs_run < budget``);
+* ``unusable``       -- the ledger says ``usable=no``.
+
+``n/a_by_design`` (AGE: zero trainable parameters) and ``early_stopped``
+(patience fired) are legitimate and DO enter the aggregation.
+
 Usage
 -----
-    python aggregate_metrics.py --runs-root ~/sprint24/experiments/hc/d \
-                                --out-dir docs/paper_b_edc/sprint_24h
+    python aggregate_metrics.py --out-dir docs/paper_b_edc/sprint_24h
 
     # align against the experiment owner's ledger (single source of truth):
-    python aggregate_metrics.py ... --run-list docs/paper_b_edc/sprint_24h/RUN_QUEUE.csv
+    python aggregate_metrics.py --run-list .../RUN_QUEUE.csv \
+        --runs-root ~/sprint24/experiments/hc/d \
+        --runs-root ~/sprint24/experiments/hc/d80 \
+        --runs-root ~/sprint24/experiments/hc/d/probe80
 
 Outputs
 -------
-``SEED_RESULTS.csv``    one row per (module, subset, seed)
-``MODULE_RESULTS.csv``  one row per (module, subset), seed mean/sd
-``PER_ENGINE.csv``      one row per (run_id, engine_id) -- paired analysis
+``SEED_RESULTS.csv``    one row per (root, module, subset, seed)
+``MODULE_RESULTS.csv``  one row per (module, subset, budget), seed mean/sd
+``PER_ENGINE.csv``      one row per (run, engine) -- paired analysis
 ``METRIC_AUDIT.md``     the 口径 check: recomputed vs reported, per run
 
 Exit code is non-zero if any run's recomputed main metric disagrees with its
@@ -66,45 +88,46 @@ import numpy as np
 # --------------------------------------------------------------------------- #
 DEFAULT_CAP = 125.0          # rul_cap of the frozen protocol
 DEFAULT_GLOB = "HC-D-*-D1"
+DEFAULT_ROOTS = [
+    "~/sprint24/experiments/hc/d",
+    "~/sprint24/experiments/hc/d80",
+    "~/sprint24/experiments/hc/d/probe80",
+]
 RUN_RE = re.compile(r"^HC-D-(?P<arm>.+)-(?P<subset>FD00[1-4])-s(?P<seed>\d+)-D1$")
 
-# display names: arm -> (module label, one-line description)
+# The ledger calls the 40-epoch root "formal"; on disk it is ``d``.  Normalise
+# so a run is not counted twice under two names.
+ROOT_ALIASES = {"d": "formal"}
+
+# display names: arm -> module label.  Longest key wins, so "M2B" is matched
+# before any shorter arm that happens to be a prefix.
 MODULE_LABELS = {
-    "B0": ("B0_direct_rul", "direct RUL regression (Stage D baseline)"),
-    "B1": ("B1_HI_fixed", "structured HI auxiliary supervision"),
-    "B2": ("B2_HI_fixed_rate", "structured HI + fixed future rate"),
-    "B3": ("B3_HI_var_rate", "structured HI + variable future rate"),
-    "AGE": ("AGE_age_only", "age prior only, no trainable parameters"),
-    "AAR": ("AAR_age_residual", "M1-B: age prior + zero-init sensor residual"),
-    "M2A": ("M2_CDE_A", "CDE raw three-channel"),
-    "M2B": ("M2_CDE_B", "CDE + condition-matched trend"),
-    "M2C": ("M2_CDE_C", "CDE + trend + persistence"),
-    "M2D": ("M2_CDE_D", "CDE + trend + evidence confidence"),
-    "M3A": ("M3_ADC_A", "Stage D damage increment"),
-    "M3B": ("M3_ADC_B", "age-anchored increment"),
-    "M3C": ("M3_ADC_C", "age-anchored + same-age ranking"),
-    "M3D": ("M3_ADC_D", "age-anchored + ranking + CDE"),
-    "M4A": ("M4_CSR_A", "learned sensor pooling"),
-    "M4B": ("M4_CSR_B", "original sensor attention"),
-    "M4C": ("M4_CSR_C", "condition-aware pooling"),
-    "M4D": ("M4_CSR_D", "condition + evidence reliability pooling"),
-    "M5A": ("M5_DPC_A", "no DPC"),
-    "M5B": ("M5_DPC_B", "single-span prediction"),
-    "M5C": ("M5_DPC_C", "multi-span prediction"),
-    "M5D": ("M5_DPC_D", "condition-matched multi-span"),
-    "M6A": ("M6_EFR_A", "fixed future rate"),
-    "M6B": ("M6_EFR_B", "free variable rate"),
-    "M6C": ("M6_EFR_C", "age prior + fixed evidence correction"),
-    "M6D": ("M6_EFR_D", "age prior + adaptive evidence correction"),
-    "M6E": ("M6_EFR_E", "isoparametric cycle-concat control"),
-    "M7A": ("M7_SCR_A", "Stage D original"),
-    "M7B": ("M7_SCR_B", "Stage D + SCR"),
-    "M7C": ("M7_SCR_C", "ADC + SCR"),
+    "B0": "B0_direct_rul",
+    "B1": "B1_HI_fixed",
+    "B2": "B2_HI_fixed_rate",
+    "B3": "B3_HI_var_rate",
+    "AGE": "AGE_age_only",
+    "AAR": "AAR_age_residual",
+}
+MODULE_DESC = {
+    "B0_direct_rul": "direct RUL regression (Stage D baseline)",
+    "B1_HI_fixed": "structured HI auxiliary supervision",
+    "B2_HI_fixed_rate": "structured HI + fixed future rate",
+    "B3_HI_var_rate": "structured HI + variable future rate",
+    "AGE_age_only": "age prior only, no trainable parameters",
+    "AAR_age_residual": "M1-B: age prior + zero-init sensor residual",
 }
 
 
-def module_of(arm: str) -> tuple[str, str]:
-    return MODULE_LABELS.get(arm, (arm, ""))
+def module_of(arm: str) -> str:
+    """Map an arm name to its module label; unknown arms pass through as-is."""
+    if arm in MODULE_LABELS:
+        return MODULE_LABELS[arm]
+    # fall back to a prefix match so M2A/M2B/... land under one module family
+    for key in sorted(MODULE_LABELS, key=len, reverse=True):
+        if arm.startswith(key):
+            return MODULE_LABELS[key]
+    return arm
 
 
 # --------------------------------------------------------------------------- #
@@ -162,11 +185,9 @@ def read_preds(path: str) -> dict[str, np.ndarray]:
 
 def score_run(run_dir: str, cap: float) -> dict[str, Any]:
     """Recompute every metric of one run from its predictions."""
-    metrics_path = os.path.join(run_dir, "metrics.json")
-    preds_path = os.path.join(run_dir, "preds.csv")
-    with open(metrics_path) as fh:
+    with open(os.path.join(run_dir, "metrics.json")) as fh:
         meta = json.load(fh)
-    a = read_preds(preds_path)
+    a = read_preds(os.path.join(run_dir, "preds.csv"))
 
     eng, cuts = a["engine_id"], a["cut"]
     y_raw, y_pred = a["y_raw"], a["y_pred"]
@@ -232,11 +253,9 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
         ),
         best_ep=best_ep,
         epochs_run=epochs_run,
-        budget_limited=(
-            bool(best_ep is not None and epochs_run is not None and best_ep >= epochs_run)
-        ),
         budget_epochs=budget.get("epochs"),
         budget_patience=budget.get("patience"),
+        budget_override=meta.get("budget_override"),
         lr=budget.get("lr"),
         params_trainable=params.get("trainable"),
         params_backbone=params.get("backbone"),
@@ -247,16 +266,39 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
         frozen_sha256=meta.get("frozen_sha256"),
         l_mean=meta.get("l_mean"),
     )
-    row["_per_engine"] = per_engine_rows(eng, ys, clipped, run_dir)
+    row["status_detail"] = classify(row)
+    row["_per_engine"] = per_engine_rows(eng, ys, clipped)
     return row
 
 
-def per_engine_rows(eng, ys, clipped, run_dir) -> list[dict[str, Any]]:
+def classify(row: dict[str, Any]) -> str:
+    """Decide whether a finished-looking directory is evidence.
+
+    Order matters: a smoke override is never evidence even though its budget
+    was met, and a zero-parameter arm is legitimate even though it ran one
+    epoch.
+    """
+    if row.get("budget_override"):
+        return "smoke_override"
+    if row.get("params_trainable") == 0:
+        return "n/a_by_design"
+    be, er = row.get("best_ep"), row.get("epochs_run")
+    budget = row.get("budget_epochs")
+    patience = row.get("budget_patience") or 0
+    if be is None or er is None:
+        return "unknown"
+    if budget is not None and er >= budget:
+        return "complete"
+    if patience and (er - be) >= patience:
+        return "early_stopped"
+    return "interrupted"
+
+
+def per_engine_rows(eng, ys, clipped) -> list[dict[str, Any]]:
     out = []
     for u in np.unique(eng):
         m = eng == u
         out.append(dict(
-            run_dir=run_dir,
             engine_id=int(u),
             n=int(m.sum()),
             rmse=rmse(clipped[m], ys[m]),
@@ -269,7 +311,7 @@ def per_engine_rows(eng, ys, clipped, run_dir) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
-# discovery
+# discovery / ledger
 # --------------------------------------------------------------------------- #
 def parse_run_id(name: str) -> dict[str, Any] | None:
     m = RUN_RE.match(name)
@@ -278,37 +320,37 @@ def parse_run_id(name: str) -> dict[str, Any] | None:
     return dict(arm=m.group("arm"), subset=m.group("subset"), seed=int(m.group("seed")))
 
 
-def discover(runs_root: str, pattern: str) -> list[dict[str, Any]]:
+def discover(root: str, pattern: str) -> list[dict[str, Any]]:
+    root = os.path.expanduser(root)
+    label = os.path.basename(root.rstrip("/"))
+    label = ROOT_ALIASES.get(label, label)
     found = []
-    for name in sorted(os.listdir(runs_root)):
-        path = os.path.join(runs_root, name)
-        if not os.path.isdir(path):
-            continue
-        if not re.match(re.escape(pattern).replace(r"\*", ".*"), name):
+    if not os.path.isdir(root):
+        return found
+    rx = re.compile("^" + re.escape(pattern).replace(r"\*", ".*") + "$")
+    for name in sorted(os.listdir(root)):
+        path = os.path.join(root, name)
+        if not os.path.isdir(path) or not rx.match(name):
             continue
         info = parse_run_id(name)
         if info is None:
             continue
-        info["run_id"] = name
-        info["run_dir"] = path
+        info.update(run_id=name, run_dir=path, root=label, in_ledger="no")
         found.append(info)
     return found
 
 
-def load_run_list(path: str) -> dict[str, dict[str, str]]:
+def load_ledger(path: str) -> list[dict[str, str]]:
     with open(path, newline="") as fh:
-        rows = list(csv.DictReader(fh))
-    if not rows:
-        return {}
-    key = "run_id" if "run_id" in rows[0] else list(rows[0])[0]
-    return {r[key].strip(): r for r in rows if r.get(key)}
+        return list(csv.DictReader(fh))
 
 
 # --------------------------------------------------------------------------- #
-# aggregation
+# aggregation helpers
 # --------------------------------------------------------------------------- #
 def mean_sd(vals: list[float]) -> tuple[float, float]:
-    clean = [v for v in vals if v is not None and not (isinstance(v, float) and math.isnan(v))]
+    clean = [v for v in vals
+             if v is not None and not (isinstance(v, float) and math.isnan(v))]
     if not clean:
         return float("nan"), float("nan")
     if len(clean) == 1:
@@ -325,7 +367,8 @@ def write_csv(path: str, rows: list[dict[str, Any]], columns: list[str]) -> None
 
 
 SEED_COLUMNS = [
-    "run_id", "module", "arm", "subset", "seed", "status",
+    "run_id", "root", "module", "arm", "subset", "seed", "status", "status_detail",
+    "in_ledger", "usable",
     "n_points", "n_engines", "n_cuts",
     "engine_mean_rmse", "pooled_rmse", "nasa_sum", "nasa_mean", "mae", "bias",
     "late_frac", "severe_late", "max_late",
@@ -334,160 +377,320 @@ SEED_COLUMNS = [
     "seg_rmse_0", "seg_rmse_1", "seg_rmse_2", "seg_rmse_3", "seg_rmse_4",
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
-    "best_ep", "epochs_run", "budget_limited", "budget_epochs", "budget_patience", "lr",
-    "params_trainable", "params_backbone", "elapsed_s", "created_utc",
+    "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override",
+    "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
-    "preds_path", "in_ledger",
+    "run_dir", "preds_path",
 ]
 
 MODULE_COLUMNS = [
-    "module", "arm", "subset", "n_seeds", "seeds",
+    "module", "arm", "subset", "budget_epochs", "roots", "n_seeds", "seeds",
     "engine_mean_rmse_mean", "engine_mean_rmse_sd", "engine_mean_rmse_min",
     "engine_mean_rmse_max", "engine_mean_rmse_cv_pct",
-    "nasa_mean_mean", "mae_mean", "bias_mean",
+    "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
-    "budget_limited_any", "best_ep_max", "epochs_run_max",
-    "params_trainable", "status", "description",
+    "status_mix", "best_ep_max", "epochs_run_max",
+    "params_trainable", "description",
 ]
+
+USABLE = {"complete", "early_stopped", "n/a_by_design"}
+
+# two-sided 95% t quantiles for small df; 1.96 (normal) beyond the table
+T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
+        7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179,
+        13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101,
+        19: 2.093, 20: 2.086, 21: 2.080, 22: 2.074, 23: 2.069, 24: 2.064,
+        25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
+
+
+def t975(df: int) -> float:
+    return T975.get(df, 1.96)
+
+
+def paired_stats(diffs: list[float]) -> dict[str, Any]:
+    """Mean paired difference with its SE, t, and 95% CI."""
+    n = len(diffs)
+    if n == 0:
+        return dict(n=0, mean=float("nan"), sd=float("nan"), se=float("nan"),
+                    t=float("nan"), ci_lo=float("nan"), ci_hi=float("nan"))
+    mean = float(statistics.mean(diffs))
+    if n == 1:
+        return dict(n=1, mean=mean, sd=0.0, se=float("nan"),
+                    t=float("nan"), ci_lo=float("nan"), ci_hi=float("nan"))
+    sd = float(statistics.stdev(diffs))
+    se = sd / math.sqrt(n)
+    t = mean / se if se else float("nan")
+    half = t975(n - 1) * se
+    return dict(n=n, mean=mean, sd=sd, se=se, t=t,
+                ci_lo=mean - half, ci_hi=mean + half)
+
+
+def build_paired(seed_rows: list[dict[str, Any]],
+                 per_engine: list[dict[str, Any]],
+                 baseline_module: str) -> list[dict[str, Any]]:
+    """Same-seed, same-engine paired comparison against the baseline arm.
+
+    The unpaired SE answers "how noisy is this quantity"; the paired SE answers
+    "is the difference stable when seed difficulty cancels".  Both are needed,
+    and with three seeds only the engine-level pairing has usable degrees of
+    freedom.
+    """
+    by_run: dict[tuple[str, str], dict[int, float]] = {}
+    meta: dict[tuple[str, str], dict[str, Any]] = {}
+    for e in per_engine:
+        key = (e["root"], e["run_id"])
+        by_run.setdefault(key, {})[e["engine_id"]] = e["rmse"]
+    for r in seed_rows:
+        if r.get("status") != "usable":
+            continue
+        meta[(r["root"], r["run_id"])] = dict(
+            module=r["module"], subset=r["subset"], seed=r["seed"],
+            root=r["root"],
+            budget=r.get("budget_epochs"),
+            em=r["engine_mean_rmse"])
+
+    # index the baseline by (subset, budget, seed)
+    base_idx: dict[tuple[str, Any, int], tuple[str, str]] = {}
+    for key, m in meta.items():
+        if m["module"] == baseline_module:
+            base_idx[(m["subset"], m["budget"], m["seed"])] = key
+
+    out: list[dict[str, Any]] = []
+    for key, m in meta.items():
+        if m["module"] == baseline_module:
+            continue
+        bkey = base_idx.get((m["subset"], m["budget"], m["seed"]))
+        if bkey is None or bkey not in by_run or key not in by_run:
+            continue
+        mine, theirs = by_run[key], by_run[bkey]
+        common = sorted(set(mine) & set(theirs))
+        if not common:
+            continue
+        diffs = [mine[i] - theirs[i] for i in common]
+        st = paired_stats(diffs)
+        b0_em = meta[bkey]["em"]
+        out.append(dict(
+            module=m["module"], subset=m["subset"], budget_epochs=m["budget"],
+            seed=m["seed"], root=m["root"],
+            n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
+            se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
+            module_em=m["em"], b0_em=b0_em,
+            pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
+            verdict=("worse" if st["mean"] > 0 else "better"),
+            significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
+                                   and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
+        ))
+    return sorted(out, key=lambda r: (r["module"], r["subset"], str(r["budget_epochs"]), r["seed"]))
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--runs-root", default=os.path.expanduser("~/sprint24/experiments/hc/d"))
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--runs-root", action="append", default=None,
+                    help="run root; repeatable (default: the three sprint roots)")
+    ap.add_argument("--base", default="~/sprint24",
+                    help="base dir that ledger run_dir paths are relative to")
     ap.add_argument("--out-dir", default=".")
     ap.add_argument("--run-list", default=None,
-                    help="ledger CSV with a run_id column; marks missing/unlisted runs")
+                    help="ledger CSV (RUN_QUEUE.csv); authoritative run list")
     ap.add_argument("--glob", default=DEFAULT_GLOB, help="run dir name pattern")
     ap.add_argument("--cap", type=float, default=DEFAULT_CAP, help="frozen RUL cap")
     ap.add_argument("--tol", type=float, default=1e-6,
                     help="tolerance for recomputed vs reported main metric")
+    ap.add_argument("--no-unlisted", action="store_true",
+                    help="ignore runs found on disk but absent from the ledger")
+    ap.add_argument("--paired-baseline", default="B0_direct_rul",
+                    help="module used as the paired baseline (default B0)")
     args = ap.parse_args(argv)
 
-    runs = discover(args.runs_root, args.glob)
-    ledger = load_run_list(args.run_list) if args.run_list else None
-    if ledger is not None:
-        known = {r["run_id"] for r in runs}
-        for rid, rec in ledger.items():
-            if rid not in known:
-                info = parse_run_id(rid)
-                if info:
-                    runs.append(dict(run_id=rid, run_dir=None, **info))
+    roots = [os.path.expanduser(r) for r in (args.runs_root or DEFAULT_ROOTS)]
+    base = os.path.expanduser(args.base)
 
+    # ---- build the work list: ledger first, then unlisted disk runs -------- #
+    work: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+
+    if args.run_list:
+        for rec in load_ledger(args.run_list):
+            rid = (rec.get("run_id") or "").strip()
+            if not rid:
+                continue
+            info = parse_run_id(rid)
+            if info is None:
+                print(f"WARN: ledger row is not a run id: {rid}", file=sys.stderr)
+                continue
+            root = (rec.get("root") or "formal").strip()
+            run_dir = (rec.get("run_dir") or "").strip()
+            run_dir = os.path.join(base, run_dir) if run_dir else None
+            if run_dir is None or not os.path.isdir(run_dir):
+                run_dir = None
+                for r in roots:
+                    cand = os.path.join(r, rid)
+                    if os.path.isdir(cand):
+                        run_dir = cand
+                        break
+            work.append(dict(
+                run_id=rid, run_dir=run_dir, root=root, in_ledger="yes",
+                ledger_usable=(rec.get("usable") or "yes").strip().lower(),
+                ledger_status=(rec.get("status") or "").strip(), **info))
+            seen.add((root, rid))
+
+    if not args.no_unlisted:
+        # Identity is the directory, not the run id: probe80/ reuses formal run
+        # ids, so a run_id-only dedup would either drop or double-count runs.
+        ledger_dirs = {os.path.realpath(w["run_dir"])
+                       for w in work if w.get("run_dir")}
+        for r in roots:
+            for info in discover(r, args.glob):
+                if os.path.realpath(info["run_dir"]) in ledger_dirs:
+                    continue
+                if (info["root"], info["run_id"]) in seen:
+                    continue
+                info["ledger_usable"] = None
+                info["ledger_status"] = ""
+                work.append(info)
+                seen.add((info["root"], info["run_id"]))
+
+    # ---- score ------------------------------------------------------------ #
     seed_rows: list[dict[str, Any]] = []
     per_engine: list[dict[str, Any]] = []
     problems: list[str] = []
 
-    for r in runs:
-        rid = r["run_id"]
-        module, desc = module_of(r["arm"])
-        base = dict(
-            run_id=rid, module=module, arm=r["arm"], subset=r["subset"],
-            seed=r["seed"], description=desc,
-            in_ledger=("yes" if (ledger is not None and rid in ledger) else
-                       ("no" if ledger is not None else "n/a")),
+    for w in work:
+        module = module_of(w["arm"])
+        base_row = dict(
+            run_id=w["run_id"], root=w["root"], module=module, arm=w["arm"],
+            subset=w["subset"], seed=w["seed"], in_ledger=w["in_ledger"],
+            usable=("" if w["ledger_usable"] is None else w["ledger_usable"]),
         )
-        if not r["run_dir"] or not os.path.isdir(r["run_dir"]):
-            seed_rows.append({**base, "status": "missing"})
+        run_dir = w.get("run_dir")
+        if not run_dir or not os.path.isdir(run_dir):
+            seed_rows.append({**base_row, "status": "missing",
+                              "status_detail": "missing", "run_dir": run_dir})
             continue
-        metrics_path = os.path.join(r["run_dir"], "metrics.json")
-        preds_path = os.path.join(r["run_dir"], "preds.csv")
-        if not os.path.exists(preds_path):
-            seed_rows.append({**base, "status": "no_preds",
-                              "preds_path": preds_path})
-            continue
+        metrics_path = os.path.join(run_dir, "metrics.json")
+        preds_path = os.path.join(run_dir, "preds.csv")
         if not os.path.exists(metrics_path):
-            seed_rows.append({**base, "status": "no_metrics",
-                              "preds_path": preds_path})
+            seed_rows.append({**base_row, "status": "no_metrics",
+                              "status_detail": "no_metrics", "run_dir": run_dir})
+            continue
+        if not os.path.exists(preds_path):
+            seed_rows.append({**base_row, "status": "no_preds",
+                              "status_detail": "no_preds", "run_dir": run_dir})
             continue
         try:
-            row = score_run(r["run_dir"], args.cap)
+            row = score_run(run_dir, args.cap)
         except Exception as exc:                     # noqa: BLE001 - report, do not abort
-            problems.append(f"{rid}: {exc}")
-            seed_rows.append({**base, "status": f"error: {exc}", "preds_path": preds_path})
+            problems.append(f"{w['root']}/{w['run_id']}: {exc}")
+            seed_rows.append({**base_row, "status": f"error",
+                              "status_detail": f"error: {exc}", "run_dir": run_dir})
             continue
+
+        detail = row.pop("status_detail")
+        # the ledger's usable flag wins over the local heuristic
+        if w["ledger_usable"] == "no":
+            status = "unusable"
+        else:
+            status = "usable" if detail in USABLE else "excluded"
         pe = row.pop("_per_engine")
         for e in pe:
-            per_engine.append({**e, "run_id": rid, "module": module,
-                               "subset": r["subset"], "seed": r["seed"]})
-        seed_rows.append({**base, **row, "status": "done", "preds_path": preds_path})
+            per_engine.append({**e, "run_id": w["run_id"], "root": w["root"],
+                               "module": module, "subset": w["subset"],
+                               "seed": w["seed"], "budget_epochs": row.get("budget_epochs")})
+        seed_rows.append({**base_row, **row, "status": status,
+                          "status_detail": detail,
+                          "run_dir": run_dir, "preds_path": preds_path})
         if not math.isnan(row["delta_vs_reported"]) and abs(row["delta_vs_reported"]) > args.tol:
             problems.append(
-                f"{rid}: recomputed engine_mean_rmse={row['engine_mean_rmse']:.9f} vs "
-                f"reported={row['reported_engine_mean_rmse']:.9f} "
-                f"(delta {row['delta_vs_reported']:.3e})"
-            )
+                f"{w['root']}/{w['run_id']}: recomputed {row['engine_mean_rmse']:.9f} vs "
+                f"reported {row['reported_engine_mean_rmse']:.9f} "
+                f"(delta {row['delta_vs_reported']:.3e})")
 
-    # ---- module x subset aggregation -------------------------------------- #
-    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    # ---- module x subset x budget ---------------------------------------- #
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
     for row in seed_rows:
-        if row.get("status") != "done":
+        if row.get("status") != "usable":
             continue
-        groups.setdefault((row["module"], row["subset"]), []).append(row)
+        groups.setdefault(
+            (row["module"], row["subset"], row.get("budget_epochs")), []).append(row)
 
-    baseline: dict[str, float] = {}
-    for (mod, subset), rows in groups.items():
+    baseline: dict[tuple[str, Any], float] = {}
+    for (mod, subset, budget), rows in groups.items():
         if mod == "B0_direct_rul":
             v, _ = mean_sd([x["engine_mean_rmse"] for x in rows])
-            baseline[subset] = v
+            baseline[(subset, budget)] = v
 
     module_rows: list[dict[str, Any]] = []
-    for (mod, subset), rows in sorted(groups.items()):
+    for (mod, subset, budget), rows in sorted(
+            groups.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2]))):
         vals = [x["engine_mean_rmse"] for x in rows]
         mean, sd = mean_sd(vals)
         nasa_mean, _ = mean_sd([x["nasa_mean"] for x in rows])
+        nasa_sum, _ = mean_sd([x["nasa_sum"] for x in rows])
         mae_mean, _ = mean_sd([x["mae"] for x in rows])
         bias_mean, _ = mean_sd([x["bias"] for x in rows])
         unc_mean, _ = mean_sd([x["rmse_uncensored"] for x in rows])
         capped_mean, _ = mean_sd([x["frac_capped"] for x in rows])
-        b0 = baseline.get(subset)
+        b0 = baseline.get((subset, budget))
         module_rows.append(dict(
-            module=mod, arm=rows[0]["arm"], subset=subset,
+            module=mod, arm=rows[0]["arm"], subset=subset, budget_epochs=budget,
+            roots=";".join(sorted({x["root"] for x in rows})),
             n_seeds=len(rows),
             seeds=";".join(str(x["seed"]) for x in sorted(rows, key=lambda y: y["seed"])),
             engine_mean_rmse_mean=mean, engine_mean_rmse_sd=sd,
             engine_mean_rmse_min=min(vals), engine_mean_rmse_max=max(vals),
             engine_mean_rmse_cv_pct=(100.0 * sd / mean if mean else float("nan")),
-            nasa_mean_mean=nasa_mean, mae_mean=mae_mean, bias_mean=bias_mean,
+            nasa_mean_mean=nasa_mean, nasa_sum_mean=nasa_sum,
+            mae_mean=mae_mean, bias_mean=bias_mean,
             rmse_uncensored_mean=unc_mean, frac_capped_mean=capped_mean,
             delta_vs_B0_abs=(mean - b0 if b0 is not None else float("nan")),
             delta_vs_B0_pct=(100.0 * (mean - b0) / b0
                              if b0 not in (None, 0) else float("nan")),
-            budget_limited_any=any(x["budget_limited"] for x in rows),
+            status_mix=";".join(sorted({x["status_detail"] for x in rows})),
             best_ep_max=max((x["best_ep"] or 0) for x in rows),
             epochs_run_max=max((x["epochs_run"] or 0) for x in rows),
             params_trainable=rows[0]["params_trainable"],
-            status="done", description=rows[0]["description"],
+            description=MODULE_DESC.get(mod, ""),
         ))
 
     os.makedirs(args.out_dir, exist_ok=True)
     seed_path = os.path.join(args.out_dir, "SEED_RESULTS.csv")
     module_path = os.path.join(args.out_dir, "MODULE_RESULTS.csv")
     engine_path = os.path.join(args.out_dir, "PER_ENGINE.csv")
+    paired_path = os.path.join(args.out_dir, "PAIRED_VS_B0.csv")
     write_csv(seed_path, seed_rows, SEED_COLUMNS)
     write_csv(module_path, module_rows, MODULE_COLUMNS)
     write_csv(engine_path, per_engine,
-              ["run_id", "module", "subset", "seed", "engine_id", "n",
-               "rmse", "mae", "bias", "y_mean", "pred_mean"])
+              ["run_id", "root", "module", "subset", "budget_epochs", "seed",
+               "engine_id", "n", "rmse", "mae", "bias", "y_mean", "pred_mean"])
+    paired = build_paired(seed_rows, per_engine, args.paired_baseline)
+    write_csv(paired_path, paired,
+              ["module", "subset", "budget_epochs", "seed", "root", "n_engines",
+               "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
+               "module_em", "b0_em", "pct_vs_b0", "verdict", "significant"])
 
     # ---- audit note ------------------------------------------------------- #
-    done = [r for r in seed_rows if r.get("status") == "done"]
-    max_gap = max((abs(r["delta_vs_reported"]) for r in done
+    scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
+    usable = [r for r in seed_rows if r.get("status") == "usable"]
+    max_gap = max((abs(r["delta_vs_reported"]) for r in scored
                    if r.get("delta_vs_reported") is not None), default=float("nan"))
+    counts: dict[str, int] = {}
+    for r in seed_rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+
     lines = [
         "# Metric audit -- recomputed vs reported",
         "",
         "Generated by `aggregate_metrics.py`; do not hand-edit.",
         "",
-        f"- runs scored: **{len(done)}**",
-        f"- runs in ledger but missing on disk: "
-        f"**{sum(1 for r in seed_rows if r.get('status') == 'missing')}**",
-        f"- runs on disk but not in ledger: "
-        f"**{sum(1 for r in seed_rows if r.get('in_ledger') == 'no')}**",
+        f"- runs scored from predictions: **{len(scored)}**",
+        f"- runs usable in MODULE_RESULTS: **{len(usable)}**",
+        f"- status counts: " + ", ".join(f"`{k}` {v}" for k, v in sorted(counts.items())),
         f"- max |recomputed - reported| engine-mean RMSE: **{max_gap:.3e}** "
         f"(tolerance {args.tol:g})",
         f"- frozen cap asserted: **{args.cap:g}**",
+        f"- ledger: `{args.run_list or 'none (disk discovery only)'}`",
         "",
         "## Definition check",
         "",
@@ -503,26 +706,63 @@ def main(argv: list[str] | None = None) -> int:
         "| segments | cut-cycle 0 (earliest, largest RUL) .. 4 (latest) | "
         "`metrics_from_arrays['per_cut']` |",
         "",
+        "## Why some directories are not evidence",
+        "",
+        "| status | rule | enters MODULE_RESULTS |",
+        "|---|---|---|",
+        "| `complete` | `epochs_run >= budget.epochs` | yes |",
+        "| `early_stopped` | patience fired: `epochs_run - best_ep >= patience` | yes |",
+        "| `n/a_by_design` | zero trainable parameters (AGE) | yes |",
+        "| `interrupted` | stopped early without patience firing | no |",
+        "| `smoke_override` | `budget_override` set (smoke run) | no |",
+        "| `unusable` | ledger marks `usable=no` | no |",
+        "",
+        "## Paired vs " + args.paired_baseline + " (same seed, same engines)",
+        "",
+        "A negative `mean_diff` means the module beats the baseline.  The CI is a",
+        "two-sided 95% interval over engines, so `significant=yes` means the paired",
+        "difference is stable *within* that seed; it is not a cross-seed claim.",
+        "",
+        "| module | subset | budget | seed | engines | mean diff | 95% CI | t | vs B0 | sig |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ] + [
+        f"| {p['module']} | {p['subset']} | {p['budget_epochs']} | {p['seed']} | "
+        f"{p['n_engines']} | {p['mean_diff']:+.4f} | "
+        f"[{p['ci_lo']:+.3f}, {p['ci_hi']:+.3f}] | {p['t']:+.2f} | "
+        f"{p['pct_vs_b0']:+.1f}% | {p['significant']} |"
+        for p in paired
+    ] + [
+        "",
         "## Per-run check",
         "",
-        "| run_id | n | engines | recomputed | reported | delta | NASA mean | MAE | bias | best_ep/epochs |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| root | run_id | n | eng | recomputed | reported | delta | NASA mean | MAE | bias | ep | status |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for r in sorted(done, key=lambda x: x["run_id"]):
+    for r in sorted(scored, key=lambda x: (x["root"], x["run_id"])):
         lines.append(
-            f"| {r['run_id']} | {r['n_points']} | {r['n_engines']} | "
-            f"{r['engine_mean_rmse']:.6f} | {r['reported_engine_mean_rmse']:.6f} | "
-            f"{r['delta_vs_reported']:.2e} | {r['nasa_mean']:.4f} | "
-            f"{r['mae']:.4f} | {r['bias']:+.4f} | {r['best_ep']}/{r['epochs_run']} |"
+            f"| {r['root']} | {r['run_id']} | {r.get('n_points','')} | "
+            f"{r.get('n_engines','')} | {r.get('engine_mean_rmse', float('nan')):.6f} | "
+            f"{r.get('reported_engine_mean_rmse', float('nan')):.6f} | "
+            f"{r.get('delta_vs_reported', float('nan')):.2e} | "
+            f"{r.get('nasa_mean', float('nan')):.4f} | "
+            f"{r.get('mae', float('nan')):.4f} | {r.get('bias', 0.0):+.4f} | "
+            f"{r.get('best_ep','')}/{r.get('epochs_run','')} | {r['status_detail']} |"
         )
+    skipped = [r for r in seed_rows if r.get("status") not in ("usable", "excluded", "unusable")]
+    if skipped:
+        lines += ["", "## Runs that could not be scored", ""]
+        for r in sorted(skipped, key=lambda x: (x["root"], x["run_id"])):
+            lines.append(f"- `{r['root']}/{r['run_id']}` -- {r['status_detail']}")
     if problems:
         lines += ["", "## Problems", ""] + [f"- {p}" for p in problems]
     with open(os.path.join(args.out_dir, "METRIC_AUDIT.md"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
 
-    print(f"scored {len(done)} runs -> {seed_path}")
+    print(f"scored {len(scored)} runs ({len(usable)} usable) -> {seed_path}")
     print(f"module rows: {len(module_rows)} -> {module_path}")
     print(f"per-engine rows: {len(per_engine)} -> {engine_path}")
+    print(f"paired rows: {len(paired)} -> {paired_path}")
+    print(f"status counts: {counts}")
     print(f"max |delta vs reported| = {max_gap:.3e}")
     for p in problems:
         print("PROBLEM:", p, file=sys.stderr)
