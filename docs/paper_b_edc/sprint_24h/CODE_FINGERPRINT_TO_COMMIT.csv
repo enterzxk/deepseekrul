@@ -3,14 +3,14 @@ code_files_sha256,n_rows,n_commits,commits,matched,note
 7f7f6fcfbbeadb3ff5191b40c4790489,10,3,e6bfaec9;a1f17118;1feaf5bd,yes,
 c7df9d160b9f516dfb8b212d6db4289d,10,3,de4b6003;93fcf4e5;255864a8,yes,
 c67df0639f979dae0caf242c133e168b,9,3,291689e5;635b53c2;1fea7465,yes,
-2d185f6a9df8bf67a74de9aa57b20683,8,0,,NO COMMIT,"NO COMMIT and no one-file swap over 162 commits in 12:00-15:00Z; 8 rows, 3 of them A-tier"
+2d185f6a9df8bf67a74de9aa57b20683,8,0,,NO COMMIT,"NO COMMIT even with _patch_m6.py and patch_m3c_rank_diag.py replayed; patch_m3c_rank_diag.py documents that the 3090 copy carried local edits the repo never had (1153 vs 1070 lines), so this tree is likely commit + those edits"
 6f8f84232104d0979a01f3addfade9e7,7,11,450ff782;a199a973;9f9042bb;2f15b673;f3bafffe;88ee9024,yes,
 56fa338075c354daf7598b20e4d8cb11,5,9,8506638c;012a981d;d68cf123;a633ddea;87dd5057;36e1cea3,yes,
 a92ebaf187f3deafe92361ed7edb1237,4,6,cf2faac3;8d7521b5;11460090;d8742a75;96d08e5b;66dd13eb,yes,
 745667fceb52395677a22dad248069ca,4,13,5fe5ce8a;09c7cf26;58e1a647;fc436c6c;dbe7f407;9cce58ca,yes,
 2d4dc13a348f4e77cb5a7ce8bc9289e5,3,1,15013758,yes,
 4fd7e820e837d88fa148b6400862a7b0,2,1,91dea4a0,yes,
-1883b283f95a456fe652a0580b1f8c5e,2,0,,NO COMMIT,"NO COMMIT and no one-file swap; 2 rows, 1 A-tier (M6 FD001 s101)"
+1883b283f95a456fe652a0580b1f8c5e,2,6,c3f27a52;540ff21a;d4e08d7f;bf421760;e7d9b10a;88d5bb14,commit+patch,commit + docs/paper_b_hc/probes/_patch_m6.py replayed on that commit train_d.py; six commits share the pre-patch state
 17eeca6dc96e662ffc821b6d89a90861,1,3,9b3e3753;895563af;9b2175b3,yes,
 c5f0da85c9663ea4b9e90f3d7caf8243,1,3,4069b233;dc228518;d78bdd38,yes,
 ce03198441cb988689ea57b2c29cc9b2,1,8,54e61712;071ce51c;0b838872;7c35db2a;fa073d1e;97cbcd79,yes,
