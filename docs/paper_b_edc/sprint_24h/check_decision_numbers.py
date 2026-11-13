@@ -339,6 +339,31 @@ print(f"{'PASS' if not _nopointer else 'FAIL'}  {'7.4 every tier mention carries
 for _n in _nopointer:
     fails.append("tier mention without a §0.7 pointer: " + _n)
 
+# 7.5 "not run" claims: a sentence that says something was never run is the one
+# kind of error that makes a report look MORE honest, so nobody checks it.  Each
+# claim is paired with the artifact that would exist if it HAD run; if the
+# artifact is on disk, the sentence is stale by construction.
+NOTRUN = [
+    (re.compile(r"未跑集成|集成.*未跑|未跑.*集成"), "ENSEMBLE_VS_B0.csv"),
+    (re.compile(r"未跑消融|消融.*未跑"), "ALPHA_ROBUSTNESS.csv"),
+]
+_nr = []
+for _pat, _art in NOTRUN:
+    if not (HERE / _art).exists():
+        continue
+    for _d in SWEEP_DOCS:
+        _fp = HERE / _d
+        if not _fp.exists():
+            continue
+        for _i, _line in enumerate(_fp.read_text(encoding="utf-8").split("\n"), 1):
+            if _pat.search(_line) and not any(k in _line for k in NEG_OK):
+                _nr.append("%s:%d says not-run but %s exists" % (_d, _i, _art))
+checks += 1
+print(f"{'PASS' if not _nr else 'FAIL'}  {'7.5 no not-run claim whose artifact exists':<52s} "
+      f"hits={len(_nr)}")
+for _n in _nr:
+    fails.append("stale not-run claim: " + _n)
+
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
     print("MISMATCHES:")
