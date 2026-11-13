@@ -2505,6 +2505,27 @@ def main(argv: list[str] | None = None) -> int:
                                   n for n, f in (("md5", md5_ok), ("val", val_ok),
                                                  ("ep", ep_ok), ("best", be_ok)) if f))
 
+    # A `_gate` root is a hint, not an identity.  The root-name rule above marks
+    # every `_gate*` cell as a reproduction, which is right when a formal twin
+    # exists and wrong when it does not: M6-FD004 s202/s303 landed under `_gate`
+    # as NEW seeds, and the rule was silently eating them (usable 73 instead of
+    # 75, novel=0 instead of 2).  So the pairing decides: no formal twin means
+    # the cell is a sample that merely lives under a gate root.
+    for r in seed_rows:
+        if not str(r.get("root", "")).startswith("_gate"):
+            continue
+        if r.get("verified_note") != "gate without a formal cell":
+            continue
+        r["status"] = "usable"
+        r["status_detail"] = "new sample under a gate root"
+        r["archived"] = ""
+        r["usable"] = "yes"
+        r["gate_status"] = "gate_root_new_sample"
+        r["evidence_tier"] = "B"
+        r["verified"] = "no"
+        r["verified_note"] = ("lives under a _gate* root but reproduces no formal cell: "
+                              "a NEW sample, not a gate reproduction")
+
     # comparable: the parent has a cell for this subset at this budget, so the
     # two rows can be differenced under one schedule.
     present = {(r["module"], r["subset"], r.get("budget_epochs"))
