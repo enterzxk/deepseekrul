@@ -93,6 +93,12 @@ DEFAULT_ROOTS = [
     "~/sprint24/experiments/hc/d",
     "~/sprint24/experiments/hc/d80",
     "~/sprint24/experiments/hc/d/probe80",
+    # diagnostic roots: a run is not less real because it lives under a
+    # different budget, and skipping these roots silently kept M3B's 160-epoch
+    # result (11.88) out of every table.
+    "~/sprint24/experiments/hc/d80diag",
+    "~/sprint24/experiments/hc/d40diag",
+    "~/sprint24/experiments/hc/d80b160",
 ]
 RUN_RE = re.compile(r"^HC-D-(?P<arm>.+)-(?P<subset>FD00[1-4])-s(?P<seed>\d+)-D1$")
 
@@ -364,6 +370,18 @@ def score_run(run_dir: str, cap: float) -> dict[str, Any]:
         l_mean=meta.get("l_mean"),
     )
     row["status_detail"] = classify(row)
+    ov = row.get("budget_override")
+    er1 = row.get("epochs_run")
+    if not ov:
+        row["override_kind"] = ""
+    elif er1 is None or er1 <= 1:
+        row["override_kind"] = "smoke"
+    elif ov.startswith(("m4fix", "m3crank")):
+        row["override_kind"] = "retest"
+    elif ov.startswith(("codecheck", "audit_")):
+        row["override_kind"] = "audit"
+    else:
+        row["override_kind"] = "diag_budget"
     row.update(curve_stats(read_history(run_dir)))
     row["converged"] = (
         "yes" if (epochs_run is not None and row.get("budget_epochs") is not None
@@ -509,7 +527,7 @@ SEED_COLUMNS = [
     "seg_rmse_0", "seg_rmse_1", "seg_rmse_2", "seg_rmse_3", "seg_rmse_4",
     "seg_rul_mean_0", "seg_rul_mean_1", "seg_rul_mean_2", "seg_rul_mean_3", "seg_rul_mean_4",
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
-    "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override",
+    "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
     "converged", "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
@@ -726,6 +744,14 @@ def build_screen(seed_rows: list[dict[str, Any]],
         for key, mine in sorted(stats[mod].items(), key=lambda kv: (kv[0][0], str(kv[0][1]))):
             subset, budget = key
             base = stats.get(parent, {}).get(key)
+            used_parent = parent
+            if base is None:
+                # The ablation parent may not have been run at this budget (B3
+                # only exists at 80 epochs, M3B was also run at 160).  Falling
+                # back to the route-level baseline keeps the cell visible and
+                # labels the fallback instead of dropping it.
+                used_parent = baseline_module
+                base = stats.get(baseline_module, {}).get(key)
             if base is None or base["n"] < 1:
                 continue
             single_thr = 2.0 * math.sqrt(2.0) * base["sd"] if base["n"] > 1 else float("nan")
@@ -746,7 +772,7 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 v = verdict(d, single_thr)
                 dec, why = decide(v, base["n"])
                 out.append(dict(
-                    arm=mod, baseline=parent, subset=subset, seed=seed, budget=budget,
+                    arm=mod, baseline=used_parent, subset=subset, seed=seed, budget=budget,
                     comparison=cmp_kind,
                     n_baseline=base["n"], sd_baseline=base["sd"],
                     threshold_kind="single-run screen", threshold=single_thr,
@@ -773,10 +799,27 @@ def build_screen(seed_rows: list[dict[str, Any]],
                 # A paired interval from one or two pairs has df=1, where t=12.7:
                 # it is so wide that it cannot rule anything out.  Failing to
                 # detect a difference there is not evidence of no difference, so
-                # the row is held rather than eliminated.
+                # the row is held rather than eliminated -- unless the seeds
+                # themselves disagree in sign, which is a replication failure and
+                # a legitimate reason to stop.
+                signs = {x > 0 for x in db}
                 if dec == "eliminate" and len(shared) < 3 and v == "indistinguishable":
-                    dec, why = "hold", (f"only {len(shared)} pair(s): interval +/-{half:.2f} "
-                                        "is too wide to eliminate")
+                    if len(signs) > 1:
+                        favour = sum(1 for x in db if x < 0)
+                        dec = "eliminate"
+                        why = (f"direction disagrees across seeds ({favour}/{len(db)} favour "
+                               "the module): the single-seed effect did not replicate")
+                    else:
+                        dec, why = "hold", (f"only {len(shared)} pair(s): interval +/-{half:.2f} "
+                                            "is too wide to eliminate")
+                if v == "indistinguishable" and len(signs) > 1 and dec != "eliminate":
+                    dec = "eliminate"
+                    why = (f"direction disagrees across seeds "
+                           f"({sum(1 for x in db if x < 0)}/{len(db)} favour the module)")
+                capped = [s for s in shared if mine["rows"][s].get("converged") == "no"]
+                if capped:
+                    why += (f"; {len(capped)}/{len(shared)} seed(s) hit the budget "
+                            "without early stop, so those values are bounds")
                 out.append(dict(
                     arm=mod, baseline=parent, subset=subset,
                     seed=f"paired({len(shared)})", budget=budget,
