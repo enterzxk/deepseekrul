@@ -1163,6 +1163,74 @@ def build_stability(seed_rows: list[dict[str, Any]],
     return out
 
 
+def build_invariants(seed_rows: list[dict[str, Any]],
+                     stability: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The four values that look like measurements and are not.
+
+    Scope is deliberately narrow: only two shapes are checked, (a) the same
+    numbers computed twice and (b) a value pinned by construction.  Semantic
+    identities cannot be detected automatically, so a row that cannot state *why
+    it must be so* does not belong here -- if the reason cannot be written down,
+    it is a real result, not an identity.
+
+    The detection rule this table encodes: **feed in inputs that must differ; if
+    the output does not move, it is a constant, not a measurement.**
+    """
+    usable = [r for r in seed_rows if r.get("status") == "usable"]
+    out = []
+
+    gaps = [abs(float(r["best_val"]) - float(r["engine_mean_rmse"])) for r in usable
+            if isinstance(r.get("best_val"), (int, float))
+            and isinstance(r.get("engine_mean_rmse"), (int, float))]
+    out.append(dict(
+        check="best_val == val_engine_mean_rmse", kind="invariant", n=len(gaps),
+        distinct=len(set(round(g, 9) for g in gaps)),
+        observed=(max(gaps) if gaps else float("nan")),
+        why=("metrics.json stores the best-epoch validation value under one name "
+             "and the pipeline recomputes the same quantity under another: two "
+             "names, one number, not a second opinion on the model.")))
+
+    conv = [float(r["gain_last12"]) for r in usable
+            if r.get("budget_status") == "converged"
+            and isinstance(r.get("gain_last12"), (int, float))
+            and r["gain_last12"] == r["gain_last12"]]
+    out.append(dict(
+        check="gain_last12 == 0 on converged cells", kind="by_construction",
+        n=len(conv), distinct=len(set(round(g, 9) for g in conv)),
+        observed=(max(abs(g) for g in conv) if conv else float("nan")),
+        why=("early stopping fires at best_ep + patience, so by definition no "
+             "improvement exists inside a converged run's final patience window; "
+             "informative only for budget_limited cells.")))
+
+    self_rows = [r for r in stability
+                 if r.get("comparison_kind") == "baseline_selfcheck"
+                 and r.get("mad_ratio_ok") == "yes"]
+    ratios = [float(r["mad_ratio"]) for r in self_rows
+              if isinstance(r.get("mad_ratio"), (int, float))
+              and r["mad_ratio"] == r["mad_ratio"]]
+    out.append(dict(
+        check="mad_ratio == 1.0 on baseline_selfcheck rows", kind="by_construction",
+        n=len(ratios), distinct=len(set(round(x, 9) for x in ratios)),
+        observed=(max(abs(x - 1.0) for x in ratios) if ratios else float("nan")),
+        why=("the baseline compared with itself: numerator and denominator are the "
+             "same six numbers. It tests the arithmetic, not a module.")))
+
+    by_mod: dict[str, float] = {}
+    for r in usable:
+        p = r.get("params_trainable")
+        if isinstance(p, (int, float)) and p:
+            by_mod[r["module"]] = float(p)
+    out.append(dict(
+        check="params_trainable across arms", kind="constant_output",
+        n=len(by_mod), distinct=len(set(by_mod.values())), observed=float("nan"),
+        why=("arms with different parameter counts must report different counts; "
+             "one value for every arm means the field is a constant. Precedent: "
+             "arm_build_ok.py printed params=119364 for B0/B1/B2/B3 while "
+             "metrics.json reports 115010/119364/115139/115139 -- and 119364 is "
+             "B1's true count, which is what makes the wrong number believable.")))
+    return out
+
+
 def build_resolution(seed_rows: list[dict[str, Any]],
                      baseline_module: str) -> list[dict[str, Any]]:
     """How small a difference can this cell actually resolve?
@@ -2006,6 +2074,9 @@ def main(argv: list[str] | None = None) -> int:
                "delta_best", "delta_ema", "delta_tail10", "consistent",
                "verdict", "decision", "decision_driver", "reason", "converged"])
     gates = build_gate_check(seed_rows)
+    invariants = build_invariants(seed_rows, stability)
+    write_csv(os.path.join(args.out_dir, "INVARIANT_CHECK.csv"), invariants,
+              ["check", "kind", "n", "distinct", "observed", "why"])
     write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
               ["gate_run", "gate_root", "module", "subset", "seed", "budget_epochs",
                "formal_run", "formal_root", "gate_md5", "formal_md5", "md5_match",
