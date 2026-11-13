@@ -82,12 +82,32 @@ class CSRSensorScore(nn.Module):
     def forward(self, tokens):                       # (B,L,N,D) -> (B,L,N,1)
         logits = self.base(tokens)                   # frozen B0 score
         if self._cond is not None:
-            # (B,N) -> (B,1,N,1): the same bias for every timestep of a window,
-            # because the operating condition is constant within a window.
-            logits = logits + self.cond_bias(self._cond).unsqueeze(1).unsqueeze(-1)
+            b = self.cond_bias(self._cond)           # (B,N)
+            # Centre over the sensor axis. This removes the one direction that
+            # softmax is invariant to but that weight decay would still fight.
+            b = b - b.mean(dim=-1, keepdim=True)
+            # Bound the SPREAD. Centring alone cannot stop one-hot saturation:
+            # softmax is invariant to a constant shift on the axis it normalises
+            # over, so a global lift changes nothing -- it is a large *spread*
+            # that collapses the pooling into a single sensor. tanh caps the
+            # spread at 2, so the bias can only re-weight sensors, never take
+            # the softmax to a one-hot. At init b == 0 and tanh(0) == 0, so
+            # step-0 transparency is preserved exactly.
+            b = torch.tanh(b)
+            logits = logits + b.unsqueeze(1).unsqueeze(-1)
         if self.mode == 'full' and self._trend is not None:
             logits = logits + self.trend_proj(self._trend)
         return logits
+
+    def bias_l2(self):
+        """Optional decay term for the caller to add to the loss.
+
+        Not applied inside forward on purpose: silently changing the objective
+        would make the arm's loss unreadable. ``tanh`` already bounds the bias,
+        so this is a backstop, not the primary guard.
+        """
+        w = self.cond_bias.weight
+        return (w - w.mean(dim=-1, keepdim=True)).pow(2).sum()
 
 
 class DSPT_CSR(DSPT_HC_Structured):

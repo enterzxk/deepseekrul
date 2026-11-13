@@ -123,7 +123,30 @@ def main():
     assert spread > 0.0, 'reliability weights are uniform: the bias is dead'
     print('PASS  reliability_weights_are_live  mean(max-min w) = %.3e' % spread)
 
-    print('\nCONTRACT OK  (5/5, through build_d)')
+    # --- 5. anti-collapse sentinel ----------------------------------------
+    # The 6 step-0 checks cannot see post-training saturation: M4 passed them
+    # 5/5 and then froze at val_eng = 69.5273 for three sampled epochs. The
+    # failure mode is "pooling collapses to one sensor", so test that mode
+    # directly instead of hoping one epoch reveals it: drive cond_bias to an
+    # adversarial magnitude and require the prediction to still vary across
+    # DIFFERENT inputs. A collapsed model returns the same number for all of
+    # them, which is exactly what val_eng = const means.
+    with torch.no_grad():
+        m4.sensor_score.cond_bias.weight.normal_(0, 1000.0)   # adversarial
+        xs = []
+        for k in range(4):
+            bb = {kk: (v.to(a.device) if torch.is_tensor(v) else v)
+                  for kk, v in make_batch(a.subset, seed=100 + k).items()}
+            xs.append(pred(m4, bb))
+        stacked = torch.cat(xs)
+        spread_pred = float(stacked.max() - stacked.min())
+        m4.sensor_score.cond_bias.weight.zero_()
+    assert spread_pred > 1e-3, (
+        'pooling collapsed under an adversarial bias: the prediction is the '
+        'same for every input (spread=%.3e). This is the M4 freeze mode.' % spread_pred)
+    print('PASS  no_collapse_under_adversarial_bias  pred spread = %.3e' % spread_pred)
+
+    print('\nCONTRACT OK  (6/6, through build_d)')
 
 
 if __name__ == '__main__':
