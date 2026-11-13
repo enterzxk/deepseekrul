@@ -35,6 +35,18 @@
 | `created_utc` `elapsed_s` | metrics.json | 直读 |
 | `run_dir` `preds_path` | derived | 由 `root` + `run_id` 拼 |
 | `note` | derived | 判定理由，人写 |
+| `scan_utc` `scan_host` `scan_id` | scan | **文件自己回答「我是哪一轮、在哪台机器上生成的」**。`scan_id` = 整批扫描内容的 sha256 前 12 位：内容相同则 id 相同，任何一格变了 id 就变 |
+
+## 为什么表里要带 `scan_utc` / `scan_id`
+
+`mtime` 在文件系统里，**不在文件里**。一旦这份 CSV 被复制、被 `scp`、被 `git checkout`，`mtime` 就变成复制时间，
+而「这批数是哪一轮扫的」这条线索**永久消失**。
+
+今晚已经出现过一次「混合产物」：`mech_*.json` 三新三旧交错，每个文件单独看都正常，只有整批看才露馅——
+当时靠的是 `mtime`，而 `mtime` 正是复制就会丢的那种证据。
+
+所以把生成信息写进文件本身：**同一批扫描的 93 行共享同一个 `scan_id`；如果哪天有人手工改了一格，
+`scan_id` 对不上重算值，整表立刻可知不是同一次扫描的产物。**
 
 ## 两个必须随表引用的口径
 
