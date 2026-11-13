@@ -185,14 +185,17 @@ Rules:
 - **Column layout is part of the contract.** The 42 sensor-statistic columns are
   stored grouped by statistic: columns 1–14 are the means of sensors 1–14,
   columns 15–28 the standard deviations, columns 29–42 the slopes. A consumer
-  that wants one token per sensor must reshape to statistic-major and then
-  transpose to sensor-major; `reshape(14, 3)` applied to the flat order yields
-  triples of three *different* sensors — twelve of the fourteen are the same
-  statistic of three sensors, and two straddle a statistic boundary. That
-  grouping puts same-type statistics in one sequence, which is a different
-  architecture rather than merely a broken one. The first batch, development and
-  test alike, was produced with that mistake, which is why it cannot support a
-  claim about architecture.
+  that wants one token per sensor must reshape the flat order to
+  `(N_STATS, N_SENSORS)` — `(3, 14)` — and transpose it to `(N_SENSORS, N_STATS)`;
+  `reshape(14, 3)` applied to the flat order yields triples of three *different*
+  sensors — twelve of the fourteen are the same statistic of three sensors, and
+  two straddle a statistic boundary — and the pure groups are offset from one
+  another: the mean groups cover sensors 1–12, the standard-deviation groups
+  2–13, and the slope groups 3–14, so sequence position no longer indexes the
+  same sensors across statistics. That grouping puts same-type statistics in one
+  sequence, which is a different architecture rather than merely a broken one.
+  The first batch, development and test alike, was produced with that mistake,
+  which is why it cannot support a claim about architecture.
 - The feature-name list must agree with this layout. `SENSOR_FEATURE_NAMES` is
   generated sensor-major while the array is statistic-major, so
   `feature_names[i]` does not name column `i`; the list is corrected in the same
@@ -202,10 +205,13 @@ Rules:
   the layout the first batch implemented by accident — is a coherent alternative
   design, not merely a defect: it places the same statistic of three adjacent
   sensors in one sequence, so cross-sensor mixing happens inside the sequence
-  rather than only in the attention pool. `N2s` is `N2` with the statistic-major
-  tokenizer, registered as a declared control arm **before** the corrected batch
-  runs, and reported whether it wins or loses. The rest of the ladder is
-  unchanged: `N1`, `N2` and `N3` use the sensor-major tokenizer. This arm was
+  rather than only in the attention pool. `N2s` is `N2` with the exact grouping
+  the first batch used — `reshape(14, 3)` on the flat order — registered as a
+  declared control arm **before** the corrected batch runs, and reported whether
+  it wins or loses. Because the pure groups are offset (above), `N2s` is a
+  *displaced* residual grouping, not a clean statistic-major design; any
+  mechanism offered for it must account for that offset. The rest of the ladder
+  is unchanged: `N1`, `N2` and `N3` use the sensor-major tokenizer. This arm was
   proposed from a development fold, which is what development folds are for; it
   is not a selection made after seeing sealed test results.
 - **Any loss used to select an epoch is computed with the model in evaluation
