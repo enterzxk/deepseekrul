@@ -56,3 +56,7 @@
 **对 D021 草案的净影响**：第一版「识别边界」框架作废（见 `failures.md` F001）。
 第二版收窄为「协议算术下界 + 后果量化 + ICC 可复现性 + 文献审计」的测量学审计，
 并正面回答 HACC 反驳（草案 §2.3）。
+
+
+- N-CMAPSS已核BayesRUL/AIDGN/MOO_ELM/Concept等，完整DOI、固定SHA与协议风险见 docs/paper_b_ncmapss_response_20261113/NEW_DATASET_BASELINE_AUDIT.md。
+- 最近邻R2-D2、Function Encoders、operation-profile DA、physics/deep/PF：均有原始来源；不主张可微ridge本身创新。

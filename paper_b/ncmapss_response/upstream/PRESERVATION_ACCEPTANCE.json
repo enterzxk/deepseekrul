@@ -1,0 +1,124 @@
+{
+  "status": "PASS",
+  "source_files_verified": 309,
+  "unlicensed_source_files_confirmed_git_ignored": 258,
+  "source_imports_or_execution": 0,
+  "repos": [
+    {
+      "name": "bayesrul",
+      "files": 120,
+      "excluded": 0,
+      "manifest_sha256": "fd224fb473d933d41718aede7fa6b4b70ed569ab99423a5d298bc2c3f0b32a6a",
+      "license_notices": []
+    },
+    {
+      "name": "aidgn",
+      "files": 90,
+      "excluded": 1199,
+      "manifest_sha256": "29aaea27669ea96b903651558caecf038a2e9bfd2e4b253777f6b11953ad248d",
+      "license_notices": [
+        {
+          "path": "N_CMAPSS_train.py",
+          "line": 41,
+          "text": "# This source code is licensed under the MIT License."
+        }
+      ]
+    },
+    {
+      "name": "moo_elm",
+      "files": 51,
+      "excluded": 37,
+      "manifest_sha256": "2147671842b182828f17b6f10faeaac24cbf42cf82137c49ae50dbd8ad851255",
+      "license_notices": [
+        {
+          "path": "utils/hypervolume/__init__.py",
+          "line": 4,
+          "text": "#    it under the terms of the GNU Lesser General Public License as"
+        },
+        {
+          "path": "utils/hypervolume/__init__.py",
+          "line": 11,
+          "text": "#    GNU Lesser General Public License for more details."
+        },
+        {
+          "path": "utils/hypervolume/_hv.c",
+          "line": 14,
+          "text": "it and/or modify it under the terms of the GNU General Public License"
+        },
+        {
+          "path": "utils/hypervolume/_hv.c",
+          "line": 25,
+          "text": "General Public License for more details."
+        },
+        {
+          "path": "utils/hypervolume/_hv.c",
+          "line": 27,
+          "text": "You should have received a copy of the GNU General Public License"
+        },
+        {
+          "path": "utils/hypervolume/_hv.c",
+          "line": 29,
+          "text": "General Public License at:"
+        },
+        {
+          "path": "utils/hypervolume/_hv.h",
+          "line": 14,
+          "text": "it and/or modify it under the terms of the GNU General Public License"
+        },
+        {
+          "path": "utils/hypervolume/_hv.h",
+          "line": 25,
+          "text": "General Public License for more details."
+        },
+        {
+          "path": "utils/hypervolume/_hv.h",
+          "line": 27,
+          "text": "You should have received a copy of the GNU General Public License"
+        },
+        {
+          "path": "utils/hypervolume/_hv.h",
+          "line": 29,
+          "text": "General Public License at:"
+        },
+        {
+          "path": "utils/hypervolume/hv.cpp",
+          "line": 5,
+          "text": "* it under the terms of the GNU Lesser General Public License as"
+        },
+        {
+          "path": "utils/hypervolume/hv.cpp",
+          "line": 12,
+          "text": "* GNU Lesser General Public License for more details."
+        },
+        {
+          "path": "utils/hypervolume/pyhv.py",
+          "line": 7,
+          "text": "#    to use this file under the Lesser General Public License."
+        },
+        {
+          "path": "utils/hypervolume/pyhv.py",
+          "line": 13,
+          "text": "#    it under the terms of the GNU Lesser General Public License as"
+        },
+        {
+          "path": "utils/hypervolume/pyhv.py",
+          "line": 20,
+          "text": "#    GNU Lesser General Public License for more details."
+        }
+      ]
+    },
+    {
+      "name": "concept",
+      "files": 48,
+      "excluded": 0,
+      "manifest_sha256": "8cea9f51e96da36ebf14bb764dba767613f50c31ae74f9bc90d80c08f78022e8",
+      "license_notices": [
+        {
+          "path": "cem/setup.py",
+          "line": 21,
+          "text": "'License :: OSI Approved :: MIT License',"
+        }
+      ]
+    }
+  ]
+}

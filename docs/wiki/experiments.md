@@ -78,3 +78,9 @@
 - **状态**：**未达判定门**。且 eval 覆盖未对齐（CQR 0.869 vs 头 0.891），需按主协议的
   "沿覆盖前沿对齐"重做比较，才能判定第 1、2 条。
 - **下一步**：把比较改成覆盖对齐（扫加性 q 得 (coverage, shortfall) 前沿），再跑 4 子集 × 4 seeds。
+
+
+- PB-NC-RESPONSE-DEV-20261113-V1：预注册504次神经训练，四子集六外折三seed；fixed200/B64、raw/fe/delta/supported/common/age/w_only。尚未launch，禁止TEST。包内PROTOCOL.json为机读规格。
+
+
+2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。

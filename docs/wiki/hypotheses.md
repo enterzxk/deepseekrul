@@ -100,3 +100,6 @@ C_ek 用温度=1 个 RUL 循环的 sigmoid 边界做可微覆盖；引擎等权�
 - G-C 失败 → 欠覆盖的漂移解释撤回。
 - G-D 失败 → 不提出 go/no-go 规则（只报诊断量的相关性）。
 - 任一失败写 `failures.md`，并在 `results_summary.md` 追加（执行线）或由主控线记入决策日志。
+
+
+- PB-NC-RESPONSE-20261113：共同观测支持上的多传感器响应创新，待验证；非物理HI。规格与否证门见 docs/paper_b_ncmapss_response_20261113/HYPOTHESIS.md。

@@ -784,7 +784,7 @@ engine_median / rmse / n_test / q_hat`，不重跑任何实验。
 | 工作 | 出处 | 对项目的影响 |
 |---|---|---|
 | CRULP | IEEE TIM 74:1–11, 2025，DOI `10.1109/TIM.2024.3522678`（三源核实） | 同刊直接竞争；UACQR + ensemble + cross-conformal |
-| Robinson | IJPHM 17(1), 2026，DOI `10.36001/ijphm.2026.v17i1.4724` | GBR + CQR + 四子集 + 风险偏好 |
+| Robinson | IJPHM 17(1), 2026，DOI `10.50401/ijphm.2026.v17i1.4724` | GBR + CQR + 四子集 + 风险偏好 |
 | Hong Yan 审计包 | Zenodo `10.5281/zenodo.21330745`（2026-07-13，U Arizona） | **与我们新立项角度最近**：C-MAPSS 四子集 + N-CMAPSS DS02，conditional coverage、operating regimes、ACI、regime-conditional ACI、Mondrian（预测 RUL 带 / 产品分类）、5 个基础预测器、逐引擎区间 parquet |
 | Hong Yan N-CMAPSS 校准基准 | Zenodo `10.5281/zenodo.21281080`（2026-07-09） | 文稿《Audited conformal calibration for RUL prognostics…》**已投 RESS**；九个 N-CMAPSS 子集、99 台发动机 |
 | Similarity-calibrated CP | RESS, `S0951832026014365`（2026-10） | 工况迁移下的覆盖保证 + holds/violated/indeterminate 运行时判据 |
@@ -1845,7 +1845,7 @@ tmh 报 a40 上 `sklearn` 挂于 `libstdc++.so.6: version GLIBCXX_3.4.29 not fou
 **v9 干净 smoke**：`HC-SMOKE-FD001-s101-20261112T0045Z`，15/15 命中、`worktree_dirty=false`、1 epoch、engine 62.593074 / pooled 63.647172、8 件产物、launch/close 均 `written_by=run_hc`。
 
 **共享初始化对照（A3a vs A3p，FD001/seed101，v9）**
-- 共享同一 init：两条 `manifest.init_sha256` 均为 `336074a6e173d8df…`，`config.init_from` 同一文件。
+- 共享同一 init：两条 `manifest.init_sha256` 均为 `350474a6e173d8df…`，`config.init_from` 同一文件。
 - A3a = **11.316705661052403**；A3p = **10.895096839289387**；Δ = **+0.421608821763**（A3a 差 3.87%）。
 - 同 seed 重复 σ = **0**：A3a 两次（1640Z / 0030Z）逐位相同。
 - A3p 跨 v6/v8/v9 三个版本三次运行**逐位相同**（10.895096839289387），说明 init remap / CRLF / 锁三批改动未触碰 A3p 前向与训练路径。
@@ -1921,3 +1921,20 @@ FD002 双口径反号如何记、A3p 的 +3.73% 能写到什么程度）。
 5. **不转问用户**（§0.0.4 明令）。
 
 **证据**：`docs/paper_b_hc/L2_CONSULT_G2_20261112.md`（含原始错误全文）、`AGENTS.md` §0.0.4。
+
+
+## PB-NC-RESPONSE-20261113 · L2可逆机制原型决定
+
+问题：用户否定固定参考校正，希望加入真实有用新模块并比较新NASA数据。
+候选：A配对OT；B每sensor函数编码；C联合传感器低维条件观测+共同支持创新。
+Codex决定：仅C进入有限可证伪开发实验，B为必要已有方法对照；不认可现有创新性主张。
+理由：原51统计丢同步W/Xs，C具有可直接否证的重建与可辨识方向约束。
+反对证据：R2-D2/Function Encoders已有可微inverse与共享basis；完整数据模型可能失配，
+rank/support机制可能没有实际作用；balancedOT线性池化恒退化均值差，A不实施。
+风险：年龄捷径、支持外推、aux插值、75flight隐式历史。已预注册年龄与四臂对照、
+连续blockholdout，query-specific关闭窗外参照，官方TEST禁止读取。
+执行：缓存及作者来源保全完成；504train+24解析年龄先验预注册，未启动训练。
+证据：docs/paper_b_ncmapss_response_20261113/HYPOTHESIS.md；独立代理方法/源码/实验审计。
+
+
+2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。

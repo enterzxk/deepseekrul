@@ -892,3 +892,16 @@ $lo_0=lo+\hat q$、$hi_0=hi-\hat q$；E 把扩张项换成 $q_E\cdot s$，同一
   （接近已关闭的分层路线，需谨慎）。
 - 判断：**P1 最有价值**，但依赖 SFI-STHGAT 是否可复现（未确认）。
 - 本轮未训练、未改冻结产物。
+
+
+## 2026-11-13 · N-CMAPSS可学习响应模块（独立分支）
+
+用户要求Codex独立执行，无DSH。新范围：DS02/05/06/07，dev-only原始W4/Xs14航班响应候选。
+缓存实际完成：446/491/475/468航班，各6 dev机；原HDF5与cache SHA已记录。
+文献及309作者原文件核验完成；四篇NC统一重训尚未运行，不能称复现成功。
+新模块为Function Encoder框架内待证共同支持创新；真实训练尚未启动。
+恢复：docs/paper_b_ncmapss_response_20261113/HYPOTHESIS.md与包内PROTOCOL.json。
+保留旧R2与TEST封存；该分支不改Paper A或冻结DSPT。
+
+
+2026-11-13 最终软件验收：PREFLIGHT_V4实际67项PASS、0optimizer、无TEST，执行485b3d98ec14629359e41d4cf09fd24af1a03aac18a3f99067b32385cd222f17。来源核验已完成，七模式504train预注册；正式训练未launch。性能代理最后一次额度失败记L2-DEGRADED，但已有独立方法审查与主控数值验收，非新路线裁决。

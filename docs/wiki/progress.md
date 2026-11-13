@@ -41,3 +41,6 @@
 - 已按 D016 第 8 项产出 `docs/INTERNAL_REPORT_baseline_audit.md`（内部技术报告 + 基线）。
 - 若要做应用稿：先做具体期刊的贡献匹配审查，结论写 `decision_log.md`；不得当作投稿就绪认定。
 - 失败登记：`failures.md` F001（第一版框架被占位）、F002（第二版计数对象混淆）。
+
+
+- 2026-11-13：新N-CMAPSS机制原型已独立隔离，四缓存完成，作者代码来源保全；尚无正式训练收益证据。恢复见 docs/paper_b_ncmapss_response_20261113/。

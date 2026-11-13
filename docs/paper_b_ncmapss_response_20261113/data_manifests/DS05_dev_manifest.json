@@ -1,0 +1,66 @@
+{
+  "subset": "DS05",
+  "source_name": "N-CMAPSS_DS05.h5",
+  "source_bytes": 2599166216,
+  "source_sha256": "ef99ead42ac184503035895797c16e9a7e42554a08074aa760d0bba39db42e23",
+  "cache_sha256": "944f17901441cf6c9c6de699e94a54f7365f85964634ce21e72f39b965fbd447",
+  "points_per_flight": 512,
+  "sampling": "rounded uniform positions including both flight endpoints; repeats if short",
+  "input_columns": [
+    "alt",
+    "Mach",
+    "TRA",
+    "T2",
+    "Wf",
+    "Nf",
+    "Nc",
+    "T24",
+    "T30",
+    "T48",
+    "T50",
+    "P15",
+    "P2",
+    "P21",
+    "P24",
+    "Ps30",
+    "P40",
+    "P50"
+  ],
+  "prediction_time": "end of current flight; only current and previous flights",
+  "label": "original Y_dev in flight cycles; no hs-derived plateau",
+  "units": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "flights": 491,
+  "rul_min_max": [
+    0.0,
+    99.0
+  ],
+  "decoded_keys": [
+    "A_dev",
+    "W_dev",
+    "X_s_dev",
+    "Y_dev"
+  ],
+  "A_columns_decoded": [
+    "unit",
+    "cycle"
+  ],
+  "official_test_decoded": false,
+  "duration_is_model_input": false,
+  "decoded_accesses": 1474,
+  "seconds": 7.626828193664551,
+  "per_unit_flights": {
+    "1": 80,
+    "2": 80,
+    "3": 65,
+    "4": 99,
+    "5": 100,
+    "6": 67
+  }
+}
