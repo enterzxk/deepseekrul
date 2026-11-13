@@ -699,10 +699,15 @@ def build_screen(seed_rows: list[dict[str, Any]],
             d_ema = [rmap[s]["ema_min"] - bmap[s]["ema_min"] for s in shared]
             d_tail = [rmap[s]["tail10_mean"] - bmap[s]["tail10_mean"] for s in shared]
             st = paired_stats(d_best)
+            # The paired width belongs to the number of PAIRS, not to the number
+            # of baseline seeds, and it comes from the observed spread of the
+            # differences rather than from an assumed equal-noise model.
+            half = (t975(len(shared) - 1) * st["sd"] / math.sqrt(len(shared))
+                    if len(shared) > 1 else float("nan"))
             out.append(dict(
                 arm=mod, subset=subset, seed=f"paired({len(shared)})", budget=budget,
                 n_baseline=r["n_seeds"], sd_baseline=r["sd"],
-                threshold_kind="paired half-width", threshold=r["paired_3seed"],
+                threshold_kind="paired half-width", threshold=half,
                 best=mean_sd([rmap[s]["best_val"] for s in shared])[0],
                 ema_min=mean_sd([rmap[s]["ema_min"] for s in shared])[0],
                 tail10=mean_sd([rmap[s]["tail10_mean"] for s in shared])[0],
@@ -712,7 +717,7 @@ def build_screen(seed_rows: list[dict[str, Any]],
                                                           float(np.mean(d_tail))]
                                           if abs(x) >= 0.01}) <= 1 else "no"),
                 verdict=verdict([st["mean"], float(np.mean(d_ema)), float(np.mean(d_tail))],
-                                r["paired_3seed"]),
+                                half),
                 converged="",
             ))
     return out
@@ -853,6 +858,11 @@ def build_verdict_shift(module_rows: list[dict[str, Any]],
         single = m["n_seeds"] < 2
         half_old = r["screen_first3"] if single else r["paired_first3"]
         half_new = r["screen_single"] if single else r["paired_3seed"]
+        if not single:
+            # paired width for THIS many pairs, not for the baseline's seed count
+            n_mod = m["n_seeds"]
+            half_old = t975(min(n_mod, 3) - 1) * math.sqrt(2.0) * r["sd_first3"] / math.sqrt(n_mod)
+            half_new = t975(n_mod - 1) * math.sqrt(2.0) * r["sd"] / math.sqrt(n_mod)
         v_old = verdict(delta, half_old)
         v_new = verdict(delta, half_new)
         out.append(dict(
