@@ -58,7 +58,7 @@ M6-E,M6,cycle_concat_param_matched,?,FD001,101,80,dropped,,,,,variant never impl
 M7-A,M7,original_stage_D,B3,FD001,101,80,done,14.6884,69,57,d80,,= B3
 M7-B,M7,stage_D_plus_SCR,M7,FD001,101,80,done,13.9169,80,75,d80,,跑满 80 未收敛，是上界；alive 全程 ~1e-4
 M7-C,M7,ADC_plus_SCR,?,FD001,101,80,dropped,,,,,variant never implemented; module tested in its base form,依赖 M3-C
-X-FD002,cross,winner_on_FD002,?,FD002,101,80,done,,,,,covered by real per-arm FD002 cells (B0/M2),FD002 目前只有 B0 一格；优胜模块需覆盖
-X-FD003,cross,winner_on_FD003,?,FD003,101,80,done,,,,,covered by real per-arm FD003 cells (B0/M2),FD003 完全空白
-X-FD004,cross,winner_on_FD004,?,FD004,101,80,done,,,,,covered by real per-arm FD004 cells (B0/M2/M3B/M3C/M4/M6/M7),FD004 只有 B0 40/80ep 与 3 seed
+X-FD002,cross,winner_on_FD002,(none),FD002,101,80,done,n/a,,,d+d80,covered by real per-arm FD002 cells (B0/M2),已答：FD002 无可判定优胜者——M2 vs B0 Δ=+0.0533 半宽 1.1222（3v3，s303 反号）；6 个可用格 = B0 x3（d）+ M2 x3（d80）；见 PAIRED_VS_B0.csv 的 FD002 行
+X-FD003,cross,winner_on_FD003,(none),FD003,101,80,done,n/a,,,d80,covered by real per-arm FD003 cells (B0/M2),已答：FD003 无可判定优胜者——M2 vs B0 Δ=-0.4467 半宽 2.2809（3v3，s303 反号）；6 个可用格 = B0 x3 + M2 x3（均在 d80）；见 PAIRED_VS_B0.csv 的 FD003 行
+X-FD004,cross,winner_on_FD004,(none),FD004,101,80,done,n/a,,,d80,covered by real per-arm FD004 cells (B0/M2/M3B/M3C/M4/M6/M7),已答：FD004 无可判定优胜者——M6 vs B3 Δ=-1.3876 门槛 1.5156（1 seed 对 3 seed 均值，差 0.128）；同 seed s101 配对 -1.0354 为另一口径不是替换；16 个可用格 = 13 门格清单 + 3 格 B0@80ep；见 PAIRED_VS_B0.csv 的 FD004 行
 X-ENS,cross,module_ensemble_vs_B0_ensemble,?,FD001,101-303,80,dropped,,,,,ensemble not run in this sprint,M2 六 seed 集成待出；B0 六 seed 集成待出
