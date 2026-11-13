@@ -290,15 +290,15 @@ freeze_ts_utc, eval_start_utc, status, audit_verdict, coincident, independent_un
 
 | 项 | 值 |
 |---|---|
-| `freeze_commit` | **`7e4fc04`** |
-| `protocol_blob` | **`6ec1c014008df80156a13101fb600c9e3e00cfdc`** |
-| 核验命令 | `git rev-parse 7e4fc04:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
+| `freeze_commit` | **`a9c906d`** |
+| `protocol_blob` | **`9fa743d59f1ca88174258d16e10ed9eb39a9a4ea`** |
+| 核验命令 | `git rev-parse a9c906d:docs/paper_b_ncmapss/DATASET_PROTOCOL.md` |
 
 **上一代（14 代）`5a6b1e7` / `497afe23faf5965f6259c07bbcfd012368ec2b2d` 记 `superseded`，不是 void**——
 它新增的 §6.10 规则仍然有效，只是其中「N0 撞地板」的计数写错了，15 代只改那个计数。
 **已引用旧锚的行永远有效**：作废一个已被引用的锚等于回头否定自己封存的证据。
 
-**完整锚历史（从 git 重建，共 15 代）**——注意：审计早期写的是「五次前移」，**那个数字是错的**，协议正文在本分支上一共产生过 **15 个不同 blob**，
+**完整锚历史（从 git 重建，共 16 代）**——注意：审计早期写的是「五次前移」，**那个数字是错的**，协议正文在本分支上一共产生过 **16 个不同 blob**，
 不是五次。只记最后几次会让「这个 run 用的是哪版协议」出现缺口：
 
 | commit | blob | 说明 |
@@ -317,7 +317,8 @@ freeze_ts_utc, eval_start_utc, status, audit_verdict, coincident, independent_un
 | `7e9415e` | `21af549e448415113ee2ac61f11a5679400eddac` | ncmapss: replace the fixed budget with inner-validation early stopping |
 | `9ac1744` | `a3c40c634da7a3bb44ace788f74896b17e51c3fb` | 第一批 LOEO 的冻结锚（**480 行 dev 引用的就是这一代**） |
 | `5a6b1e7` | `497afe23faf5965f6259c07bbcfd012368ec2b2d` | 新增 §6.10（全 dev 模型的 `epoch*` 定义）。**superseded**：计数写错，规则仍有效 |
-| **`7e4fc04`** | **`6ec1c014008df80156a13101fb600c9e3e00cfdc`** | **当前冻结锚**：§6.10 的 N0 撞地板计数改为 14/24（带分组明细），规则未变 |
+| `7e4fc04` | `6ec1c014008df80156a13101fb600c9e3e00cfdc` | §6.10 的 N0 撞地板计数改为 14/24（带分组明细）。**superseded** |
+| **`a9c906d`** | **`9fa743d59f1ca88174258d16e10ed9eb39a9a4ea`** | **当前冻结锚**：§4.1 三条隐式契约显式化（列序 / 51 列全 z-score / 选轮损失用 eval 模式）+ 特征名表对齐 + 预注册 `N2s` 对照臂 + §6.8「重复评价」定义 |
 
 > **`9ac1744` 之后协议冻结，直到第一批 LOEO 开发集结果出来为止不再改 §4/§6。**
 > 分界线（写进审计）：**改动必须由「测量失效」证明，不能由「数字不符合预期」触发**。
