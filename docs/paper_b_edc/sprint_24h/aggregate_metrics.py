@@ -628,7 +628,8 @@ SEED_COLUMNS = [
     "reported_engine_mean_rmse", "reported_pooled_rmse", "delta_vs_reported",
     "best_ep", "epochs_run", "budget_epochs", "budget_patience", "budget_override", "override_kind",
     "converged", "truncated", "budget_status", "early_stop_margin",
-    "reproducible", "verified", "verified_note", "evidence_tier", "comparable", "fp_short",
+    "reproducible", "verified", "verified_note", "gate_status", "evidence_tier",
+    "comparable", "fp_short",
     "gain_last1", "gain_last3", "gain_last5", "gain_last6", "gain_last12",
     "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
@@ -2261,10 +2262,12 @@ def main(argv: list[str] | None = None) -> int:
                 r["verified"] = "no"
                 r["verified_note"] = "gate without a formal cell"
                 r["evidence_tier"] = "B"
+                r["gate_status"] = "gate_reproduction"
                 continue
             ok, md5_ok, val_ok, ep_ok, be_ok = same_experiment(r, parent)
             r["verified"] = "yes" if ok else "no"
             r["evidence_tier"] = "A" if ok else "B"
+            r["gate_status"] = "gate_reproduction"
             r["verified_note"] = (
                 f"twin of {parent['root']}/{parent['run_id']}, "
                 + ("verified" if ok else "partial: " + "+".join(
@@ -2276,6 +2279,7 @@ def main(argv: list[str] | None = None) -> int:
             r["verified"] = "no"
             r["verified_note"] = "no gate twin"
             r["evidence_tier"] = "B"
+            r["gate_status"] = "unverifiable"
             continue
         ok, md5_ok, val_ok, ep_ok, be_ok = same_experiment(r, twin)
         r["verified"] = "yes" if ok else "no"
@@ -2286,6 +2290,14 @@ def main(argv: list[str] | None = None) -> int:
         # itself when the FD004 gate cells land, and no number changes because a
         # gate is a reproduction, not new data.
         r["evidence_tier"] = "A" if ok else "B"
+        # `status` answers "does this count as a sample"; `gate_status` answers
+        # "is this a twin of another cell".  They are two questions, so they get
+        # two fields.  Merging them -- by renaming `archived` to
+        # `gate_reproduction` -- would have labelled the duplicate root and the
+        # audit probe as gate twins, which they are not: `archived` is the
+        # superset, and a superset is not a synonym.  This column carries the
+        # ledger's own word so the two files agree cell by cell.
+        r["gate_status"] = "verified" if ok else "unverifiable"
         r["verified_note"] = ("md5+val+ep+best" if ok else
                               "partial: " + "+".join(
                                   n for n, f in (("md5", md5_ok), ("val", val_ok),
