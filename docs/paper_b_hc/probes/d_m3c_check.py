@@ -155,22 +155,69 @@ def part2(args):
           'rank0=%.9f margin=%.6f points=%d' % (rank0, args.rank_margin, cnt))
 
     net_c.train()
-    for p in net_c.parameters():
-        p.grad = None
-    # Recompute with grad on: the tensors used above were built under no_grad and
-    # carry no graph, so reusing them would test nothing.
-    fos_g = []
-    for i in idx:
-        n = int(ebt['lengths'][i])
-        f = T.forward_engine(net_c, 'M3C', ebt, i, n, dev, args.K)
-        fos_g.append(dict(D=f['D'], r=f['r']))
-    s, cnt = T.rank_pair_loss(fos_g, args.rank_margin, args.rank_gap)
-    s.backward()
-    g_anchor = {k: float(p.grad.norm()) for k, p in net_c.named_parameters()
-                if p.grad is not None and k.startswith('head.anchor')}
-    check('B7 ranking term has gradient at step 0', len(g_anchor) > 0
-          and min(g_anchor.values()) > 0.0,
-          'anchor grads=%s' % {k: '%.3e' % v for k, v in g_anchor.items()})
+    opt = torch.optim.AdamW([p for p in net_c.parameters() if p.requires_grad],
+                            lr=args.lr)
+
+    def _rank_backward():
+        """One ranking backward on the reference engines (no optimiser step)."""
+        opt.zero_grad(set_to_none=True)
+        fos = []
+        for i in idx:
+            n = int(ebt['lengths'][i])
+            f = T.forward_engine(net_c, 'M3C', ebt, i, n, dev, args.K)
+            fos.append(dict(D=f['D'], r=f['r']))
+        s, c = T.rank_pair_loss(fos, args.rank_margin, args.rank_gap)
+        s.backward()
+        return s, c
+
+    def _grad(prefix):
+        return {k: float(p.grad.norm()) for k, p in net_c.named_parameters()
+                if p.grad is not None and k.startswith(prefix)}
+
+    # Step 0. The output layer is zero-initialised (hi_d.py:76-79), so u = 0
+    # exactly and the clamp is NOT active: d(clamp)/du = 1 at 0. Hence the output
+    # layer's gradient is non-zero. If the clamp were saturated instead,
+    # d(clamp)/du = 0 and this gradient would be zero as well -- so this single
+    # number separates the two explanations.
+    _rank_backward()
+    g_out = _grad('head.anchor.2')
+    g_in = _grad('head.anchor.0')
+    check('B7a gradient enters the ranking path at step 0', len(g_out) > 0
+          and min(g_out.values()) > 0.0,
+          'anchor.2 grads=%s' % {k: '%.3e' % v for k, v in g_out.items()})
+    # The first layer is exactly zero at step 0 *by construction*: d(u)/d(W1) is
+    # proportional to W2, which is zero. Asserted rather than glossed over, so a
+    # zero here is never later read as a broken graph.
+    check('B7b first layer is zero at step 0 by design (W2 = 0)', len(g_in) > 0
+          and max(g_in.values()) == 0.0,
+          'anchor.0 grads=%s (expected 0: d u / d W1 ~ W2 = 0)' % {
+              k: '%.3e' % v for k, v in g_in.items()})
+
+    # After one step W2 != 0, so the first layer must start receiving gradient.
+    # That is the property the arm needs: from step 1 the whole head moves.
+    opt.step()
+    _rank_backward()
+    g_in2 = _grad('head.anchor.0')
+    check('B7c first layer receives gradient from step 1', len(g_in2) > 0
+          and min(g_in2.values()) > 0.0,
+          'anchor.0 grads after one step=%s' % {
+              k: '%.3e' % v for k, v in g_in2.items()})
+
+    # And the arm actually leaves the timer: D must stop being engine-independent.
+    for _ in range(max(0, args.steps - 1)):
+        opt.step()
+        _rank_backward()
+    net_c.eval()
+    with torch.no_grad():
+        Ds = []
+        for i in idx:
+            n = int(ebt['lengths'][i])
+            Ds.append(T.forward_engine(net_c, 'M3C', ebt, i, n, dev, args.K)['D'])
+    m2 = min(int(d.numel()) for d in Ds)
+    spread2 = max(float((d[:m2] - Ds[0][:m2]).abs().max()) for d in Ds)
+    check('B7d ranking steps move D off the age timer', spread2 > 1e-6,
+          'max|D_i - D_0| after %d steps = %.3e (was 0 at init)'
+          % (args.steps, spread2))
 
     rid = subprocess.run([sys.executable, '-m', 'paper_b.hc.train_d', 'id',
                           '--arm', 'M3C', '--subset', args.subset, '--seed', '101',
@@ -190,6 +237,10 @@ def main():
     ap.add_argument('--device', default='cpu')
     ap.add_argument('--rank-margin', type=float, default=0.05)
     ap.add_argument('--rank-gap', type=float, default=10.0)
+    ap.add_argument('--lr', type=float, default=1e-3,
+                    help='B7c/B7d: optimiser step used to leave the zero-init point')
+    ap.add_argument('--steps', type=int, default=3,
+                    help='B7d: ranking-only steps before checking D left the timer')
     ap.add_argument('--data-dir',
                     default='/media/sangfor/vdb/user/zxk/deepseek-rul/data/CMAPSS')
     ap.add_argument('--init-from',
