@@ -535,6 +535,57 @@ def paired_stats(diffs: list[float]) -> dict[str, Any]:
                 ci_lo=mean - half, ci_hi=mean + half)
 
 
+def build_budget_pairs(per_engine: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Same arm, same seed, two budgets -- is the extra budget worth it?
+
+    A budget change also changes the LR schedule, so this compares two whole
+    training recipes rather than "more steps".  Pairing on seed and engine keeps
+    the comparison honest: the seed difficulty cancels and the CI is over seeds,
+    which is the interval a decision needs.
+    """
+    runs: dict[tuple[str, str, int, Any], dict[int, float]] = {}
+    for e in per_engine:
+        key = (e["module"], e["subset"], int(e["seed"]), e.get("budget_epochs"))
+        runs.setdefault(key, {})[e["engine_id"]] = e["rmse"]
+
+    cells: dict[tuple[str, str], dict[int, dict[Any, dict[int, float]]]] = {}
+    for (mod, subset, seed, budget), per in runs.items():
+        cells.setdefault((mod, subset), {}).setdefault(seed, {})[budget] = per
+
+    out: list[dict[str, Any]] = []
+    for (mod, subset), by_seed in sorted(cells.items()):
+        budgets = sorted({b for d in by_seed.values() for b in d},
+                         key=lambda b: (b is None, b))
+        for lo, hi in zip(budgets, budgets[1:]):
+            seed_diffs: list[float] = []
+            seed_txt: list[str] = []
+            for seed, d in sorted(by_seed.items()):
+                if lo not in d or hi not in d:
+                    continue
+                a, b = d[lo], d[hi]
+                common = sorted(set(a) & set(b))
+                if not common:
+                    continue
+                diff = float(np.mean([b[i] - a[i] for i in common]))
+                seed_diffs.append(diff)
+                seed_txt.append(f"{seed}:{diff:+.3f}")
+            if not seed_diffs:
+                continue
+            st = paired_stats(seed_diffs)
+            out.append(dict(
+                module=mod, subset=subset, budget_lo=lo, budget_hi=hi,
+                n_seeds=len(seed_diffs),
+                seeds=";".join(seed_txt),
+                mean_diff=st["mean"], sd_diff=st["sd"], se=st["se"],
+                t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
+                verdict=("higher budget worse" if st["mean"] > 0
+                         else "higher budget better"),
+                significant=("yes" if (not math.isnan(st["ci_lo"])
+                                       and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
+            ))
+    return out
+
+
 def build_resolution(seed_rows: list[dict[str, Any]],
                      baseline_module: str) -> list[dict[str, Any]]:
     """How small a difference can this cell actually resolve?
@@ -1113,6 +1164,11 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "RESOLUTION.csv"), resolution,
               ["subset", "budget_epochs", "n_seeds", "mean", "sd",
                "ci_mean", "screen_single", "paired_3seed"])
+    budget_pairs = build_budget_pairs(per_engine)
+    write_csv(os.path.join(args.out_dir, "BUDGET_VS.csv"), budget_pairs,
+              ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
+               "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
+               "verdict", "significant"])
 
     # ---- audit note ------------------------------------------------------- #
     scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
