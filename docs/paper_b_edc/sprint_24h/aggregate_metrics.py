@@ -660,7 +660,12 @@ MODULE_COLUMNS = [
 
 USABLE = {"complete", "early_stopped", "n/a_by_design", "override_run"}
 
-# two-sided 95% t quantiles for small df; 1.96 (normal) beyond the table
+# Two-sided 95% t quantiles.  This table is now an ANCHOR, not the source: the
+# quantile is computed from the closed form and asserted against these values at
+# import.  The old code fell back to 1.96 beyond df=30, which silently applied a
+# normal critical value to FD002 (df=51) and FD004 (df=49) seed rows -- the CI
+# came out 2.5% too narrow, i.e. biased toward "significant".  No verdict flipped
+# that night, which was luck, not design.
 T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
         7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179,
         13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101,
@@ -668,8 +673,88 @@ T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
         25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
 
 
+def _betacf(a: float, b: float, x: float) -> float:
+    """Continued fraction for the incomplete beta (Lentz, as in Numerical Recipes)."""
+    MAXIT, EPS, FPMIN = 300, 3e-16, 1e-300
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c, d = 1.0, 1.0 - qab * x / qap
+    if abs(d) < FPMIN:
+        d = FPMIN
+    d = 1.0 / d
+    h = d
+    for m in range(1, MAXIT + 1):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        if abs(d) < FPMIN:
+            d = FPMIN
+        c = 1.0 + aa / c
+        if abs(c) < FPMIN:
+            c = FPMIN
+        d = 1.0 / d
+        de = d * c
+        h *= de
+        if abs(de - 1.0) < EPS:
+            break
+    return h
+
+
+def _betai(a: float, b: float, x: float) -> float:
+    """Regularised incomplete beta I_x(a, b)."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    bt = math.exp(math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b)
+                  + a * math.log(x) + b * math.log1p(-x))
+    if x < (a + 1.0) / (a + b + 2.0):
+        return bt * _betacf(a, b, x) / a
+    return 1.0 - bt * _betacf(b, a, 1.0 - x) / b
+
+
+def _t_cdf(t: float, df: float) -> float:
+    x = df / (df + t * t)
+    tail = 0.5 * _betai(df / 2.0, 0.5, x)
+    return 1.0 - tail if t > 0 else tail
+
+
 def t975(df: int) -> float:
-    return T975.get(df, 1.96)
+    """Exact two-sided 95% t quantile, for any df >= 1.
+
+    No fallback: a quantile that cannot be computed is an error, not a licence to
+    substitute the normal value.  The substitution is invisible in the output --
+    it only makes every CI slightly narrower -- and it fires exactly on the larger
+    engine counts (df 49-51), which is where the closest calls live.
+    """
+    if df < 1:
+        raise ValueError("t quantile needs df >= 1, got %r" % (df,))
+    lo, hi = 0.0, 1.0e4
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if _t_cdf(mid, df) < 0.975:
+            lo = mid
+        else:
+            hi = mid
+        if hi - lo <= 1e-13:
+            break
+    return 0.5 * (lo + hi)
+
+
+# The table above must agree with the closed form; if it does not, one of the two
+# is wrong and every CI downstream inherits it.
+for _df, _tab in T975.items():
+    _got = t975(_df)
+    if abs(_got - _tab) > 1e-3:
+        raise RuntimeError("t975(%d) = %.6f but the table says %.3f" % (_df, _got, _tab))
 
 
 def paired_stats(diffs: list[float]) -> dict[str, Any]:
@@ -1267,7 +1352,8 @@ def build_stability(seed_rows: list[dict[str, Any]],
 
 def build_invariants(seed_rows: list[dict[str, Any]],
                      stability: list[dict[str, Any]],
-                     ensemble_vs: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+                     ensemble_vs: list[dict[str, Any]] | None = None,
+                     paired: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """The four values that look like measurements and are not.
 
     Scope is deliberately narrow: only two shapes are checked, (a) the same
@@ -1351,6 +1437,43 @@ def build_invariants(seed_rows: list[dict[str, Any]],
                  "seeds, so it is the same average and must return the same number. "
                  "A gap here would mean the control changed something other than "
                  "the member count.")))
+
+    # Every CI in the two comparison frames must be built from the t quantile of
+    # its own df.  A normal critical value looks identical in the output -- it
+    # just makes the interval 2.5% narrower at df 49-51 -- so the only way to keep
+    # it out is to recompute the half-width from se and compare.  df depends on
+    # what was paired: module rows pair over seeds, seed rows pair over engines.
+    checked: list[float] = []
+    n_checked = 0
+    for frame, rows in (("paired", paired or []), ("ensemble", ensemble_vs or [])):
+        for r in rows:
+            se = r.get("se")
+            lo, hi = r.get("ci_lo"), r.get("ci_hi")
+            if not isinstance(se, (int, float)) or not se or se != se:
+                continue
+            if not (isinstance(lo, (int, float)) and isinstance(hi, (int, float))):
+                continue
+            if lo != lo or hi != hi:
+                continue
+            if frame == "paired":
+                df = (int(r["n_engines"]) - 1 if r.get("level") == "seed"
+                      else int(r["n_seeds"]) - 1)
+            else:
+                df = int(r["n_engines"]) - 1
+            if df < 1:
+                continue
+            n_checked += 1
+            checked.append(abs((hi - lo) / 2.0 / float(se) - t975(df)))
+    out.append(dict(
+        check="ci half-width == t(0.975, df) * se", kind="by_construction",
+        n=n_checked, distinct=len(set(round(g, 9) for g in checked)),
+        observed=(max(checked) if checked else float("nan")),
+        why=("a normal critical value in place of t(df) does not change the point "
+             "estimate, it only narrows the interval -- and it narrows it exactly "
+             "where the engine counts are large, which is where the closest calls "
+             "live. Recomputing half/se and comparing with t(df) is the only check "
+             "that can see a wrong critical value, because every other column is "
+             "unchanged by it.")))
     return out
 
 
@@ -2605,7 +2728,7 @@ def main(argv: list[str] | None = None) -> int:
                "verdict", "decision", "decision_driver", "reason", "converged"])
     gates = build_gate_check(seed_rows)
     ens_vs = build_ensemble_vs(seed_rows, args.cap, args.paired_baseline)
-    invariants = build_invariants(seed_rows, stability, ens_vs)
+    invariants = build_invariants(seed_rows, stability, ens_vs, paired)
     write_csv(os.path.join(args.out_dir, "INVARIANT_CHECK.csv"), invariants,
               ["check", "kind", "n", "distinct", "observed", "why"])
     alpha_rob = build_alpha_robustness(seed_rows)
