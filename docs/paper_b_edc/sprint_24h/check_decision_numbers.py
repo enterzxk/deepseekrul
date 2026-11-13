@@ -228,6 +228,39 @@ if "--emit-tier" in sys.argv:
     print("emitted tier block into", TIER_DOC)
     sys.exit(0)
 
+
+def thr_table():
+    """The 0.6 table, generated from THRESHOLDS.csv.  Paired with check 0.6:
+    a generated block without a staleness check is worse than a hand copy,
+    because a reader assumes it updates itself."""
+    rows = load("THRESHOLDS.csv")
+    tab = {}
+    for r in rows:
+        tab.setdefault("%s@%s" % (r["subset"], r["budget_epochs"]), {})[r["kind"]] = r
+    order = ["FD001@40", "FD001@80", "FD001@160", "FD002@40",
+             "FD003@80", "FD004@40", "FD004@80"]
+    kinds = ["screen_single", "single_vs_mean", "paired", "ci_mean"]
+    out = ["| `subset@budget` | `n` | `screen_single` | `single_vs_mean` | `paired` | `ci_mean` |",
+           "|---|---:|---:|---:|---:|---:|"]
+    for k in order:
+        g = tab[k]
+        cells = ["**%.4f**" % float(g[kk]["value"]) for kk in kinds]
+        out.append("| `%s` | %s | %s |" % (k, g["paired"]["n_seeds"], " | ".join(cells)))
+    return "\n".join(out)
+
+
+if "--emit-thr" in sys.argv:
+    _p = HERE / TIER_DOC
+    _ls = _p.read_text(encoding="utf-8").split("\n")
+    _i0 = next(i for i, l in enumerate(_ls) if l.startswith("| `subset@budget` | `n` |"))
+    _i1 = _i0
+    while _i1 < len(_ls) and _ls[_i1].startswith("|"):
+        _i1 += 1
+    _ls[_i0:_i1] = thr_table().split("\n")
+    _p.write_text("\n".join(_ls), encoding="utf-8")
+    print("emitted 0.6 threshold table into", TIER_DOC)
+    sys.exit(0)
+
 _src = (HERE / TIER_DOC).read_text(encoding="utf-8")
 checks += 1
 if TIER_BEGIN not in _src or TIER_END not in _src:
@@ -363,6 +396,57 @@ print(f"{'PASS' if not _nr else 'FAIL'}  {'7.5 no not-run claim whose artifact e
       f"hits={len(_nr)}")
 for _n in _nr:
     fails.append("stale not-run claim: " + _n)
+
+# 8.1 the E10 probe table: 13 arms x 6 numbers, every one hand-copied from
+# MECHANISM_TABLE.csv.  Each cell is an independent drift point, so anchor all
+# of them -- a 13-row table is 78 unprotected numbers otherwise, and every
+# drift found tonight happened in a hand-copied number, never in a generated
+# block.
+_probe = load("MECHANISM_TABLE.csv")
+_mech = (HERE / "MECHANISM_EVIDENCE.md").read_text(encoding="utf-8").split("\n")
+# the arm name alone does not identify a row -- "| M3B |" occurs in several
+# tables in this file, so scope the search to the E10 table body.
+_h = next((i for i, l in enumerate(_mech)
+           if l.startswith("| 臂 |") and "perm/val" in l), None)
+if _h is None:
+    checks += 1
+    fails.append("E10 table header not found in MECHANISM_EVIDENCE.md")
+    print(f"{'FAIL'}  {'8.1 E10 probe table matches the CSV':<52s} no header")
+    _bad, _cells = [], 0
+else:
+    _rows = []
+    _j = _h + 1
+    while _j < len(_mech) and _mech[_j].startswith("|"):
+        _rows.append(_mech[_j])
+        _j += 1
+    _bad, _cells = [], 0
+    for _r in _probe:
+        _a = _r.get("arm", "")
+        _line = next((l for l in _rows if l.startswith("| %s |" % _a)), None)
+        if _line is None:
+            _bad.append("%s: row not found in the E10 table" % _a)
+            continue
+        _want = []
+        for _k, _fmt in (("val_rmse", "%.4f"), ("rank_acc", "%.4f"), ("perm_mean", "%.4f")):
+            try:
+                _want.append(_fmt % float(_r[_k]))
+            except (ValueError, KeyError):
+                pass
+        try:
+            _want.append("%.4f" % abs(float(_r["degrad_abs"])))
+            _want.append("%.2f" % float(str(_r["degrad_pct"]).replace("%", "").replace("+", "")))
+            _want.append("%.4f" % (float(_r["perm_mean"]) / float(_r["val_rmse"])))
+        except (ValueError, KeyError):
+            pass
+        for _w in _want:
+            _cells += 1
+            if _w not in _line:
+                _bad.append("%s: %s not found in its E10 row" % (_a, _w))
+    checks += 1
+    print(f"{'PASS' if not _bad else 'FAIL'}  {'8.1 E10 probe table matches the CSV':<52s} "
+          f"cells={_cells} bad={len(_bad)}")
+    for _n in _bad:
+        fails.append("E10 cell drift: " + _n)
 
 print(f"\n=== RESULT: {checks - len(fails)}/{checks} anchors reproduce ===")
 if fails:
