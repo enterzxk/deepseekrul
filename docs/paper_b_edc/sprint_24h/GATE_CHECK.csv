@@ -1,6 +1,5 @@
 gate_run,gate_root,module,subset,seed,budget_epochs,formal_run,formal_root,gate_md5,formal_md5,md5_match,delta_value,verdict
 HC-D-M5-FD001-s101-D1,_dup_d80m5,M5,FD001,101,80,HC-D-M5-FD001-s101-D1,d80,c0879c67f4ced153f5676507168f7b7d,c0879c67f4ced153f5676507168f7b7d,yes,0.0,PASS (identical bytes)
-HC-D-B0-FD001-s101-D1,_verify,B0_direct_rul,FD001,101,5,,,bbe1da6a38b565e3da4dd20127f56f46,,,nan,no formal twin
 HC-D-B0-FD001-s101-D1,_gate,B0_direct_rul,FD001,101,80,HC-D-B0-FD001-s101-D1,d/probe80,7475fad128d743a240658c08635d31c3,7475fad128d743a240658c08635d31c3,yes,0.0,PASS (identical bytes)
 HC-D-B0-FD001-s202-D1,_gate,B0_direct_rul,FD001,202,80,HC-D-B0-FD001-s202-D1,d80,baf3f5c82a4125a640c027f709e06d92,baf3f5c82a4125a640c027f709e06d92,yes,0.0,PASS (identical bytes)
 HC-D-B0-FD001-s303-D1,_gate,B0_direct_rul,FD001,303,80,HC-D-B0-FD001-s303-D1,d80,2641f93cca499193d7f78ab2d3a09642,2641f93cca499193d7f78ab2d3a09642,yes,0.0,PASS (identical bytes)
@@ -18,3 +17,7 @@ HC-D-M2-FD001-s606-D1,_gate,M2,FD001,606,80,HC-D-M2-FD001-s606-D1,d80,bd3023bdcb
 HC-D-M3B-FD001-s101-D1,_gate,M3B,FD001,101,80,HC-D-M3B-FD001-s101-D1,d80,684345ff5c38dcfc6c2994b8bc37d574,684345ff5c38dcfc6c2994b8bc37d574,yes,0.0,PASS (identical bytes)
 HC-D-M6-FD001-s101-D1,_gate,M6,FD001,101,80,HC-D-M6-FD001-s101-D1,d80,f8953ad924a0174a039fbced6853607b,f8953ad924a0174a039fbced6853607b,yes,0.0,PASS (identical bytes)
 HC-D-B0-FD001-s101-D1,_gate160,B0_direct_rul,FD001,101,160,HC-D-B0-FD001-s101-D1,d80b160,4c96059b76f8f2ee0d12ff7d3a29dbc4,4c96059b76f8f2ee0d12ff7d3a29dbc4,yes,0.0,PASS (identical bytes)
+HC-D-B0-FD001-s101-D1,_verify,B0_direct_rul,FD001,101,5,,,bbe1da6a38b565e3da4dd20127f56f46,,,nan,no formal twin
+HC-D-B3-FD004-s101-D1,_gate,B3_HI_var_rate,FD004,101,40,HC-D-B3-FD004-s101-D1,d80,74d9ff8992e61105944f6c365133bbda,74d9ff8992e61105944f6c365133bbda,yes,0.0,PASS (identical bytes)
+HC-D-B3-FD004-s202-D1,_gate,B3_HI_var_rate,FD004,202,40,HC-D-B3-FD004-s202-D1,d80,e2dbd764e5094d0f2f27b3547660bb59,e2dbd764e5094d0f2f27b3547660bb59,yes,0.0,PASS (identical bytes)
+HC-D-M6-FD004-s101-D1,_gate,M6,FD004,101,40,HC-D-M6-FD004-s101-D1,d80,fa5d0e9ff511e937ba7e5245edbec824,fa5d0e9ff511e937ba7e5245edbec824,yes,0.0,PASS (identical bytes)

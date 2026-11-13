@@ -1491,6 +1491,19 @@ CONTRACT_SUFFIXES = (
     ("_pct", "finite", lambda v: math.isfinite(v)),
 )
 
+# Suffixes cannot catch a promise carried by a *word*.  ``verdict`` was such a
+# word: it held ``sign(mean_diff)`` and nothing else, so a row with a confidence
+# interval straddling zero still read ``worse``.  The name promised a judgement;
+# the column stored a direction.  A reader who trusts the label and a reader who
+# reads the CI disagree, and both are reading correct data.  Renaming to
+# ``direction_vs_B0`` moves the promise into the name; these lines make the name
+# testable, because a rename without a check drifts back at the next edit.
+NAMED_CONTRACTS = (
+    ("PAIRED_VS_B0", "direction_vs_B0",
+     "value in {better, worse}; sign only, NOT a verdict",
+     lambda v: v in ("better", "worse")),
+)
+
 
 def build_column_contracts(frames: list[tuple[str, list[dict[str, Any]]]]) -> list[dict[str, Any]]:
     """Test what the column names promise.
@@ -1522,6 +1535,18 @@ def build_column_contracts(frames: list[tuple[str, list[dict[str, Any]]]]) -> li
                     example=(bad[0] if bad else float("nan")),
                     verdict=("VIOLATED" if bad else "ok")))
                 break
+        # named (non-suffix) promises: a word that asserts a property
+        for want_frame, col, promise, test in NAMED_CONTRACTS:
+            if want_frame != frame or col not in rows[0]:
+                continue
+            vals = [r[col] for r in rows
+                    if r.get(col) is not None and str(r[col]) != ""]
+            bad = [v for v in vals if not test(v)]
+            out.append(dict(
+                frame=frame, column=col, promise=promise, n=len(vals),
+                violations=len(bad),
+                example=(bad[0] if bad else ""),
+                verdict=("VIOLATED" if bad else "ok")))
     return sorted(out, key=lambda r: (r["verdict"] != "VIOLATED", r["frame"], r["column"]))
 
 
@@ -1884,7 +1909,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
                 / abs(st["mean"]) if st["mean"] else float("nan")),
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
-            verdict=("worse" if st["mean"] > 0 else "better"),
+            direction_vs_B0=("worse" if st["mean"] > 0 else "better"),
             significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
                                    and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
         ))
@@ -1951,7 +1976,7 @@ def build_paired(seed_rows: list[dict[str, Any]],
                                        default=float("nan")),
             pair_status=pair_status, judgeable=judgeable,
             pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
-            verdict=("worse" if st["mean"] > 0 else "better"),
+            direction_vs_B0=("worse" if st["mean"] > 0 else "better"),
             significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
                                    and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
         ))
@@ -2199,23 +2224,60 @@ def main(argv: list[str] | None = None) -> int:
     for r in seed_rows:
         if str(r.get("root", "")).startswith("_gate") and r.get("preds_md5"):
             gate_twins[(r["module"], r["subset"], r.get("budget_epochs"), r["seed"])] = r
+
+    # The gate is one side of a pair.  Judging only the formal row wrote
+    # "no gate twin" on every gate row -- including the gate rows whose parent
+    # was verified -- so an auditor who opened the gate to check the parent found
+    # the gate asserting it had no twin, the exact opposite of the fact.  A label
+    # that is true of one side and false of the other is worse than no label: it
+    # sends the reader to the one place where the evidence looks absent.  The
+    # verdict is therefore written on both sides: the parent names the gate that
+    # reproduced it, the gate names the parent it reproduced.
+    formal_twins: dict[tuple, dict[str, Any]] = {}
     for r in seed_rows:
-        twin = gate_twins.get((r["module"], r["subset"], r.get("budget_epochs"), r["seed"]))
+        if (not str(r.get("root", "")).startswith("_gate")
+                and r.get("status") == "usable"):
+            formal_twins.setdefault(
+                (r["module"], r["subset"], r.get("budget_epochs"), r["seed"]), r)
+
+    def same_experiment(a: dict[str, Any], b: dict[str, Any]):
+        md5_ok = a.get("preds_md5") == b.get("preds_md5")
+        v_a, v_b = a.get("engine_mean_rmse"), b.get("engine_mean_rmse")
+        val_ok = (v_a is not None and v_b is not None and abs(v_a - v_b) <= 1e-6)
+        ep_ok = a.get("epochs_run") == b.get("epochs_run")
+        be_ok = a.get("best_ep") == b.get("best_ep")
+        # All four, not just the bytes.  Early stopping has drifted independently
+        # of the values before, so a matching md5 with a different epochs_run
+        # would mean the two runs are not the same experiment even though they
+        # produced the same predictions.
+        return (md5_ok and val_ok and ep_ok and be_ok,
+                md5_ok, val_ok, ep_ok, be_ok)
+
+    for r in seed_rows:
+        key = (r["module"], r["subset"], r.get("budget_epochs"), r["seed"])
+        if str(r.get("root", "")).startswith("_gate"):
+            parent = formal_twins.get(key)
+            if parent is None or parent is r:
+                r["verified"] = "no"
+                r["verified_note"] = "gate without a formal cell"
+                r["evidence_tier"] = "B"
+                continue
+            ok, md5_ok, val_ok, ep_ok, be_ok = same_experiment(r, parent)
+            r["verified"] = "yes" if ok else "no"
+            r["evidence_tier"] = "A" if ok else "B"
+            r["verified_note"] = (
+                f"twin of {parent['root']}/{parent['run_id']}, "
+                + ("verified" if ok else "partial: " + "+".join(
+                    n for n, f in (("md5", md5_ok), ("val", val_ok),
+                                   ("ep", ep_ok), ("best", be_ok)) if f)))
+            continue
+        twin = gate_twins.get(key)
         if twin is None or twin is r:
             r["verified"] = "no"
             r["verified_note"] = "no gate twin"
             r["evidence_tier"] = "B"
             continue
-        md5_ok = twin.get("preds_md5") == r.get("preds_md5")
-        v_a, v_b = twin.get("engine_mean_rmse"), r.get("engine_mean_rmse")
-        val_ok = (v_a is not None and v_b is not None and abs(v_a - v_b) <= 1e-6)
-        ep_ok = twin.get("epochs_run") == r.get("epochs_run")
-        be_ok = twin.get("best_ep") == r.get("best_ep")
-        # All four, not just the bytes.  Early stopping has drifted independently
-        # of the values before, so a matching md5 with a different epochs_run
-        # would mean the two runs are not the same experiment even though they
-        # produced the same predictions.
-        ok = md5_ok and val_ok and ep_ok and be_ok
+        ok, md5_ok, val_ok, ep_ok, be_ok = same_experiment(r, twin)
         r["verified"] = "yes" if ok else "no"
         # Evidence tier follows the gate, not the subset name.  A = a gate twin
         # reproduced this cell on the current HEAD (all four items); B = usable
@@ -2388,7 +2450,7 @@ def main(argv: list[str] | None = None) -> int:
               ["level", "module", "subset", "budget_epochs", "seed", "root",
                "n_seeds", "seeds", "n_engines",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
-               "module_em", "b0_em", "pct_vs_b0", "verdict", "significant",
+               "module_em", "b0_em", "pct_vs_b0", "direction_vs_B0", "significant",
                "module_budget_status", "baseline_budget_status",
                "module_gain_last5", "baseline_gain_last5", "headroom",
                "module_gain_last12", "baseline_gain_last12", "headroom12",
@@ -2633,6 +2695,19 @@ def main(argv: list[str] | None = None) -> int:
         "",
         "Pairs are matched on `(subset, budget, seed)` by construction, so every pair",
         "here is a same-schedule pair; the real gate is the measured headroom.",
+        "",
+        "## A direction is not a verdict",
+        "",
+        "`PAIRED_VS_B0.csv` used to carry a column named `verdict` holding",
+        "`sign(mean_diff)` and nothing else.  It has been renamed `direction_vs_B0`.",
+        "The reason is not style: on rows whose confidence interval straddles zero the",
+        "word `verdict` asserted a judgement the row did not make.  Two readers of the",
+        "same correct row disagreed -- one read the label, one read the interval -- and",
+        "no value check could catch it, because the numbers agreed with their source and",
+        "disagreed only with their own name.  `COLUMN_CONTRACTS.csv` now tests the name:",
+        "`direction_vs_B0` must take one of two values, and the contract says in words",
+        "that it is a sign, not a decision.  The judgement itself lives in",
+        "`SCREEN.csv` (`decision`), where the threshold and the pairing are both named.",
         "",
         "## Run identity comes from the path, not from the ledger label",
         "",
