@@ -683,6 +683,25 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
             % (prior.size - 2, float(prior[1]), float(prior[-3]), prior_sha))
     params = trainable(net, arm)
     nparam = module_counts(net, arm)
+    # M5: normalise the auxiliary by its own initial value, exactly like S0.
+    # Without this, lam_dpc is an absolute weight on a term whose scale moves:
+    # measured 0.0052 -> 0.0960 over 15 epochs (18x), which took the gradient
+    # share from 15% to 100% and stopped being a test of M5.
+    dpc0 = None
+    if arm in DPC_ARMS:
+        was_training = net.training
+        net.eval()
+        with torch.no_grad():
+            vals = []
+            for _i in range(min(8, len(ebt['lengths']))):
+                _n = int(ebt['lengths'][_i])
+                _fo = forward_engine(net, arm, ebt, _i, _n, dev, K)
+                _d, _k = net.dpc.loss(_fo['z'])
+                if _k:
+                    vals.append(float(_d))
+        net.train(was_training)
+        dpc0 = max(1e-12, float(np.mean(vals))) if vals else 1.0
+        log('  dpc0 (init, detached) = %.6f from %d engines' % (dpc0, len(vals)))
     opt = (torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
            if params else None)
     sch = (torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs, eta_min=1e-5)
@@ -710,7 +729,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
                 total = total + lam_a * L['alive']
                 diag['alive'] = float(L['alive'].detach())
             if 'dpc' in L:
-                total = total + lam_dpc * L['dpc']
+                total = total + lam_dpc * (L['dpc'] / dpc0)
                 diag['dpc'] = float(L['dpc'].detach())
             if opt is not None:
                 total.backward()
@@ -740,7 +759,7 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
         ev = evaluate(net, arm, ebv, dev, K, cap)
         tg = (term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s,
                          scr=(arm in SCR_ARMS), lam_a=(lam_a or 0.0),
-                         lam_dpc=(lam_dpc or 0.0))
+                         lam_dpc=((lam_dpc or 0.0) / (dpc0 or 1.0)))
               if params else dict(unweighted={}, weighted={}, values={}))
         w = tg['weighted']
         mx = max(w.values()) if w else 0.0
