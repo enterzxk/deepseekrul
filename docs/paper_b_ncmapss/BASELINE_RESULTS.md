@@ -1,8 +1,17 @@
 # N-CMAPSS baseline ladder — four subsets, development and sealed test
 
 Status: **complete**. Development 480 rows (240 cells × 2 evaluation points) at
-`git_sha = b889bd2`; sealed test 80 rows (40 cells × 2) at `git_sha = ad53371`.
-Protocol blob `a3c40c63…` for both. Every cell carries a checkpoint.
+`git_sha = b889bd2` under protocol blob `a3c40c63…` (13th generation). Sealed test
+80 rows (40 cells × 2) at `git_sha = ad53371`, opened under protocol blob
+`6ec1c01…` (15th generation, which adds §6.10 defining `epoch*` for the
+full-device test model). Every cell carries a checkpoint.
+
+The two batches legitimately carry different blobs: the test model trains on all
+six development engines, so it has no inner split, and §6.10 had to exist before
+the test set was opened. It was committed at 04:00 and the set opened at 04:05
+(+222 s, mechanically verified from the opens record). The development rows keep
+`a3c40c63` permanently — `protocol_blob` is a per-row field, so no later anchor
+can rewrite them.
 
 The test units were opened once, after the freeze, and their numbers are
 **descriptive**: they were never used to pick a model, a stopping rule or a
@@ -179,11 +188,14 @@ These three conditions were written into this file before any result existed.
 
 ## Provenance
 
-- Development: `experiments/ncmapss/<subset>/runs_dev.csv`, `git_sha = b889bd2`.
-  The DS02 column was recomputed here from the sealed `registry/runs_DS02.csv`.
-- Test: `experiments/ncmapss/<subset>/runs_test.csv`, `git_sha = ad53371`.
-  `code_md5` differs from the frozen manifest because the test path did not exist
-  at freeze time; the diff is `load_split(..., fitted=)` and
+- Development: `experiments/ncmapss/<subset>/runs_dev.csv`, `git_sha = b889bd2`,
+  `protocol_blob = a3c40c63…`. The DS02 column was recomputed here from the
+  sealed `registry/runs_DS02.csv`.
+- Test: `experiments/ncmapss/<subset>/runs_test.csv`, `git_sha = ad53371`,
+  `protocol_blob = 6ec1c01…` (15th generation; §6.10 defines the test model's
+  `epoch*` as `round_half_up` of the six LOEO values, frozen before opening).
+  `code_md5` differs from the development manifest because the test path did not
+  exist at that freeze; the diff is `load_split(..., fitted=)` and
   `fit_rung(..., no_holdout=True)` only — loss, optimiser, hyper-parameters,
   architecture and label construction are unchanged (recorded in
   `REGISTRY_NOTES` v20).
