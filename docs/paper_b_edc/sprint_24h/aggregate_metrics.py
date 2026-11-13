@@ -690,6 +690,40 @@ def paired_stats(diffs: list[float]) -> dict[str, Any]:
                 ci_lo=mean - half, ci_hi=mean + half)
 
 
+def _vector_from_rows(rows: list[dict[str, Any]], cap: float) -> dict[str, Any] | None:
+    """Average the prediction files of an explicit list of runs.
+
+    Split out of ``ensemble_vectors`` so the same averaging can be applied to a
+    *subset* of the baseline's seeds -- which is the only way to compare a 3-seed
+    module ensemble with a 3-seed baseline ensemble instead of a 6-seed one.
+    """
+    if len(rows) < 2:
+        return None
+    try:
+        per = []
+        labels: dict[tuple[int, int], float] = {}
+        for r in rows:
+            a = read_preds(r["preds_path"])
+            per.append({(int(e), int(c)): float(p) for e, c, p in
+                        zip(a["engine_id"], a["cut"], a["y_pred"])})
+            labels.update({(int(e), int(c)): float(y) for e, c, y in
+                           zip(a["engine_id"], a["cut"], a["y_raw"])})
+        keys = sorted(labels)
+        if any(set(p) != set(keys) for p in per):
+            return None
+        preds = np.mean([np.array([p[k] for k in keys], np.float64)
+                         for p in per], axis=0)
+    except Exception:                                 # noqa: BLE001
+        return None
+    return dict(
+        keys=keys,
+        preds=preds,
+        ys=np.array([min(labels[k], cap) for k in keys], np.float64),
+        unit=np.array([k[0] for k in keys]),
+        n_seeds=len(rows),
+        seeds=sorted(str(r["seed"]) for r in rows))
+
+
 def ensemble_vectors(seed_rows: list[dict[str, Any]], cap: float,
                      min_seeds: int = 2) -> dict[tuple[str, str, Any], dict[str, Any]]:
     """Ensemble prediction vector per cell, aligned on (engine_id, cut)."""
@@ -703,29 +737,36 @@ def ensemble_vectors(seed_rows: list[dict[str, Any]], cap: float,
     for key, rows in groups.items():
         if len(rows) < min_seeds:
             continue
-        try:
-            per = []
-            labels: dict[tuple[int, int], float] = {}
-            for r in rows:
-                a = read_preds(r["preds_path"])
-                per.append({(int(e), int(c)): float(p) for e, c, p in
-                            zip(a["engine_id"], a["cut"], a["y_pred"])})
-                labels.update({(int(e), int(c)): float(y) for e, c, y in
-                               zip(a["engine_id"], a["cut"], a["y_raw"])})
-            keys = sorted(labels)
-            if any(set(p) != set(keys) for p in per):
-                continue
-            preds = np.mean([np.array([p[k] for k in keys], np.float64)
-                             for p in per], axis=0)
-        except Exception:                             # noqa: BLE001
-            continue
-        out[key] = dict(
-            keys=keys,
-            preds=preds,
-            ys=np.array([min(labels[k], cap) for k in keys], np.float64),
-            unit=np.array([k[0] for k in keys]),
-            n_seeds=len(rows))
+        vec = _vector_from_rows(rows, cap)
+        if vec is not None:
+            out[key] = vec
     return out
+
+
+def _ensemble_compare(mine: dict[str, Any], ref: dict[str, Any], cap: float) -> dict[str, Any] | None:
+    """Paired per-engine comparison of two ensemble vectors."""
+    if set(mine["keys"]) != set(ref["keys"]):
+        return None
+    idx = {k: i for i, k in enumerate(mine["keys"])}
+    pos = [idx[k] for k in ref["keys"]]
+    units = np.unique(ref["unit"])
+    diffs = []
+    for u in units:
+        m = ref["unit"] == u
+        pm = np.clip(mine["preds"][pos][m], 0.0, cap)
+        pb = np.clip(ref["preds"][m], 0.0, cap)
+        ys = ref["ys"][m]
+        diffs.append(rmse(pm, ys) - rmse(pb, ys))
+    st = paired_stats(diffs)
+    em_m = per_engine_rmse(ref["unit"], ref["ys"], np.clip(mine["preds"][pos], 0, cap))
+    em_b = per_engine_rmse(ref["unit"], ref["ys"], np.clip(ref["preds"], 0, cap))
+    return dict(
+        ensemble_module_em=em_m, ensemble_b0_em=em_b, diff_em=em_m - em_b,
+        n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
+        se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
+        pct_vs_b0=(100.0 * (em_m - em_b) / em_b if em_b else float("nan")),
+        significant=("yes" if (not math.isnan(st["ci_lo"])
+                               and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"))
 
 
 def build_ensemble_vs(seed_rows: list[dict[str, Any]], cap: float,
@@ -735,39 +776,56 @@ def build_ensemble_vs(seed_rows: list[dict[str, Any]], cap: float,
     This is the test the deployment question actually needs: the seed-level CI
     says how sure we are about a mean over trainings, but the shipped artefact is
     the averaged prediction, and its error is a different random variable.
+
+    Size matters here.  An ensemble of six members is not the same estimator as
+    an ensemble of three, and it is usually the stronger one, so comparing a
+    3-seed module against the 6-seed baseline charges the module for the baseline
+    being better averaged.  Every row therefore carries ``size_matched``, and
+    ``*_matched`` columns compare against the baseline ensemble rebuilt from
+    exactly the module's own seeds -- same members count, same seeds, one
+    difference left.
     """
     vecs = ensemble_vectors(seed_rows, cap)
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or not r.get("preds_path"):
+            continue
+        groups.setdefault(
+            (r["module"], r["subset"], r.get("budget_epochs")), []).append(r)
+
     out: list[dict[str, Any]] = []
     for (mod, subset, budget), mine in sorted(
             vecs.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2]))):
         if mod == baseline_module:
             continue
         ref = vecs.get((baseline_module, subset, budget))
-        if ref is None or set(mine["keys"]) != set(ref["keys"]):
+        if ref is None:
             continue
-        idx = {k: i for i, k in enumerate(mine["keys"])}
-        pos = [idx[k] for k in ref["keys"]]
-        units = np.unique(ref["unit"])
-        diffs = []
-        for u in units:
-            m = ref["unit"] == u
-            pm = np.clip(mine["preds"][pos][m], 0.0, cap)
-            pb = np.clip(ref["preds"][m], 0.0, cap)
-            ys = ref["ys"][m]
-            diffs.append(rmse(pm, ys) - rmse(pb, ys))
-        st = paired_stats(diffs)
-        em_m = per_engine_rmse(ref["unit"], ref["ys"], np.clip(mine["preds"][pos], 0, cap))
-        em_b = per_engine_rmse(ref["unit"], ref["ys"], np.clip(ref["preds"], 0, cap))
+        base = _ensemble_compare(mine, ref, cap)
+        if base is None:
+            continue
+        # equal-size control: rebuild the baseline ensemble from this module's
+        # own seeds, so both sides average the same number of trainings
+        my_seeds = set(mine.get("seeds") or [])
+        base_rows = [r for r in groups.get((baseline_module, subset, budget), [])
+                     if str(r["seed"]) in my_seeds]
+        mref = (_vector_from_rows(base_rows, cap)
+                if len(base_rows) == len(my_seeds) and len(base_rows) >= 2 else None)
+        matched = _ensemble_compare(mine, mref, cap) if mref is not None else None
         out.append(dict(
             module=mod, subset=subset, budget_epochs=budget,
             n_seeds_module=mine["n_seeds"], n_seeds_b0=ref["n_seeds"],
-            ensemble_module_em=em_m, ensemble_b0_em=em_b,
-            diff_em=em_m - em_b,
-            n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
-            se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
-            pct_vs_b0=(100.0 * (em_m - em_b) / em_b if em_b else float("nan")),
-            significant=("yes" if (not math.isnan(st["ci_lo"])
-                                   and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
+            size_matched=("yes" if mine["n_seeds"] == ref["n_seeds"] else "no"),
+            seeds_module=";".join(mine.get("seeds") or []),
+            seeds_b0=";".join(ref.get("seeds") or []),
+            **base,
+            n_seeds_b0_matched=(mref["n_seeds"] if mref else 0),
+            ensemble_b0_matched_em=(matched["ensemble_b0_em"] if matched else float("nan")),
+            diff_em_matched=(matched["diff_em"] if matched else float("nan")),
+            mean_diff_matched=(matched["mean_diff"] if matched else float("nan")),
+            ci_lo_matched=(matched["ci_lo"] if matched else float("nan")),
+            ci_hi_matched=(matched["ci_hi"] if matched else float("nan")),
+            significant_matched=(matched["significant"] if matched else "n/a"),
         ))
     return out
 
@@ -1208,7 +1266,8 @@ def build_stability(seed_rows: list[dict[str, Any]],
 
 
 def build_invariants(seed_rows: list[dict[str, Any]],
-                     stability: list[dict[str, Any]]) -> list[dict[str, Any]]:
+                     stability: list[dict[str, Any]],
+                     ensemble_vs: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """The four values that look like measurements and are not.
 
     Scope is deliberately narrow: only two shapes are checked, (a) the same
@@ -1272,6 +1331,26 @@ def build_invariants(seed_rows: list[dict[str, Any]],
              "arm_build_ok.py printed params=119364 for B0/B1/B2/B3 while "
              "metrics.json reports 115010/119364/115139/115139 -- and 119364 is "
              "B1's true count, which is what makes the wrong number believable.")))
+
+    # The equal-size control must be a no-op where the sizes already match.  If it
+    # is not, the control is changing something besides the member count and every
+    # matched comparison it produces is suspect.
+    if ensemble_vs:
+        same = [r for r in ensemble_vs
+                if r.get("size_matched") == "yes"
+                and isinstance(r.get("diff_em_matched"), (int, float))
+                and r["diff_em_matched"] == r["diff_em_matched"]]
+        gaps2 = [abs(float(r["diff_em_matched"]) - float(r["diff_em"])) for r in same]
+        out.append(dict(
+            check="size_matched=yes => diff_em_matched == diff_em",
+            kind="by_construction", n=len(gaps2),
+            distinct=len(set(round(g, 9) for g in gaps2)),
+            observed=(max(gaps2) if gaps2 else float("nan")),
+            why=("when both ensembles already have the same number of members, the "
+                 "equal-size control rebuilds the baseline from exactly the same "
+                 "seeds, so it is the same average and must return the same number. "
+                 "A gap here would mean the control changed something other than "
+                 "the member count.")))
     return out
 
 
@@ -2525,7 +2604,8 @@ def main(argv: list[str] | None = None) -> int:
                "delta_best", "delta_ema", "delta_tail10", "consistent",
                "verdict", "decision", "decision_driver", "reason", "converged"])
     gates = build_gate_check(seed_rows)
-    invariants = build_invariants(seed_rows, stability)
+    ens_vs = build_ensemble_vs(seed_rows, args.cap, args.paired_baseline)
+    invariants = build_invariants(seed_rows, stability, ens_vs)
     write_csv(os.path.join(args.out_dir, "INVARIANT_CHECK.csv"), invariants,
               ["check", "kind", "n", "distinct", "observed", "why"])
     alpha_rob = build_alpha_robustness(seed_rows)
@@ -2554,12 +2634,15 @@ def main(argv: list[str] | None = None) -> int:
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "verdict", "significant"])
-    ens_vs = build_ensemble_vs(seed_rows, args.cap, args.paired_baseline)
     write_csv(os.path.join(args.out_dir, "ENSEMBLE_VS_B0.csv"), ens_vs,
               ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",
+               "size_matched", "seeds_module", "seeds_b0",
                "ensemble_module_em", "ensemble_b0_em", "diff_em",
                "n_engines", "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
-               "pct_vs_b0", "significant"])
+               "pct_vs_b0", "significant",
+               "n_seeds_b0_matched", "ensemble_b0_matched_em", "diff_em_matched",
+               "mean_diff_matched", "ci_lo_matched", "ci_hi_matched",
+               "significant_matched"])
 
     # ---- audit note ------------------------------------------------------- #
     scored = [r for r in seed_rows if r.get("status") in ("usable", "excluded", "unusable")]
