@@ -61,9 +61,13 @@ SCR_ARMS = ('M7',)
 # the trap M3B fell into (it needs a B3 cell just to say what it beat). A formal
 # arm, not a flag, so run_id()/ledger/report split automatically.
 CSR_ARMS = ('M4',)
+# M2 (CDE) hangs on the B0 backbone on purpose: B0 is the only arm proven
+# strong, so a gain measured on it is a real gain. Hanging a module on B3
+# would confound 'module useless' with 'backbone already bad'.
+CDE_ARMS = ('M2',)
 # Arms with no damage head in play: the head exists in the module (same build
 # path as B0) but is never trained and never used by the prediction.
-NOHEAD_ARMS = ('B0',) + CSR_ARMS
+NOHEAD_ARMS = ('B0',) + CSR_ARMS + CDE_ARMS
 HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
@@ -71,7 +75,7 @@ ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
 # they share the data interface, the censored hinge and the evaluator, which is
 # what makes their numbers comparable to B0-B3.
 SPRINT_ARMS = ('AGE', 'AAR')
-ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS + CSR_ARMS
+ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS + CSR_ARMS + CDE_ARMS
 
 
 class ResidualHead(nn.Module):
@@ -214,6 +218,10 @@ def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
     bad = [m for m in missing if not m.startswith(allowed)]
     if bad or unexpected:
         raise RuntimeError('init mismatch: missing=%s unexpected=%s' % (bad, unexpected))
+    if arm in CDE_ARMS:
+        from .cde import CDECorrection, CDEEvidence
+        net.cde = CDEEvidence(14, 32)
+        net.cde_head = CDECorrection(32)
     return net.to(dev), sorted(missing)
 
 
@@ -296,7 +304,14 @@ def forward_engine(net, arm, eb, i, n, dev, K):
     D = torch.cumsum(delta, dim=0)
     nu = net.current_rate(delta.unsqueeze(0)).reshape(-1)
     out = dict(delta=delta, D=D, nu=nu, r=r, n=n, z=z)
-    if arm == 'B1':
+    if arm in CDE_ARMS:
+        # M2 = B0 plus an explicit condition-matched evidence correction.
+        # The correction head is zero-init, so step 0 is bit-identical to B0
+        # and any later difference is attributable to the CDE evidence.
+        q = net.cde(x, b, m)
+        out['pred'] = net.reg_head(z).reshape(-1) + net.cde_head(q)
+        out['q'] = q
+    elif arm == 'B1':
         out['pred'] = net.reg_head(z).reshape(-1)
     else:
         out['pred'] = first_passage(D, net.head.future_rates(D, nu, z, K))
