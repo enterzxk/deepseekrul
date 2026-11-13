@@ -888,6 +888,54 @@ def build_screen(seed_rows: list[dict[str, Any]],
     return out
 
 
+def build_gate_check(seed_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Compare each archived reproduction gate with the formal cell it repeats.
+
+    A gate exists to prove the formal cell is reproducible from the current code.
+    Two levels matter and they are not the same: identical ``preds_md5`` means the
+    bytes came back, while a small value difference with a different md5 usually
+    means the formatting moved (row order, decimals) rather than the numerics.
+    Both are reported; only the value check can tell those apart.
+    """
+    formal: dict[tuple, dict[str, Any]] = {}
+    for r in seed_rows:
+        if r.get("status") == "usable":
+            formal.setdefault(
+                (r["module"], r["subset"], r["seed"], r.get("budget_epochs")), r)
+    out = []
+    for r in seed_rows:
+        if r.get("status") != "archived":
+            continue
+        key = (r["module"], r["subset"], r["seed"], r.get("budget_epochs"))
+        ref = formal.get(key)
+        if ref is None:
+            out.append(dict(gate_run=r["run_id"], gate_root=r["root"], module=r["module"],
+                            subset=r["subset"], seed=r["seed"],
+                            budget_epochs=r.get("budget_epochs"),
+                            formal_run="", formal_root="",
+                            gate_md5=r.get("preds_md5"), formal_md5="",
+                            md5_match="", delta_value=float("nan"),
+                            verdict="no formal twin"))
+            continue
+        same_md5 = (r.get("preds_md5") == ref.get("preds_md5"))
+        dv = (r.get("engine_mean_rmse") - ref.get("engine_mean_rmse")
+              if r.get("engine_mean_rmse") is not None else float("nan"))
+        if same_md5:
+            verdict = "PASS (identical bytes)"
+        elif not math.isnan(dv) and abs(dv) < 1e-3:
+            verdict = "PASS (value identical, bytes differ: formatting)"
+        else:
+            verdict = "FAIL (numerics differ)"
+        out.append(dict(
+            gate_run=r["run_id"], gate_root=r["root"], module=r["module"],
+            subset=r["subset"], seed=r["seed"], budget_epochs=r.get("budget_epochs"),
+            formal_run=ref["run_id"], formal_root=ref["root"],
+            gate_md5=r.get("preds_md5"), formal_md5=ref.get("preds_md5"),
+            md5_match=("yes" if same_md5 else "no"), delta_value=dv,
+            verdict=verdict))
+    return out
+
+
 def build_budget_pairs(per_engine: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Same arm, same seed, two budgets -- is the extra budget worth it?
 
@@ -1333,11 +1381,6 @@ def main(argv: list[str] | None = None) -> int:
             usable=("" if w["ledger_usable"] is None else w["ledger_usable"]),
         )
         run_dir = w.get("run_dir")
-        if w.get("archived") == "yes":
-            seed_rows.append({**base_row, "status": "archived",
-                              "status_detail": "archived root: kept as a record, not aggregated",
-                              "run_dir": run_dir})
-            continue
         if w.get("dup_of"):
             seed_rows.append({**base_row, "status": "duplicate_ledger_row",
                               "status_detail": f"duplicate_ledger_row: same directory as {w['dup_of']}",
@@ -1371,7 +1414,11 @@ def main(argv: list[str] | None = None) -> int:
 
         detail = row.pop("status_detail")
         # the ledger's usable flag wins over the local heuristic
-        if w["ledger_usable"] == "no":
+        if w.get("archived") == "yes":
+            # still scored, so the gate can be compared with its formal twin,
+            # but never aggregated
+            status = "archived"
+        elif w["ledger_usable"] == "no":
             status = "unusable"
         else:
             status = "usable" if detail in USABLE else "excluded"
@@ -1625,6 +1672,11 @@ def main(argv: list[str] | None = None) -> int:
                "best", "ema_min", "tail10",
                "delta_best", "delta_ema", "delta_tail10", "consistent",
                "verdict", "decision", "decision_driver", "reason", "converged"])
+    gates = build_gate_check(seed_rows)
+    write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
+              ["gate_run", "gate_root", "module", "subset", "seed", "budget_epochs",
+               "formal_run", "formal_root", "gate_md5", "formal_md5", "md5_match",
+               "delta_value", "verdict"])
     budget_pairs = build_budget_pairs(per_engine)
     write_csv(os.path.join(args.out_dir, "BUDGET_VS.csv"), budget_pairs,
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
