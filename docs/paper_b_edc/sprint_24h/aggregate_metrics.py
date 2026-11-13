@@ -115,6 +115,29 @@ MODULE_DESC = {
     "AAR_age_residual": "M1-B: age prior + zero-init sensor residual",
 }
 
+# The primary comparison for a module is its ablation parent, not B0.  A module
+# added on top of B3 has to be judged against B3: comparing it to B0 answers
+# "is the structured-HI route good", which we already know, and hides "did this
+# module help its parent".
+MODULE_BASELINE = {
+    "B1_HI_fixed": "B0_direct_rul",
+    "B2_HI_fixed_rate": "B3_HI_var_rate",
+    "B3_HI_var_rate": "B0_direct_rul",
+    "AGE_age_only": "B0_direct_rul",
+    "AAR_age_residual": "B0_direct_rul",
+    "M2": "B0_direct_rul",
+    "M3B": "B3_HI_var_rate",
+    "M3C": "M3B",
+    "M4": "B0_direct_rul",
+    "M5": "B0_direct_rul",
+    "M6": "B3_HI_var_rate",
+    "M7": "B3_HI_var_rate",
+}
+
+
+def baseline_for(module: str) -> str:
+    return MODULE_BASELINE.get(module, "B0_direct_rul")
+
 
 def module_of(arm: str) -> str:
     """Map an arm name to its module label; unknown arms pass through as-is."""
@@ -617,30 +640,36 @@ def build_ensemble_vs(seed_rows: list[dict[str, Any]], cap: float,
     return out
 
 
+def cell_stats(seed_rows: list[dict[str, Any]],
+               module: str) -> dict[tuple[str, Any], dict[str, Any]]:
+    """Per-cell summary of one arm: n, sd, and the mean of each of the three readings."""
+    groups: dict[tuple[str, Any], list[dict[str, Any]]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or r.get("module") != module:
+            continue
+        groups.setdefault((r["subset"], r.get("budget_epochs")), []).append(r)
+    out = {}
+    for key, rows in groups.items():
+        best, _ = mean_sd([x["best_val"] for x in rows])
+        ema, _ = mean_sd([x["ema_min"] for x in rows])
+        tail, _ = mean_sd([x["tail10_mean"] for x in rows])
+        em, sd = mean_sd([x["engine_mean_rmse"] for x in rows])
+        out[key] = dict(n=len(rows), mean=em, sd=sd, best=best, ema=ema, tail=tail,
+                        rows={x["seed"]: x for x in rows})
+    return out
+
+
 def build_screen(seed_rows: list[dict[str, Any]],
                  resolution: list[dict[str, Any]],
                  baseline_module: str) -> list[dict[str, Any]]:
     """The screening table: one row per run plus one paired row per cell.
 
-    ``threshold_kind`` exists because three times today a paired width was
-    applied to a single-seed arm.  Every row must declare which comparison it is,
-    so the wrong width cannot be applied by habit: a single run against a
-    multi-seed mean carries its own seed noise and gets the independent-run
-    screen; only seeds matched one-to-one get the paired width.
+    ``baseline`` is the module's ablation parent, so a module added on top of B3
+    is judged against B3.  ``threshold_kind`` declares the comparison: a single
+    run against a multi-seed mean is not paired and gets the independent-run
+    screen, while matched seeds get a paired half-width computed from the observed
+    spread of the differences and the number of PAIRS.
     """
-    res = {(r["subset"], r["budget_epochs"]): r for r in resolution}
-    base: dict[tuple[str, Any], dict[str, float]] = {}
-    for r in seed_rows:
-        if r.get("status") != "usable" or r.get("module") != baseline_module:
-            continue
-        key = (r["subset"], r.get("budget_epochs"))
-        d = base.setdefault(key, {"best": [], "ema": [], "tail": [], "em": []})
-        d["best"].append(r["best_val"])
-        d["ema"].append(r["ema_min"])
-        d["tail"].append(r["tail10_mean"])
-        d["em"].append(r["engine_mean_rmse"])
-    base_mean = {k: {m: mean_sd(v)[0] for m, v in d.items()} for k, d in base.items()}
-
     def verdict(deltas: list[float], threshold: float) -> str:
         if any(math.isnan(d) for d in deltas) or math.isnan(threshold):
             return "n/a"
@@ -649,77 +678,79 @@ def build_screen(seed_rows: list[dict[str, Any]],
             return "undetermined (metrics disagree)"
         if not signs:
             return "indistinguishable (flat)"
-        worse = True in signs
         if max(abs(d) for d in deltas) < threshold:
             return "indistinguishable"
-        return "worse" if worse else "better"
+        return "worse" if True in signs else "better"
+
+    def decide(v: str) -> tuple[str, str]:
+        if v == "better":
+            return "promote", "three readings agree and the gap exceeds the threshold"
+        if v == "worse":
+            return "eliminate", "three readings agree and the gap exceeds the threshold"
+        if v == "indistinguishable":
+            return "eliminate", "gap within threshold: no evidence of gain"
+        if v == "indistinguishable (flat)":
+            return "eliminate", "all three readings flat against the parent"
+        if v == "undetermined (metrics disagree)":
+            return "eliminate", "best / ema_min / tail10 point in different directions"
+        return "hold", "not comparable (missing or single reading)"
+
+    stats = {m: cell_stats(seed_rows, m) for m in
+             ({r["module"] for r in seed_rows if r.get("status") == "usable"}
+              | set(MODULE_BASELINE.values()))}
 
     out: list[dict[str, Any]] = []
-    cells: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
-    for r in seed_rows:
-        if r.get("status") != "usable":
+    for mod in sorted(stats):
+        if mod == baseline_module or mod.startswith("B"):
             continue
-        cells.setdefault((r["module"], r["subset"], r.get("budget_epochs")), []).append(r)
+        parent = baseline_for(mod)
+        for key, mine in sorted(stats[mod].items(), key=lambda kv: (kv[0][0], str(kv[0][1]))):
+            subset, budget = key
+            base = stats.get(parent, {}).get(key)
+            if base is None or base["n"] < 1:
+                continue
+            single_thr = 2.0 * math.sqrt(2.0) * base["sd"] if base["n"] > 1 else float("nan")
+            for seed, row in sorted(mine["rows"].items()):
+                d = [row["best_val"] - base["best"], row["ema_min"] - base["ema"],
+                     row["tail10_mean"] - base["tail"]]
+                v = verdict(d, single_thr)
+                dec, why = decide(v)
+                out.append(dict(
+                    arm=mod, baseline=parent, subset=subset, seed=seed, budget=budget,
+                    n_baseline=base["n"], sd_baseline=base["sd"],
+                    threshold_kind="single-run screen", threshold=single_thr,
+                    best=row["best_val"], ema_min=row["ema_min"],
+                    tail10=row["tail10_mean"],
+                    delta_best=d[0], delta_ema=d[1], delta_tail10=d[2],
+                    consistent=("yes" if len({x > 0 for x in d if abs(x) >= 0.01}) <= 1
+                                else "no"),
+                    verdict=v, decision=dec, reason=why,
+                    converged=row.get("converged")))
 
-    for (mod, subset, budget), rows in sorted(
-            cells.items(), key=lambda kv: (kv[0][0], kv[0][1], str(kv[0][2]))):
-        if mod == baseline_module:
-            continue
-        bm = base_mean.get((subset, budget))
-        r = res.get((subset, budget))
-        if bm is None or r is None or math.isnan(r["screen_single"]):
-            continue
-        for row in sorted(rows, key=lambda x: x["seed"]):
-            d = [row["best_val"] - bm["best"], row["ema_min"] - bm["ema"],
-                 row["tail10_mean"] - bm["tail"]]
-            out.append(dict(
-                arm=mod, subset=subset, seed=row["seed"], budget=budget,
-                n_baseline=r["n_seeds"], sd_baseline=r["sd"],
-                threshold_kind="single-run screen", threshold=r["screen_single"],
-                best=row["best_val"], ema_min=row["ema_min"], tail10=row["tail10_mean"],
-                delta_best=d[0], delta_ema=d[1], delta_tail10=d[2],
-                consistent=("yes" if len({x > 0 for x in d if abs(x) >= 0.01}) <= 1
-                            else "no"),
-                verdict=verdict(d, r["screen_single"]),
-                converged=row.get("converged"),
-            ))
-        # paired row over the seeds both arms share
-        base_seeds = {x["seed"] for x in seed_rows
-                      if x.get("status") == "usable" and x.get("module") == baseline_module
-                      and x["subset"] == subset and x.get("budget_epochs") == budget}
-        shared = sorted({x["seed"] for x in rows} & base_seeds)
-        if len(shared) >= 2:
-            bmap = {x["seed"]: x for x in seed_rows
-                    if x.get("status") == "usable" and x.get("module") == baseline_module
-                    and x["subset"] == subset and x.get("budget_epochs") == budget}
-            rmap = {x["seed"]: x for x in rows}
-            for metric, col in (("best", "best_val"), ("ema", "ema_min"), ("tail", "tail10_mean")):
-                pass
-            d_best = [rmap[s]["best_val"] - bmap[s]["best_val"] for s in shared]
-            d_ema = [rmap[s]["ema_min"] - bmap[s]["ema_min"] for s in shared]
-            d_tail = [rmap[s]["tail10_mean"] - bmap[s]["tail10_mean"] for s in shared]
-            st = paired_stats(d_best)
-            # The paired width belongs to the number of PAIRS, not to the number
-            # of baseline seeds, and it comes from the observed spread of the
-            # differences rather than from an assumed equal-noise model.
-            half = (t975(len(shared) - 1) * st["sd"] / math.sqrt(len(shared))
-                    if len(shared) > 1 else float("nan"))
-            out.append(dict(
-                arm=mod, subset=subset, seed=f"paired({len(shared)})", budget=budget,
-                n_baseline=r["n_seeds"], sd_baseline=r["sd"],
-                threshold_kind="paired half-width", threshold=half,
-                best=mean_sd([rmap[s]["best_val"] for s in shared])[0],
-                ema_min=mean_sd([rmap[s]["ema_min"] for s in shared])[0],
-                tail10=mean_sd([rmap[s]["tail10_mean"] for s in shared])[0],
-                delta_best=st["mean"], delta_ema=float(np.mean(d_ema)),
-                delta_tail10=float(np.mean(d_tail)),
-                consistent=("yes" if len({x > 0 for x in [st["mean"], float(np.mean(d_ema)),
-                                                          float(np.mean(d_tail))]
-                                          if abs(x) >= 0.01}) <= 1 else "no"),
-                verdict=verdict([st["mean"], float(np.mean(d_ema)), float(np.mean(d_tail))],
-                                half),
-                converged="",
-            ))
+            shared = sorted(set(mine["rows"]) & set(base["rows"]))
+            if len(shared) >= 2:
+                db = [mine["rows"][s]["best_val"] - base["rows"][s]["best_val"] for s in shared]
+                de = [mine["rows"][s]["ema_min"] - base["rows"][s]["ema_min"] for s in shared]
+                dt = [mine["rows"][s]["tail10_mean"] - base["rows"][s]["tail10_mean"]
+                      for s in shared]
+                st = paired_stats(db)
+                half = (t975(len(shared) - 1) * st["sd"] / math.sqrt(len(shared))
+                        if len(shared) > 1 else float("nan"))
+                mean_d = [st["mean"], float(np.mean(de)), float(np.mean(dt))]
+                v = verdict(mean_d, half)
+                dec, why = decide(v)
+                out.append(dict(
+                    arm=mod, baseline=parent, subset=subset,
+                    seed=f"paired({len(shared)})", budget=budget,
+                    n_baseline=base["n"], sd_baseline=base["sd"],
+                    threshold_kind="paired half-width", threshold=half,
+                    best=mean_sd([mine["rows"][s]["best_val"] for s in shared])[0],
+                    ema_min=mean_sd([mine["rows"][s]["ema_min"] for s in shared])[0],
+                    tail10=mean_sd([mine["rows"][s]["tail10_mean"] for s in shared])[0],
+                    delta_best=mean_d[0], delta_ema=mean_d[1], delta_tail10=mean_d[2],
+                    consistent=("yes" if len({x > 0 for x in mean_d if abs(x) >= 0.01}) <= 1
+                                else "no"),
+                    verdict=v, decision=dec, reason=why, converged=""))
     return out
 
 
@@ -1424,10 +1455,11 @@ def main(argv: list[str] | None = None) -> int:
                "verdict_first3", "verdict_all", "flips"])
     screen = build_screen(seed_rows, resolution, args.paired_baseline)
     write_csv(os.path.join(args.out_dir, "SCREEN.csv"), screen,
-              ["arm", "subset", "seed", "budget", "n_baseline", "sd_baseline",
-               "threshold_kind", "threshold", "best", "ema_min", "tail10",
+              ["arm", "baseline", "subset", "seed", "budget", "n_baseline",
+               "sd_baseline", "threshold_kind", "threshold",
+               "best", "ema_min", "tail10",
                "delta_best", "delta_ema", "delta_tail10", "consistent",
-               "verdict", "converged"])
+               "verdict", "decision", "reason", "converged"])
     budget_pairs = build_budget_pairs(per_engine)
     write_csv(os.path.join(args.out_dir, "BUDGET_VS.csv"), budget_pairs,
               ["module", "subset", "budget_lo", "budget_hi", "n_seeds", "seeds",
