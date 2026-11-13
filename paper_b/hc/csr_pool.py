@@ -97,7 +97,15 @@ class DSPT_CSR(DSPT_HC_Structured):
         # n_cond must reach the backbone too, otherwise cond_emb (built inside
         # DSPT) would fall back to the default while cond_bias uses the config
         # value -- a silent size mismatch on any subset with a different count.
-        super().__init__(cycle_mode='none', n_cond=n_cond, **kw)
+        #
+        # cycle_mode must be overwritten, not passed alongside: build_d already
+        # puts cycle_mode='none' into its kw dict, so passing it again raised
+        # "got multiple values for keyword argument 'cycle_mode'". That bug got
+        # through because the first parity test built DSPT_CSR directly and
+        # never exercised build_d -- the real entry point. The test now goes
+        # through build_d on purpose.
+        kw['cycle_mode'] = 'none'
+        super().__init__(n_cond=n_cond, **kw)
         self.csr_mode = csr_mode
         base = self.sensor_score
         self.sensor_score = CSRSensorScore(
