@@ -69,17 +69,22 @@ CDE_ARMS = ('M2',)
 # the prediction path stays B0's reg_head(z), so inference is unchanged and the
 # only difference from B0 is the auxiliary loss acting on the shared encoder.
 DPC_ARMS = ('M5',)
+# M6 (EFR): evidence-gated future degradation rate on the B3 backbone.
+# nu_future = nu_age * exp(clamp(g_t * a_tk, -a, a)), g_t = sigmoid(gate(q_t)).
+# The amplitude head is zero-init, so step 0 is exactly B3.
+EFR_ARMS = ('M6',)
 # Arms with no damage head in play: the head exists in the module (same build
 # path as B0) but is never trained and never used by the prediction.
 NOHEAD_ARMS = ('B0',) + CSR_ARMS + CDE_ARMS + DPC_ARMS
-HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
-ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS
+HI_ARMS = ('B1', 'B2', 'B3') + ANCHORED_ARMS + SCR_ARMS + EFR_ARMS
+ARRIVAL_ARMS = ('B2', 'B3') + ANCHORED_ARMS + SCR_ARMS + EFR_ARMS
 # Sprint arms (Baseline B and the age-only control). They are NOT part of the
 # frozen 48-cell matrix -- adding them to ARMS would silently change it -- but
 # they share the data interface, the censored hinge and the evaluator, which is
 # what makes their numbers comparable to B0-B3.
 SPRINT_ARMS = ('AGE', 'AAR')
-ALL_ARMS = ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS + CSR_ARMS + CDE_ARMS + DPC_ARMS
+ALL_ARMS = (ARMS + ANCHORED_ARMS + SPRINT_ARMS + SCR_ARMS + CSR_ARMS + CDE_ARMS
+            + DPC_ARMS + EFR_ARMS)
 
 
 class ResidualHead(nn.Module):
@@ -252,6 +257,11 @@ def build_d(arm, subset, K, l_mean, head_seed, dev, init_from, seed=101):
         from .cde import CDECorrection, CDEEvidence
         net.cde = CDEEvidence(14, 32)
         net.cde_head = CDECorrection(32)
+    if arm in EFR_ARMS:
+        from .cde import CDEEvidence
+        from .efr import EFRCorrection
+        net.cde = CDEEvidence(14, 32)
+        net.efr = EFRCorrection(net.d_model, 32, clip=1.0)
     if arm in DPC_ARMS:
         from .dpc import DPCHead
         rh = net.reg_head
@@ -348,6 +358,13 @@ def forward_engine(net, arm, eb, i, n, dev, K):
         # and any later difference is attributable to the CDE evidence.
         q = net.cde(x, b, m)
         out['pred'] = net.reg_head(z).reshape(-1) + net.cde_head(q)
+        out['q'] = q
+    elif arm in EFR_ARMS:
+        # B3's rate, multiplied by an evidence-gated correction that is 1 at
+        # step 0. The arrival operator is the reviewed one, called as-is.
+        q = net.cde(x, b, m)
+        nu_age = net.head.future_rates(D, nu, z, K)
+        out['pred'] = first_passage(D, net.efr.rates(nu_age, D, nu, z, q, K))
         out['q'] = q
     elif arm == 'B1':
         out['pred'] = net.reg_head(z).reshape(-1)
@@ -625,6 +642,37 @@ def term_grads(net, arm, ebt, dev, K, cap, s0, lam_t, lam_s, n_eng=3,
                 values={k: float(v) for k, v in L.items()})
 
 
+def _selfcheck_degenerate_guard():
+    """Prove the degenerate-output guard CAN fire, inside the real entry point.
+
+    A guard that only exists in the source is worth nothing -- that is the M4
+    mistake in a different costume ("6 assertions passed, the real run died").
+    This runs at the top of every training run, so if the diagnostic field or the
+    threshold ever drifts, the cell refuses to start instead of burning the
+    budget on a constant metric.
+
+    numpy only: metrics_from_arrays is the ONE place labels get capped, so this
+    exercises the same code the run uses.
+    """
+    ys = np.array([50.0, 80.0])
+    units = np.array([0, 0])
+    cuts = np.array([10, 10])
+    bad = metrics_from_arrays(np.array([-5.0, -12.0]), ys, units, cuts, 125.0, 200)
+    assert bad['frac_pred_nonpositive'] == 1.0, bad['frac_pred_nonpositive']
+    assert abs(bad['pred_raw_min'] + 12.0) < 1e-12, bad['pred_raw_min']
+    assert abs(bad['pred_raw_mean'] + 8.5) < 1e-12, bad['pred_raw_mean']
+    assert bad['frac_pred_nonpositive'] > 0.5, 'the guard would NOT have fired'
+    good = metrics_from_arrays(np.array([40.0, 90.0]), ys, units, cuts, 125.0, 200)
+    assert good['frac_pred_nonpositive'] == 0.0, good['frac_pred_nonpositive']
+    capped = metrics_from_arrays(np.array([125.0, 125.0]), ys, units, cuts, 125.0, 200)
+    assert capped['frac_pred_at_cap'] == 1.0, capped['frac_pred_at_cap']
+    return dict(bad_frac=bad['frac_pred_nonpositive'],
+                bad_raw_min=bad['pred_raw_min'],
+                bad_raw_mean=bad['pred_raw_mean'],
+                good_frac=good['frac_pred_nonpositive'],
+                cap_frac=capped['frac_pred_at_cap'])
+
+
 def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
               init_from, K, epochs=None, patience=None, batch=None, lr=None,
               weight_decay=None, lam=None, lam_t=None, lam_s=None, log=print,
@@ -632,6 +680,10 @@ def train_arm(arm, subset, seed, data_dir, shared_path, out_dir, dev,
     # Identity comes from the arm name. --scr survives only as a compatibility
     # flag and is rejected unless the arm is already M7 (see main()).
     scr = bool(scr or (arm in SCR_ARMS))
+    gsc = _selfcheck_degenerate_guard()
+    log('  degenerate guard selfcheck: bad_frac=%.2f raw_min=%.1f good_frac=%.2f '
+        'cap_frac=%.2f' % (gsc['bad_frac'], gsc['bad_raw_min'],
+                           gsc['good_frac'], gsc['cap_frac']))
     sh = json.loads(Path(shared_path).read_text(encoding='utf-8'))
     K = int(sh['K'] if K is None else K)
     s0 = float(sh['s0']['used'])

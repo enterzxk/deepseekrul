@@ -130,6 +130,10 @@ class DSPT_CSR(DSPT_HC_Structured):
         base = self.sensor_score
         self.sensor_score = CSRSensorScore(
             base, self.d_model, n_cond, self.num_sensors, self.n_feat, mode=csr_mode)
+        # Third mitigation for M4's collapse: bound the bias step. Registered on
+        # the parameter itself so it holds for any optimiser and any training
+        # loop, and so it is testable without a GPU.
+        self.sensor_score.cond_bias.weight.register_hook(_scale_bias_grad)
 
     def encode(self, x, baseline, mask, cycle, cond=None):
         trend = None
@@ -170,6 +174,18 @@ def remap_b0_state_dict(sd):
 
 
 CSR_ALLOWED_MISSING = ('head.', 'sensor_score.cond_bias.', 'sensor_score.trend_proj.')
+
+# Gradient scale for the reliability bias. This is a MITIGATION, not a
+# diagnosis: M4's two collapses both ended with every raw prediction negative
+# and clipped to 0, and nobody has established that the bias gradient is the
+# cause. A 0.1 factor bounds how fast that one 84-parameter tensor can move, so
+# if the third run collapses again we can say "not the bias step size" and stop
+# spending cells on it.
+CSR_GRAD_SCALE = 0.1
+
+
+def _scale_bias_grad(grad):
+    return grad * CSR_GRAD_SCALE
 
 
 @torch.no_grad()
