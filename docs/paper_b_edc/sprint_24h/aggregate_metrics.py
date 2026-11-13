@@ -387,6 +387,8 @@ MODULE_COLUMNS = [
     "module", "arm", "subset", "budget_epochs", "roots", "n_seeds", "seeds",
     "engine_mean_rmse_mean", "engine_mean_rmse_sd", "engine_mean_rmse_min",
     "engine_mean_rmse_max", "engine_mean_rmse_cv_pct",
+    "engine_mean_rmse_se_over_seeds", "engine_mean_rmse_ci95_lo",
+    "engine_mean_rmse_ci95_hi",
     "nasa_mean_mean", "nasa_sum_mean", "mae_mean", "bias_mean",
     "rmse_uncensored_mean", "frac_capped_mean",
     "delta_vs_B0_abs", "delta_vs_B0_pct",
@@ -471,8 +473,9 @@ def build_paired(seed_rows: list[dict[str, Any]],
         st = paired_stats(diffs)
         b0_em = meta[bkey]["em"]
         out.append(dict(
+            level="seed",
             module=m["module"], subset=m["subset"], budget_epochs=m["budget"],
-            seed=m["seed"], root=m["root"],
+            seed=m["seed"], root=m["root"], n_seeds=1, seeds=str(m["seed"]),
             n_engines=st["n"], mean_diff=st["mean"], sd_diff=st["sd"],
             se=st["se"], t=st["t"], ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
             module_em=m["em"], b0_em=b0_em,
@@ -481,7 +484,32 @@ def build_paired(seed_rows: list[dict[str, Any]],
             significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
                                    and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
         ))
-    return sorted(out, key=lambda r: (r["module"], r["subset"], str(r["budget_epochs"]), r["seed"]))
+
+    # ---- cross-seed roll-up: the second variance source ------------------- #
+    groups: dict[tuple[str, str, Any], list[dict[str, Any]]] = {}
+    for r in out:
+        groups.setdefault((r["module"], r["subset"], r["budget_epochs"]), []).append(r)
+    for (mod, subset, budget), rows in groups.items():
+        seed_means = [r["mean_diff"] for r in rows]
+        st = paired_stats(seed_means)                 # df = n_seeds - 1
+        b0_em, _ = mean_sd([r["b0_em"] for r in rows])
+        out.append(dict(
+            level="module",
+            module=mod, subset=subset, budget_epochs=budget,
+            seed="", root=";".join(sorted({r["root"] for r in rows})),
+            n_seeds=len(rows),
+            seeds=";".join(str(r["seed"]) for r in sorted(rows, key=lambda x: x["seed"])),
+            n_engines=rows[0]["n_engines"],
+            mean_diff=st["mean"], sd_diff=st["sd"], se=st["se"], t=st["t"],
+            ci_lo=st["ci_lo"], ci_hi=st["ci_hi"],
+            module_em=float("nan"), b0_em=b0_em,
+            pct_vs_b0=(100.0 * st["mean"] / b0_em if b0_em else float("nan")),
+            verdict=("worse" if st["mean"] > 0 else "better"),
+            significant=("yes" if (st["ci_lo"] is not None and not math.isnan(st["ci_lo"])
+                                   and (st["ci_lo"] > 0 or st["ci_hi"] < 0)) else "no"),
+        ))
+    return sorted(out, key=lambda r: (r["module"], r["subset"], str(r["budget_epochs"]),
+                                      r["level"] != "module", r["seed"]))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -633,6 +661,11 @@ def main(argv: list[str] | None = None) -> int:
         unc_mean, _ = mean_sd([x["rmse_uncensored"] for x in rows])
         capped_mean, _ = mean_sd([x["frac_capped"] for x in rows])
         b0 = baseline.get((subset, budget))
+        # cross-seed uncertainty: the second variance source.  A single-seed
+        # engine-level CI says nothing about it, and with 3 seeds df=2 the
+        # interval is wide -- that width is the honest picture, not a defect.
+        se_seeds = (sd / math.sqrt(len(vals))) if len(vals) > 1 else float("nan")
+        half = t975(len(vals) - 1) * se_seeds if len(vals) > 1 else float("nan")
         module_rows.append(dict(
             module=mod, arm=rows[0]["arm"], subset=subset, budget_epochs=budget,
             roots=";".join(sorted({x["root"] for x in rows})),
@@ -641,6 +674,9 @@ def main(argv: list[str] | None = None) -> int:
             engine_mean_rmse_mean=mean, engine_mean_rmse_sd=sd,
             engine_mean_rmse_min=min(vals), engine_mean_rmse_max=max(vals),
             engine_mean_rmse_cv_pct=(100.0 * sd / mean if mean else float("nan")),
+            engine_mean_rmse_se_over_seeds=se_seeds,
+            engine_mean_rmse_ci95_lo=mean - half,
+            engine_mean_rmse_ci95_hi=mean + half,
             nasa_mean_mean=nasa_mean, nasa_sum_mean=nasa_sum,
             mae_mean=mae_mean, bias_mean=bias_mean,
             rmse_uncensored_mean=unc_mean, frac_capped_mean=capped_mean,
@@ -666,7 +702,8 @@ def main(argv: list[str] | None = None) -> int:
                "engine_id", "n", "rmse", "mae", "bias", "y_mean", "pred_mean"])
     paired = build_paired(seed_rows, per_engine, args.paired_baseline)
     write_csv(paired_path, paired,
-              ["module", "subset", "budget_epochs", "seed", "root", "n_engines",
+              ["level", "module", "subset", "budget_epochs", "seed", "root",
+               "n_seeds", "seeds", "n_engines",
                "mean_diff", "sd_diff", "se", "t", "ci_lo", "ci_hi",
                "module_em", "b0_em", "pct_vs_b0", "verdict", "significant"])
 
@@ -719,9 +756,17 @@ def main(argv: list[str] | None = None) -> int:
         "",
         "## Paired vs " + args.paired_baseline + " (same seed, same engines)",
         "",
-        "A negative `mean_diff` means the module beats the baseline.  The CI is a",
-        "two-sided 95% interval over engines, so `significant=yes` means the paired",
-        "difference is stable *within* that seed; it is not a cross-seed claim.",
+        "A negative `mean_diff` means the module beats the baseline.  **Two variance",
+        "sources are reported separately and must not be confused:**",
+        "",
+        "* `level=seed` -- CI over **engines** within one seed.  It answers \"is there a",
+        "  systematic engine-level offset for this seed?\".  It does **not** cover seed",
+        "  noise, so it cannot establish that two arms are equivalent.",
+        "* `level=module` -- CI over **seeds** (df = n_seeds - 1) of the seed-level mean",
+        "  differences.  This is the interval a paper claim needs; with 3 seeds df=2 and",
+        "  t=4.303, so it is wide, and that width is the honest picture.",
+        "",
+        "### Per seed (engine-level CI)",
         "",
         "| module | subset | budget | seed | engines | mean diff | 95% CI | t | vs B0 | sig |",
         "|---|---|---|---|---|---|---|---|---|---|",
@@ -730,7 +775,21 @@ def main(argv: list[str] | None = None) -> int:
         f"{p['n_engines']} | {p['mean_diff']:+.4f} | "
         f"[{p['ci_lo']:+.3f}, {p['ci_hi']:+.3f}] | {p['t']:+.2f} | "
         f"{p['pct_vs_b0']:+.1f}% | {p['significant']} |"
-        for p in paired
+        for p in paired if p["level"] == "seed"
+    ] + [
+        "",
+        "### Across seeds (seed-level CI)",
+        "",
+        "| module | subset | budget | seeds | mean diff | 95% CI | t | df | vs B0 | sig |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ] + [
+        f"| {p['module']} | {p['subset']} | {p['budget_epochs']} | {p['seeds']} | "
+        f"{p['mean_diff']:+.4f} | "
+        + (f"[{p['ci_lo']:+.3f}, {p['ci_hi']:+.3f}]" if p["n_seeds"] > 1
+           else "n/a (1 seed)")
+        + f" | {p['t']:+.2f} | {p['n_seeds'] - 1} | {p['pct_vs_b0']:+.1f}% | "
+          f"{p['significant']} |"
+        for p in paired if p["level"] == "module"
     ] + [
         "",
         "## Per-run check",
