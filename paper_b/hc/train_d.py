@@ -47,10 +47,19 @@ from .hi_d import DSPT_HC_Structured
 from .csr_pool import DSPT_CSR, remap_b0_state_dict, CSR_ALLOWED_MISSING
 
 ARMS = ('B0', 'B1', 'B2', 'B3')
+# M3-C (same-age ranking): the arm that has to show the structured HI is not a
+# re-parameterised cycle timer. M3B's anchored increment is exactly lambda0 for
+# every engine at step 0, so two engines at the same age get the same damage --
+# measured on the 40-epoch probe: 32,424 same-age pairs, 100% of them tied. A tie
+# carries no sensor information, and more budget cannot break it, because the
+# timer is the optimum of the RUL loss alone. The ranking loss is the only term
+# that can force a departure from it.
+RANK_ARMS = ('M3C',)
 # M3-B: the age-anchored increment. Same arrival machinery as B3, only the
 # increment parameterisation changes (delta = lambda0 * exp(clamp(u))), so it is
-# a one-variable ablation of B3 rather than a new pipeline.
-ANCHORED_ARMS = ('M3B',)
+# a one-variable ablation of B3 rather than a new pipeline. M3C shares that
+# increment and adds the ranking loss, so M3C vs M3B isolates the loss.
+ANCHORED_ARMS = ('M3B',) + RANK_ARMS
 # M7 (SCR) is a formal arm, not a flag. run_id() keys on the arm, so a flag
 # would collide with B3's directory and the guard would (correctly) refuse the
 # second run. M7 builds and runs exactly like B3; the only difference is the
@@ -381,6 +390,53 @@ def rul_loss(pred, r, cap):
     capped = r >= cap
     return torch.where(capped, torch.clamp(cap - pred, min=0.0) ** 2,
                        (pred - r) ** 2)
+
+
+def rank_pair_loss(fos, margin, gap):
+    """Same-age ranking loss on the damage path (M3-C / ADC).
+
+    Two training engines A, B alive at the same cycle t, with true remaining
+    lives r_A > r_B (A is the healthier one), must satisfy
+
+        D_A + margin <= D_B        penalty = relu(margin - (D_B - D_A))
+
+    i.e. the engine closer to failure has to carry the larger accumulated damage.
+    A timer that depends on age alone gives every engine the same D at the same
+    t, so every pair is tied and the penalty is exactly ``margin`` -- that is the
+    failure mode this term exists to break, and it is why the term is the only
+    evidence that the structured HI is reading the sensors.
+
+    Pairs are built only from the engines handed in, which are the engines of one
+    training batch. A validation engine never reaches this function: ``fos`` is
+    filled from ``ebt`` (split='train') in the training loop.
+
+    ``gap`` is the minimum true-RUL difference that makes a pair separable. Below
+    it the label itself cannot order the two engines, so penalising the model for
+    not ordering them would be fitting noise.
+
+    Returns (sum of penalties over compared points, number of compared points),
+    or (None, 0) when this batch contains no separable pair.
+    """
+    tot, n = None, 0
+    for a in range(len(fos)):
+        for b in range(a + 1, len(fos)):
+            ra, rb = fos[a]['r'], fos[b]['r']
+            m = min(int(ra.numel()), int(rb.numel()))
+            if m < 1:
+                continue
+            ra, rb = ra[:m], rb[:m]
+            dr = ra - rb
+            sel = dr.abs() >= gap
+            if not bool(sel.any()):
+                continue
+            Da, Db = fos[a]['D'][:m], fos[b]['D'][:m]
+            # orient so that ``hi`` is the engine closer to failure
+            hi = torch.where(dr > 0, Db, Da)
+            lo = torch.where(dr > 0, Da, Db)
+            pen = torch.relu(margin - (hi - lo))[sel]
+            tot = pen.sum() if tot is None else tot + pen.sum()
+            n += int(pen.numel())
+    return tot, n
 
 
 def term_sums(net, arm, fo, cap, scr=False):
