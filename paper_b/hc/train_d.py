@@ -175,7 +175,12 @@ def code_fingerprint():
     constants; arrival/hi_d/data_d/train_d are the four that change numerics.
     """
     here = Path(__file__).parent
-    names = ('arrival.py', 'hi_d.py', 'data_d.py', 'train_d.py', 'config_hc.py')
+    # cde/csr_pool/efr/dpc carry the modules that M2/M4/M6/M5 actually add. They
+    # were NOT in this list, so a change in a module under test could not move the
+    # fingerprint at all -- found while auditing whether B3/M3B/M6's seeds ran on
+    # one code state: for M6 the module that defines its mechanism was invisible.
+    names = ('arrival.py', 'hi_d.py', 'data_d.py', 'train_d.py', 'config_hc.py',
+             'cde.py', 'csr_pool.py', 'efr.py', 'dpc.py')
     h = hashlib.sha256()
     missing = []
     per_file = {}
