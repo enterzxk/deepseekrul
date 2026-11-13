@@ -418,6 +418,9 @@ CONTRACT OK  (3/3)
 | 17 | **每个数必须能回答「它是什么」**：`def / meas / est(n) / derived(est)`。**派生量继承输入的不确定度**——本轮全部门槛都是 `derived(est)`，FD001 共享 `est(6)`、FD004 共享 `est(3)`，**一个 n 决定一整套门槛的精度上限** | `FINAL_24H_DECISION` §0.6 · `ABLATION_RESULTS` §5.6 · `MECHANISM_EVIDENCE` 第 16 条 |
 | 18 | **门槛有偏（第五种形态）**：`bias_direction` = `conservative / anti-conservative / exact / assumption-dependent`。偏保守系统性增加「无法区分」，偏激进系统性增加「有差异」——**两个原因在结果里长得一模一样，只有标出偏差方向才分得开**。本轮唯一偏错方向的是 FD004 单 seed 门槛 `1.124`（精确 `1.975`，**−43%**） | `FINAL_24H_DECISION` §0.6 · `ABLATION_RESULTS` §5.6 · `MECHANISM_EVIDENCE` 第 15–17 条 |
 | 19 | **近似公式的误差随 n 变化，所以「在一个子集上验过」不能推广到另一个子集**：正态 `2√2` 对 `t` 分位的膨胀在 `n=6` 是 10%、在 `n=3` 是 52%——**同一个近似在 FD001 无害、在 FD004 偏 43%**。所有门槛必须从**一个函数**出，不许散落常数 | `FINAL_24H_DECISION` §0.6 · `ABLATION_RESULTS` §3 |
+| 20 | **统计量有作用域**：`n >= 5` 才报离散度结论（用 MAD，附 sd）；`n < 5` 只报数值、标 `descriptive only`。**两个统计量在 `n=3` 上各错一边**（sd 被离群点主导、MAD 看不见离群点，同一格差 264.7×）——**换统计量只是换一种错法** | `ABLATION_RESULTS` §5.7 · `STABILITY.csv` 的 `mad_valid` · `FINAL_24H_DECISION` §0.2 |
+| 21 | **比值必须四维同源**：同 seed 集 / 同 n / 同口径 / 同预算。**任一不同，它就不是一个比值，是两个数的商**。三次犯错各跨一维（`+10.05` 跨 seed、`+2.74` 跨 n、`64.3%` 跨口径）——**一维提醒挡不住，因为每次跨的都是当时没在想的那维** | `ABLATION_RESULTS` §5.8 / §5.3 · `FINAL_24H_DECISION` §0.3 |
+| 22 | **判词三档 + 成因**：`undetectable` / `indeterminate` / `detected`；`indeterminate` 必须标成因 `threshold-band`（`|Δ|` 落在门槛 ±10% 带内）/ `resolution-band`（`|Δ|` 落在 `MDE` 区间内）/ `assumption`（门槛依赖未定的建模选择）。**不标成因就是「一个词三种含义」**——`M2` 离门槛 `0.87`，`M6` 落在带内，**两者都被叫「边缘」会让人以为它们一样近** | `ABLATION_RESULTS` §5.9 · `FINAL_24H_DECISION` §0.2（H-V）/ §0.3 |
 
 **执行方式（可查，不靠记）**：改任何一条纪律时，先按上表把文件列全，**逐文件 grep 该纪律涉及的那个数/那句话**，确认全部改完再提交。本轮第 1 条就是这样发现的：grep `压小 3.5|差 3.5 倍|方差压小了 3.5` 在改完后为空，才算改完。
 
