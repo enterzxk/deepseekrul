@@ -308,6 +308,8 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
         return dict(n_epochs=0, tail10_mean=float("nan"), tail10_sd=float("nan"),
                     epoch_sd=float("nan"), best_val=float("nan"),
                     best_minus_tail10=float("nan"), ema_min=float("nan"),
+                    ema_min_a10=float("nan"), ema_min_a20=float("nan"),
+                    ema_min_a50=float("nan"),
                     gain_last1=float("nan"), gain_last3=float("nan"),
                     gain_last5=float("nan"), gain_last6=float("nan"),
                     gain_last12=float("nan"))
@@ -335,6 +337,9 @@ def curve_stats(curve: list[float]) -> dict[str, Any]:
         best_val=best,
         best_minus_tail10=(t_mean - best),
         ema_min=ema_min(curve),
+        ema_min_a10=ema_min(curve, 0.1),
+        ema_min_a20=ema_min(curve, 0.2),
+        ema_min_a50=ema_min(curve, 0.5),
         gain_last1=gain(1),
         gain_last3=gain(3),
         gain_last5=gain(5),
@@ -627,6 +632,7 @@ SEED_COLUMNS = [
     "gain_last1", "gain_last3", "gain_last5", "gain_last6", "gain_last12",
     "n_epochs", "tail10_mean", "tail10_sd", "epoch_sd",
     "best_val", "best_minus_tail10", "ema_min",
+    "ema_min_a10", "ema_min_a20", "ema_min_a50",
     "lr", "params_trainable", "params_backbone", "elapsed_s", "created_utc",
     "git_sha", "code_files_sha256", "frozen_sha256", "l_mean",
     "run_dir", "preds_path",
@@ -1228,6 +1234,99 @@ def build_invariants(seed_rows: list[dict[str, Any]],
              "arm_build_ok.py printed params=119364 for B0/B1/B2/B3 while "
              "metrics.json reports 115010/119364/115139/115139 -- and 119364 is "
              "B1's true count, which is what makes the wrong number believable.")))
+    return out
+
+
+ALPHAS = (0.1, 0.2, 0.3, 0.5)
+# Explicit table, not derived arithmetic.  `int(a*10)` gives 1 for a=0.1 while
+# the column is named after the percentage (a10 = alpha 0.10), so the derived
+# key silently missed every column and three of the four deltas came out nan --
+# a wrong *name* that empties a column looks like a wrong *number* in the output.
+# Keys made of floats should come from a table, never from a conversion.
+ALPHA_COL = {0.1: "ema_min_a10", 0.2: "ema_min_a20", 0.3: "ema_min", 0.5: "ema_min_a50"}
+
+
+def build_alpha_robustness(seed_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Does the module-vs-parent gap keep its sign as the EMA alpha moves?
+
+    ``ema_min`` carries a free parameter nobody pre-registered: the smoothing
+    factor.  Across alpha 0.1..0.5 the B2-vs-B3 gap moves by 0.22, which is the
+    same order as most module effects in this sprint (0.27 to 0.89).  So "the
+    three readings agree" is weaker than it sounds: ``best`` and ``tail10`` are
+    fixed, but ``ema_min`` is one reading out of a 0.22-wide band, and it can be
+    the one that agrees by luck.
+
+    A module whose sign flips anywhere in that band may only be described as
+    "indistinguishable at alpha=0.3", never as "indistinguishable".
+    """
+    by_cell: dict[tuple, dict[str, Any]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable":
+            continue
+        by_cell[(r["module"], r["subset"], r.get("budget_epochs"), r["seed"])] = r
+
+    groups: dict[tuple, list[tuple]] = {}
+    for (mod, subset, budget, seed), r in by_cell.items():
+        parent = baseline_for(mod)
+        p = by_cell.get((parent, subset, budget, seed))
+        if p is None or mod == parent:
+            continue
+        groups.setdefault((mod, parent, subset, budget), []).append((r, p))
+
+    out = []
+    for (mod, parent, subset, budget), pairs in sorted(
+            groups.items(), key=lambda kv: (kv[0][2], str(kv[0][3]), kv[0][0])):
+        deltas = {}
+        for a in ALPHAS:
+            col = ALPHA_COL[a]
+            d = []
+            for r, p in pairs:
+                x, y = r.get(col), p.get(col)
+                if isinstance(x, (int, float)) and isinstance(y, (int, float)) \
+                        and x == x and y == y:
+                    d.append(float(x) - float(y))
+            deltas[a] = float(statistics.mean(d)) if d else float("nan")
+        signs = {a: (1 if v > 0 else (-1 if v < 0 else 0))
+                 for a, v in deltas.items() if v == v}
+        alpha_consistent = (len(signs) == len(ALPHAS) and len(set(signs.values())) == 1)
+        # Second layer: is the sign stable seed by seed, not just on the mean?
+        # Four contrasts all have a negative mean and look alike; only one has
+        # every seed negative at every alpha.  A mean can be negative while the
+        # seeds disagree, and that is the difference between "direction" and
+        # "direction that never flipped".
+        per_seed = []
+        for r, p in pairs:
+            x, y = r.get("ema_min"), p.get("ema_min")
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)) \
+                    and x == x and y == y:
+                per_seed.append(1 if x - y > 0 else (-1 if x - y < 0 else 0))
+        n_pos = sum(1 for s in per_seed if s > 0)
+        n_neg = sum(1 for s in per_seed if s < 0)
+        if len(per_seed) < 2:
+            seed_stable = "n/a"
+        elif len(set(per_seed)) == 1:
+            seed_stable = "yes"
+        else:
+            seed_stable = "no"
+        vals = [v for v in deltas.values() if v == v]
+        if not alpha_consistent:
+            verdict = "alpha-sensitive"
+        elif seed_stable == "no":
+            verdict = "seed-mixed"
+        elif seed_stable == "n/a":
+            verdict = "alpha-robust (n=1, per-seed layer vacuous)"
+        else:
+            verdict = "alpha-robust"
+        out.append(dict(
+            module=mod, parent=parent, subset=subset, budget_epochs=budget,
+            n_pairs=len(pairs),
+            delta_a10=deltas[0.1], delta_a20=deltas[0.2],
+            delta_a30=deltas[0.3], delta_a50=deltas[0.5],
+            spread=(max(vals) - min(vals)) if len(vals) > 1 else float("nan"),
+            n_pos_a30=n_pos, n_neg_a30=n_neg,
+            seed_sign_stable=seed_stable,
+            direction_consistent="yes" if alpha_consistent else "no",
+            verdict=verdict))
     return out
 
 
@@ -2077,6 +2176,12 @@ def main(argv: list[str] | None = None) -> int:
     invariants = build_invariants(seed_rows, stability)
     write_csv(os.path.join(args.out_dir, "INVARIANT_CHECK.csv"), invariants,
               ["check", "kind", "n", "distinct", "observed", "why"])
+    alpha_rob = build_alpha_robustness(seed_rows)
+    write_csv(os.path.join(args.out_dir, "ALPHA_ROBUSTNESS.csv"), alpha_rob,
+              ["module", "parent", "subset", "budget_epochs", "n_pairs",
+               "delta_a10", "delta_a20", "delta_a30", "delta_a50",
+               "spread", "n_pos_a30", "n_neg_a30", "seed_sign_stable",
+               "direction_consistent", "verdict"])
     write_csv(os.path.join(args.out_dir, "GATE_CHECK.csv"), gates,
               ["gate_run", "gate_root", "module", "subset", "seed", "budget_epochs",
                "formal_run", "formal_root", "gate_md5", "formal_md5", "md5_match",
