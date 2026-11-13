@@ -1461,6 +1461,64 @@ def build_thresholds(seed_rows: list[dict[str, Any]],
     return out
 
 
+def build_threshold_stability(seed_rows: list[dict[str, Any]],
+                              baseline_module: str) -> list[dict[str, Any]]:
+    """Which verdicts would flip if the dispersion estimate moved by 10%?
+
+    Every threshold here is ``derived(est(n))``: it inherits the uncertainty of a
+    sample sd computed from 2-6 seeds.  A threshold printed to four decimals
+    looks exact, so the honest question is not "what is the threshold" but "how
+    far can it move before a verdict changes".
+
+    The test is deliberately mechanical: recompute the threshold at sd x 0.9 and
+    sd x 1.1, then count module-vs-parent effects that fall inside that band.  An
+    effect inside the band has a verdict that depends on the dispersion estimate
+    rather than on the effect -- that is what `fragile` means.
+    """
+    # module-vs-parent effects, same seed and same budget
+    by_cell: dict[tuple, dict[str, Any]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable":
+            continue
+        by_cell[(r["module"], r["subset"], r.get("budget_epochs"), r["seed"])] = r
+    effects: dict[tuple, list[tuple[str, float]]] = {}
+    for (mod, subset, budget, seed), r in by_cell.items():
+        parent = baseline_for(mod)
+        p = by_cell.get((parent, subset, budget, seed))
+        if p is None or mod == parent:
+            continue
+        d = float(r["engine_mean_rmse"]) - float(p["engine_mean_rmse"])
+        effects.setdefault((subset, budget), []).append((mod, d))
+
+    groups: dict[tuple[str, Any], list[float]] = {}
+    for r in seed_rows:
+        if r.get("status") != "usable" or r.get("module") != baseline_module:
+            continue
+        groups.setdefault((r["subset"], r.get("budget_epochs")), []).append(
+            r["engine_mean_rmse"])
+
+    out = []
+    for (subset, budget), vals in sorted(groups.items(),
+                                         key=lambda kv: (kv[0][0], str(kv[0][1]))):
+        n = len(vals)
+        if n < 2:
+            continue
+        _, sd = mean_sd(vals)
+        eff = effects.get((subset, budget), [])
+        for kind in ("single_vs_mean", "paired"):
+            hi = threshold(kind, sd * 1.1, n=n)["value"]
+            lo = threshold(kind, sd * 0.9, n=n)["value"]
+            flipping = sorted({m for m, d in eff if lo <= abs(d) <= hi})
+            out.append(dict(
+                subset=subset, budget_epochs=budget, n_seeds=n, sd=sd, kind=kind,
+                threshold=threshold(kind, sd, n=n)["value"],
+                threshold_lo=lo, threshold_hi=hi,
+                n_effects=len(eff), n_flipping=len(flipping),
+                flipping_modules=";".join(flipping),
+                stability=("fragile" if flipping else "robust")))
+    return out
+
+
 def build_resolution(seed_rows: list[dict[str, Any]],
                      baseline_module: str) -> list[dict[str, Any]]:
     """How small a difference can this cell actually resolve?
@@ -2298,6 +2356,11 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(os.path.join(args.out_dir, "THRESHOLDS.csv"), thresholds,
               ["subset", "budget_epochs", "n_seeds", "sd", "kind", "df",
                "crit", "se", "value", "formula", "bias_direction"])
+    tstab = build_threshold_stability(seed_rows, args.paired_baseline)
+    write_csv(os.path.join(args.out_dir, "THRESHOLD_STABILITY.csv"), tstab,
+              ["subset", "budget_epochs", "n_seeds", "sd", "kind", "threshold",
+               "threshold_lo", "threshold_hi", "n_effects", "n_flipping",
+               "flipping_modules", "stability"])
     shift = build_verdict_shift(module_rows, resolution)
     write_csv(os.path.join(args.out_dir, "VERDICT_SHIFT.csv"), shift,
               ["module", "subset", "budget_epochs", "n_seeds_module", "n_seeds_b0",
