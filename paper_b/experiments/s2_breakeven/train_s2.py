@@ -227,12 +227,19 @@ def main():
     ap.add_argument('--seed', type=int)
     ap.add_argument('--sigma', type=float)
     ap.add_argument('--grid', action='store_true')
+    ap.add_argument('--shard', type=int, default=0, help='0-based shard index for --grid')
+    ap.add_argument('--nshards', type=int, default=1, help='number of parallel shards')
     ap.add_argument('--device', default='cuda:0')
     a = ap.parse_args()
 
     if a.grid:
-        todo = [(s, sd, sg) for s in SUBSETS for sd in SEEDS for sg in SIGMAS]
-        print(f'grid: {len(todo)} runs', flush=True)
+        if a.nshards < 1 or not (0 <= a.shard < a.nshards):
+            ap.error(f'need 0 <= --shard < --nshards, got {a.shard}/{a.nshards}')
+        full = [(s, sd, sg) for s in SUBSETS for sd in SEEDS for sg in SIGMAS]
+        # contiguous-by-index partition: shard k takes positions k, k+n, k+2n, ...
+        todo = [t for i, t in enumerate(full) if i % a.nshards == a.shard]
+        print(f'grid: {len(full)} runs total, shard {a.shard}/{a.nshards} -> {len(todo)} runs',
+              flush=True)
         for i, (s, sd, sg) in enumerate(todo, 1):
             print(f'[{i}/{len(todo)}]', end=' ', flush=True)
             try:
