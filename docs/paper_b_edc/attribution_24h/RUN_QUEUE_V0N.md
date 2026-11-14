@@ -40,7 +40,7 @@
    **tag、run_id、params 三重可分**：`V0N_L70` 期望 `115075`，`NC_base_L70` 实测 `76482`。
    两者**禁止合并统计**；若要同时报，必须写成"base 骨干 +1.0405 / 强骨干 X"两行，不能加总或平均。
 6. **唯一性断言**（发射前跑一次）：
-   `python -c "import csv,collections;r=list(csv.DictReader(open('docs/paper_b_edc/attribution/RUN_QUEUE.csv')));c=collections.Counter(x['run_id'] for x in r);assert len(r)==12 and all(v==1 for v in c.values());print('ok 12 unique')"`
+   `python -c "import csv,collections;r=list(csv.DictReader(open('docs/paper_b_edc/attribution_24h/RUN_QUEUE.csv')));c=collections.Counter(x['run_id'] for x in r);assert len(r)==12 and all(v==1 for v in c.values());print('ok 12 unique')"`
 
 ---
 
