@@ -30,8 +30,8 @@ Xv、T、hs、Fc、unit-ID、飞行持续时间不作为预测输入。cycle为�
 
 | 论文/方法 | 当前判定 | 具体边界 |
 |---|---|---|
-| BayesRUL / Inception-HNN，RESS2025 | PARTIAL | 官方完整模型、损失、训练配置已核；新统一NC训练未执行。原DS01–05联合结果不是DS02分数 |
-| AIDGN-RUL，TII2026 | PARTIAL | 官方NC模型、管线及权重路径已核；统一W+Xs/发动机划分适配未训练。原实现两虚拟输入及全体label-derived cap另标 |
+| BayesRUL / Inception-HNN，RESS2025 | PARTIAL | 官方完整模型、损失、训练配置及适配器静态审计已核；统一192次迁移正在做0optimizer硬件验收，尚未训练。原DS01–05联合结果不是DS02分数 |
+| AIDGN-RUL，TII2026 | PARTIAL | 完整作者网络统一迁移已通过真实V3验收并启动192次训练（120inner+72outer）；尚未全部完成，不能填最终分数。原实现两虚拟输入及全体label-derived cap另标 |
 | MOO_ELM，EvoApplications2022 | PARTIAL | 完整ELM/NSGA-II源码已保全；尚未执行统一搜索，不能用任意小ELM顶替 |
 | Concept-Prognostics，Information Fusion2025 | PARTIAL | 原作者代码完整；普通CNN是该论文的对照，不冒充其主CEM/CBM。概念监督模型属于额外健康标签条件 |
 
@@ -107,3 +107,10 @@ cPCA/dPCA/MNF，且自相关噪声会伪造低频方向。该提案没有新增G
 `summary/DEVELOPMENT_LOEO.md`、CSV和机器gates。然后执行全部checkpoint预测重载，
 将完整结果与本页的PARTIAL阶段分开保存，按实际门给出SUCCESS/PARTIAL/FAILED。
 原作者协议、统一开发评价与官方TEST分别制表，不按早期结果换seed、窗口或模块。
+
+
+## 2026-11-14 运行更新（有时点的快照）
+
+UTC17:23，prototype166/504封印，AIDGN10/192封印，两父进程仍在运行。AIDGN源b6f8a07dbacd16196335fc57676ecc6dbf31c5dd，执行400306179c2b16df577eed02791e668c3c6d96436946102b021b0a3e5e8df8e6；窗口只按inner发动机选，outer72独立汇总。详见 AIDGN_UNIFIED_MIGRATION_PLAN.md。Bayes计划见 BAYES_UNIFIED_MIGRATION_PLAN.md，尚无正式训练。
+
+传感器清单语义纠正：实际Xs顺序为T24,T30,T48,T50,P15,P2,P21,P24,Ps30,P40,P50,Nf,Nc,Wf；原cache directconcat与Bayes native完全相同，错误仅在旧manifest的input_columns文字。独立四原HDF5 schema证明见evidence/RAW_HDF5_SCHEMA_CORRECTION.json；输入bytes、冻结source和已有数学结果均不改。

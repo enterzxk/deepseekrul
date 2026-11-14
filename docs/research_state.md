@@ -921,3 +921,12 @@ $lo_0=lo+\hat q$、$hi_0=hi-\hat q$；E 把扩张项换成 $q_E\cdot s$，同一
 
 
 2026-11-14恢复点：prototype504在a40 formal_2e57e8ae继续，最近状态快照141格，非最终。完整AIDGN独立包ncmapss_public_20261113已通过V3真实验收，192train拟立即launch；新Bayes完整模型adapter由另agent写，尚未真实训练。不可重复launch现有504，不修改五生产文件。
+
+
+2026-11-14 完整AIDGN已实际启动：a40 /media/sangfor/vdb/user/zxk/ncmapss_public_aidgn_20261114/formal_b6f8a07d，PID2588968，源提交b6f8a07dbacd16196335fc57676ecc6dbf31c5dd，执行400306179c2b16df577eed02791e668c3c6d96436946102b021b0a3e5e8df8e6。192为120inner+72outer，outer表才与prototype比较，当前已完成4格（不能当全部outer）。formal.log与FAILED.json用于恢复；不可重复launch。原504继续，源2e57e8ae执行0d5a不动。Bayes完整adapter代码已交，依赖torchinfo1.8.0需隔离安装并真实验收，尚无Bayes训练。
+
+
+2026-11-14 只读独立schema审计纠正：四HDF5 W_var+X_s_var均为 alt,Mach,TRA,T2,T24,T30,T48,T50,P15,P2,P21,P24,Ps30,P40,P50,Nf,Nc,Wf，与Bayes native完全一致。冻结prepare实际directconcat保持此顺序，但其input_columns清单错误把Wf/Nf/Nc放前；此前清单列语义撤回，以 evidence/RAW_HDF5_SCHEMA_CORRECTION.json为准。不重排数据，不改变504/AIDGN执行文件、任何数学输入或既有结果。未读取TEST观测或标签。
+
+
+2026-11-14 Bayes完整Inception-HNN统一迁移：独立static审计PASS，真实PREFLIGHT_V1 source3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af PASS、0optimizer，5窗口B64/原始state-output-NLL精确等价、双head及current-age有效梯度、train-only变更隔离均实际通过，峰值221MiB，含25%margin预计17.535h<24h。允许按预注册120inner+72outer启动；原作者协议仍PARTIAL，来源与schema纠正不改变504/AIDGN。真实依赖torchinfo1.8.0隔离_deps，未改系统环境。

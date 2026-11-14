@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "classification": "complete_author_model_unified_protocol_migration",
+  "repository": "lbasora/bayesrul",
+  "commit": "2943f4d85a1bb71910c100c956b32c3f6b595ceb",
+  "paper_doi": "10.1016/j.ress.2024.110513",
+  "native_protocol_reproduced": false,
+  "implementation_validation_status": "STATIC_SOURCE_CHECK_ONLY; no adapter model forward/training executed by implementer",
+  "license": {
+    "status": "no_explicit_repository_license_found_in_pinned_tree",
+    "identifier": null,
+    "redistribution": "not authorized by this audit; local read-only snapshot only, source ignored by Git; inspect third-party file-specific notices independently",
+    "git_submission": "SOURCE_MANIFEST.json metadata only; author source must remain untracked",
+    "file_specific_notices": [],
+    "scope_note": "Root license metadata does not override retained third-party/file/package-specific notices. No license compatibility or redistribution approval is inferred."
+  },
+  "author_files_modified": false,
+  "verified_source_sha256": {
+    "bayesrul/models/nets/inception.py": "83ea189b83264ef53a004d4aea2848f011a8f316bc7b0bc693aca45fcee052f6",
+    "bayesrul/models/frequentist.py": "1ccc7bb336a5f121bee4e20e93e72d56772a787c4db4c78868f248d332f60ee3",
+    "bayesrul/utils/miscellaneous.py": "f9910d82f6ec4214f192bb5513b892314edafb1806e7423875e79f53197b8f74",
+    "bayesrul/conf/model/inception.yaml": "a12655147a81ad38c24dd27b6d96f446d8c28f824386a25681603fb40accf613",
+    "bayesrul/conf/model/nn.yaml": "7336c853d4b85f92bd07731ec0d007581d123460d70c097e7041c55da2c5a3d6",
+    "bayesrul/conf/model/hnn.yaml": "b30fa53129d62f4519c63f28e47ddcd1d96de7101236d5bfa6d4bea9b0e35b36",
+    "bayesrul/conf/experiment/ncmapss_hnn.yaml": "44c25ca092a8dfcf23fc0d069af03d4a857da78ddd516d599e429242e35dfd94",
+    "bayesrul/conf/callbacks/default.yaml": "301c0fce0b04c64cbcf17fe5ed52979c9d3610a2371f68008adb80201e7304b6",
+    "bayesrul/conf/callbacks/early_stopping.yaml": "9956d3ddefca09cba963d2db6270562e1e5f2a95c2eabdaa979c76b4c9f2b69b",
+    "bayesrul/conf/callbacks/model_checkpoint.yaml": "ad3160a45d1380bed9b403e1adbe9725917dbc19d03ce9bf08c10decfc94ee27",
+    "bayesrul/conf/trainer/default.yaml": "1ab010fa6cd5b44cbe0a6a83360b3a5561239031e280aff474225451cf51dac6",
+    "bayesrul/conf/trainer/gpu.yaml": "84a2a5de3d6127b4745e42d1fad1ede454e38ffc29595624c392912652d3764b",
+    "bayesrul/conf/datamodule/ncmapss.yaml": "e41a2caa25f14e88f789b36f684d4a032a239b6497814ab3da716e7ea4ddd54f",
+    "bayesrul/conf/dataset/ncmapss.yaml": "7f433daa92e06cfa055230e51da2c9183d6efc2304e70eb300e0a78fcb27b2e8",
+    "bayesrul/conf/dataset/ncmapss_base.yaml": "f4ada7afe94add127d4f6f14b0d73874e5f2e737379b9daeace5d3c5ad8870d0",
+    "bayesrul/data/lmdb_utils.py": "a451d68a9ba07d19620de0d1715dfd5aa6686c75c269adae0285362db1e7f2ed",
+    "bayesrul/data/ncmapss/dataset.py": "cb669a3fb58e3ac8192914003930a51431888b44de002c366fe0467f308f0c7e",
+    "bayesrul/data/ncmapss/preprocessing.py": "eb3243795cda9393e5d21a1f389e807b83df96b627d7d07ff0c4d3f565008d7f",
+    "bayesrul/tasks/train.py": "ce4108708c8a903fd7c269a748b9b1841da5810e9c0e335df4fd90172d3b253e",
+    "scripts/train_hnn.sh": "eb0182fb9df0c90f1779908c6a3e23f9a360c99a6d00d21990d67c8d0bc307ec",
+    "pyproject.toml": "b28adde4f800a05af64547949d3e31e9116158b3ade1a75fd59e6d436561d6c9",
+    "poetry.lock": "f41629d42cc42a0ac3829e865766624cdcf2575a94b3cc2b426df5ce3bd3c0b5"
+  },
+  "source_links": {
+    "bayesrul/models/nets/inception.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/models/nets/inception.py",
+    "bayesrul/models/frequentist.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/models/frequentist.py",
+    "bayesrul/utils/miscellaneous.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/utils/miscellaneous.py",
+    "bayesrul/conf/model/inception.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/model/inception.yaml",
+    "bayesrul/conf/model/nn.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/model/nn.yaml",
+    "bayesrul/conf/model/hnn.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/model/hnn.yaml",
+    "bayesrul/conf/experiment/ncmapss_hnn.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/experiment/ncmapss_hnn.yaml",
+    "bayesrul/conf/callbacks/default.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/callbacks/default.yaml",
+    "bayesrul/conf/callbacks/early_stopping.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/callbacks/early_stopping.yaml",
+    "bayesrul/conf/callbacks/model_checkpoint.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/callbacks/model_checkpoint.yaml",
+    "bayesrul/conf/trainer/default.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/trainer/default.yaml",
+    "bayesrul/conf/trainer/gpu.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/trainer/gpu.yaml",
+    "bayesrul/conf/datamodule/ncmapss.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/datamodule/ncmapss.yaml",
+    "bayesrul/conf/dataset/ncmapss.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/dataset/ncmapss.yaml",
+    "bayesrul/conf/dataset/ncmapss_base.yaml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/conf/dataset/ncmapss_base.yaml",
+    "bayesrul/data/lmdb_utils.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/data/lmdb_utils.py",
+    "bayesrul/data/ncmapss/dataset.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/data/ncmapss/dataset.py",
+    "bayesrul/data/ncmapss/preprocessing.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/data/ncmapss/preprocessing.py",
+    "bayesrul/tasks/train.py": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/tasks/train.py",
+    "scripts/train_hnn.sh": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/scripts/train_hnn.sh",
+    "pyproject.toml": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/pyproject.toml",
+    "poetry.lock": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/poetry.lock"
+  },
+  "runtime_author_dependencies": [
+    "bayesrul/models/nets/inception.py",
+    "bayesrul/models/frequentist.py",
+    "bayesrul/utils/miscellaneous.py",
+    "SOURCE_MANIFEST.json"
+  ],
+  "metadata_files_required_for_hash_verification": [
+    "bayesrul/models/nets/inception.py",
+    "bayesrul/models/frequentist.py",
+    "bayesrul/utils/miscellaneous.py",
+    "bayesrul/conf/model/inception.yaml",
+    "bayesrul/conf/model/nn.yaml",
+    "bayesrul/conf/model/hnn.yaml",
+    "bayesrul/conf/experiment/ncmapss_hnn.yaml",
+    "bayesrul/conf/callbacks/default.yaml",
+    "bayesrul/conf/callbacks/early_stopping.yaml",
+    "bayesrul/conf/callbacks/model_checkpoint.yaml",
+    "bayesrul/conf/trainer/default.yaml",
+    "bayesrul/conf/trainer/gpu.yaml",
+    "bayesrul/conf/datamodule/ncmapss.yaml",
+    "bayesrul/conf/dataset/ncmapss.yaml",
+    "bayesrul/conf/dataset/ncmapss_base.yaml",
+    "bayesrul/data/lmdb_utils.py",
+    "bayesrul/data/ncmapss/dataset.py",
+    "bayesrul/data/ncmapss/preprocessing.py",
+    "bayesrul/tasks/train.py",
+    "scripts/train_hnn.sh",
+    "pyproject.toml",
+    "poetry.lock"
+  ],
+  "native_network": {
+    "class": "bayesrul.models.nets.inception.Inception",
+    "activation": "relu",
+    "dropout": 0,
+    "bias": "True",
+    "bias_type": "str; exact literal author constructor default, not bool conversion",
+    "out_size": 2,
+    "n_features": 18,
+    "win_length": 30,
+    "branches": "all original InceptionModule and InceptionModuleReducDim branches unchanged",
+    "flatten_dense": "original Linear(80*win_length,64), no replacement/adaptive pooling",
+    "outputs": "both mu and sigma = Threshold(1e-9,1e-9)(softplus(last(features)))",
+    "initialization": {
+      "call": "self.net.apply(weights_init)",
+      "call_source": "bayesrul/models/frequentist.py:28",
+      "definition_source": "bayesrul/utils/miscellaneous.py:53",
+      "Conv1d": "xavier_normal_(weight)",
+      "Conv2d": "xavier_normal_(weight)",
+      "Linear": "kaiming_normal_(weight)",
+      "bias": "unchanged constructor initialization",
+      "implementation": "complete original function AST extracted at runtime from SHA-verified source, not rewritten"
+    },
+    "mc_samples": 0,
+    "p_dropout": 0
+  },
+  "native_loss": {
+    "call": "F.gaussian_nll_loss(loc, y, torch.square(scale))",
+    "source": "bayesrul/models/frequentist.py:46",
+    "explicit_kwargs": {},
+    "native_torch_default_full": false,
+    "native_torch_default_eps": 1e-06,
+    "native_torch_default_reduction": "mean",
+    "implementation": "complete original HNN.step AST executed with logging-only shell and supplied precomputed output; no model reforward",
+    "target_units": "native piecewise RUL, not migrated capped/125 target"
+  },
+  "native_experiment_recipe": {
+    "source": "bayesrul/conf/experiment/ncmapss_hnn.yaml",
+    "note": "committed author recipe; not an independently established globally best hyperparameter setting",
+    "optimizer": "torch.optim.Adam",
+    "lr": 0.001574,
+    "weight_decay": 0.001,
+    "other_optimizer_kwargs": "not specified in author Hydra config; library defaults",
+    "batch_size": 250,
+    "min_epochs": 1,
+    "max_epochs": 500,
+    "validation_frequency_epochs": 1,
+    "patience": 50,
+    "min_delta": 0.0,
+    "monitor": "nll/val",
+    "mode": "min",
+    "save_top_k": 1,
+    "save_last": true,
+    "seed_experiment_default": 12345,
+    "script_train_hnn_seeds": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "deterministic": false,
+    "precision": "not overridden; Lightning default FP32",
+    "pretraining": "not requested by ncmapss_hnn/hnn/nn config"
+  },
+  "native_input_and_labels": {
+    "datasets": [
+      "N-CMAPSS_DS01-005",
+      "N-CMAPSS_DS02-006",
+      "N-CMAPSS_DS03-012",
+      "N-CMAPSS_DS04",
+      "N-CMAPSS_DS05"
+    ],
+    "selected_subdata": [
+      "W",
+      "X_s",
+      "A"
+    ],
+    "A_features": [],
+    "physical_features": [
+      "alt",
+      "Mach",
+      "TRA",
+      "T2",
+      "T24",
+      "T30",
+      "T48",
+      "T50",
+      "P15",
+      "P2",
+      "P21",
+      "P24",
+      "Ps30",
+      "P40",
+      "P50",
+      "Nf",
+      "Nc",
+      "Wf"
+    ],
+    "win_length": 30,
+    "win_step": 10,
+    "skip_obs": 10,
+    "bits": 32,
+    "label": "linear_piece_wise_RUL depends on hs labels (preprocessing.py:180-220); hs then dropped; not reproduced",
+    "validation": "random 10% windows, torch generator seed0, not heldout engines",
+    "scaler": {
+      "type": "author StandardScalerTransform",
+      "range": "unbounded z-like standardization; not MinMax or fixed [0,1]",
+      "transform": "(x-mean)/std",
+      "fit": "preprocess_lmdb calls dm.random_split first, then fits dm.train_dataloader() over full original training dataset, including random-validation windows",
+      "axes": "mean/std per window-position and feature: sum/var over batch axis0",
+      "variance_formula": "sum_batch((batch_size-1)*batch.var(axis0)) / (total_size - number_of_batches); no between-batch-mean correction",
+      "references": [
+        "bayesrul/data/lmdb_utils.py:80-120",
+        "bayesrul/data/ncmapss/preprocessing.py:282-302",
+        "bayesrul/data/ncmapss/dataset.py:random_split and train_dataloader"
+      ]
+    }
+  },
+  "migration": {
+    "catalog": [
+      [
+        1,
+        30
+      ],
+      [
+        1,
+        50
+      ],
+      [
+        1,
+        512
+      ],
+      [
+        20,
+        16
+      ],
+      [
+        70,
+        4
+      ]
+    ],
+    "sampling": "last H causal flights; endpoint-inclusive linspace(0,511,P).round(); zero left pad raw+age; physical flatten H*P",
+    "age_metadata": "prepend one nonphysical row [age_window[-1,0],1,0*16]; age is observed current cycle/train-only q95; no RUL/future life/hs",
+    "author_win_length": "H*P+1",
+    "physical_scaler": "controller fits physical raw_mu/raw_sd on training engines only; metadata row is never physical-scaled",
+    "target": "min(raw_RUL,125)/125, never z-score",
+    "output": "mu_norm,sigma_norm; BOTH times125 for cycles; variance times125**2",
+    "optimizer_loss": "original initialized full net and original Gaussian NLL; external controller replaces Lightning scheduling only",
+    "parameter_count": "must be measured and sealed for selected T; original dense scales linearly with T",
+    "same_information_caveat": "age made available explicitly, all 18 physical channels preserved; sampling/history windows differ from response prototype and full 70x512 is not offered due original dense cost; not a strict same-resolution architectural ablation",
+    "selection": "train-only inner heldout-engine selection controlled externally; no official TEST for selection; native random-window protocol not reproduced"
+  },
+  "dependencies": {
+    "native_python": ">=3.9,<3.11",
+    "torch_locked": "1.12.0",
+    "pytorch_lightning_locked": "1.9.5",
+    "torchinfo_pyproject": "^1.6.6 (dev-dependency, despite eager model import)",
+    "torchinfo_locked": "1.8.0",
+    "torchinfo_wheel": "torchinfo-1.8.0-py3-none-any.whl",
+    "torchinfo_wheel_sha256": "2e911c2918603f945c26ff21a3a838d12709223dc4ccf243407bce8b6e897b46",
+    "torchinfo_public_source": "https://pypi.org/project/torchinfo/1.8.0/",
+    "requirements_for_adapter": "PyTorch plus genuine torchinfo1.8.0; no Lightning/uncertainty-toolbox/Hydra imported; no fake dependency stubs",
+    "current_environment_migration": "controller must record actual torch/Python/CUDA versions; no claim of native environment equality"
+  },
+  "pending_acceptance": [
+    "controller-run isolated toy source/pack/metadata/model-state/output/NLL/gradient contracts",
+    "device/memory feasibility for all preregistered views before training",
+    "full frozen split/config/source/precision/scaler checkpoint evidence",
+    "native protocol remains not reproduced"
+  ]
+}

@@ -16,11 +16,11 @@ Fc及duration不作默认输入；cycle仅作为公开年龄。预测时刻统�
 | Two-Phase Sequence-Feature Attention, TIM2025 | [10.1109/TIM.2025.3576953](https://doi.org/10.1109/TIM.2025.3576953)，[源码@5bd33b2b1bb044ab4be1a8cb67fdf8a5d96d1d0a](https://github.com/mjliu-advertising/RUL/tree/5bd33b2b1bb044ab4be1a8cb67fdf8a5d96d1d0a) | 论文包含N-CMAPSS，公开固定代码仅发现CMAPSS管线；NC忠实复现证据不完整，不能把旧C-MAPSS结果移入新表。 |
 
 前四库309个作者原文件已在新包upstream保全，记录Git blob SHA1及SHA256；作者源码
-未修改、未导入或训练。未核实整库许可的三个snapshot仅本地保留，受Git忽略保护；
+未修改；完整AIDGN已实际加载训练，Bayes已适配且正作硬件验收，MOO/Concept尚未训练。未核实整库许可的三个snapshot仅本地保留，受Git忽略保护；
 提交其manifest及获取链接。MOO保留Apache与第三方GPL/LGPL声明。详见
 `paper_b/ncmapss_response/upstream/PRESERVATION_ACCEPTANCE.json`及逐库SOURCE_MANIFEST.json。
 
-目前前四篇复现状态均 **PARTIAL：DOI/官方来源/实现/管线已核，统一训练未执行**。
+目前前四篇复现状态均 **PARTIAL**：DOI/官方来源/实现/管线已核；完整AIDGN统一训练进行中，Bayes完整核心已适配，MOO/Concept尚未统一训练。
 后两篇 **PARTIAL：仅作来源/额外条件核查**。本页不宣称任何NC论文已复现成功，
 不把作者公开历史数字与本研究统一协议混表。
 

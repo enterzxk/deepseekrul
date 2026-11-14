@@ -1,0 +1,253 @@
+{
+  "status": "PASS",
+  "admission": true,
+  "execution_sha256": "3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af",
+  "schema": {
+    "status": "PASS",
+    "columns": [
+      "alt",
+      "Mach",
+      "TRA",
+      "T2",
+      "T24",
+      "T30",
+      "T48",
+      "T50",
+      "P15",
+      "P2",
+      "P21",
+      "P24",
+      "Ps30",
+      "P40",
+      "P50",
+      "Nf",
+      "Nc",
+      "Wf"
+    ],
+    "evidence_sha256": "176acb68cc29e9dbcd2b32ed6a72e725d4ccea5fcf214aa91e01ea64ced65597",
+    "reordered": false
+  },
+  "software": {
+    "source": {
+      "status": "PASS",
+      "verified_files": 22,
+      "provenance": {
+        "repository": "lbasora/bayesrul",
+        "commit": "2943f4d85a1bb71910c100c956b32c3f6b595ceb",
+        "author_file": "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/sources/bayesrul/bayesrul/models/nets/inception.py",
+        "author_sha256": "83ea189b83264ef53a004d4aea2848f011a8f316bc7b0bc693aca45fcee052f6",
+        "verified_sources": {
+          "bayesrul/models/nets/inception.py": "83ea189b83264ef53a004d4aea2848f011a8f316bc7b0bc693aca45fcee052f6",
+          "bayesrul/models/frequentist.py": "1ccc7bb336a5f121bee4e20e93e72d56772a787c4db4c78868f248d332f60ee3",
+          "bayesrul/utils/miscellaneous.py": "f9910d82f6ec4214f192bb5513b892314edafb1806e7423875e79f53197b8f74",
+          "bayesrul/conf/model/inception.yaml": "a12655147a81ad38c24dd27b6d96f446d8c28f824386a25681603fb40accf613",
+          "bayesrul/conf/model/nn.yaml": "7336c853d4b85f92bd07731ec0d007581d123460d70c097e7041c55da2c5a3d6",
+          "bayesrul/conf/model/hnn.yaml": "b30fa53129d62f4519c63f28e47ddcd1d96de7101236d5bfa6d4bea9b0e35b36",
+          "bayesrul/conf/experiment/ncmapss_hnn.yaml": "44c25ca092a8dfcf23fc0d069af03d4a857da78ddd516d599e429242e35dfd94",
+          "bayesrul/conf/callbacks/default.yaml": "301c0fce0b04c64cbcf17fe5ed52979c9d3610a2371f68008adb80201e7304b6",
+          "bayesrul/conf/callbacks/early_stopping.yaml": "9956d3ddefca09cba963d2db6270562e1e5f2a95c2eabdaa979c76b4c9f2b69b",
+          "bayesrul/conf/callbacks/model_checkpoint.yaml": "ad3160a45d1380bed9b403e1adbe9725917dbc19d03ce9bf08c10decfc94ee27",
+          "bayesrul/conf/trainer/default.yaml": "1ab010fa6cd5b44cbe0a6a83360b3a5561239031e280aff474225451cf51dac6",
+          "bayesrul/conf/trainer/gpu.yaml": "84a2a5de3d6127b4745e42d1fad1ede454e38ffc29595624c392912652d3764b",
+          "bayesrul/conf/datamodule/ncmapss.yaml": "e41a2caa25f14e88f789b36f684d4a032a239b6497814ab3da716e7ea4ddd54f",
+          "bayesrul/conf/dataset/ncmapss.yaml": "7f433daa92e06cfa055230e51da2c9183d6efc2304e70eb300e0a78fcb27b2e8",
+          "bayesrul/conf/dataset/ncmapss_base.yaml": "f4ada7afe94add127d4f6f14b0d73874e5f2e737379b9daeace5d3c5ad8870d0",
+          "bayesrul/data/lmdb_utils.py": "a451d68a9ba07d19620de0d1715dfd5aa6686c75c269adae0285362db1e7f2ed",
+          "bayesrul/data/ncmapss/dataset.py": "cb669a3fb58e3ac8192914003930a51431888b44de002c366fe0467f308f0c7e",
+          "bayesrul/data/ncmapss/preprocessing.py": "eb3243795cda9393e5d21a1f389e807b83df96b627d7d07ff0c4d3f565008d7f",
+          "bayesrul/tasks/train.py": "ce4108708c8a903fd7c269a748b9b1841da5810e9c0e335df4fd90172d3b253e",
+          "scripts/train_hnn.sh": "eb0182fb9df0c90f1779908c6a3e23f9a360c99a6d00d21990d67c8d0bc307ec",
+          "pyproject.toml": "b28adde4f800a05af64547949d3e31e9116158b3ade1a75fd59e6d436561d6c9",
+          "poetry.lock": "f41629d42cc42a0ac3829e865766624cdcf2575a94b3cc2b426df5ce3bd3c0b5"
+        },
+        "author_code_modified": false,
+        "source_url": "https://github.com/lbasora/bayesrul/blob/2943f4d85a1bb71910c100c956b32c3f6b595ceb/bayesrul/models/nets/inception.py",
+        "protocol": "complete_author_model_unified_protocol_migration",
+        "initialization": "exact extracted original weights_init, applied once after constructor",
+        "loss": "exact extracted original HNN.step; logging-only shim replaces Lightning",
+        "age_migration": "prepend [current_observed_cycle/train_q95,1,0*16] metadata row",
+        "output_units": "mu_norm and sigma_norm; multiply BOTH by 125 for cycles",
+        "native_protocol_reproduced": false
+      },
+      "wrong_commit_rejected": true,
+      "wrong_sha_rejected": true
+    },
+    "packing": {
+      "status": "PASS",
+      "catalog": [
+        {
+          "history": 1,
+          "points": 30,
+          "physical_T": 30,
+          "author_T": 31
+        },
+        {
+          "history": 1,
+          "points": 50,
+          "physical_T": 50,
+          "author_T": 51
+        },
+        {
+          "history": 1,
+          "points": 512,
+          "physical_T": 512,
+          "author_T": 513
+        },
+        {
+          "history": 20,
+          "points": 16,
+          "physical_T": 320,
+          "author_T": 321
+        },
+        {
+          "history": 70,
+          "points": 4,
+          "physical_T": 280,
+          "author_T": 281
+        }
+      ],
+      "forbidden_reads": 0,
+      "future_independence": true,
+      "future_index_rejected": true,
+      "zero_padding": true,
+      "metadata_age_transmission": true
+    },
+    "network": {
+      "status": "PASS",
+      "device": "cuda:0",
+      "toy_only": true,
+      "optimization_steps": 0,
+      "windows": [
+        {
+          "history": 1,
+          "points": 30,
+          "parameter_count": 192262,
+          "exact_initialized_state_and_output": true,
+          "original_18_feature_assertion": true,
+          "positive_mu_sigma": true,
+          "native_nll_equal": true,
+          "finite_gradients": true,
+          "nonzero_sigma_gradient": true
+        },
+        {
+          "history": 1,
+          "points": 50,
+          "parameter_count": 294662,
+          "exact_initialized_state_and_output": true,
+          "original_18_feature_assertion": true,
+          "positive_mu_sigma": true,
+          "native_nll_equal": true,
+          "finite_gradients": true,
+          "nonzero_sigma_gradient": true
+        },
+        {
+          "history": 1,
+          "points": 512,
+          "parameter_count": 2660102,
+          "exact_initialized_state_and_output": true,
+          "original_18_feature_assertion": true,
+          "positive_mu_sigma": true,
+          "native_nll_equal": true,
+          "finite_gradients": true,
+          "nonzero_sigma_gradient": true
+        },
+        {
+          "history": 20,
+          "points": 16,
+          "parameter_count": 1677062,
+          "exact_initialized_state_and_output": true,
+          "original_18_feature_assertion": true,
+          "positive_mu_sigma": true,
+          "native_nll_equal": true,
+          "finite_gradients": true,
+          "nonzero_sigma_gradient": true
+        },
+        {
+          "history": 70,
+          "points": 4,
+          "parameter_count": 1472262,
+          "exact_initialized_state_and_output": true,
+          "original_18_feature_assertion": true,
+          "positive_mu_sigma": true,
+          "native_nll_equal": true,
+          "finite_gradients": true,
+          "nonzero_sigma_gradient": true
+        }
+      ]
+    }
+  },
+  "preprocessing": {
+    "inner4_outer5_excluded_engine_invariance": true,
+    "global_training_only_mean_std": true,
+    "constant_std_floor": 1e-06,
+    "target_and_sigma_inverse_factor": 125,
+    "optimizer_updates": 0
+  },
+  "rows": [
+    {
+      "history": 1,
+      "points": 30,
+      "author_sequence_len": 31,
+      "batch": 64,
+      "parameters": 192262,
+      "median_batch_seconds": 0.16912063397467136,
+      "peak_MiB": 93.3818359375,
+      "last_gradient_norm": 11.95988655090332,
+      "last_nll": 0.33409810066223145,
+      "both_heads_and_current_age_gradients": true
+    },
+    {
+      "history": 1,
+      "points": 50,
+      "author_sequence_len": 51,
+      "batch": 64,
+      "parameters": 294662,
+      "median_batch_seconds": 0.17587453895248473,
+      "peak_MiB": 81.86083984375,
+      "last_gradient_norm": 13.751264572143555,
+      "last_nll": -0.19557525217533112,
+      "both_heads_and_current_age_gradients": true
+    },
+    {
+      "history": 1,
+      "points": 512,
+      "author_sequence_len": 513,
+      "batch": 64,
+      "parameters": 2660102,
+      "median_batch_seconds": 0.16337545309215784,
+      "peak_MiB": 220.75341796875,
+      "last_gradient_norm": 53.42567825317383,
+      "last_nll": 0.2129180133342743,
+      "both_heads_and_current_age_gradients": true
+    },
+    {
+      "history": 20,
+      "points": 16,
+      "author_sequence_len": 321,
+      "batch": 64,
+      "parameters": 1677062,
+      "median_batch_seconds": 0.2086116879945621,
+      "peak_MiB": 161.86572265625,
+      "last_gradient_norm": 161.01376342773438,
+      "last_nll": 0.8654441833496094,
+      "both_heads_and_current_age_gradients": true
+    },
+    {
+      "history": 70,
+      "points": 4,
+      "author_sequence_len": 281,
+      "batch": 64,
+      "parameters": 1472262,
+      "median_batch_seconds": 0.2020279779098928,
+      "peak_MiB": 151.7880859375,
+      "last_gradient_norm": 26.602272033691406,
+      "last_nll": 0.30987614393234253,
+      "both_heads_and_current_age_gradients": true
+    }
+  ],
+  "projected_serial_hours_with_25pct_margin": 17.53457043902017,
+  "optimizer_updates": 0,
+  "NASA_data_or_labels_read": false,
+  "official_test_read": false,
+  "interpretation": "real complete initialized HNN forward/backward; no training or gain claim"
+}

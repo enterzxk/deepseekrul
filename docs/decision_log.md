@@ -1949,3 +1949,9 @@ rank/support机制可能没有实际作用；balancedOT线性池化恒退化均�
 AIDGN完整作者模型迁移：原class SHA22101fe6bc88fa792b68c909e21d70718e85b919097bf00b177586154ff245b6，128/512/72等native参数保留，原abs head故用cap125/125正标签，保留作者[-1,1]MinMax、train-only；observed-cycle/q95替代native1e-5缩放。原norm01误标已于0真实训练时修正。
 窗口五候选包含full70x512，inner4+cyclic-next验证选，再outer5三seed重训。统一fixed200 constantLR/MSE/Adam，作者valLR/earlystop与原污染标签不迁移、不冒称原recipe数值复现。
 V3实际source/native/shape/FP32grad/预处理合同全部PASS，含25%margin预算12.95h<24h；允许120inner+72outer启动，不改504或PaperA。
+
+
+2026-11-14 只读独立schema审计纠正：四HDF5 W_var+X_s_var均为 alt,Mach,TRA,T2,T24,T30,T48,T50,P15,P2,P21,P24,Ps30,P40,P50,Nf,Nc,Wf，与Bayes native完全一致。冻结prepare实际directconcat保持此顺序，但其input_columns清单错误把Wf/Nf/Nc放前；此前清单列语义撤回，以 evidence/RAW_HDF5_SCHEMA_CORRECTION.json为准。不重排数据，不改变504/AIDGN执行文件、任何数学输入或既有结果。未读取TEST观测或标签。
+
+
+2026-11-14 Bayes完整Inception-HNN统一迁移：独立static审计PASS，真实PREFLIGHT_V1 source3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af PASS、0optimizer，5窗口B64/原始state-output-NLL精确等价、双head及current-age有效梯度、train-only变更隔离均实际通过，峰值221MiB，含25%margin预计17.535h<24h。允许按预注册120inner+72outer启动；原作者协议仍PARTIAL，来源与schema纠正不改变504/AIDGN。真实依赖torchinfo1.8.0隔离_deps，未改系统环境。

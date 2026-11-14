@@ -1,0 +1,22 @@
+{
+  "status": "PASS_STATIC_ONLY",
+  "independent_agent": "audit_secondary_sources",
+  "runtime_executed_by_review_agent": false,
+  "author_core_not_simplified": true,
+  "native_nll_and_initialization_preserved": true,
+  "inner4_outer5_scaling_and_selection_pass": true,
+  "age_metadata_disclosed": true,
+  "schema_independently_observed": true,
+  "file_sha256": {
+    "bayes_adapter.py": "d196a1389edbbf2df6a80652f21e41f1005bb2abe571872833da55843496d667",
+    "run_bayes.py": "10aac2ebf0677fd6fe89279663fe1524ff5da908a4adb0c8d2354851dbbefb94",
+    "preflight.py": "a606982654f47a46293df20f5eac4872a8c493f487200f52d758170b4da072d5",
+    "NATIVE_RECIPE.json": "036923a42565f864e229382dac9bdb038535eb5d873298ee3df2eeb8a39227d5",
+    "PROTOCOL.json": "669bf455259d8834b236951787710048cd15e9ba9d626a86eaad13aa518141a9"
+  },
+  "limitations": [
+    "uniform migration, not native numerical reproduction",
+    "full runtime acceptance separately executed by root",
+    "no claim of calibrated predictive uncertainty or module benefit"
+  ]
+}

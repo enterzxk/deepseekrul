@@ -97,3 +97,6 @@
 完成后核summary/DEVELOPMENT_LOEO.md与全checkpoint重载预测审计，再提交结果；四篇新NC论文统一重训尚未开始，仍PARTIAL。
 
 - AIDGN新NC迁移预注册：120inner+72outer，五窗口及完整来源见AIDGN_UNIFIED_MIGRATION_PLAN.md；先V3真实验收后launch。prototype504独立运行不合并内层记录。
+
+
+2026-11-14 Bayes完整Inception-HNN统一迁移：独立static审计PASS，真实PREFLIGHT_V1 source3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af PASS、0optimizer，5窗口B64/原始state-output-NLL精确等价、双head及current-age有效梯度、train-only变更隔离均实际通过，峰值221MiB，含25%margin预计17.535h<24h。允许按预注册120inner+72outer启动；原作者协议仍PARTIAL，来源与schema纠正不改变504/AIDGN。真实依赖torchinfo1.8.0隔离_deps，未改系统环境。

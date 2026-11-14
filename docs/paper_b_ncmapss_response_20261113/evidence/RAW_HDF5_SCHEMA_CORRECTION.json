@@ -1,0 +1,71 @@
+{
+  "decoded_keys": [
+    "W_var",
+    "X_s_var"
+  ],
+  "official_test_arrays_read": false,
+  "observation_by": "independent audit_secondary_sources on lab3090; h5py read-only",
+  "files": [
+    {
+      "subset": "DS02",
+      "path": "/home/user/deepseek-rul/data/NCMAPSS/extracted/N-CMAPSS_DS02-006.h5",
+      "bytes": 2450472504
+    },
+    {
+      "subset": "DS05",
+      "path": "/home/user/deepseek-rul/data/NCMAPSS/extracted/N-CMAPSS_DS05.h5",
+      "bytes": 2599166216
+    },
+    {
+      "subset": "DS06",
+      "path": "/home/user/deepseek-rul/data/NCMAPSS/extracted/N-CMAPSS_DS06.h5",
+      "bytes": 2549159720
+    },
+    {
+      "subset": "DS07",
+      "path": "/home/user/deepseek-rul/data/NCMAPSS/extracted/N-CMAPSS_DS07.h5",
+      "bytes": 2714714776
+    }
+  ],
+  "common_schema": {
+    "W_var": {
+      "shape": [
+        4
+      ],
+      "dtype": "|S4",
+      "values": [
+        "alt",
+        "Mach",
+        "TRA",
+        "T2"
+      ],
+      "values_bytes_sha256": "bb137239d92675545251a0c946ebc06fc46b5ab6beffdbd2f714b06563c13b7e"
+    },
+    "X_s_var": {
+      "shape": [
+        14
+      ],
+      "dtype": "|S4",
+      "values": [
+        "T24",
+        "T30",
+        "T48",
+        "T50",
+        "P15",
+        "P2",
+        "P21",
+        "P24",
+        "Ps30",
+        "P40",
+        "P50",
+        "Nf",
+        "Nc",
+        "Wf"
+      ],
+      "values_bytes_sha256": "e375e4cacda63ff86df882988166cd2ac5d0fa2db2a491c365d428ca02f840f2"
+    }
+  },
+  "all_four_schema_identical": true,
+  "all_four_direct_concat_equals_bayes_native": true,
+  "correction": "Frozen prepare.py directly concatenates original W_dev and X_s_dev without reordering. Its input_columns declaration wrongly puts Wf,Nf,Nc first. Actual input bytes and frozen models remain unchanged. This evidence supersedes only that semantic declaration. Schema hashes include fixed S4 null padding, not whole HDF5 bytes."
+}

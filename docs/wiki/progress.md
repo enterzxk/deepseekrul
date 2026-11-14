@@ -44,3 +44,20 @@
 
 
 - 2026-11-13：新N-CMAPSS机制原型已独立隔离，四缓存完成，作者代码来源保全；尚无正式训练收益证据。恢复见 docs/paper_b_ncmapss_response_20261113/。
+
+
+## N-CMAPSS正式开发训练启动（2026-11-13）
+
+源提交2e57e8ae68f194d73ba0a94fcd45437507f33d58；执行0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009。
+远端a40：/media/sangfor/vdb/user/zxk/ncmapss_response_20261113/formal_2e57e8ae。
+父PID2331438；四子集worker2331541/2331542/2331543/2331544。七模式、六折、三seed504次真实训练，36共享GPU墙钟小时上限。
+实际启动已核实；当前状态见docs/paper_b_ncmapss_response_20261113/evidence/STATUS.json，首批未完成，未作任何增益判断。
+当前仅开发集，禁止TEST。原DSPT/Paper A/R2均无改动。源码后续只允许新增审计/文档，不改变冻结五个执行文件。
+恢复：读远端STATUS.json；失败看formal_supervisor.log及formal_2e57e8ae/worker_*.log。不能重复launch（CLAIM独占）。
+完成后核summary/DEVELOPMENT_LOEO.md与全checkpoint重载预测审计，再提交结果；四篇新NC论文统一重训尚未开始，仍PARTIAL。
+
+
+2026-11-14 只读独立schema审计纠正：四HDF5 W_var+X_s_var均为 alt,Mach,TRA,T2,T24,T30,T48,T50,P15,P2,P21,P24,Ps30,P40,P50,Nf,Nc,Wf，与Bayes native完全一致。冻结prepare实际directconcat保持此顺序，但其input_columns清单错误把Wf/Nf/Nc放前；此前清单列语义撤回，以 evidence/RAW_HDF5_SCHEMA_CORRECTION.json为准。不重排数据，不改变504/AIDGN执行文件、任何数学输入或既有结果。未读取TEST观测或标签。
+
+
+2026-11-14 Bayes完整Inception-HNN统一迁移：独立static审计PASS，真实PREFLIGHT_V1 source3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af PASS、0optimizer，5窗口B64/原始state-output-NLL精确等价、双head及current-age有效梯度、train-only变更隔离均实际通过，峰值221MiB，含25%margin预计17.535h<24h。允许按预注册120inner+72outer启动；原作者协议仍PARTIAL，来源与schema纠正不改变504/AIDGN。真实依赖torchinfo1.8.0隔离_deps，未改系统环境。

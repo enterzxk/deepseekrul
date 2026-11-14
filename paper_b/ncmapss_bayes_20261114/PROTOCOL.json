@@ -1,0 +1,105 @@
+{
+  "protocol_id": "PB-NCMAPSS-FULL-BAYESRUL-HNN-UNIFIED-20261114-V1",
+  "model": "complete pinned author Inception-HNN; age-token observable-input migration",
+  "author_commit": "2943f4d85a1bb71910c100c956b32c3f6b595ceb",
+  "shared_data_execution_sha256": "0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009",
+  "subsets": [
+    "DS02",
+    "DS05",
+    "DS06",
+    "DS07"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "window_catalog": [
+    [
+      1,
+      30
+    ],
+    [
+      1,
+      50
+    ],
+    [
+      1,
+      512
+    ],
+    [
+      20,
+      16
+    ],
+    [
+      70,
+      4
+    ]
+  ],
+  "inner_selection_seed": 101,
+  "inner_validation_rule": "cyclic next development engine after outer heldout in sorted engine list; fit remaining four engines",
+  "window_selection": "lowest inner-engine flight-end raw RMSE; ties by total points then history then points",
+  "epochs": 200,
+  "batch": 64,
+  "optimizer": "Adam",
+  "weight_decay": 0.001,
+  "gradient_clipping": "none; finite gradient norm recorded",
+  "label_cap": 125.0,
+  "target_transform": "min(raw_Y,125)/125; retain both original positive softplus heads; mu and sigma times125",
+  "input": "raw HDF5 W4+measured_Xs14 column order; prepend [current_observed_cycle/train_q95,1,0*16] nonphysical metadata row",
+  "forbidden_inputs": [
+    "X_v",
+    "T",
+    "hs",
+    "Fc",
+    "unit_ID",
+    "duration"
+  ],
+  "prediction_time": "end_of_current_flight",
+  "preprocessing_fit": "only_current_inner_four_or_outer_five_training_engines",
+  "epoch_selection": "none; fixed200; outer heldout constructed only after final fit",
+  "inner_trainings": 120,
+  "outer_trainings": 72,
+  "total_trainings": 192,
+  "primary_metric": "engine-equal flight-end raw RMSE; three seed means and SD; NASA sum/mean separate",
+  "no_test_loader": true,
+  "maximum_shared_gpu_wall_hours": 24,
+  "maximum_device_memory_MiB": 12000,
+  "maximum_cell_seconds": 3600,
+  "original_protocol_status": "not_reproduced_here; native joint DS01-DS05/hs labels/random-window validation/scaler differ",
+  "comparison_limit": "window/resolution selected only by inner heldout engine; age metadata is a disclosed input migration; not same-resolution architectural ablation",
+  "failure_branch": "preserve every candidate; no adaptive pooling or smaller replacement head; no MSE substitution for HNN; negative NLL is valid",
+  "physical_normalization": "global per-channel training-only mean/std with std floor1e-6; metadata row never physically scaled",
+  "learning_rate_schedule": "constant; unified fixed200 rule replaces native val-NLL early stopping",
+  "learning_rate": 0.001574,
+  "loss": "original verified HNN.step: GaussianNLL(mu,target,sigma**2), native torch defaults",
+  "prediction_outputs": "actual normalized mean and sigma; preserve both in checkpoint and save mean/sigma in flight-cycle units",
+  "torchinfo_dependency": {
+    "version": "1.8.0",
+    "wheel_sha256": "2e911c2918603f945c26ff21a3a838d12709223dc4ccf243407bce8b6e897b46",
+    "deployment": "isolated per-job _deps, no fake stubs or global environment mutation"
+  },
+  "schema_contract": "append independently observed raw HDF5 W_var/X_s_var evidence before launch; do not trust mistaken old cache input_columns declaration",
+  "schema_contract_sha256": "176acb68cc29e9dbcd2b32ed6a72e725d4ccea5fcf214aa91e01ea64ced65597",
+  "physical_columns_actual": [
+    "alt",
+    "Mach",
+    "TRA",
+    "T2",
+    "T24",
+    "T30",
+    "T48",
+    "T50",
+    "P15",
+    "P2",
+    "P21",
+    "P24",
+    "Ps30",
+    "P40",
+    "P50",
+    "Nf",
+    "Nc",
+    "Wf"
+  ],
+  "nll_variance_floor": "native eps1e-6 on normalized variance; equivalent effective sigma .125 cycle; save original predicted sigma*125 separately"
+}
