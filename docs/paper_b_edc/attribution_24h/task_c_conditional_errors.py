@@ -275,6 +275,78 @@ def main():
             ("mixed" if n_pos and n_neg else "consistent"), len(v),
             "pos %d neg %d" % (n_pos, n_neg))
 
+    # ---- A5/A6: does the sensor carry incremental information? ----------- #
+    # A4 measured |error| ~ PC1, which is heteroscedasticity: it says the error
+    # is larger in some sensor regions.  It does NOT say the sensor predicts the
+    # label.  The question the task asks is whether PC1 explains y_true after
+    # age and condition are already in the model, so the response has to be
+    # y_true, not |error|.
+    #
+    # y_true and PC1 do not depend on the model, so the A5 rows are computed on
+    # unique (subset, unit, cut) cells -- repeating them once per arm would
+    # multiply n by nine without adding a single observation.
+    uniq = df.drop_duplicates(subset=["subset", "unit", "cut"])[
+        ["subset", "unit", "cut", "y_true", "pc1", "bin50", "regime"]].copy()
+    cellcol = lambda f: (f["subset"].astype(str) + "|" + f["bin50"].astype(int).astype(str)
+                         + "|" + f["regime"].astype(int).astype(str))
+    uniq["cell"] = cellcol(uniq)
+    df["cell"] = cellcol(df)
+
+    def within_cell_slope(d, ycol, xcol, cellcol="cell", unitcol="unit"):
+        """Demean by cell, then one slope with a cluster-robust SE by engine."""
+        d = d.copy()
+        d["_y"] = d[ycol] - d.groupby(cellcol)[ycol].transform("mean")
+        d["_x"] = d[xcol] - d.groupby(cellcol)[xcol].transform("mean")
+        sxx = float((d["_x"] ** 2).sum())
+        if sxx <= 0 or len(d) < 20:
+            return None
+        b = float((d["_x"] * d["_y"]).sum() / sxx)
+        resid = d["_y"] - b * d["_x"]
+        g = d.assign(_s=d["_x"] * resid).groupby(unitcol)["_s"].sum()
+        n_units = len(g)
+        var = float((g ** 2).sum()) / sxx ** 2
+        se = math.sqrt(var) if var > 0 else float("nan")
+        half = t975(n_units - 1) * se if n_units > 1 else float("nan")
+        ss_tot = float((d["_y"] ** 2).sum())
+        ss_res = float((resid ** 2).sum())
+        r2_inc = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+        return dict(slope=b, se=se, lo=b - half, hi=b + half, r2_increment=r2_inc,
+                    n=len(d), units=n_units)
+
+    for s in subsets:
+        d = uniq[uniq["subset"] == s]
+        res = within_cell_slope(d, "y_true", "pc1")
+        if res:
+            add("A5_ytrue_on_pc1_within_cell", s, "all cells",
+                "slope", res["slope"], res["n"],
+                "CI %.4f..%.4f; R2 increment %.4f; engines %d"
+                % (res["lo"], res["hi"], res["r2_increment"], res["units"]))
+            add("A5_ytrue_on_pc1_within_cell", s, "all cells",
+                "r2_increment", res["r2_increment"], res["n"], "within-cell")
+        # per cell r^2, to show whether any single cell carries the relation
+        for (cell,), g in d.groupby(["cell"]):
+            if len(g) < 50 or g["unit"].nunique() < 5:
+                continue
+            if g["pc1"].std(ddof=0) == 0:
+                continue
+            r = float(np.corrcoef(g["pc1"], g["y_true"])[0, 1])
+            add("A5b_ytrue_pc1_cell", s, cell, "r2", r * r, len(g),
+                "r %+.4f; engines %d" % (r, g["unit"].nunique()))
+
+    # signed error against PC1, inside cells, one arm at a time: this is the
+    # model-dependent half, so it is not deduplicated.
+    for tag in sorted(df["tag"].unique()):
+        for s in subsets:
+            d = df[(df["tag"] == tag) & (df["subset"] == s)]
+            if d.empty:
+                continue
+            res = within_cell_slope(d, "err", "pc1")
+            if not res:
+                continue
+            add("A6_err_on_pc1_within_cell", s, tag, "slope", res["slope"], res["n"],
+                "CI %.4f..%.4f; R2 increment %.4f; engines %d"
+                % (res["lo"], res["hi"], res["r2_increment"], res["units"]))
+
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["analysis", "subset", "stratum", "metric",
                                           "value", "n", "note"])

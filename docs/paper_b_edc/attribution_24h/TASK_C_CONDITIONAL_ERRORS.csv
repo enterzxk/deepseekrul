@@ -225,3 +225,47 @@ A4c_per_arm_summary,all,A8_sahi_L70,cells,5,5,pos 4 neg 1 median +0.160
 A4c_per_arm_summary,all,A8_sahi_L70,sign_consistency,mixed,5,pos 4 neg 1
 A4c_per_arm_summary,all,F_full_basic_hi1,cells,5,5,pos 4 neg 1 median +0.103
 A4c_per_arm_summary,all,F_full_basic_hi1,sign_consistency,mixed,5,pos 4 neg 1
+A5_ytrue_on_pc1_within_cell,FD001,all cells,slope,9.007522024784633,100,CI 6.5041..11.5110; R2 increment 0.4732; engines 20
+A5_ytrue_on_pc1_within_cell,FD001,all cells,r2_increment,0.4732391972991725,100,within-cell
+A5_ytrue_on_pc1_within_cell,FD002,all cells,slope,11.188347041765986,260,CI 9.1942..13.1824; R2 increment 0.4756; engines 52
+A5_ytrue_on_pc1_within_cell,FD002,all cells,r2_increment,0.4756408940970669,260,within-cell
+A5_ytrue_on_pc1_within_cell,FD003,all cells,slope,9.271209354385736,100,CI 4.5290..14.0134; R2 increment 0.1595; engines 20
+A5_ytrue_on_pc1_within_cell,FD003,all cells,r2_increment,0.15947925225858317,100,within-cell
+A5_ytrue_on_pc1_within_cell,FD004,all cells,slope,-7.631583167340545,250,CI -9.6825..-5.5807; R2 increment 0.2265; engines 50
+A5_ytrue_on_pc1_within_cell,FD004,all cells,r2_increment,0.22650130491148945,250,within-cell
+A6_err_on_pc1_within_cell,FD001,A8_base_L70,slope,0.6681256996761415,300,CI -0.1173..1.4536; R2 increment 0.0189; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_base_L70,slope,0.5878171179920606,780,CI -0.1941..1.3697; R2 increment 0.0075; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_base_L70,slope,-0.5707330985154431,300,CI -2.2167..1.0752; R2 increment 0.0045; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_base_L70,slope,-0.6285048329722068,750,CI -2.0717..0.8147; R2 increment 0.0090; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_full_L70,slope,0.45667398743617077,300,CI -0.2644..1.1777; R2 increment 0.0106; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_full_L70,slope,0.11268788909290542,780,CI -0.6723..0.8976; R2 increment 0.0003; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_full_L70,slope,-0.0004344058541359122,300,CI -1.5718..1.5710; R2 increment 0.0000; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_full_L70,slope,-0.7508246685074551,750,CI -2.2100..0.7084; R2 increment 0.0124; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_hi_L70,slope,0.5602635257746742,300,CI -0.2152..1.3357; R2 increment 0.0129; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_hi_L70,slope,0.4340308189474315,780,CI -0.3985..1.2665; R2 increment 0.0040; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_hi_L70,slope,-0.26206010293610865,300,CI -1.9064..1.3823; R2 increment 0.0009; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_hi_L70,slope,-0.5786190579729464,750,CI -2.0233..0.8661; R2 increment 0.0076; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_ms_L70,slope,0.5694367039840822,300,CI -0.1233..1.2622; R2 increment 0.0149; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_ms_L70,slope,0.11900560477905499,780,CI -0.7285..0.9665; R2 increment 0.0003; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_ms_L70,slope,-0.3549853399240221,300,CI -1.8495..1.1395; R2 increment 0.0018; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_ms_L70,slope,-0.4787085535709952,750,CI -1.8872..0.9298; R2 increment 0.0051; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_mshi_L70,slope,0.5363374363542777,300,CI -0.1675..1.2402; R2 increment 0.0133; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_mshi_L70,slope,0.20301037309912753,780,CI -0.6278..1.0338; R2 increment 0.0008; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_mshi_L70,slope,-0.5083560982382299,300,CI -2.1568..1.1401; R2 increment 0.0033; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_mshi_L70,slope,-0.6160859802414631,750,CI -2.0234..0.7912; R2 increment 0.0088; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_mssa_L70,slope,0.2592580130268505,300,CI -0.5421..1.0606; R2 increment 0.0035; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_mssa_L70,slope,0.25566404720143365,780,CI -0.5288..1.0401; R2 increment 0.0013; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_mssa_L70,slope,-0.13898111760729046,300,CI -1.7397..1.4618; R2 increment 0.0003; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_mssa_L70,slope,-0.5737862595884142,750,CI -2.0525..0.9050; R2 increment 0.0072; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_sa_L70,slope,0.3058217163569541,300,CI -0.5354..1.1470; R2 increment 0.0044; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_sa_L70,slope,0.7807620150280942,780,CI -0.0376..1.5991; R2 increment 0.0127; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_sa_L70,slope,-0.17823476119361478,300,CI -1.7734..1.4169; R2 increment 0.0004; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_sa_L70,slope,-0.5434994925786638,750,CI -1.9869..0.8999; R2 increment 0.0063; engines 50
+A6_err_on_pc1_within_cell,FD001,A8_sahi_L70,slope,0.4293000849335613,300,CI -0.4043..1.2629; R2 increment 0.0084; engines 20
+A6_err_on_pc1_within_cell,FD002,A8_sahi_L70,slope,0.40140643323419545,780,CI -0.3722..1.1751; R2 increment 0.0033; engines 52
+A6_err_on_pc1_within_cell,FD003,A8_sahi_L70,slope,-0.13218385217419185,300,CI -1.7455..1.4811; R2 increment 0.0003; engines 20
+A6_err_on_pc1_within_cell,FD004,A8_sahi_L70,slope,-0.32619907822516353,750,CI -1.8321..1.1797; R2 increment 0.0022; engines 50
+A6_err_on_pc1_within_cell,FD001,F_full_basic_hi1,slope,0.45667398743617077,300,CI -0.2644..1.1777; R2 increment 0.0106; engines 20
+A6_err_on_pc1_within_cell,FD002,F_full_basic_hi1,slope,0.11268788909290542,780,CI -0.6723..0.8976; R2 increment 0.0003; engines 52
+A6_err_on_pc1_within_cell,FD003,F_full_basic_hi1,slope,-0.0004344058541359122,300,CI -1.5718..1.5710; R2 increment 0.0000; engines 20
+A6_err_on_pc1_within_cell,FD004,F_full_basic_hi1,slope,-0.7508246685074551,750,CI -2.2100..0.7084; R2 increment 0.0124; engines 50

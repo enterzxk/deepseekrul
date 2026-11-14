@@ -161,6 +161,58 @@ positive (larger PC1, larger error) in every arm; the pooled table's larger
 share of negative cells is a mixing artefact, not evidence that the direction is
 arbitrary.**
 
+**But `|error| ~ PC1` measures heteroscedasticity, not predictive power.** It
+says the error is larger in some sensor regions; it does not say the sensor
+predicts the remaining life. The task asks the second question, so it is
+answered separately below.
+
+## A5: does PC1 explain the label after age and condition?
+
+Within-cell regression of `y_true` on PC1 (cells are 50-cycle bin x regime, so
+age and condition are held fixed by construction), cluster-robust SE over
+engines. `y_true` and PC1 do not depend on the model, so this is computed on
+unique `(subset, unit, cut)` rows rather than once per arm.
+
+| subset | slope | 95% CI | R2 increment | engines |
+|---|---|---|---|---|
+| FD001 | +9.008 | [6.504, 11.511] | 0.473 | 20 |
+| FD002 | +11.188 | [9.194, 13.182] | 0.476 | 52 |
+| FD003 | +9.271 | [4.529, 14.013] | 0.160 | 20 |
+| FD004 | -7.632 | [-9.683, -5.581] | 0.227 | 50 |
+
+**The sensor carries a large incremental signal**: within a fixed age bin and
+regime, PC1 explains 16-48% of the remaining label variance, and one SD of PC1
+moves the label by 7.6-11.2 RUL.
+
+The sign is **not** comparable across subsets: PC1 comes from an SVD whose
+orientation is arbitrary per subset, so a negative slope in FD004 means the
+label runs opposite to that subset's PC1 axis, not that FD004 has opposite
+physics. Only the magnitude and the R2 increment are interpretable across
+subsets.
+
+## A6: does the model's signed error track that signal?
+
+Same within-cell construction, response `err` (signed), one arm at a time:
+36 regressions (9 arms x 4 subsets).
+
+```
+CI excludes zero   0 / 36
+R2 increment       median 0.0044, max 0.0189
+```
+
+**The signed error has no detectable dependence on PC1 within cells.** So the
+model does not convert the available sensor signal into a directional bias; the
+error is heteroscedastic along the sensor axis (A4) but not shifted along it
+(A6).
+
+The 4 statement that survives all three checks:
+
+> After age and condition are held fixed, the sensor state carries a large
+> incremental signal about the label (R2 increment 0.16-0.48), the residual
+> magnitude depends on it (predominantly positive inside every arm), but the
+> signed error does not: no arm shows a detectable slope (0/36). The model's
+> error is spread by sensor state, not biased by it.
+
 ## What is not in these tables
 
 * No test-set numbers: everything is validation.
