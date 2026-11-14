@@ -71,7 +71,9 @@ def build_net(cfg, use_life):
               hi_mono=cfg['hi_mono'], use_pad_mask=cfg['use_pad_mask'],
               use_cycle=cfg['use_cycle'], n_cond=cfg['n_cond'],
               legacy_ms_pad=cfg['legacy_ms_pad'], legacy_ema=cfg['legacy_ema'])
-    return DSPTWithLife(**kw) if use_life else build_dspt(**kw)
+    # both arms use the same head width; the control feeds a constant zero
+    # column so the only difference is whether the column carries information
+    return DSPTWithLife(**kw)
 
 
 def engine_life(frame):
@@ -140,7 +142,7 @@ def run(subset, seed, sigma, device):
     tr_units = train_units_vector(ds['tr'])
     TR, VA = tensors(tr, tr_units), tensors(va)
     HT = torch.from_numpy(tr['hi']).to(dev)
-    net = build_net(cfg, use_life).to(dev)
+    net = build_net(cfg, use_life).to(dev)   # always the same architecture
     nparam = sum(p.numel() for p in net.parameters())
     opt = torch.optim.AdamW(net.parameters(), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=cfg['epochs'], eta_min=1e-5)
@@ -211,6 +213,7 @@ def run(subset, seed, sigma, device):
                    elapsed_s=round(time.time() - t0, 1),
                    n_train_windows=int(len(tr['x'])), n_val_windows=int(len(va['x'])),
                    life_mu=mu, life_sd=sd,
+                   arm=('control_zero_column' if not use_life else 'life_aux'),
                    eps_by_unit={int(k): v for k, v in eps_map.items()} if use_life else {})
     (run_dir / 'metrics.json').write_text(json.dumps(metrics, indent=1))
     import pandas as pd
