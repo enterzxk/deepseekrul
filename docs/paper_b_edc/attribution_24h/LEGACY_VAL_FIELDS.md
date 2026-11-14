@@ -327,3 +327,16 @@ quoted number must say which one produced it.
 
 None. Every ledger `val_eng` reproduces inside 0.002.
 
+## A0 (CycleOnly), recomputed from the A40 prediction files
+
+A0 is not in `paper_b/results/raw`; its predictions are `experiments/hc/HC-C-A0-<subset>-s101-W1/preds.csv` with columns `engine_id, cut, cycle, y_true, y_pred, split`.  Read as a source, not retrained.  `mean_e_MSE_e` is the mean of squared errors per engine -- a share-of-error figure must divide by that, not by `(mean_e RMSE_e)**2`, which differ by Jensen.
+
+| subset | seed | engines | points | engine-mean | pooled | mean_e MSE_e |
+|---|---|---|---|---|---|---|
+| FD001 | s101 | 20 | 100 | 30.098571 | 32.419429 | 1051.019375 |
+| FD002 | s101 | 52 | 260 | 26.287369 | 27.962555 | 781.904507 |
+| FD003 | s101 | 20 | 100 | 39.983376 | 40.583178 | 1646.994375 |
+| FD004 | s101 | 50 | 250 | 37.121827 | 38.026780 | 1446.036000 |
+
+These four values are the engine-mean, so the 30-40 range carried in the A0 row of the ledger is an engine-mean, not a pooled value.  A cross-model comparison against A0 is still a whole-model comparison: `CycleOnly.forward` reads only `cycle/250`, so A0 is pure age, and a difference against it is not a single-sensor decomposition.
+

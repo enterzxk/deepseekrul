@@ -304,6 +304,38 @@ def main():
                 r["tag"], r["subset"], r["seed"], float(r["engine_label_capped"]),
                 float(r["ledger_val_eng"]), float(r["delta_primary_vs_ledger"])))
     md.append("")
+
+    # A0 does not live under paper_b/results/raw: its predictions are the HC
+    # CycleOnly runs on the A40, with a different column schema.  They are read
+    # as a source (no retraining) by recompute_a0.py; this section just reports
+    # what that produced, so the A0 numbers in B-5 have a recomputation behind
+    # them instead of a hand-carried value.
+    a0p = os.path.join(args.out_dir, "A0_RECOMPUTE.csv")
+    if os.path.exists(a0p):
+        with open(a0p, newline="", encoding="utf-8-sig") as f:
+            a0 = list(csv.DictReader(f))
+        if a0:
+            md.append("## A0 (CycleOnly), recomputed from the A40 prediction files\n")
+            md.append("A0 is not in `paper_b/results/raw`; its predictions are "
+                      "`experiments/hc/HC-C-A0-<subset>-s101-W1/preds.csv` with columns "
+                      "`engine_id, cut, cycle, y_true, y_pred, split`.  Read as a "
+                      "source, not retrained.  `mean_e_MSE_e` is the mean of squared "
+                      "errors per engine -- a share-of-error figure must divide by "
+                      "that, not by `(mean_e RMSE_e)**2`, which differ by Jensen.\n")
+            md.append("| subset | seed | engines | points | engine-mean | pooled | mean_e MSE_e |")
+            md.append("|---|---|---|---|---|---|---|")
+            for r in a0:
+                md.append("| %s | %s | %s | %s | %.6f | %.6f | %.6f |" % (
+                    r["subset"], r["seed"], r["n_engines"], r["n_points"],
+                    float(r["engine_label_capped"]), float(r["pooled_label_capped"]),
+                    float(r["mean_e_mse_label_capped"])))
+            md.append("")
+            md.append("These four values are the engine-mean, so the 30-40 range "
+                      "carried in the A0 row of the ledger is an engine-mean, not a "
+                      "pooled value.  A cross-model comparison against A0 is still a "
+                      "whole-model comparison: `CycleOnly.forward` reads only "
+                      "`cycle/250`, so A0 is pure age, and a difference against it is "
+                      "not a single-sensor decomposition.\n")
     with open(os.path.join(args.out_dir, "LEGACY_VAL_FIELDS.md"), "w",
               encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
