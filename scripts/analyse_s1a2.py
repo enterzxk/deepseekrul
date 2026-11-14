@@ -110,7 +110,8 @@ def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
         if matrix is None:
             continue
         per_subset[subset] = {"delta": float(matrix.mean()),
-                              "n_engines": int(matrix.shape[1]), "seeds": seeds}
+                              "n_engines": int(matrix.shape[1]), "seeds": seeds,
+                              "matrix": matrix.tolist()}
         samples.append(bootstrap(matrix, resamples, rng))
     if not samples:
         return None
@@ -135,6 +136,8 @@ def main():
     parser.add_argument("--new-roots", required=True)
     parser.add_argument("--resamples", type=int, default=10000)
     parser.add_argument("--boot-seed", type=int, default=20261114)
+    parser.add_argument("--drop-cell", default=None,
+                        help="influence check only: method/subset/seed, e.g. aidgn/FD003/101")
     parser.add_argument("--json", default=None)
     args = parser.parse_args()
 
@@ -164,6 +167,23 @@ def main():
               f"[{entry['ci9833'][0]:+.4f}, {entry['ci9833'][1]:+.4f}] | "
               f"{entry['engine_weighted']:+.4f} | {entry['direction_negative']}/"
               f"{entry['n_subsets']} |")
+
+    print("\n## Per-subset delta and influence (descriptive; the decision still uses "
+          "every cell)\n")
+    print("| method | FD001 | FD002 | FD003 | FD004 | drop FD003 | drop FD004 |")
+    print("|---|---|---|---|---|---|---|")
+    for method in METHODS:
+        entry = report["results"][method]["primary"] or report["results"][method]["secondary"]
+        if entry is None:
+            print(f"| {method} | pending | | | | | |")
+            continue
+        cells = [f"{entry['per_subset'][s]['delta']:+.3f}"
+                 if s in entry["per_subset"] else "-" for s in SUBSETS]
+        drops = []
+        for drop in ("FD003", "FD004"):
+            rest = [v["delta"] for s, v in entry["per_subset"].items() if s != drop]
+            drops.append(f"{np.mean(rest):+.3f}" if rest else "-")
+        print(f"| {method} | " + " | ".join(cells) + " | " + " | ".join(drops) + " |")
 
     print("\n## V1 - V0 (for the three sham methods this is capacity + information, "
           "not an information effect)\n")
@@ -212,6 +232,35 @@ def main():
               f"direction {dual['direction_negative']}/4")
     else:
         print("pending")
+
+    if args.drop_cell:
+        method, subset, seed = args.drop_cell.split("/")
+        seed = int(seed)
+        entry = report["results"][method]["primary"] or report["results"][method]["secondary"]
+        print(f"\n## Influence check: {args.drop_cell} removed (descriptive only; "
+              f"the decision above still uses every cell)\n")
+        if entry is None:
+            print("pending")
+        else:
+            deltas, emptied = [], []
+            for name, value in entry["per_subset"].items():
+                matrix = np.array(value["matrix"])
+                seeds = value["seeds"]
+                keep = [i for i, s in enumerate(seeds) if not (name == subset and s == seed)]
+                if not keep:
+                    emptied.append(name)
+                    continue
+                deltas.append(float(matrix[keep].mean()))
+            full = entry["delta"]
+            dropped = float(np.mean(deltas)) if deltas else float("nan")
+            print(f"full = {full:+.4f}   without the cell = {dropped:+.4f}   "
+                  f"shift = {dropped - full:+.4f}")
+            if emptied:
+                print(f"note: dropping this cell empties {emptied}; that subset then "
+                      "contributes nothing, which is an artefact of the partial data, "
+                      "not a result")
+            report["influence"] = {"drop_cell": args.drop_cell, "full": full,
+                                   "without": dropped, "shift": dropped - full}
 
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
