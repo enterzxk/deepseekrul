@@ -2000,3 +2000,59 @@ v11 之前只记作历史版本，不再作准入基线。
 
 **证据**：tmh `57a4570` / `21bc2a2` 及 `cal_determinism.py` 两模式对照；经理 2026-11-13 指令；
 牢莫 `c9bae68`（§4.3.1 迭代解）；台账 `402aac7`。
+
+## PB-AGE-20261113 · 当前消融与独立年龄模块范围（Codex L2）
+
+用户要求核对当前消融、结构化HI是否实现，并改进为独立周期模块。
+独立高强度Codex只读审计确认：年龄信息有效，现有Fourier未优于raw；
+沿用既有G2收口，不重命名为新贡献。结构化HI实物48正式run已完成，
+D-G1四子集失败，E只有规格，不再调权重/加模块救当前D/E。
+
+L2选B：仅实现隔离未训练的raw年龄+有界状态交互原型、文档及CPUtoy
+软件验收。不改冻结DSPT，不启动真实训练或官方TEST。反对证据为
+Time2Vec/FiLM/TFT已有相近时间表示和条件门控，4352参数还需容量控制；
+目前不宣称创新或收益。12项CPUfloat64契约真实退出0，独立静态验收PASS。
+科学有效性NOT_EVALUATED。若未来不优于同年龄raw/FiLM及容量控制，则
+仅保留工程封装。完整decision/evidence/risks/falsification：
+docs/paper_b_cycle_review_20261113/REVIEW_DECISION.json。
+
+## D045 · 2026-11-14 · L2 终审：V0N 沿 3090 已核旧路径发射，撤回 V0C_R2（L2）
+
+**触发**：军师对发射服务器的现场源码核对，推翻了他自己上一轮「需补 cycle-on 12 格」的建议。
+
+**现场事实**：3090 `~/rulb` 的 `train.py` / `metrics.py` / `run_grid.py` 三个 SHA256 与 `09076b81` 逐字节一致，
+即实际发射路径是 **BF16 autocast + pooled 选轮**，不是本地新版 `train_d.py` 的 engine-mean 选轮。
+本地新版与发射服务器不是同一份代码，上一轮把本地路径当成 3090 实际路径，是错的。
+
+```
+train    = 14eb3eb972359bb1b8c48193b7619fccdc7ea3e29aedb5e5f6799d70efbeab42
+metrics  = c1c4bb0ceea2c3191bcf9467cbe959d8858611ef4a011241b2fb53ac6423d1c7
+run_grid = e999be4e96be894595772ddc9c691c2d70957df305bd4e9ea085e68fa3074bdd
+```
+
+**裁定**：
+1. 母体保留 `F_full_basic_hi1`（`hi_mono=correct`）。
+2. `V0N` 沿上述已核旧路径发射，`pooled` 选轮；最终 **engine-mean 从 `val_pred.csv` 重算**，不用台账字段。
+3. **只补 V0N 12 格**。不新增 `V0C_R2`，不重跑 A8 96。
+4. 新 run 必须记 `selection_metric=val_pooled_rmse`、`report_metric=val_engine_mean_rmse`、
+   `precision=bf16-autocast`、torch/CUDA 环境与源码 hash；**历史 precision 仍写「未记录」**，
+   当前 hash 不能冒充历史执行指纹。
+5. 不同步本地新版 `train.py` / `metrics.py` 覆盖该发射目录。
+
+**撤回记录**：军师先前基于本地新版提出的「补 cycle-on 12 格（V0C_R2）」建议**撤回**，
+理由是被现场源码哈希反证。`RUN_QUEUE.csv` 里 12 行 `V0C_R2` 从 `proposed` 撤下并留撤回理由。
+
+**归档扫描范围**（结论只限这些已核归档，不说「全历史从未运行」）：
+本地 301 元数据对象 / 20 个 grid；3090 `~/rulb/paper_b/results` 530、`experiments` 395、
+`~/deepseek-rul` 2844、`~/rulb/results` 28；A40 只读 `~/deepseek-rul` 70。
+**强骨干 cycle-off 与 variant `V0N` 均 0 命中。**
+
+**为什么这条重要**：`V0N` 的配对缺口原本是「选轮口径 + 精度 + 代码漂移」三项，看起来要 24 格才能消掉。
+现场核对后发现三项里有两项在**发射服务器那一侧是固定的**，所以 12 格就够。
+**先核实现场，再决定补多少格**——这条替代了「补一轮更大的实验来消掉未知」。
+
+**证据**：军师 L2 终审 JSON（`decision=revise`，
+`selected_option=freeze_actual_3090_legacy_pooled_path_supplement_V0N_12_only`）；
+`docs/paper_b_edc/attribution_24h/RUN_QUEUE.csv` 24 行；`RUN_QUEUE_V0N.md` §2–§5。
+
+---
