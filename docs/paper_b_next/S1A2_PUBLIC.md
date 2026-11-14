@@ -179,6 +179,27 @@ TEST），**先冻结再跑**，且只能作敏感性，不能回溯顶替主对
 收益来自 V1 提升、sham 劣化，还是两者都有。`v1/aidgn/FD003/s101`（训练正常但验证 30.17 对
 V0 10.32）按同一标准保留，属于待解释的泛化失败，不单列为第二个实现缺陷。
 
+### 1.10 两起环境事故（都发生在 `two_phase` 上，均未进主结果）
+
+**① 3090 的 `run_cycle.py` 是旧版，缺 `two_phase` 的预训练重放。** 触发方式：`two_phase`
+shard 2 在 3090 上启动后，日志没有 `PRETRAIN` 行，直接进主训练的 `ep001`。比对两个版本的
+`md5`：只有 `run_cycle.py` 不同（3090 `46e46540…`、a40 `29e96df7…`），其余五个文件
+（`run_grid_cycle.py`、`cycle.py`、`adapters.py`、`unified.py`、`data.py`）逐字节相同。
+逐行 diff 共 66 行差异，**全部落在 `two_phase` 分支与 `pretrain_two_phase()` 函数体内**：
+旧版跳过预训练、直接冻结一个随机初始化的编码器。
+
+影响面：`aidgn`/`ffve`/`fcstgnn`/`dual_mixer` 的代码路径两版完全相同，因此 **3090 上的
+48 个首批格不受影响**；受影响的只有 `two_phase`。处理：把 a40 的版本同步到 3090
+（`md5` 已核对一致），删掉唯一一个由错误代码写出的格 `v1/two_phase/FD001/s303`
+（技术缺陷：未做预训练重放，非观测值），重跑 shard 2，日志恢复 `PRETRAIN ep=1 loss=90.79`。
+
+**② 3090 的 `ncmapss` 环境缺 `seaborn`。** `two_phase` 的 upstream 适配器在构建网络时
+`import seaborn`，a40 环境有、3090 没有，导致 shard 2 的前 8 格全部
+`ModuleNotFoundError: No module named 'seaborn'`。已装 `seaborn 0.13.2`；失败格没有写出
+`metrics.json`，目录清空后重跑。
+
+两起事故都发生在 `two_phase` 的 24 格上，主结果表里没有任何一格来自错误版本。
+
 ---
 
 ## 2. 部分结果（72 格齐；pending: `two_phase`）
