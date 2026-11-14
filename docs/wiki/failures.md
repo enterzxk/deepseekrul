@@ -144,3 +144,6 @@ $h_\nu(z)=\int[a(x)+(m(x)-\mu(z))^2]p_\nu(x|z)dx$ 的可部署后验积分算法
 
 
 2026-11-14 PB-NC-response闭环：原common贡献判FAILED，504训练/24年龄/全504checkpoint真实重载，primary/age/sensor/attribution/mechanism全FAIL。证据见docs/paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md及experiments/paper_b_ncmapss_response_20261113；L2记录PB-NC-POSTFAIL-20261114。D1/D2是失败后训练侧探索，非RUL增益/HI识别；旧data_diagnostics_v1逐sensor错名已撤回，数字不变的schema纠正见data_diagnostics_v2_schema_corrected。
+
+
+2026-11-14 D3闭环：48真实inner_screen训练、12四臂配对、48cp全重载PASS且bitwise0差，预设筛门NOT_MET，只有DS02合格；B1停止，不改门/只选DS02/补轮。原888加48共936，2232点预测与336sigma另计。D3独立表和代码见docs/paper_b_ncmapss_response_20261113/D3_INNER_SCREEN_RESULT.md及experiments/paper_b_ncmapss_conditioning_20261114；全部producer进程已结束，无新GPU任务。原common及函数范数候选均关闭贡献主张，尚无有效新模块。独立数据复核由functional_method_review只读进行，source静态已PASS，未冒称已独立重复全部梯度训练。

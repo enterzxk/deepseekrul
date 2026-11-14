@@ -1968,3 +1968,9 @@ V3实际source/native/shape/FP32grad/预处理合同全部PASS，含25%margin预
 
 
 2026-11-14 PB-NC后续：D3已launch，source7bb98787/executiond5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224，48inner-only经典预处理筛查，不混入888outer表。source五文件连checks冻结，PREFLIGHT16PASS0optimizer；最多8共享GPU小时。新增两fresh-context数学/查新代理拒绝‘函数范数白化/解码差’作为新贡献：精确FE/KRR等价且background歧义未解，未写代码/未起GPU，见FUNCTIONAL_CONTRAST_REJECTION.md。H-CDE书目按出版社更正为2027卷期/2026公开记录，旧简写RESS2026仅指作者记录年。
+
+
+2026-11-14 D3闭环：48真实inner_screen训练、12四臂配对、48cp全重载PASS且bitwise0差，预设筛门NOT_MET，只有DS02合格；B1停止，不改门/只选DS02/补轮。原888加48共936，2232点预测与336sigma另计。D3独立表和代码见docs/paper_b_ncmapss_response_20261113/D3_INNER_SCREEN_RESULT.md及experiments/paper_b_ncmapss_conditioning_20261114；全部producer进程已结束，无新GPU任务。原common及函数范数候选均关闭贡献主张，尚无有效新模块。独立数据复核由functional_method_review只读进行，source静态已PASS，未冒称已独立重复全部梯度训练。
+
+
+2026-11-14 D3独立只读数据复核完成PASS：独立13Git源码/542封印文件/48组CPU初末权重与AdamW/50400步/12配对组/48真实CSV raw及cap125全部指标，最大差0，预设门NOT_MET。独立审查未forward/未HDF5重建；root全48实际forward重载另已PASS bitwise0。先前audit_training_integrity的中途审查因quota未完成，未假称其通过；其误读旧sensor清单已由真实schema旁注纠正，最终数据review使用新独立会话。任务阶段可从D3_RESULT恢复，无运行中的本任务producer；新贡献模块仍未成立，MOO/Concept统一NC重训仍PARTIAL。

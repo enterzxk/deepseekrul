@@ -1,0 +1,18 @@
+{
+  "status": "PASS_ACTUAL_TRAINING_AUDIT_AND_REPLAY",
+  "scientific_gate": "NOT_MET",
+  "cells": 48,
+  "pairing_groups": 12,
+  "checkpoints_replayed": 48,
+  "all_bitwise_equal": true,
+  "maximum_difference": 0.0,
+  "optimizer_updates_during_audit": 0,
+  "official_TEST_read": false,
+  "outer_evaluated": false,
+  "audit_source_sha256": "1c02dd00c87386ea4969afb62c720f46887a6a48dbb10bff0e9febb618019cbb",
+  "audit_json_sha256": "e06c1f970dc6a98e0e6ebe290c0295aa03df2a32c6e3f34f2df6ca149bee9cdd",
+  "source_commit": "7bb98787459c3bf2b50fc64b84c5ec720fde243b",
+  "execution_sha256": "d5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced",
+  "independent_static_review": "explicit PASS message from audit_secondary_sources; turn later ended with quota error, not an additional runtime review",
+  "independent_real_data_review": "PASS; functional_method_review independently checked source/seals/all48 CPU weights/optimizer/50400 steps/direct CSV metrics/gate, no forward or HDF5 processor rebuild"
+}

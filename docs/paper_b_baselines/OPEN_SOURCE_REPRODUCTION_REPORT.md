@@ -5,3 +5,6 @@ C-MAPSS原任务已在独立分支完成并提交，详见[固定提交d7bd9c1�
 新N-CMAPSS DS02/05/06/07扩展见 [2026-11-14完整报告](../paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md)。本轮888次真实训练、888checkpoint全重载与2184点预测向量逐位一致；完整AIDGN/BayesRUL-HNN统一开发迁移执行SUCCESS、原作者数值复现PARTIAL；共同支撑谱加权模块五项门全FAIL，贡献判FAILED。MOO/Concept/H-CDE为PARTIAL，未虚构其新NC结果。官方TEST不参与本轮。
 
 实验代码、真实预测、指标、配置哈希、训练时间、参数量、源commit、封印及逐seedcheckpoint位置均列于独立Paper B实验目录与完整报告。Paper A和冻结DSPT未修改。
+
+
+2026-11-14追加：D3经典预处理48次inner-only筛查及全cp重载已完成，筛门NOT_MET；总实际训练936次、全936cp与2232点预测向量均逐位重现，sigma336另计。D3不混入外层表，详情见[独立内层结果](../paper_b_ncmapss_response_20261113/D3_INNER_SCREEN_RESULT.md)。当前没有通过收益与创新性门的新模块。

@@ -96,6 +96,11 @@ D1完成120个训练机内部crossfit，残差std/rawstd中位仅约1.3–1.5%�
 
 D2完成1120组零更新、固定训练query与四block的梯度审计。common末态共享response_body的weighted aux/task为.040/.052/.322/.233；没有支持aux>10的支配解释。完整mode/group/block值保留，不能把选定eval梯度当整个随机训练过程的因果解释。
 
-下一轮只批准另行预注册的48次inner-only经典预处理×aux开关筛查，尚不认可新模块或创新性；其val分数不得混入上方outer表。H-CDE等最近邻已覆盖慢快状态与退化驱动。任何后续可学习模块须超越经典预处理强对照、通过机制门并另行审查。官方TEST在旧工作中曾开封，本次虽不访问，也不能叫全新盲测。
+另行预注册的48次inner-only经典预处理×aux开关筛查也已完成并全量重载PASS；只有DS02达到预设收益，其他三子集恶化，筛门NOT_MET，停止该B1推进，不作为新模块或创新性；单独结果见D3_INNER_SCREEN_RESULT.md，其val分数不得混入上方outer表。H-CDE等最近邻已覆盖慢快状态与退化驱动。任何后续可学习模块须超越经典预处理强对照、通过机制门并另行审查。官方TEST在旧工作中曾开封，本次虽不访问，也不能叫全新盲测。
 
 复跑入口、源码检查和原始artifact SHA见实验目录README；阶段决定见 POST_FAILURE_DECISION.md。
+
+
+## 2026-11-14 完整内层筛查追加
+
+主矩阵888次之外，D3另48次inner探索已完成、48cp/48点预测全逐位重载0差。因此本轮实际总计936次训练、936cp重载、2232个点预测向量，Bayes336个sigma另计。主对照表仍只使用原定义外层成绩；D3独立列于D3_INNER_SCREEN_RESULT.md。classic residual+scale筛查门FAILED，仅DS02有益，不能据此宣称新模块成立。

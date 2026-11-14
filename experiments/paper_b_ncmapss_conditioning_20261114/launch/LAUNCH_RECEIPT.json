@@ -1,0 +1,26 @@
+{
+  "pid": 3787224,
+  "source_commit": "7bb98787459c3bf2b50fc64b84c5ec720fde243b",
+  "execution_sha256": "d5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced",
+  "runtime": "/media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/runtime_7bb98787",
+  "job": "/media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787",
+  "archive_sha256": "465399d49f1ffee48b6877bee42d8d5095ad4de0f114f7e70353f5f16bfa48e1",
+  "command": [
+    "/home/yndx/miniconda3/envs/a40_env/bin/python",
+    "-B",
+    "-m",
+    "paper_b.ncmapss_conditioning_20261114.run",
+    "--cache",
+    "/media/sangfor/vdb/user/zxk/ncmapss_response_20261113/data",
+    "--output",
+    "/media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787",
+    "--preflight",
+    "/media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/PREFLIGHT_V1.json",
+    "--device",
+    "cuda:0"
+  ],
+  "started_utc": "2026-11-14T05:02:06.425020+00:00",
+  "training_runs": 48,
+  "phase": "inner_screen_only_not_new_module_evidence",
+  "shared_gpu_wall_budget_hours": 8
+}

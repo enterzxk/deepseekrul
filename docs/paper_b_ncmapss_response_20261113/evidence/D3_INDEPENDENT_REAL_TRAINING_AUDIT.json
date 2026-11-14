@@ -1,0 +1,33 @@
+{
+  "status": "PASS_INDEPENDENT_READONLY_EVIDENCE_REVIEW",
+  "scientific_gate": "NOT_MET",
+  "agent": "functional_method_review",
+  "called_producer_audit_or_replay": false,
+  "model_forward_or_GPU": false,
+  "optimizer_updates": 0,
+  "official_TEST_read": false,
+  "source_git_blobs_verified": 13,
+  "globally_sealed_files_verified": 542,
+  "cells": 48,
+  "pairing_groups": 12,
+  "cpu_initial_final_checkpoint_pairs": 48,
+  "step_trace_rows": 50400,
+  "all_epochs": 200,
+  "direct_csv_metrics_recomputed": "48 CSV x raw/cap125 x RMSE/MAE/NASA_sum/NASA_mean/bias/n",
+  "maximum_metric_difference": 0.0,
+  "same_qualifying_subsets_both_aux": [
+    "DS02"
+  ],
+  "all_subset_aux_no_worse_than_2pct": false,
+  "independent_exit_code": 0,
+  "command": "ssh -o BatchMode=yes a40 /home/yndx/miniconda3/envs/a40_env/bin/python -; independent hashlib/csv/NumPy/CPU-torch from stdin",
+  "limitations": [
+    "No independent forward or from-zero retraining in this review",
+    "No raw HDF5 rebuilding or independent processor/scaler reconstruction in this review",
+    "CSV truth mapping and processor/scaler reconstruction are covered by root actual full tool, not falsely attributed to this reviewer",
+    "One inner engine per subset, three training seeds; exploratory not outer confirmation"
+  ],
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "high",
+  "actual_runtime_identifier": "not exposed by tool; request metadata only"
+}
