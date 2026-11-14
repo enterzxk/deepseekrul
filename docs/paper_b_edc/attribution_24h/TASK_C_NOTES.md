@@ -190,6 +190,32 @@ label runs opposite to that subset's PC1 axis, not that FD004 has opposite
 physics. Only the magnitude and the R2 increment are interpretable across
 subsets.
 
+## A5c: is that signal just engine identity?
+
+Inside one (age bin x regime) cell the spread of `y_true` is mostly lifetime: at
+cycle 100 a long-lived engine still has 150 RUL left, a short-lived one has 30.
+Sensor baselines differ by engine too, so PC1 could be a proxy for *which engine
+this is* rather than for *the state right now*. Adding engine fixed effects
+keeps only the within-engine variation of PC1.
+
+| subset | R2 increment, cell FE only | R2 increment, cell + engine FE | slope with engine FE |
+|---|---|---|---|
+| FD001 | 0.473 | 0.496 | +6.87 [+5.10, +8.64] |
+| FD002 | 0.476 | 0.409 | +6.25 [+5.42, +7.09] |
+| FD003 | 0.160 | 0.188 | +5.03 [+2.58, +7.49] |
+| FD004 | 0.227 | 0.194 | -3.92 [-5.15, -2.70] |
+
+**The signal does not collapse.** With engine identity held fixed, PC1 still
+explains 19-50% of the remaining label variance, so it is information about the
+current degradation state, not a proxy for engine identity. (The two R2 columns
+have different denominators - residual variance after cell FE versus after cell
+plus engine FE - so the comparison is indicative; the substantive number is the
+right-hand column.)
+
+That matters for what comes next: because the information is state, not
+identity, "the model does not use the sensor fully" is a claim that survives,
+and individual self-calibration is not the only way to reach it.
+
 ## A6: does the model's signed error track that signal?
 
 Same within-cell construction, response `err` (signed), one arm at a time:
@@ -207,11 +233,13 @@ error is heteroscedastic along the sensor axis (A4) but not shifted along it
 
 The 4 statement that survives all three checks:
 
-> After age and condition are held fixed, the sensor state carries a large
-> incremental signal about the label (R2 increment 0.16-0.48), the residual
+> After age, condition **and engine identity** are held fixed, the sensor state
+> still carries a large incremental signal about the label (R2 increment
+> 0.19-0.50, so it is degradation state and not engine identity), the residual
 > magnitude depends on it (predominantly positive inside every arm), but the
 > signed error does not: no arm shows a detectable slope (0/36). The model's
-> error is spread by sensor state, not biased by it.
+> error is spread by sensor state, not biased by it - the mean is used, the
+> conditional variance is not.
 
 ## What is not in these tables
 

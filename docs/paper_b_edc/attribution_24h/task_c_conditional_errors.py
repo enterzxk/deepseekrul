@@ -347,6 +347,53 @@ def main():
                 "CI %.4f..%.4f; R2 increment %.4f; engines %d"
                 % (res["lo"], res["hi"], res["r2_increment"], res["units"]))
 
+    # A5 with engine fixed effects.  Inside one (age bin x regime) cell the
+    # spread of y_true is mostly lifetime: at cycle 100 a long-lived engine still
+    # has 150 RUL left, a short-lived one has 30.  Sensor baselines differ by
+    # engine too, so PC1 can be a proxy for engine identity rather than for the
+    # current degradation state.  Adding engine dummies keeps only the
+    # within-engine variation of PC1, which is the part that can mean "the state
+    # right now" rather than "which engine this is".
+    def two_way_slope(d, ycol, xcol):
+        d = d.reset_index(drop=True)
+        cells = pd.get_dummies(d["cell"], drop_first=True).to_numpy(np.float64)
+        engs = pd.get_dummies(d["unit"], drop_first=True).to_numpy(np.float64)
+        y = d[ycol].to_numpy(np.float64)
+        x = d[xcol].to_numpy(np.float64)
+        base = np.column_stack([np.ones(len(d)), cells, engs])
+        b0, *_ = np.linalg.lstsq(base, y, rcond=None)
+        rss0 = float(((y - base @ b0) ** 2).sum())
+        full = np.column_stack([base, x])
+        b1, *_ = np.linalg.lstsq(full, y, rcond=None)
+        rss1 = float(((y - full @ b1) ** 2).sum())
+        slope = float(b1[-1])
+        # cluster-robust SE by engine on the augmented model
+        resid = y - full @ b1
+        xtx_inv = np.linalg.pinv(full.T @ full)
+        meat = np.zeros((full.shape[1], full.shape[1]))
+        for u in d["unit"].unique():
+            m = (d["unit"] == u).to_numpy()
+            s = full[m].T @ resid[m]
+            meat += np.outer(s, s)
+        cov = xtx_inv @ meat @ xtx_inv
+        se = float(math.sqrt(max(cov[-1, -1], 0.0)))
+        n_units = int(d["unit"].nunique())
+        half = t975(n_units - 1) * se if n_units > 1 else float("nan")
+        r2_inc = (rss0 - rss1) / rss0 if rss0 > 0 else float("nan")
+        return dict(slope=slope, lo=slope - half, hi=slope + half,
+                    r2_increment=r2_inc, n=len(d), units=n_units)
+
+    for s in subsets:
+        d = uniq[uniq["subset"] == s]
+        res = two_way_slope(d, "y_true", "pc1")
+        add("A5c_ytrue_on_pc1_with_engine_fe", s, "all cells",
+            "slope", res["slope"], res["n"],
+            "CI %.4f..%.4f; R2 increment %.4f; engines %d"
+            % (res["lo"], res["hi"], res["r2_increment"], res["units"]))
+        add("A5c_ytrue_on_pc1_with_engine_fe", s, "all cells",
+            "r2_increment", res["r2_increment"], res["n"],
+            "within cell + engine fixed effects")
+
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["analysis", "subset", "stratum", "metric",
                                           "value", "n", "note"])

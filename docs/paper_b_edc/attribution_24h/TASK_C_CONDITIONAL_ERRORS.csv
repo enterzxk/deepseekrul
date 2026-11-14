@@ -269,3 +269,11 @@ A6_err_on_pc1_within_cell,FD001,F_full_basic_hi1,slope,0.45667398743617077,300,C
 A6_err_on_pc1_within_cell,FD002,F_full_basic_hi1,slope,0.11268788909290542,780,CI -0.6723..0.8976; R2 increment 0.0003; engines 52
 A6_err_on_pc1_within_cell,FD003,F_full_basic_hi1,slope,-0.0004344058541359122,300,CI -1.5718..1.5710; R2 increment 0.0000; engines 20
 A6_err_on_pc1_within_cell,FD004,F_full_basic_hi1,slope,-0.7508246685074551,750,CI -2.2100..0.7084; R2 increment 0.0124; engines 50
+A5c_ytrue_on_pc1_with_engine_fe,FD001,all cells,slope,6.869499030357428,100,CI 5.0999..8.6391; R2 increment 0.4964; engines 20
+A5c_ytrue_on_pc1_with_engine_fe,FD001,all cells,r2_increment,0.49644977642185156,100,within cell + engine fixed effects
+A5c_ytrue_on_pc1_with_engine_fe,FD002,all cells,slope,6.252416000422668,260,CI 5.4193..7.0855; R2 increment 0.4093; engines 52
+A5c_ytrue_on_pc1_with_engine_fe,FD002,all cells,r2_increment,0.40930274466507377,260,within cell + engine fixed effects
+A5c_ytrue_on_pc1_with_engine_fe,FD003,all cells,slope,5.033814333065151,100,CI 2.5768..7.4908; R2 increment 0.1884; engines 20
+A5c_ytrue_on_pc1_with_engine_fe,FD003,all cells,r2_increment,0.18835408565259515,100,within cell + engine fixed effects
+A5c_ytrue_on_pc1_with_engine_fe,FD004,all cells,slope,-3.9229478991354725,250,CI -5.1467..-2.6992; R2 increment 0.1942; engines 50
+A5c_ytrue_on_pc1_with_engine_fe,FD004,all cells,r2_increment,0.194150687933005,250,within cell + engine fixed effects
