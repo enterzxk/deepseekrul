@@ -38,6 +38,7 @@ SUBSETS = ("FD001", "FD002", "FD003", "FD004")
 SEEDS = (101, 202, 303)
 ENGINES = {"FD001": 20, "FD002": 52, "FD003": 20, "FD004": 50}
 CUTS = 5
+EXPECTED_CELLS = (len(METHODS) + len(SHAM)) * len(SUBSETS) * len(SEEDS)
 BONFERRONI = 100.0 * (1.0 - 0.05 / 3.0)
 
 
@@ -72,7 +73,12 @@ def locate(roots, arm, method, subset, seed):
                 return None, "unreadable config.json"
             if arm:
                 recorded_arm = recorded.get("arm", recorded.get("cycle_arm"))
-                if recorded_arm != arm:
+                if recorded_arm is None:
+                    return None, "config.arm missing"
+                value = str(recorded_arm).strip().lower()
+                if value not in ("v1", "sham"):
+                    return None, f"config.arm={recorded_arm!r} not in v1/sham"
+                if value != arm:
                     return None, f"config.arm={recorded_arm!r}!={arm!r}"
             name = recorded.get("method", recorded.get("model"))
             if name != method:
@@ -185,6 +191,23 @@ def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
             "per_subset": per_subset}
 
 
+def count_valid(new_roots):
+    """How many of the 96 cells are terminal and valid right now.
+
+    A cell that is still training has its directory but no metrics.json, so it
+    fails the validity check. That is correct for the statistics, but such a
+    cell is *running*, not *failed*, and must not enter a failure list.
+    """
+    valid = 0
+    for arm, methods in (("v1", METHODS), ("sham", SHAM)):
+        for method in methods:
+            for subset in SUBSETS:
+                for seed in SEEDS:
+                    path, _ = locate(new_roots, arm, method, subset, seed)
+                    valid += path is not None
+    return valid
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--v0-root", required=True)
@@ -193,12 +216,26 @@ def main():
     parser.add_argument("--boot-seed", type=int, default=20261114)
     parser.add_argument("--drop-cell", default=None,
                         help="influence check only: method/subset/seed, e.g. aidgn/FD003/101")
+    parser.add_argument("--partial", action="store_true",
+                        help="allow a partial report; without it the script refuses to "
+                             "emit a failure list while any of the 96 cells is missing")
     parser.add_argument("--json", default=None)
     args = parser.parse_args()
 
     v0_roots = [Path(p) for p in args.v0_root.split(",") if p]
     new_roots = [Path(p) for p in args.new_roots.split(",") if p]
     rng = np.random.default_rng(args.boot_seed)
+
+    valid = count_valid(new_roots)
+    print(f"## Cell inventory\n\n{valid}/{EXPECTED_CELLS} cells terminal and valid")
+    if valid < EXPECTED_CELLS:
+        print(f"**PARTIAL REPORT** — {EXPECTED_CELLS - valid} cells are not terminal yet. "
+              f"Missing cells are either still running or genuinely absent; they are NOT "
+              f"failures until the grid is idle. Confirm no live runner "
+              f"(`pgrep -f run_grid_cycle` = 0) before treating any of them as failed.")
+        if not args.partial:
+            print("Refusing to emit a failure list from a partial grid. Re-run with "
+                  "--partial for a clearly-labelled intermediate report.")
 
     report = {"v0_roots": [str(p) for p in v0_roots],
               "new_roots": [str(p) for p in new_roots],
