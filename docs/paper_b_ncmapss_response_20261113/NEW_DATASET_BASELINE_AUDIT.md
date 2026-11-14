@@ -28,3 +28,6 @@ Fc及duration不作默认输入；cycle仅作为公开年龄。预测时刻统�
 验证、训练侧预处理、共同RUL与NASA定义、航班末预测规则、窗口范围和搜索预算。
 尤其Bayes完整Inception固定18输入、输出loc/scale均softplus，不能偷偷改线性loc或
 用简化CNN；年龄接入需明确外部适配，不得称逐字节原模型复现。
+
+
+2026-11-14执行更新：完整AIDGN与完整BayesRUL-HNN各192统一训练已完成（120inner/72outer），全source/scaler/optimizer/选窗审计和全cp重载PASS；统一执行SUCCESS，作者原协议数值复现仍PARTIAL。MOO/Concept/H-CDE未进入本次RUL数值主表。新完整报告见OPEN_SOURCE_REPRODUCTION_REPORT.md，不能继续引用本页早先“未运行”的时间快照为当前状态。

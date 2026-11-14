@@ -100,3 +100,9 @@
 
 
 2026-11-14 Bayes完整Inception-HNN统一迁移：独立static审计PASS，真实PREFLIGHT_V1 source3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af PASS、0optimizer，5窗口B64/原始state-output-NLL精确等价、双head及current-age有效梯度、train-only变更隔离均实际通过，峰值221MiB，含25%margin预计17.535h<24h。允许按预注册120inner+72outer启动；原作者协议仍PARTIAL，来源与schema纠正不改变504/AIDGN。真实依赖torchinfo1.8.0隔离_deps，未改系统环境。
+
+
+2026-11-14 PB-NC-response闭环：原common贡献判FAILED，504训练/24年龄/全504checkpoint真实重载，primary/age/sensor/attribution/mechanism全FAIL。证据见docs/paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md及experiments/paper_b_ncmapss_response_20261113；L2记录PB-NC-POSTFAIL-20261114。D1/D2是失败后训练侧探索，非RUL增益/HI识别；旧data_diagnostics_v1逐sensor错名已撤回，数字不变的schema纠正见data_diagnostics_v2_schema_corrected。
+
+
+2026-11-14 888次开发训练闭环完成：module504原科学门FAILED；完整AIDGN192和Bayes192统一迁移均执行SUCCESS，native数值PARTIAL。全888cp/2184点预测、另336sigma逐位重载0差。独立报告核60数字格及7707归档文件SHA，PASS；公开Git只含代码/预测/配置/指标/审计，大cp仍在私有a40并全SHA留存。master报告docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md和NC完整报告已落；D3仍仅inner探索另表。

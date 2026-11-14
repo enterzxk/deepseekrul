@@ -1,0 +1,571 @@
+{
+  "status": "PASS_DIAGNOSTIC_ONLY",
+  "source_result_status": "PASS",
+  "rows": 1120,
+  "final_profiles": [
+    {
+      "mode": "common",
+      "group": "background",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.025399302924390244,
+          "median_cosine": 0.006721591634691771
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.032163156146402055,
+          "median_cosine": -0.1777721127734311
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.17874800399163207,
+          "median_cosine": 0.47266599938431714
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.07605293322404336,
+          "median_cosine": 0.04954403403373278
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 1
+    },
+    {
+      "mode": "common",
+      "group": "basis",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.021662883271488333,
+          "median_cosine": -0.03681493542506757
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.029304224227650045,
+          "median_cosine": -0.23506420552559643
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.15078752066602413,
+          "median_cosine": 0.5051152134617428
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.06758546776975705,
+          "median_cosine": 0.04806569042016436
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "common",
+      "group": "raw_encoder",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "common",
+      "group": "response_body",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.04004656282597639,
+          "median_cosine": -0.016676785723356305
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.0520184793680949,
+          "median_cosine": 0.13165207994147227
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.32152942265815443,
+          "median_cosine": 0.12534924459616825
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.23252731467806742,
+          "median_cosine": -0.0008253106543443349
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "delta",
+      "group": "background",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.036673107879514937,
+          "median_cosine": -0.10532584993353264
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.04524443724102184,
+          "median_cosine": 0.028625726159276534
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.09419837883891874,
+          "median_cosine": 0.08580032075830551
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.08836700997217344,
+          "median_cosine": 0.06612493351656679
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 1
+    },
+    {
+      "mode": "delta",
+      "group": "basis",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.03051484391009196,
+          "median_cosine": -0.08693252840824198
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.039645546549163885,
+          "median_cosine": 0.0059507195357112195
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.08173930491649814,
+          "median_cosine": 0.15856744242173718
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.07615563518777484,
+          "median_cosine": 0.0658758901178686
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 1
+    },
+    {
+      "mode": "delta",
+      "group": "raw_encoder",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "delta",
+      "group": "response_body",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.04502513476831489,
+          "median_cosine": -0.1293778467247332
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.06491903477723654,
+          "median_cosine": -0.4019672317170617
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.11897533694974911,
+          "median_cosine": 0.15589666655191545
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.19473153242564828,
+          "median_cosine": -0.16963682819317705
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 3
+    },
+    {
+      "mode": "fe",
+      "group": "background",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.01628545433235496,
+          "median_cosine": -0.1600553662676279
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.021531969774117518,
+          "median_cosine": -0.08088919691308523
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.024038787558687658,
+          "median_cosine": 0.19538054198976174
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.14376232000163572,
+          "median_cosine": 0.08130987900036256
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "fe",
+      "group": "basis",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.014562598343980587,
+          "median_cosine": -0.11565392541338908
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.01903983585739414,
+          "median_cosine": -0.14540008791877418
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.02307896601347737,
+          "median_cosine": 0.23176307035779165
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.11703541446361108,
+          "median_cosine": 0.06551615140921202
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "fe",
+      "group": "raw_encoder",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "fe",
+      "group": "response_body",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.02305044534029899,
+          "median_cosine": -0.06485831206758771
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.04225784722056243,
+          "median_cosine": 0.08359581793886976
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.042452411689995334,
+          "median_cosine": 0.1064720337192149
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.32108404684594233,
+          "median_cosine": 0.5490745782022135
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 1
+    },
+    {
+      "mode": "raw",
+      "group": "background",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "raw",
+      "group": "basis",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "raw",
+      "group": "raw_encoder",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.009921721960341244,
+          "median_cosine": -0.126902533502736
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.006596759814838869,
+          "median_cosine": 0.018255335370993678
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.004752660348855478,
+          "median_cosine": -0.04879262518801827
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.0036553222522846345,
+          "median_cosine": -0.09164472595961866
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 3
+    },
+    {
+      "mode": "raw",
+      "group": "response_body",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": null,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "supported",
+      "group": "background",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.030161345117169926,
+          "median_cosine": -0.0008198024362066781
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.02760008451451785,
+          "median_cosine": -0.1683166718227717
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.031693408074175256,
+          "median_cosine": 0.21950444618858878
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.08844166872414558,
+          "median_cosine": 0.13476830108525634
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "supported",
+      "group": "basis",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.02515003682321198,
+          "median_cosine": -0.04945571264795802
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.025356299968853274,
+          "median_cosine": -0.21888611444708111
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.029304736734901405,
+          "median_cosine": 0.2717983269804993
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.07444984411560046,
+          "median_cosine": 0.13836393231789926
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 2
+    },
+    {
+      "mode": "supported",
+      "group": "raw_encoder",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.0,
+          "median_cosine": null
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    },
+    {
+      "mode": "supported",
+      "group": "response_body",
+      "subsets": [
+        {
+          "subset": "DS02",
+          "median_weighted_aux_task_ratio": 0.04820118016444753,
+          "median_cosine": 0.14555771597649475
+        },
+        {
+          "subset": "DS05",
+          "median_weighted_aux_task_ratio": 0.042051278946011905,
+          "median_cosine": 0.06194525692730901
+        },
+        {
+          "subset": "DS06",
+          "median_weighted_aux_task_ratio": 0.06240809198369805,
+          "median_cosine": 0.06337164025177643
+        },
+        {
+          "subset": "DS07",
+          "median_weighted_aux_task_ratio": 0.23963435695540952,
+          "median_cosine": 0.02870284065421292
+        }
+      ],
+      "aux_ratio_gt10_subset_count": 0,
+      "negative_cosine_subset_count": 0
+    }
+  ],
+  "optimizer_updates": 0,
+  "official_test_read": false,
+  "outer_metrics_computed": false,
+  "interpretation": "Selected eval-mode gradient diagnostic, not proof of historical optimizer conflict or a new method."
+}

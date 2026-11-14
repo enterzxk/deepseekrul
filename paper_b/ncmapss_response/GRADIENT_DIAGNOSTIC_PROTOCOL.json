@@ -1,0 +1,50 @@
+{
+  "id": "PB-NC-POSTFAIL-D2-GRADIENT-20261114-V1",
+  "registered_after_final_outer_development_results": true,
+  "frozen_execution_sha256": "0d5ab920d31ec11767bb38f9ed717ce21f31ece3c6d981de7453cbd672d08009",
+  "subsets": [
+    "DS02",
+    "DS05",
+    "DS06",
+    "DS07"
+  ],
+  "modes": [
+    "raw",
+    "fe",
+    "delta",
+    "supported",
+    "common"
+  ],
+  "states": [
+    "initial",
+    "final"
+  ],
+  "seed": 101,
+  "outer_selection": "smallest engine ID per subset; excluded entirely from model/scaler/target/query",
+  "queries": 16,
+  "query_rule": "uniformly spaced rounded indices across current five training engines; no metric-based selection",
+  "blocks": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "model_mode": "eval, FP32, deterministic; task and auxiliary gradients separately; no updates",
+  "expected_parameter_group_rows": 1120,
+  "maximum_wall_hours": 2,
+  "gates": {
+    "aux_dominance_descriptive": "weighted_aux/task gradient L2 >10 on response_body/background/basis in >=3 subsets; reported as selected-state diagnostic only; only nonzero shared task paths, null is unidentifiable",
+    "conflict_descriptive": "negative task/aux cosine on >=3 subsets in same group and final state; report raw values, no causal conclusion",
+    "finite": "all actual gradients finite and exact count1120, all checkpoint seals and state hashes verified"
+  },
+  "failure_branch": "preserve failed diagnostic; do not tune lambda/aux weights or retrain common to rescue claim",
+  "official_test_read": false,
+  "model_optimizer_updates": 0,
+  "limitations": [
+    "selected eval-mode gradients do not reconstruct stochastic optimizer history",
+    "post_failure exploration, not original preregistration or independent confirmation",
+    "raw and FE auxiliary context paths differ; their full contrast is not isolated ridge scaling",
+    "Local gradient on structurally zero coordinate is not evidence of information use; combine with active mode and actual code amplitude."
+  ],
+  "gate_aggregation": "separately for each fixed mode/state/group, median of four block values within subset (undefined paths remain null); count subsets passing the same group/mode/state condition, report all profiles. conflict gate final state only. No picking blocks/modes after observation."
+}

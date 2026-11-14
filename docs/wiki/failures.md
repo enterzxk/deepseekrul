@@ -141,3 +141,6 @@ n_cal=6 下的 bootstrap 波动只支持「**该估计量在本样本中不稳�
 **后续**：转候选 C（退化状态空间 + 保形层）的两天、0 GPU 设计门。
 若未来重开测量误差方向，必须先给出部署目标
 $h_\nu(z)=\int[a(x)+(m(x)-\mu(z))^2]p_\nu(x|z)dx$ 的可部署后验积分算法与误差界。
+
+
+2026-11-14 PB-NC-response闭环：原common贡献判FAILED，504训练/24年龄/全504checkpoint真实重载，primary/age/sensor/attribution/mechanism全FAIL。证据见docs/paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md及experiments/paper_b_ncmapss_response_20261113；L2记录PB-NC-POSTFAIL-20261114。D1/D2是失败后训练侧探索，非RUL增益/HI识别；旧data_diagnostics_v1逐sensor错名已撤回，数字不变的schema纠正见data_diagnostics_v2_schema_corrected。

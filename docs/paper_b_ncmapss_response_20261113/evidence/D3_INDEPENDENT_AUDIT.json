@@ -1,0 +1,12 @@
+{
+  "status": "PASS_STATIC_AND_NUMPY",
+  "independent_agent": "audit_training_integrity",
+  "numpy_contracts_passed": 13,
+  "inverse_max_error_standardized": 1.8251079136888393e-07,
+  "gpu_performed_by_review_agent": false,
+  "training_performed": false,
+  "P1": [],
+  "P2": "Root strengthened 16 unique records/current checks SHA/runtime device-name/Torch/CUDA/calibrated budget binding before actual preflight. Separate root actual preflight PASS0optimizer recorded.",
+  "actual_pref_execution": "d5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced",
+  "actual_preflight_sha256": "59b8f27a96c643cc56577f71333ada4bd8551a3dcc1c980e8a372c7606194de7"
+}

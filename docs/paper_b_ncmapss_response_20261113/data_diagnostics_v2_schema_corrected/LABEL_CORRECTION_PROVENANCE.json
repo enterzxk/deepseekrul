@@ -1,0 +1,27 @@
+{
+  "kind": "metadata_correction_only_no_refit",
+  "rows": 336,
+  "numerical_fields_unchanged": true,
+  "schema_evidence": "../evidence/RAW_HDF5_SCHEMA_CORRECTION.json",
+  "old_to_actual_sensor_name": {
+    "Wf": "T24",
+    "Nf": "T30",
+    "Nc": "T48",
+    "T24": "T50",
+    "T30": "P15",
+    "T48": "P2",
+    "T50": "P21",
+    "P15": "P24",
+    "P2": "Ps30",
+    "P21": "P40",
+    "P24": "P50",
+    "Ps30": "Nf",
+    "P40": "Nc",
+    "P50": "Wf"
+  },
+  "original_csv_sha256": "9e514d47b3d6900701215a73be546076de8c1ab310768135a36fa674834124e3",
+  "corrected_csv_sha256": "1a8c4c74903a513a4bc276a2fe62f6b5ad4628f33aa6d35ae1db12702678ad8b",
+  "old_v1_retained": true,
+  "official_test_read": false,
+  "warning": "Withdraw v1 per-sensor names. Median summaries and model coefficients are numerically unchanged."
+}

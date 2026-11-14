@@ -1,0 +1,268 @@
+{
+  "repository": "EPFL-IMOS/hcde",
+  "commit": "b5cfa1e069bd824ad65fc0ad427dd0e828ebf936",
+  "paper_doi": "10.1016/j.ress.2026.112943",
+  "arxiv": "2509.00639",
+  "source_origin": "https://github.com/EPFL-IMOS/hcde",
+  "source_executed": false,
+  "checkpoint_loaded": false,
+  "training_runs": 0,
+  "license": "MIT; root LICENSE retained in ignored complete git clone",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "c1f39b8125902f8ed5b7fa4666eee5f561f7f4611e0b5007e1875f562f0105d0",
+      "bytes": 222
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "4ec36823a58027a313492eb1e574a19984052d580f6956c5b06dfb73d8f833d1",
+      "bytes": 1101
+    },
+    {
+      "path": "README.md",
+      "sha256": "d8802901c08a71debe2fcce9029f61a1fb57877d18b3df9841a88160dc9766dd",
+      "bytes": 4389
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "f97d13d05ca73da58cbe72f0bdf4633aaf4d6cd438f82a0e9eee73d19a14d846",
+      "bytes": 1813
+    },
+    {
+      "path": "run/agg_runs.py",
+      "sha256": "4fbcb21c724b0fb0b02d48e16262657cbee81afb6bcb73d719af7050de39e973",
+      "bytes": 450
+    },
+    {
+      "path": "run/agg_runs_folder.py",
+      "sha256": "92c011b28ec508e9cfc1541b9b23b70402b0c7f6dfde2c5b875b3786879e21eb",
+      "bytes": 782
+    },
+    {
+      "path": "run/configs/bridge/fnn.yaml",
+      "sha256": "f34d79b89ce5dc24fcbdd0a01b995c8a5ecc9841557b384d17519231b613081f",
+      "bytes": 1664
+    },
+    {
+      "path": "run/configs/bridge/hcde-p=f.yaml",
+      "sha256": "2081a95df979a0ddf4a7f6557857ac490f94b9c8dcb3f2f964d0120d24cac65c",
+      "bytes": 1999
+    },
+    {
+      "path": "run/configs/bridge/hcde-pt=f.yaml",
+      "sha256": "88b7346e1d7c4010c4b2e8c7e5d47175593d9e761f4bd25df81d708e5ef8fc2d",
+      "bytes": 1947
+    },
+    {
+      "path": "run/configs/bridge/hcde.yaml",
+      "sha256": "9f18b69787cbe7144090997763f64ce87e61147f054e63e6c813119019dedfa0",
+      "bytes": 1918
+    },
+    {
+      "path": "run/configs/ncmapss/fnn.yaml",
+      "sha256": "a576d72497a369f59d583e265495190a836b1ff1dd7d30191ed979852c8d4eed",
+      "bytes": 1720
+    },
+    {
+      "path": "run/configs/ncmapss/hcde-p=f.yaml",
+      "sha256": "6e494546318fe2e8549568ba72887bc33eaa7877e6f5f61ea885b1f347205ec2",
+      "bytes": 1967
+    },
+    {
+      "path": "run/configs/ncmapss/hcde-pt=f.yaml",
+      "sha256": "c6f70887840e8a1af215aeb82f94ed79651eff04eb787f038f3357e2b1f089e7",
+      "bytes": 1967
+    },
+    {
+      "path": "run/configs/ncmapss/hcde.yaml",
+      "sha256": "bd2284df6acbaa7034413fb1e80d5f65c7bbfa23d4c3d720ef7872cfe10551f7",
+      "bytes": 1966
+    },
+    {
+      "path": "run/datasets/bridge/deb_bridge.csv",
+      "sha256": "988331b698c87af3cafd7ecffd529e5a37df49ef14ab0ea1ef32aac22e25e132",
+      "bytes": 50068377
+    },
+    {
+      "path": "run/datasets/ncmapss/README.md",
+      "sha256": "20bc95169288926547668de4ed5b980a242c8fa3be58f2d929ca8d8c368b556d",
+      "bytes": 677
+    },
+    {
+      "path": "run/main.py",
+      "sha256": "13c92b7a254a6f1ea33e215ff6146bb5fa1f191f05867579f6e4555e601bdbd5",
+      "bytes": 3545
+    },
+    {
+      "path": "src/agg_runs.py",
+      "sha256": "c4fc8bc1776692c7d74a5262ecf2105854fb3d686870b2e41253e05ad3cb9cc1",
+      "bytes": 6324
+    },
+    {
+      "path": "src/cmd_args.py",
+      "sha256": "038432a5937990c846a93d79a0a190c0fa51460ba6c58e21cd369c275c055a03",
+      "bytes": 1628
+    },
+    {
+      "path": "src/config.py",
+      "sha256": "f552ef43b3ba53909c51c67d5d1af2cb4bad235ffb4f79ae83b93db80f09ded1",
+      "bytes": 12854
+    },
+    {
+      "path": "src/dataset/base/interpolated_dataset.py",
+      "sha256": "ef670bae0059e71a0ec9a801b7918de12d00c342c9e9e6cb3d68fb6d400255f2",
+      "bytes": 3403
+    },
+    {
+      "path": "src/dataset/base/snapshot_dataset.py",
+      "sha256": "2bffdf4de863ca3fb906668dd6f37f8caa5eb608f37148fcbfab962b255760b1",
+      "bytes": 2392
+    },
+    {
+      "path": "src/dataset/base/trajectory_dataset.py",
+      "sha256": "e17ad8a7381ca3fe5d42714bcfb0dd93812da67f8d5323eb9d10f9563f6efaf2",
+      "bytes": 9919
+    },
+    {
+      "path": "src/dataset/base/window_dataset.py",
+      "sha256": "52b84a79772f3adef18fd50079db588b3d65ecc836358ae7636073b369567812",
+      "bytes": 2560
+    },
+    {
+      "path": "src/dataset/bridge.py",
+      "sha256": "463704192d6bcede776936481d5c33ecf8b5eb08378b6416dbb89b22f09f8efa",
+      "bytes": 11387
+    },
+    {
+      "path": "src/dataset/cmapss.py",
+      "sha256": "2a153607d2680f32070f01cb14b8bc24807e9ab8eaaa348c95de1f25cdea86f9",
+      "bytes": 14732
+    },
+    {
+      "path": "src/dataset/dataset.py",
+      "sha256": "441c7be41fce567fa7ea1d1e9a4798cf7c51f66db327cbe53cd70fdb17c8d244",
+      "bytes": 4756
+    },
+    {
+      "path": "src/dataset/helper.py",
+      "sha256": "0808f794d3b5934552fee47b4781bed12cd07d05c3dd6a2623d89ad19a820b64",
+      "bytes": 4543
+    },
+    {
+      "path": "src/logger.py",
+      "sha256": "ff579bb5aced7b5708cea5cbec25a322442d3b068f2d5efc0dee4c542e731ecb",
+      "bytes": 8074
+    },
+    {
+      "path": "src/metric/loss.py",
+      "sha256": "00bc3dd8790deaa2ea7b3739991f630172c795a98ece1a61192e38a793e223f9",
+      "bytes": 2461
+    },
+    {
+      "path": "src/metric/prognosis.py",
+      "sha256": "d0e617d5c1566f366a6b9fd7fd02bbd412f2ab1dff52f86100ed7762c6836859",
+      "bytes": 10282
+    },
+    {
+      "path": "src/model/baseline/mlp.py",
+      "sha256": "d808eadb193dbf835673bbf7752286b03503ef03cd77ba73a100db034a635d4c",
+      "bytes": 1829
+    },
+    {
+      "path": "src/model/cde.py",
+      "sha256": "d730f44db208de7c1499168e42c1131dea53babd8c61b10080e0fa6391db89c7",
+      "bytes": 4877
+    },
+    {
+      "path": "src/model/dict.py",
+      "sha256": "ec425860d0c92a878f721f8b890ca228afaddece7f574879aedb9c4d060e4cec",
+      "bytes": 1289
+    },
+    {
+      "path": "src/model/factory.py",
+      "sha256": "34ff57d8fd4ba5bbaaa0cddc77554c42e8d1ff1c829c8142c7467b880b4579a9",
+      "bytes": 2522
+    },
+    {
+      "path": "src/model/hcde.py",
+      "sha256": "153c6854eec9ed7b4c4d8cd306e0104e9d8663a5a4f3e8fdfa83060d5ea3d168",
+      "bytes": 6916
+    },
+    {
+      "path": "src/simulation/beam.py",
+      "sha256": "9f15cf5cf2af7923ab45da59e2e485bcc5024ba5f53e281f5259a5919e9ed9ab",
+      "bytes": 22741
+    },
+    {
+      "path": "src/train/earlystopping.py",
+      "sha256": "7e3d4bb1744d106c36ed74f3aa38ce61fac9b86a0676e6d1db7170094a66ddd5",
+      "bytes": 1592
+    },
+    {
+      "path": "src/train/optim.py",
+      "sha256": "16ce27b3c7343ec91e361b8b3f2324d9db7cf4269258d05b59dc32746c7bb27b",
+      "bytes": 5936
+    },
+    {
+      "path": "src/train/task.py",
+      "sha256": "5e260326b908a5eec71c0fbad1b1197f55ac643a9e3f2cce0664fca2d5839d71",
+      "bytes": 20983
+    },
+    {
+      "path": "src/train/train.py",
+      "sha256": "05d028b20f57e1bdc25a7aea6a8f4de7b7696209a51007fb3903320b63cc447d",
+      "bytes": 16071
+    },
+    {
+      "path": "src/utils/checkpoint.py",
+      "sha256": "442e966f7cf4f3a7935da67165caf766690393ad663c09a06263f9e5c84e5ce2",
+      "bytes": 3384
+    },
+    {
+      "path": "src/utils/credential.py",
+      "sha256": "7f95432271b83aaef5536ceed7ff1afef09af6b67513305655ab4898d0405ea5",
+      "bytes": 528
+    },
+    {
+      "path": "src/utils/device.py",
+      "sha256": "da605e007dd3c7b2db48a49ed4ff4aa6dcdcdebf3928dfff86f1eb508c7bb592",
+      "bytes": 2834
+    },
+    {
+      "path": "src/utils/epochs.py",
+      "sha256": "feaa5e68dbd4b87315d908d970b98d2bb5edf52dd700ff8c39702775bd201fed",
+      "bytes": 588
+    },
+    {
+      "path": "src/utils/init.py",
+      "sha256": "5d79f0a8b31a092fe165f99ffa117acdad070a1deb7f5a27793ed14b66a8a03c",
+      "bytes": 1578
+    },
+    {
+      "path": "src/utils/io.py",
+      "sha256": "f23054a3190fd33050e4685b5df843ab9c075a9475c71afd429a6869224dab39",
+      "bytes": 2302
+    },
+    {
+      "path": "src/utils/plots.py",
+      "sha256": "ea488d4e490ae4ba2717fc37baa8fa13532a9349b6ce684a8f7da74d4f9befe2",
+      "bytes": 12485
+    },
+    {
+      "path": "src/utils/preprocessing.py",
+      "sha256": "74376951ee2bb84e4c022b9d366e632c9d750003f06a63f3541d08186607f48d",
+      "bytes": 2010
+    },
+    {
+      "path": "src/utils/seed.py",
+      "sha256": "575c8b6b8cb8ff7a4b533b45f60abe5674e0406743a1d4beec6185ea4fa7ea95",
+      "bytes": 466
+    },
+    {
+      "path": "src/utils/viz.py",
+      "sha256": "1bfefd2bad8a0e4f7289f767b403bdceaf49ac5ebb5ab8146fc1076e1717d6af",
+      "bytes": 29457
+    }
+  ]
+}

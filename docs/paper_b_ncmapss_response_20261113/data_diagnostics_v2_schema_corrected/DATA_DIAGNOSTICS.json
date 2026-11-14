@@ -1,0 +1,42 @@
+{
+  "purpose": "descriptive_condition_response_audit_not_RUL_comparison_or_health_identification",
+  "cache_sha256": {
+    "DS02": "8f42381dcbad5eede7c5495e827df53f64132695b2d558cba39adf1bbe5be322",
+    "DS05": "944f17901441cf6c9c6de699e94a54f7365f85964634ce21e72f39b965fbd447",
+    "DS06": "e09444edf3064cf9e8195fb93b73278d57fc344fbd5935739712112fbb036a18",
+    "DS07": "eb7ea7ddea2a788dabdf0d63798bb8a285eba4c14c6c0b367749dbaa72954ac4"
+  },
+  "fit": "quadratic_W_to_Xs_ridge0.001; five-engine_fit_one-engine_audit",
+  "RUL_labels_read": false,
+  "official_test_read": false,
+  "neural_optimizer_updates": 0,
+  "not_used_to_change_frozen_experiment": true,
+  "summary": [
+    {
+      "subset": "DS02",
+      "median_condition_R2_across_engine_sensor_pairs": 0.9997630082524873,
+      "median_abs_raw_age_correlation": 0.10209296576289967,
+      "median_abs_residual_age_correlation": 0.8241866989846578
+    },
+    {
+      "subset": "DS05",
+      "median_condition_R2_across_engine_sensor_pairs": 0.9998034740404568,
+      "median_abs_raw_age_correlation": 0.12045334984761814,
+      "median_abs_residual_age_correlation": 0.7187593163157482
+    },
+    {
+      "subset": "DS06",
+      "median_condition_R2_across_engine_sensor_pairs": 0.9997994176528502,
+      "median_abs_raw_age_correlation": 0.11744665280283145,
+      "median_abs_residual_age_correlation": 0.6943334093954121
+    },
+    {
+      "subset": "DS07",
+      "median_condition_R2_across_engine_sensor_pairs": 0.9997606213395331,
+      "median_abs_raw_age_correlation": 0.11536201192390866,
+      "median_abs_residual_age_correlation": 0.6755079200050647
+    }
+  ],
+  "interpretation_limit": "residual includes model error, operating dynamics, initial offsets and degradation; correlation with age is not a physical HI proof",
+  "diagnostic_source_sha256": "2937987cee25ed2896fff26f1cfaaae7326cbf47829c9cab673a4d643213718d"
+}

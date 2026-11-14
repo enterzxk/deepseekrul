@@ -1,0 +1,27 @@
+{
+  "pid": 3685197,
+  "source_commit": "1cdfc7fb130e909877cab93067fd53b8cfc30318",
+  "execution_sha256": "3b76be258fc6829f4c54208d29c1a1131d44014119d754a78e8f971d752f53af",
+  "source_archive_sha256": "0864f8950eced1ec807347f161723e0b8d79e09a4918c5fe5f7301cbe77d8921",
+  "runtime": "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/runtime_1cdfc7fb",
+  "job": "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/formal_1cdfc7fb",
+  "command": [
+    "/home/yndx/miniconda3/envs/a40_env/bin/python",
+    "-B",
+    "-m",
+    "paper_b.ncmapss_bayes_20261114.run_bayes",
+    "--cache",
+    "/media/sangfor/vdb/user/zxk/ncmapss_response_20261113/data",
+    "--author-file",
+    "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/sources/bayesrul/bayesrul/models/nets/inception.py",
+    "--output",
+    "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/formal_1cdfc7fb",
+    "--preflight",
+    "/media/sangfor/vdb/user/zxk/ncmapss_bayes_hnn_20261114/PREFLIGHT_V1.json"
+  ],
+  "started_utc": "2026-11-14T04:01:27.443019+00:00",
+  "protocol_status": "actual_launch; not full success",
+  "total_training_cells": 192,
+  "inner": 120,
+  "outer": 72
+}

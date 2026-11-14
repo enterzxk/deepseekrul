@@ -1,0 +1,9 @@
+{
+  "observed": 0.07776919300107053,
+  "attempt": 1,
+  "resolution": "Align verifier to preserved source evaluation order and separately quantify FP64-mean sensitivity; no diagnostic source/results/threshold changes",
+  "verifier_initial_expected": 0.07776966276472853,
+  "reason": "Verifier initially assumed FP64 raw flight means while fixed diagnostic averages original FP32 raw before FP64 Pearson correlation",
+  "stage": "independent verifier",
+  "exit_code": 1
+}

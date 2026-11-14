@@ -1,0 +1,57 @@
+{
+  "protocol_id": "PB-NCMAPSS-POSTFAILURE-D1-20261114-V1",
+  "purpose": "Exploratory training-side mechanism diagnostic after common-route closure; not a new RUL model or confirmatory method result",
+  "registration_stage": "Fixed specification recorded before this D1 execution; earlier response-model outcomes and descriptive condition diagnostics were already observed",
+  "subsets": ["DS02", "DS05", "DS06", "DS07"],
+  "expected_diagnostic_fits": 120,
+  "outer_rule": "For each of six development engines exclude that outer engine entirely; crossfit each of the remaining five engines by training on the other four and predicting that one inner engine",
+  "outer_used_for_model_selection": false,
+  "input_cache_accessed_npz_keys": ["raw", "unit", "cycle"],
+  "forbidden_decoded_inputs": ["y", "Y", "Y_dev", "TEST", "hs", "T", "X_v"],
+  "expected_cache_sha256": {
+    "DS02": "8f42381dcbad5eede7c5495e827df53f64132695b2d558cba39adf1bbe5be322",
+    "DS05": "944f17901441cf6c9c6de699e94a54f7365f85964634ce21e72f39b965fbd447",
+    "DS06": "e09444edf3064cf9e8195fb93b73278d57fc344fbd5935739712112fbb036a18",
+    "DS07": "eb7ea7ddea2a788dabdf0d63798bb8a285eba4c14c6c0b367749dbaa72954ac4"
+  },
+  "raw_shape": ["flight", 512, 18],
+  "W_order": ["alt", "Mach", "TRA", "T2"],
+  "Xs_order": ["T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24", "Ps30", "P40", "P50", "Nf", "Nc", "Wf"],
+  "physical_scaler": "Mean/std ddof0 of all sampled rows from the four training engines only; each of 18 columns; std floor1e-6",
+  "static_model": {
+    "target": "training-standardized Xs14",
+    "features": "15 columns: 1; W_i for i=0..3; W_i*W_j for 0<=i<=j<4, in nested i,j order; W uses training-four physical scaling",
+    "ridge": 0.001,
+    "normal_equations": "(Phi.T@Phi/n + ridge*diag(0,1,...,1)) B = Phi.T@Xs/n",
+    "intercept_penalized": false
+  },
+  "empirical_residual_scale": "Training-four in-sample static residual std ddof0 per sensor, floor1e-6; this is empirical residual scale, not noise or uncertainty",
+  "dynamic_model": {
+    "raw_feature_count": 37,
+    "raw_features": "Static quadratic15 including constant1; backward deltaW4 with flight-first row0; W_i*deltaW_j16 in nested i,j order; position and position^2",
+    "position": "k/511 for k=0..511; flight-local normalized sampling position, not seconds",
+    "delta": "W[k]-W[k-1] on the 512-point normalized-position grid; first row0; not divided by a physical time increment and not a per-second rate",
+    "feature_scaler": "Each of the 37 raw columns mean/std ddof0 fitted on four training engines; std floor1e-6; constant1 becomes0",
+    "design": "Prepend a separate unpenalized intercept to the 37 standardized columns; 38 stored coefficients, including the zero constant column; effective36 nonconstant features plus intercept",
+    "target": "Static training-four residual in standardized sensor coordinates, without empirical-scale division",
+    "ridge": 0.001,
+    "normal_equations": "(D.T@D/n + ridge*diag(0,1,...,1)) C = D.T@residual/n",
+    "intercept_penalized": false
+  },
+  "metrics": {
+    "residual_std_raw_std_ratio": "For each inner engine and sensor: std of all residual rows / std of all standardized observed sensor rows, both ddof0",
+    "age_correlations": "Pearson correlation across inner-engine flights between observed cycle and flight means of raw sensor, static residual, and residual divided by its fixed training-four empirical scale",
+    "correlation_identity": "The last two correlations are algebraically identical for a positive fixed per-sensor scale; equality is a software check, not evidence of new information",
+    "dynamic_error_reduction": "1 - mean((inner_residual - dynamic_prediction)^2) / mean(inner_residual^2); reference is exactly the residual zero-predictor, not a fitted inner-engine mean",
+    "undefined": "Zero-variance correlation or zero denominator yields null; undefined values block the associated gate rather than being silently dropped"
+  },
+  "gates": {
+    "scale_suppression": {"ratio_threshold_strict": 0.1, "minimum_engine_sensor_fraction": 0.75, "aggregation": "All120 crossfit inner-engine x14 sensor rows; also report each subset and each outer fold; dependent repeated appearances are not independent samples"},
+    "dynamic_omission": {"minimum_subset_median_error_reduction": 0.1, "minimum_subsets": 2, "aggregation": "Median of30 crossfit engine x14 sensor rows within each subset; then count subsets meeting threshold"},
+    "interpretation": "These are descriptive mechanism gates. Dynamic gain suggests omission by a static conditional model; it does not establish causality, health identification, generalizable RUL improvement, or module novelty"
+  },
+  "budget": {"device": "CPU only", "maximum_seconds": 14400, "blas_threads": 4, "HPO": false, "iterative_optimizer_steps": 0, "GPU_jobs": 0},
+  "failure_branch": "Preserve partial files and error/elapsed evidence; do not relax thresholds, change feature forms, tune ridge, launch RUL training, or select a replacement module from these diagnostics",
+  "dependence_limit": "The120 diagnostics reuse engines and overlapping train-four sets across outer folds; they are not120 independent samples; no p-values, independence-based CI, or significance claims",
+  "frozen_experiment_modified": false
+}

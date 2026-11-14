@@ -1,0 +1,34 @@
+{
+  "protocol_sha256": "ca0177ded81b6979b677cf7501e420f6f4dd3121d39389b981adf5008fc4c9ff",
+  "diagnostic_source_sha256": "0b3cfddbfccc7ae439f940a6d81e47b2845192e2fd9ded936752aac3235773f4",
+  "registration_sha256": "81b35da665f582a25cbf7ea5cfad9f3441b1919411aebefcc02410a3e82258b5",
+  "started_utc": "2026-11-14T04:12:56.418198+00:00",
+  "runtime": {
+    "python": "3.12.14 (main, Sep  1 2026, 14:17:39) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "C:\\Users\\20562\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe",
+    "numpy": "2.3.5",
+    "platform": "Windows-11-10.0.22631-SP0",
+    "thread_environment": {
+      "OPENBLAS_NUM_THREADS": "4",
+      "MKL_NUM_THREADS": "4",
+      "OMP_NUM_THREADS": "4"
+    },
+    "threadpools": "threadpoolctl unavailable; environment fixed before NumPy import"
+  },
+  "argv": [
+    "C:/Users/20562/.codex/worktrees/paper-b-ncmapss-response-20261113/paper_b/ncmapss_response/diagnose_residuals.py",
+    "--cache",
+    "C:/Users/20562/.codex/worktrees/paper-b-ncmapss-response-20261113/paper_b/ncmapss_response/_data",
+    "--output",
+    "C:/Users/20562/.codex/worktrees/paper-b-ncmapss-response-20261113/docs/paper_b_ncmapss_response_20261113/post_failure_d1_v1/results"
+  ],
+  "RUL_labels_read": false,
+  "official_TEST_read": false,
+  "decoded_npz_keys": [
+    "raw",
+    "unit",
+    "cycle"
+  ],
+  "iterative_optimizer_steps": 0,
+  "GPU_jobs": 0
+}

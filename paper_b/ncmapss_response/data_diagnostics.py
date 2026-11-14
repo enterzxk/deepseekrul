@@ -16,7 +16,7 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "2")
 import numpy as np
 
 
-SENSORS = ("Wf", "Nf", "Nc", "T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24", "Ps30", "P40", "P50")
+SENSORS = ("T24", "T30", "T48", "T50", "P15", "P2", "P21", "P24", "Ps30", "P40", "P50", "Nf", "Nc", "Wf")
 
 
 def sha(path):

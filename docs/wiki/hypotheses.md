@@ -103,3 +103,6 @@ C_ek 用温度=1 个 RUL 循环的 sigmoid 边界做可微覆盖；引擎等权�
 
 
 - PB-NC-RESPONSE-20261113：共同观测支持上的多传感器响应创新，待验证；非物理HI。规格与否证门见 docs/paper_b_ncmapss_response_20261113/HYPOTHESIS.md。
+
+
+2026-11-14 PB-NC-response闭环：原common贡献判FAILED，504训练/24年龄/全504checkpoint真实重载，primary/age/sensor/attribution/mechanism全FAIL。证据见docs/paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md及experiments/paper_b_ncmapss_response_20261113；L2记录PB-NC-POSTFAIL-20261114。D1/D2是失败后训练侧探索，非RUL增益/HI识别；旧data_diagnostics_v1逐sensor错名已撤回，数字不变的schema纠正见data_diagnostics_v2_schema_corrected。

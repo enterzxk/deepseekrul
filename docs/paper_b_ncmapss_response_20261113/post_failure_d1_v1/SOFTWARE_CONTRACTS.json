@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "kind": "synthetic_software_contract_not_experiment",
+  "source_sha256": "0b3cfddbfccc7ae439f940a6d81e47b2845192e2fd9ded936752aac3235773f4",
+  "checks": [
+    "syntax",
+    "37_dynamic_columns",
+    "flight_first_delta_zero",
+    "inner_cannot_change_fit_or_scalers",
+    "fixed_positive_scale_correlation_identity",
+    "only_raw_unit_cycle_npz_keys"
+  ],
+  "actual_npz_data_accessed": false
+}
