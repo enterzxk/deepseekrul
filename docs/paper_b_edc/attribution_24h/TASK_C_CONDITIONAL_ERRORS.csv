@@ -1,167 +1,167 @@
 analysis,subset,stratum,metric,value,n,note
-schema,all,join,points,19170,,
+schema,all,join,points,17040,,
 schema,all,join,points_unmatched_cycle,0,,
-schema,all,pool,runs,108,19170,A8 96 cells + F_full_basic_hi1 12 cells
-A1a_same_age,FD001,cycle 50-99,median_error_across_engines,-5.300925925925926,18,IQR 21.944; CI over 27 runs -4.693..-2.844
-A1a_same_age,FD001,cycle 50-99,engines,18,756,
-A1a_same_age,FD001,cycle 100-149,median_error_across_engines,-0.8993055555555556,20,IQR 6.360; CI over 27 runs -1.851..-0.791
-A1a_same_age,FD001,cycle 100-149,engines,20,999,
-A1a_same_age,FD001,cycle 150-199,median_error_across_engines,-1.6672453703703705,15,IQR 5.697; CI over 27 runs -2.215..-1.206
-A1a_same_age,FD001,cycle 150-199,engines,15,729,
-A1a_same_age,FD001,cycle 200-249,median_error_across_engines,-0.40451388888888884,6,IQR 6.115; CI over 27 runs -1.444..-0.008; engines<10: raw value only
-A1a_same_age,FD001,cycle 200-249,engines,6,162,
-A1a_same_age,FD002,cycle 50-99,median_error_across_engines,-2.4074074074074074,46,IQR 18.653; CI over 27 runs -3.332..-1.492
-A1a_same_age,FD002,cycle 50-99,engines,46,1566,
-A1a_same_age,FD002,cycle 100-149,median_error_across_engines,0.5054012345679012,52,IQR 7.634; CI over 27 runs 0.774..1.905
-A1a_same_age,FD002,cycle 100-149,engines,52,2565,
-A1a_same_age,FD002,cycle 150-199,median_error_across_engines,-0.11125578703703703,47,IQR 4.757; CI over 27 runs -0.810..0.295
-A1a_same_age,FD002,cycle 150-199,engines,47,2241,
-A1a_same_age,FD002,cycle 200-249,median_error_across_engines,3.557002314814815,16,IQR 6.480; CI over 27 runs 2.254..3.964
-A1a_same_age,FD002,cycle 200-249,engines,16,486,
-A1a_same_age,FD002,cycle 250-299,median_error_across_engines,4.972222222222222,5,IQR 4.171; CI over 27 runs 3.482..6.199; engines<10: raw value only
-A1a_same_age,FD002,cycle 250-299,engines,5,162,
-A1a_same_age,FD003,cycle 50-99,median_error_across_engines,-3.2592592592592595,16,IQR 28.481; CI over 27 runs -3.238..-1.669
-A1a_same_age,FD003,cycle 50-99,engines,16,594,
-A1a_same_age,FD003,cycle 100-149,median_error_across_engines,-2.1597222222222223,20,IQR 6.882; CI over 27 runs -2.541..-0.884
-A1a_same_age,FD003,cycle 100-149,engines,20,918,
-A1a_same_age,FD003,cycle 150-199,median_error_across_engines,-0.09143518518518519,19,IQR 8.154; CI over 27 runs -0.288..1.099
-A1a_same_age,FD003,cycle 150-199,engines,19,783,
-A1a_same_age,FD003,cycle 200-249,median_error_across_engines,-0.5520833333333333,8,IQR 6.129; CI over 27 runs -1.912..-0.087; engines<10: raw value only
-A1a_same_age,FD003,cycle 200-249,engines,8,243,
-A1a_same_age,FD003,cycle 250-299,median_error_across_engines,5.484375,4,IQR 3.423; CI over 27 runs 3.852..6.674; engines<10: raw value only
-A1a_same_age,FD003,cycle 250-299,engines,4,162,
-A1a_same_age,FD004,cycle 50-99,median_error_across_engines,0.1111111111111111,28,IQR 14.518; CI over 27 runs 0.693..2.115
-A1a_same_age,FD004,cycle 50-99,engines,28,1053,
-A1a_same_age,FD004,cycle 100-149,median_error_across_engines,0.1388888888888889,46,IQR 6.655; CI over 27 runs -0.456..0.747
-A1a_same_age,FD004,cycle 100-149,engines,46,1836,
-A1a_same_age,FD004,cycle 150-199,median_error_across_engines,0.6111111111111112,47,IQR 7.665; CI over 27 runs -0.461..0.439
-A1a_same_age,FD004,cycle 150-199,engines,47,1728,
-A1a_same_age,FD004,cycle 200-249,median_error_across_engines,2.1666666666666665,31,IQR 8.656; CI over 27 runs 1.391..2.736
-A1a_same_age,FD004,cycle 200-249,engines,31,1026,
-A1a_same_age,FD004,cycle 250-299,median_error_across_engines,1.0497685185185186,17,IQR 6.852; CI over 27 runs 0.976..2.642
-A1a_same_age,FD004,cycle 250-299,engines,17,675,
-A1a_same_age,FD004,cycle 300-349,median_error_across_engines,-1.3425925925925926,9,IQR 9.669; CI over 27 runs -2.685..-0.514; engines<10: raw value only
-A1a_same_age,FD004,cycle 300-349,engines,9,297,
-A1a_same_age,FD004,cycle 350-399,median_error_across_engines,-0.4467592592592593,4,IQR 6.586; CI over 27 runs -0.400..1.626; engines<10: raw value only
-A1a_same_age,FD004,cycle 350-399,engines,4,108,
-A1b_same_life_fraction,FD001,life 0.40,median_error_across_engines,-7.046296296296296,20,IQR 24.130; CI over 27 runs -5.701..-3.891
-A1b_same_life_fraction,FD001,life 0.40,engines,20,540,
-A1b_same_life_fraction,FD001,life 0.55,median_error_across_engines,3.976851851851852,20,IQR 11.106; CI over 27 runs 2.358..3.762
-A1b_same_life_fraction,FD001,life 0.55,engines,20,540,
-A1b_same_life_fraction,FD001,life 0.70,median_error_across_engines,-1.9861111111111112,20,IQR 12.400; CI over 27 runs -2.747..-1.318
-A1b_same_life_fraction,FD001,life 0.70,engines,20,540,
-A1b_same_life_fraction,FD001,life 0.85,median_error_across_engines,-2.481481481481482,20,IQR 4.530; CI over 27 runs -2.842..-1.904
-A1b_same_life_fraction,FD001,life 0.85,engines,20,540,
-A1b_same_life_fraction,FD001,life 0.95,median_error_across_engines,-0.7569444444444444,20,IQR 4.576; CI over 27 runs -1.316..-0.386
-A1b_same_life_fraction,FD001,life 0.95,engines,20,540,
-A1b_same_life_fraction,FD002,life 0.40,median_error_across_engines,-1.824074074074074,52,IQR 17.069; CI over 27 runs -2.850..-1.057
-A1b_same_life_fraction,FD002,life 0.40,engines,52,1404,
-A1b_same_life_fraction,FD002,life 0.55,median_error_across_engines,3.5462962962962963,52,IQR 25.051; CI over 27 runs 1.665..3.946
-A1b_same_life_fraction,FD002,life 0.55,engines,52,1404,
-A1b_same_life_fraction,FD002,life 0.70,median_error_across_engines,1.2824074074074074,52,IQR 10.046; CI over 27 runs -0.004..1.384
-A1b_same_life_fraction,FD002,life 0.70,engines,52,1404,
-A1b_same_life_fraction,FD002,life 0.85,median_error_across_engines,1.4560185185185186,52,IQR 4.767; CI over 27 runs 0.666..1.788
-A1b_same_life_fraction,FD002,life 0.85,engines,52,1404,
-A1b_same_life_fraction,FD002,life 0.95,median_error_across_engines,-0.11863425925925927,52,IQR 3.812; CI over 27 runs -0.629..0.697
-A1b_same_life_fraction,FD002,life 0.95,engines,52,1404,
-A1b_same_life_fraction,FD003,life 0.40,median_error_across_engines,-2.0462962962962963,20,IQR 27.491; CI over 27 runs -2.135..-0.920
-A1b_same_life_fraction,FD003,life 0.40,engines,20,540,
-A1b_same_life_fraction,FD003,life 0.55,median_error_across_engines,-2.435185185185185,20,IQR 27.046; CI over 27 runs -2.164..0.405
-A1b_same_life_fraction,FD003,life 0.55,engines,20,540,
-A1b_same_life_fraction,FD003,life 0.70,median_error_across_engines,-2.8611111111111107,20,IQR 5.137; CI over 27 runs -3.898..-1.130
-A1b_same_life_fraction,FD003,life 0.70,engines,20,540,
-A1b_same_life_fraction,FD003,life 0.85,median_error_across_engines,-0.34953703703703703,20,IQR 7.458; CI over 27 runs -0.279..1.627
-A1b_same_life_fraction,FD003,life 0.85,engines,20,540,
-A1b_same_life_fraction,FD003,life 0.95,median_error_across_engines,1.850115740740741,20,IQR 3.739; CI over 27 runs 1.044..2.994
-A1b_same_life_fraction,FD003,life 0.95,engines,20,540,
-A1b_same_life_fraction,FD004,life 0.40,median_error_across_engines,-0.07407407407407407,50,IQR 8.532; CI over 27 runs -0.514..0.440
-A1b_same_life_fraction,FD004,life 0.40,engines,50,1350,
-A1b_same_life_fraction,FD004,life 0.55,median_error_across_engines,-0.20370370370370372,50,IQR 19.949; CI over 27 runs -0.645..0.996
-A1b_same_life_fraction,FD004,life 0.55,engines,50,1350,
-A1b_same_life_fraction,FD004,life 0.70,median_error_across_engines,-0.3888888888888889,50,IQR 13.086; CI over 27 runs -0.658..1.640
-A1b_same_life_fraction,FD004,life 0.70,engines,50,1350,
-A1b_same_life_fraction,FD004,life 0.85,median_error_across_engines,0.8194444444444444,50,IQR 5.472; CI over 27 runs 0.077..1.617
-A1b_same_life_fraction,FD004,life 0.85,engines,50,1350,
-A1b_same_life_fraction,FD004,life 0.95,median_error_across_engines,2.070601851851852,50,IQR 4.159; CI over 27 runs 1.338..2.827
-A1b_same_life_fraction,FD004,life 0.95,engines,50,1350,
-A2_regime,FD001,post-switch vs steady,paired_abs_error_diff,-1.9600071534207817,324,CI -3.366..-0.554 over engines
-A2_regime,FD001,post-switch vs steady,n_post_windows,2268,2700,
-A2_regime,FD002,post-switch vs steady,paired_abs_error_diff,0.23579429762517146,972,CI -0.268..0.740 over engines
-A2_regime,FD002,post-switch vs steady,n_post_windows,5697,7020,
-A2_regime,FD003,post-switch vs steady,paired_abs_error_diff,1.4019308207947532,432,CI 0.736..2.068 over engines
-A2_regime,FD003,post-switch vs steady,n_post_windows,2160,2700,
-A2_regime,FD004,post-switch vs steady,paired_abs_error_diff,-4.011379094162409,783,CI -4.960..-3.063 over engines
-A2_regime,FD004,post-switch vs steady,n_post_windows,5535,6750,
-A3_capped,FD001,y_true==125,mean_abs_error,12.359788359788359,189,
-A3_capped,FD001,y_true<125,mean_abs_error,7.514122237156512,2511,
-A3_capped,FD001,y_true==125,mean_signed_error,-12.28042328042328,189,positive = over-prediction
-A3_capped,FD002,y_true==125,mean_abs_error,11.51010101010101,594,
-A3_capped,FD002,y_true<125,mean_abs_error,7.941270996246498,6426,
-A3_capped,FD002,y_true==125,mean_signed_error,-10.31986531986532,594,positive = over-prediction
-A3_capped,FD003,y_true==125,mean_abs_error,8.335016835016836,297,
-A3_capped,FD003,y_true<125,mean_abs_error,8.859056387848522,2403,
-A3_capped,FD003,y_true==125,mean_signed_error,-7.81986531986532,297,positive = over-prediction
-A3_capped,FD004,y_true==125,mean_abs_error,13.313214869281046,1377,
-A3_capped,FD004,y_true<125,mean_abs_error,8.119236954448168,5373,
-A3_capped,FD004,y_true==125,mean_signed_error,-11.944296931735657,1377,positive = over-prediction
-A4_sensor_within_cell,FD001,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,-0.7543871425678684,189,engines 6
-A4_sensor_within_cell,FD001,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,0.319966661846499,270,engines 9
-A4_sensor_within_cell,FD001,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.22971612149013046,243,engines 7
-A4_sensor_within_cell,FD001,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.37392010378380097,189,engines 6
-A4_sensor_within_cell,FD001,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.6779492497762026,189,engines 7
-A4_sensor_within_cell,FD001,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,0.12153702544754547,162,engines 6
-A4_sensor_within_cell,FD001,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.5891870157629724,135,engines 5
-A4_sensor_within_cell,FD001,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.23141415634613302,270,engines 8
-A4_sensor_within_cell,FD001,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.2594375168926473,189,engines 6
-A4_sensor_within_cell,FD002,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.15155571520953606,540,engines 19
-A4_sensor_within_cell,FD002,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.44666222622284774,162,engines 6
-A4_sensor_within_cell,FD002,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,-0.6158380807714577,243,engines 9
-A4_sensor_within_cell,FD002,cycle 50-99 regime 4,spearman_abs_error_vs_pc1,-0.03366664317471211,270,engines 10
-A4_sensor_within_cell,FD002,cycle 50-99 regime 5,spearman_abs_error_vs_pc1,0.49745332482867693,243,engines 8
-A4_sensor_within_cell,FD002,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.4785660366316088,729,engines 24
-A4_sensor_within_cell,FD002,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.5341896763841832,243,engines 8
-A4_sensor_within_cell,FD002,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,0.39673980284748106,405,engines 13
-A4_sensor_within_cell,FD002,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.1942615950408939,513,engines 17
-A4_sensor_within_cell,FD002,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,0.2585988518956582,216,engines 6
-A4_sensor_within_cell,FD002,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.040009135807290125,459,engines 16
-A4_sensor_within_cell,FD002,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.3813058293016571,702,engines 21
-A4_sensor_within_cell,FD002,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.34429245758150495,405,engines 14
-A4_sensor_within_cell,FD002,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,0.3044053862082543,297,engines 11
-A4_sensor_within_cell,FD002,cycle 150-199 regime 3,spearman_abs_error_vs_pc1,0.08873402286438525,243,engines 9
-A4_sensor_within_cell,FD002,cycle 150-199 regime 4,spearman_abs_error_vs_pc1,0.41213768488824964,351,engines 12
-A4_sensor_within_cell,FD002,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,0.20330943202701068,243,engines 9
-A4_sensor_within_cell,FD002,cycle 200-249 regime 0,spearman_abs_error_vs_pc1,0.5419360307773963,162,engines 6
-A4_sensor_within_cell,FD003,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.03818408104653947,297,engines 9
-A4_sensor_within_cell,FD003,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.33039186379409957,162,engines 6
-A4_sensor_within_cell,FD003,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.10133749465795339,270,engines 10
-A4_sensor_within_cell,FD003,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,-0.08215930696511527,162,engines 5
-A4_sensor_within_cell,FD003,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.14914871557315984,243,engines 6
-A4_sensor_within_cell,FD003,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.23202669152928987,189,engines 7
-A4_sensor_within_cell,FD003,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,0.7247104555266085,189,engines 6
-A4_sensor_within_cell,FD003,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,0.45311027485254407,270,engines 8
-A4_sensor_within_cell,FD004,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,-0.16732280724978507,135,engines 5
-A4_sensor_within_cell,FD004,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.1695038812980826,243,engines 8
-A4_sensor_within_cell,FD004,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,-0.41653542900816665,189,engines 6
-A4_sensor_within_cell,FD004,cycle 50-99 regime 4,spearman_abs_error_vs_pc1,-0.17009517128893528,189,engines 6
-A4_sensor_within_cell,FD004,cycle 50-99 regime 5,spearman_abs_error_vs_pc1,-0.1753572885013686,189,engines 7
-A4_sensor_within_cell,FD004,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.27045801610210973,216,engines 8
-A4_sensor_within_cell,FD004,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,-0.07317351199444773,432,engines 15
-A4_sensor_within_cell,FD004,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,-0.07284321052171451,324,engines 10
-A4_sensor_within_cell,FD004,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.21385935144334745,270,engines 10
-A4_sensor_within_cell,FD004,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,-0.45270894376435244,243,engines 9
-A4_sensor_within_cell,FD004,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.030772461686318416,351,engines 12
-A4_sensor_within_cell,FD004,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.28304311543403676,243,engines 9
-A4_sensor_within_cell,FD004,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.3615943943283345,378,engines 13
-A4_sensor_within_cell,FD004,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,-0.20788284783301586,243,engines 9
-A4_sensor_within_cell,FD004,cycle 150-199 regime 3,spearman_abs_error_vs_pc1,-0.6125692453229828,216,engines 7
-A4_sensor_within_cell,FD004,cycle 150-199 regime 4,spearman_abs_error_vs_pc1,-0.41879766296513354,324,engines 11
-A4_sensor_within_cell,FD004,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,-0.09725264676584144,324,engines 11
-A4_sensor_within_cell,FD004,cycle 200-249 regime 0,spearman_abs_error_vs_pc1,-0.4681082461373973,162,engines 5
-A4_sensor_within_cell,FD004,cycle 200-249 regime 1,spearman_abs_error_vs_pc1,-0.06396250501536105,270,engines 10
-A4_sensor_within_cell,FD004,cycle 200-249 regime 2,spearman_abs_error_vs_pc1,0.2292274284867307,135,engines 5
-A4_sensor_within_cell,FD004,cycle 200-249 regime 3,spearman_abs_error_vs_pc1,-0.1349476501362899,189,engines 6
-A4_sensor_within_cell,FD004,cycle 200-249 regime 4,spearman_abs_error_vs_pc1,0.058940282206946824,162,engines 6
-A4_sensor_within_cell,FD004,cycle 250-299 regime 1,spearman_abs_error_vs_pc1,-0.3023551064350243,270,engines 8
+schema,all,pool,runs,96,17040,"8 unique A8 arms x 4 subsets x 3 seeds = 96 cells; F_full_basic_hi1 dropped as an alias of A8_full_L70 (identical predictions, config differs only in tag)"
+A1a_same_age,FD001,cycle 50-99,median_error_across_engines,-4.833333333333333,18,IQR 21.367; CI over 24 runs -4.614..-2.605
+A1a_same_age,FD001,cycle 50-99,engines,18,672,
+A1a_same_age,FD001,cycle 100-149,median_error_across_engines,-1.3304036458333333,20,IQR 6.319; CI over 24 runs -1.926..-0.781
+A1a_same_age,FD001,cycle 100-149,engines,20,888,
+A1a_same_age,FD001,cycle 150-199,median_error_across_engines,-1.6555989583333333,15,IQR 5.847; CI over 24 runs -2.185..-1.211
+A1a_same_age,FD001,cycle 150-199,engines,15,648,
+A1a_same_age,FD001,cycle 200-249,median_error_across_engines,-0.38346354166666663,6,IQR 6.168; CI over 24 runs -1.459..0.122; engines<10: raw value only
+A1a_same_age,FD001,cycle 200-249,engines,6,144,
+A1a_same_age,FD002,cycle 50-99,median_error_across_engines,-2.375,46,IQR 18.661; CI over 24 runs -3.242..-1.268
+A1a_same_age,FD002,cycle 50-99,engines,46,1392,
+A1a_same_age,FD002,cycle 100-149,median_error_across_engines,0.65625,52,IQR 7.449; CI over 24 runs 0.867..2.070
+A1a_same_age,FD002,cycle 100-149,engines,52,2280,
+A1a_same_age,FD002,cycle 150-199,median_error_across_engines,-0.27490234375,47,IQR 4.573; CI over 24 runs -0.902..0.323
+A1a_same_age,FD002,cycle 150-199,engines,47,1992,
+A1a_same_age,FD002,cycle 200-249,median_error_across_engines,3.161783854166667,16,IQR 6.432; CI over 24 runs 1.988..3.812
+A1a_same_age,FD002,cycle 200-249,engines,16,432,
+A1a_same_age,FD002,cycle 250-299,median_error_across_engines,4.932291666666667,5,IQR 4.177; CI over 24 runs 3.214..6.239; engines<10: raw value only
+A1a_same_age,FD002,cycle 250-299,engines,5,144,
+A1a_same_age,FD003,cycle 50-99,median_error_across_engines,-3.364583333333333,16,IQR 28.753; CI over 24 runs -3.419..-1.664
+A1a_same_age,FD003,cycle 50-99,engines,16,528,
+A1a_same_age,FD003,cycle 100-149,median_error_across_engines,-2.1888020833333335,20,IQR 7.186; CI over 24 runs -2.774..-1.021
+A1a_same_age,FD003,cycle 100-149,engines,20,816,
+A1a_same_age,FD003,cycle 150-199,median_error_across_engines,-0.4069010416666667,19,IQR 8.255; CI over 24 runs -0.377..1.123
+A1a_same_age,FD003,cycle 150-199,engines,19,696,
+A1a_same_age,FD003,cycle 200-249,median_error_across_engines,-0.5891927083333334,8,IQR 6.177; CI over 24 runs -2.098..-0.077; engines<10: raw value only
+A1a_same_age,FD003,cycle 200-249,engines,8,216,
+A1a_same_age,FD003,cycle 250-299,median_error_across_engines,5.419270833333334,4,IQR 3.613; CI over 24 runs 3.564..6.693; engines<10: raw value only
+A1a_same_age,FD003,cycle 250-299,engines,4,144,
+A1a_same_age,FD004,cycle 50-99,median_error_across_engines,0.10416666666666666,28,IQR 14.516; CI over 24 runs 0.526..2.116
+A1a_same_age,FD004,cycle 50-99,engines,28,936,
+A1a_same_age,FD004,cycle 100-149,median_error_across_engines,-0.010416666666666671,46,IQR 6.328; CI over 24 runs -0.682..0.578
+A1a_same_age,FD004,cycle 100-149,engines,46,1632,
+A1a_same_age,FD004,cycle 150-199,median_error_across_engines,0.4791666666666667,47,IQR 7.806; CI over 24 runs -0.490..0.481
+A1a_same_age,FD004,cycle 150-199,engines,47,1536,
+A1a_same_age,FD004,cycle 200-249,median_error_across_engines,1.5651041666666667,31,IQR 8.419; CI over 24 runs 1.395..2.772
+A1a_same_age,FD004,cycle 200-249,engines,31,912,
+A1a_same_age,FD004,cycle 250-299,median_error_across_engines,1.125,17,IQR 6.771; CI over 24 runs 0.952..2.780
+A1a_same_age,FD004,cycle 250-299,engines,17,600,
+A1a_same_age,FD004,cycle 300-349,median_error_across_engines,-1.2734375,9,IQR 9.867; CI over 24 runs -2.750..-0.375; engines<10: raw value only
+A1a_same_age,FD004,cycle 300-349,engines,9,264,
+A1a_same_age,FD004,cycle 350-399,median_error_across_engines,-0.31510416666666674,4,IQR 6.669; CI over 24 runs -0.507..1.692; engines<10: raw value only
+A1a_same_age,FD004,cycle 350-399,engines,4,96,
+A1b_same_life_fraction,FD001,life 0.40,median_error_across_engines,-6.520833333333333,20,IQR 24.255; CI over 24 runs -5.732..-3.768
+A1b_same_life_fraction,FD001,life 0.40,engines,20,480,
+A1b_same_life_fraction,FD001,life 0.55,median_error_across_engines,3.880208333333333,20,IQR 10.818; CI over 24 runs 2.199..3.769
+A1b_same_life_fraction,FD001,life 0.55,engines,20,480,
+A1b_same_life_fraction,FD001,life 0.70,median_error_across_engines,-2.192708333333333,20,IQR 12.630; CI over 24 runs -2.900..-1.391
+A1b_same_life_fraction,FD001,life 0.70,engines,20,480,
+A1b_same_life_fraction,FD001,life 0.85,median_error_across_engines,-2.559895833333333,20,IQR 4.709; CI over 24 runs -2.900..-1.882
+A1b_same_life_fraction,FD001,life 0.85,engines,20,480,
+A1b_same_life_fraction,FD001,life 0.95,median_error_across_engines,-0.7669270833333333,20,IQR 4.682; CI over 24 runs -1.310..-0.354
+A1b_same_life_fraction,FD001,life 0.95,engines,20,480,
+A1b_same_life_fraction,FD002,life 0.40,median_error_across_engines,-1.8854166666666667,52,IQR 17.151; CI over 24 runs -2.802..-0.864
+A1b_same_life_fraction,FD002,life 0.40,engines,52,1248,
+A1b_same_life_fraction,FD002,life 0.55,median_error_across_engines,3.760416666666667,52,IQR 25.203; CI over 24 runs 1.918..4.332
+A1b_same_life_fraction,FD002,life 0.55,engines,52,1248,
+A1b_same_life_fraction,FD002,life 0.70,median_error_across_engines,1.2552083333333335,52,IQR 9.674; CI over 24 runs 0.113..1.595
+A1b_same_life_fraction,FD002,life 0.70,engines,52,1248,
+A1b_same_life_fraction,FD002,life 0.85,median_error_across_engines,1.4375,52,IQR 4.392; CI over 24 runs 0.575..1.826
+A1b_same_life_fraction,FD002,life 0.85,engines,52,1248,
+A1b_same_life_fraction,FD002,life 0.95,median_error_across_engines,-0.19921875,52,IQR 3.700; CI over 24 runs -0.815..0.656
+A1b_same_life_fraction,FD002,life 0.95,engines,52,1248,
+A1b_same_life_fraction,FD003,life 0.40,median_error_across_engines,-2.0729166666666665,20,IQR 27.625; CI over 24 runs -2.253..-0.914
+A1b_same_life_fraction,FD003,life 0.40,engines,20,480,
+A1b_same_life_fraction,FD003,life 0.55,median_error_across_engines,-2.90625,20,IQR 27.099; CI over 24 runs -2.579..-0.005
+A1b_same_life_fraction,FD003,life 0.55,engines,20,480,
+A1b_same_life_fraction,FD003,life 0.70,median_error_across_engines,-2.875,20,IQR 5.359; CI over 24 runs -4.094..-1.312
+A1b_same_life_fraction,FD003,life 0.70,engines,20,480,
+A1b_same_life_fraction,FD003,life 0.85,median_error_across_engines,-0.27083333333333337,20,IQR 7.210; CI over 24 runs -0.301..1.770
+A1b_same_life_fraction,FD003,life 0.85,engines,20,480,
+A1b_same_life_fraction,FD003,life 0.95,median_error_across_engines,1.8899739583333333,20,IQR 3.936; CI over 24 runs 0.887..3.050
+A1b_same_life_fraction,FD003,life 0.95,engines,20,480,
+A1b_same_life_fraction,FD004,life 0.40,median_error_across_engines,-0.23958333333333331,50,IQR 8.432; CI over 24 runs -0.701..0.264
+A1b_same_life_fraction,FD004,life 0.40,engines,50,1200,
+A1b_same_life_fraction,FD004,life 0.55,median_error_across_engines,-0.25,50,IQR 19.576; CI over 24 runs -0.855..0.948
+A1b_same_life_fraction,FD004,life 0.55,engines,50,1200,
+A1b_same_life_fraction,FD004,life 0.70,median_error_across_engines,-0.16666666666666666,50,IQR 12.961; CI over 24 runs -0.805..1.670
+A1b_same_life_fraction,FD004,life 0.70,engines,50,1200,
+A1b_same_life_fraction,FD004,life 0.85,median_error_across_engines,0.890625,50,IQR 5.533; CI over 24 runs 0.055..1.726
+A1b_same_life_fraction,FD004,life 0.85,engines,50,1200,
+A1b_same_life_fraction,FD004,life 0.95,median_error_across_engines,2.201822916666667,50,IQR 4.268; CI over 24 runs 1.359..3.000
+A1b_same_life_fraction,FD004,life 0.95,engines,50,1200,
+A2_regime,FD001,post-switch vs steady,paired_abs_error_diff,-2.0412846317997686,288,CI -3.538..-0.545 over engines
+A2_regime,FD001,post-switch vs steady,n_post_windows,2016,2400,
+A2_regime,FD002,post-switch vs steady,paired_abs_error_diff,0.24566951798804013,864,CI -0.292..0.783 over engines
+A2_regime,FD002,post-switch vs steady,n_post_windows,5064,6240,
+A2_regime,FD003,post-switch vs steady,paired_abs_error_diff,1.4204949273003473,384,CI 0.718..2.123 over engines
+A2_regime,FD003,post-switch vs steady,n_post_windows,1920,2400,
+A2_regime,FD004,post-switch vs steady,paired_abs_error_diff,-4.086546916157807,696,CI -5.098..-3.075 over engines
+A2_regime,FD004,post-switch vs steady,n_post_windows,4920,6000,
+A3_capped,FD001,y_true==125,mean_abs_error,12.419642857142858,168,
+A3_capped,FD001,y_true<125,mean_abs_error,7.524352808579749,2232,
+A3_capped,FD001,y_true==125,mean_signed_error,-12.330357142857142,168,positive = over-prediction
+A3_capped,FD002,y_true==125,mean_abs_error,11.318181818181818,528,
+A3_capped,FD002,y_true<125,mean_abs_error,7.962211886708683,5712,
+A3_capped,FD002,y_true==125,mean_signed_error,-10.092803030303031,528,positive = over-prediction
+A3_capped,FD003,y_true==125,mean_abs_error,8.503787878787879,264,
+A3_capped,FD003,y_true<125,mean_abs_error,8.8647735252809,2136,
+A3_capped,FD003,y_true==125,mean_signed_error,-7.992424242424242,264,positive = over-prediction
+A3_capped,FD004,y_true==125,mean_abs_error,13.34658394607843,1224,
+A3_capped,FD004,y_true<125,mean_abs_error,8.136196117305277,4776,
+A3_capped,FD004,y_true==125,mean_signed_error,-12.087597017973856,1224,positive = over-prediction
+A4_sensor_within_cell,FD001,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,-0.7764830736016242,168,engines 6
+A4_sensor_within_cell,FD001,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,0.3012633161060028,240,engines 9
+A4_sensor_within_cell,FD001,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.22958524234806757,216,engines 7
+A4_sensor_within_cell,FD001,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.38775300365447285,168,engines 6
+A4_sensor_within_cell,FD001,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.684334010474606,168,engines 7
+A4_sensor_within_cell,FD001,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,0.09652722743170586,144,engines 6
+A4_sensor_within_cell,FD001,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.6264906164782587,120,engines 5
+A4_sensor_within_cell,FD001,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.22420433444932633,240,engines 8
+A4_sensor_within_cell,FD001,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.2661731147813765,168,engines 6
+A4_sensor_within_cell,FD002,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.15838290766679336,480,engines 19
+A4_sensor_within_cell,FD002,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.4260117531990445,144,engines 6
+A4_sensor_within_cell,FD002,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,-0.6068066038200779,216,engines 9
+A4_sensor_within_cell,FD002,cycle 50-99 regime 4,spearman_abs_error_vs_pc1,-0.021330988817054884,240,engines 10
+A4_sensor_within_cell,FD002,cycle 50-99 regime 5,spearman_abs_error_vs_pc1,0.49831919821868464,216,engines 8
+A4_sensor_within_cell,FD002,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.47878999376033654,648,engines 24
+A4_sensor_within_cell,FD002,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.5168866300856177,216,engines 8
+A4_sensor_within_cell,FD002,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,0.40016210133117824,360,engines 13
+A4_sensor_within_cell,FD002,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.20360609221009843,456,engines 17
+A4_sensor_within_cell,FD002,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,0.21851845482518442,192,engines 6
+A4_sensor_within_cell,FD002,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.028540586686862084,408,engines 16
+A4_sensor_within_cell,FD002,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.3753018114836791,624,engines 21
+A4_sensor_within_cell,FD002,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.33614144916958755,360,engines 14
+A4_sensor_within_cell,FD002,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,0.3270143897884131,264,engines 11
+A4_sensor_within_cell,FD002,cycle 150-199 regime 3,spearman_abs_error_vs_pc1,0.09413801021858205,216,engines 9
+A4_sensor_within_cell,FD002,cycle 150-199 regime 4,spearman_abs_error_vs_pc1,0.42362305743378126,312,engines 12
+A4_sensor_within_cell,FD002,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,0.17819165156295197,216,engines 9
+A4_sensor_within_cell,FD002,cycle 200-249 regime 0,spearman_abs_error_vs_pc1,0.5443984769575471,144,engines 6
+A4_sensor_within_cell,FD003,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.04474192816810972,264,engines 9
+A4_sensor_within_cell,FD003,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.35947324606043934,144,engines 6
+A4_sensor_within_cell,FD003,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,0.08976047940284147,240,engines 10
+A4_sensor_within_cell,FD003,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,-0.09629190043212829,144,engines 5
+A4_sensor_within_cell,FD003,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.15545233418642126,216,engines 6
+A4_sensor_within_cell,FD003,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.2231269891804928,168,engines 7
+A4_sensor_within_cell,FD003,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,0.7214039733374632,168,engines 6
+A4_sensor_within_cell,FD003,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,0.45624632854344566,240,engines 8
+A4_sensor_within_cell,FD004,cycle 50-99 regime 0,spearman_abs_error_vs_pc1,-0.17937254152898527,120,engines 5
+A4_sensor_within_cell,FD004,cycle 50-99 regime 1,spearman_abs_error_vs_pc1,0.18101605590483322,216,engines 8
+A4_sensor_within_cell,FD004,cycle 50-99 regime 3,spearman_abs_error_vs_pc1,-0.43659323873603173,168,engines 6
+A4_sensor_within_cell,FD004,cycle 50-99 regime 4,spearman_abs_error_vs_pc1,-0.1775853082898021,168,engines 6
+A4_sensor_within_cell,FD004,cycle 50-99 regime 5,spearman_abs_error_vs_pc1,-0.2030535459070984,168,engines 7
+A4_sensor_within_cell,FD004,cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.2959724006094259,192,engines 8
+A4_sensor_within_cell,FD004,cycle 100-149 regime 1,spearman_abs_error_vs_pc1,-0.07994545913322333,384,engines 15
+A4_sensor_within_cell,FD004,cycle 100-149 regime 2,spearman_abs_error_vs_pc1,-0.07332718616227878,288,engines 10
+A4_sensor_within_cell,FD004,cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.22778553753425734,240,engines 10
+A4_sensor_within_cell,FD004,cycle 100-149 regime 4,spearman_abs_error_vs_pc1,-0.4601408476469051,216,engines 9
+A4_sensor_within_cell,FD004,cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.02673090383991092,312,engines 12
+A4_sensor_within_cell,FD004,cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.28585235224978794,216,engines 9
+A4_sensor_within_cell,FD004,cycle 150-199 regime 1,spearman_abs_error_vs_pc1,0.36416296886800587,336,engines 13
+A4_sensor_within_cell,FD004,cycle 150-199 regime 2,spearman_abs_error_vs_pc1,-0.19851645898558776,216,engines 9
+A4_sensor_within_cell,FD004,cycle 150-199 regime 3,spearman_abs_error_vs_pc1,-0.6232298505626647,192,engines 7
+A4_sensor_within_cell,FD004,cycle 150-199 regime 4,spearman_abs_error_vs_pc1,-0.4313061390279993,288,engines 11
+A4_sensor_within_cell,FD004,cycle 150-199 regime 5,spearman_abs_error_vs_pc1,-0.09276561422372251,288,engines 11
+A4_sensor_within_cell,FD004,cycle 200-249 regime 0,spearman_abs_error_vs_pc1,-0.4587468854941916,144,engines 5
+A4_sensor_within_cell,FD004,cycle 200-249 regime 1,spearman_abs_error_vs_pc1,-0.02825442781749156,240,engines 10
+A4_sensor_within_cell,FD004,cycle 200-249 regime 2,spearman_abs_error_vs_pc1,0.24254906302980736,120,engines 5
+A4_sensor_within_cell,FD004,cycle 200-249 regime 3,spearman_abs_error_vs_pc1,-0.1358006173508102,168,engines 6
+A4_sensor_within_cell,FD004,cycle 200-249 regime 4,spearman_abs_error_vs_pc1,0.06588928952918416,144,engines 6
+A4_sensor_within_cell,FD004,cycle 250-299 regime 1,spearman_abs_error_vs_pc1,-0.2780769413175316,240,engines 8
 A4b_per_arm_cell,FD002,A8_base_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.19159598347483342,60,engines 19
 A4b_per_arm_cell,FD002,A8_base_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.452729748265024,81,engines 24
 A4b_per_arm_cell,FD002,A8_base_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.2855196344399289,57,engines 17
@@ -202,11 +202,6 @@ A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 0,spearman_abs_error_vs_
 A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.14898250619638584,57,engines 17
 A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.030485872325573295,51,engines 16
 A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.37232087724410146,78,engines 21
-A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.08277302331217261,60,engines 19
-A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.49032463500801354,81,engines 24
-A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.10323170334775034,57,engines 17
-A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.13128958612664043,51,engines 16
-A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.4338955529585351,78,engines 21
 A4c_per_arm_summary,all,A8_base_L70,cells,5,5,pos 4 neg 1 median +0.286
 A4c_per_arm_summary,all,A8_base_L70,sign_consistency,mixed,5,pos 4 neg 1
 A4c_per_arm_summary,all,A8_full_L70,cells,5,5,pos 4 neg 1 median +0.103
@@ -223,8 +218,6 @@ A4c_per_arm_summary,all,A8_sa_L70,cells,5,5,pos 4 neg 1 median +0.270
 A4c_per_arm_summary,all,A8_sa_L70,sign_consistency,mixed,5,pos 4 neg 1
 A4c_per_arm_summary,all,A8_sahi_L70,cells,5,5,pos 4 neg 1 median +0.160
 A4c_per_arm_summary,all,A8_sahi_L70,sign_consistency,mixed,5,pos 4 neg 1
-A4c_per_arm_summary,all,F_full_basic_hi1,cells,5,5,pos 4 neg 1 median +0.103
-A4c_per_arm_summary,all,F_full_basic_hi1,sign_consistency,mixed,5,pos 4 neg 1
 A5_ytrue_on_pc1_within_cell,FD001,all cells,slope,9.007522024784633,100,CI 6.5041..11.5110; R2 increment 0.4732; engines 20
 A5_ytrue_on_pc1_within_cell,FD001,all cells,r2_increment,0.4732391972991725,100,within-cell
 A5_ytrue_on_pc1_within_cell,FD002,all cells,slope,11.188347041765986,260,CI 9.1942..13.1824; R2 increment 0.4756; engines 52
@@ -265,10 +258,6 @@ A6_err_on_pc1_within_cell,FD001,A8_sahi_L70,slope,0.4293000849335613,300,CI -0.4
 A6_err_on_pc1_within_cell,FD002,A8_sahi_L70,slope,0.40140643323419545,780,CI -0.3722..1.1751; R2 increment 0.0033; engines 52
 A6_err_on_pc1_within_cell,FD003,A8_sahi_L70,slope,-0.13218385217419185,300,CI -1.7455..1.4811; R2 increment 0.0003; engines 20
 A6_err_on_pc1_within_cell,FD004,A8_sahi_L70,slope,-0.32619907822516353,750,CI -1.8321..1.1797; R2 increment 0.0022; engines 50
-A6_err_on_pc1_within_cell,FD001,F_full_basic_hi1,slope,0.45667398743617077,300,CI -0.2644..1.1777; R2 increment 0.0106; engines 20
-A6_err_on_pc1_within_cell,FD002,F_full_basic_hi1,slope,0.11268788909290542,780,CI -0.6723..0.8976; R2 increment 0.0003; engines 52
-A6_err_on_pc1_within_cell,FD003,F_full_basic_hi1,slope,-0.0004344058541359122,300,CI -1.5718..1.5710; R2 increment 0.0000; engines 20
-A6_err_on_pc1_within_cell,FD004,F_full_basic_hi1,slope,-0.7508246685074551,750,CI -2.2100..0.7084; R2 increment 0.0124; engines 50
 A5c_ytrue_on_pc1_with_engine_fe,FD001,all cells,slope,6.869499030357428,100,CI 5.0999..8.6391; R2 increment 0.4964; engines 20
 A5c_ytrue_on_pc1_with_engine_fe,FD001,all cells,r2_increment,0.49644977642185156,100,within cell + engine fixed effects
 A5c_ytrue_on_pc1_with_engine_fe,FD002,all cells,slope,6.252416000422668,260,CI 5.4193..7.0855; R2 increment 0.4093; engines 52

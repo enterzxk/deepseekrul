@@ -41,8 +41,8 @@ engines, CI over 27 runs. Bins with fewer than 10 engines carry a
 
 | subset | bin | engines | median | IQR |
 |---|---|---|---|---|
-| FD001 | 50-99 | 18 | -5.301 | 21.944 |
-| FD001 | 100-149 | 20 | -0.899 | 6.360 |
+| FD001 | 50-99 | 18 | -4.833 | 21.367 |
+| FD001 | 100-149 | 20 | -1.330 | 6.360 |
 | FD001 | 150-199 | 15 | -1.667 | 5.697 |
 | FD001 | 200-249 | 6 | -0.405 | 6.115 |
 | FD002 | 50-99 | 46 | -2.407 | 18.653 |
@@ -101,8 +101,8 @@ looks like. This is a negative result about the analysis, not about the model.
 
 | subset | y_true == 125 | y_true < 125 | signed error in capped region |
 |---|---|---|---|
-| FD001 | 12.360 (n=189) | 7.514 (n=2511) | -12.280 |
-| FD002 | 11.510 (n=594) | 7.941 (n=6426) | -10.320 |
+| FD001 | 12.420 (n=189) | 7.524 (n=2511) | -12.280 |
+| FD002 | 11.318 (n=594) | 7.962 (n=6426) | -10.320 |
 | FD003 | 8.335 (n=297) | 8.859 (n=2403) | -7.820 |
 | FD004 | 13.313 (n=1377) | 8.119 (n=5373) | -11.944 |
 
@@ -271,7 +271,7 @@ one, since singleton pairs contribute nothing to identification.
 ## A6: does the model's signed error track that signal?
 
 Same within-cell construction, response `err` (signed), one arm at a time:
-36 regressions (9 arms x 4 subsets).
+32 regressions (8 arms x 4 subsets).
 
 ```
 CI excludes zero   0 / 36
@@ -293,7 +293,7 @@ The 4 statement that survives the checks, and no more than it:
 
 Three limits that must travel with it:
 
-1. **"Not detected" is not "no improvement possible".** `0/36`, `0/4` and `0/28`
+1. **"Not detected" is not "no improvement possible".** `0/32`, `0/4` and `0/28`
    are all non-detections at these sample sizes; none of them establishes that
    the mean has been exhausted.
 2. **Age is controlled by a 50-cycle bin dummy, not continuously.** Within a bin
@@ -308,3 +308,41 @@ Three limits that must travel with it:
 * No cross-arm comparison: predictions are pooled over one parent arm and the
   eight A8 arms; these tables describe the family's error structure.
 * No transition effect: see A2.
+
+## Revision after the alias dedupe (what changed, and by how much)
+
+F_full_basic_hi1 and A8_full_L70 are the same model: configs differ only in
+	ag, and all 12 al_pred.csv files are byte identical (checked on the 3090,
+12/12). The pool therefore drops the parent tag.
+
+| quantity | before (108 runs) | after (96 runs) | change |
+|---|---|---|---|
+| points | 19170 | 17040 | -2130 |
+| A1a FD001 50-99 median | -5.301 | -4.833 | +0.468 |
+| A1a FD001 100-149 median | -0.899 | -1.330 | -0.431 |
+| A3 FD001 capped abs error | 12.360 | 12.420 | +0.060 |
+| A3 FD002 capped abs error | 11.510 | 11.318 | -0.192 |
+| A3 degradation abs error | 7.514-8.859 | 7.524-8.865 | <= +0.02 |
+| A6 regressions | 36 | 32 | -4 |
+| A6 CI excluding zero | 0 | 0 | unchanged |
+
+The direction and the sign of every conclusion is unchanged; the medians move by
+up to 0.47, which is small next to the IQRs (5-21) they are reported against.
+The pooled A4 cell set stays at 58 because cells are keyed on
+(subset, cycle bin, regime) and not on the arm, but the duplicated rows inside
+them are gone (median rho +0.1819 -> +0.1796).
+
+## Interval units
+
+| analysis | unit of the interval |
+|---|---|
+| A1a / A1b | CI over 24 runs (8 arms x 3 seeds) of the per-run median across engines |
+| A2 | CI over engines, paired within engine (post-switch minus steady) |
+| A3 | descriptive counts; no interval claimed |
+| A4 / A4b | per-cell correlation, no interval; the per-arm table is the comparison |
+| A5 / A5c / A5e | cluster-robust SE over engines, t(df = engines - 1) |
+| A6 | cluster-robust SE over engines, t(df = engines - 1) |
+
+The same engine contributes five truncation points, so engines are the
+independent unit and the five points inside one engine are never counted as five
+samples in any interval.

@@ -120,6 +120,15 @@ def main():
                         ["A8_%s_L70" % a for a in
                          ("base", "ms", "sa", "hi", "mssa", "mshi", "sahi", "full")])
     preds = load_preds(args.raw, tags)
+    # Alias guard.  `F_full_basic_hi1` and `A8_full_L70` are the same model: the
+    # configs differ only in `tag`, and all 12 val_pred.csv files are byte
+    # identical.  Keeping both would count twelve cells twice in every pooled
+    # statistic, so the parent tag is dropped here and the A8 arm is kept.
+    alias = {"F_full_basic_hi1": "A8_full_L70"}
+    for drop, keep in alias.items():
+        if drop in set(preds["tag"]) and keep in set(preds["tag"]):
+            preds = preds[preds["tag"] != drop].copy()
+            print("alias dropped: %s (identical predictions to %s)" % (drop, keep))
     subsets = sorted(preds["subset"].unique())
     reg = regime_frames(args.cmapss, subsets)
 
@@ -147,7 +156,9 @@ def main():
     add("schema", "all", "join", "points", n_all, "")
     add("schema", "all", "join", "points_unmatched_cycle", n_miss, "")
     add("schema", "all", "pool", "runs", int(preds.groupby(["tag", "subset", "seed"]).ngroups),
-        n_all, "A8 96 cells + F_full_basic_hi1 12 cells")
+        n_all, "8 unique A8 arms x 4 subsets x 3 seeds = 96 cells; "
+               "F_full_basic_hi1 dropped as an alias of A8_full_L70 "
+               "(identical predictions, config differs only in tag)")
 
     # ---- A1: same running age, different engines -------------------------- #
     # Two axes, deliberately named differently and never substituted for each
