@@ -87,6 +87,16 @@ entries 12    keys 35    tag V0N_L70    use_cycle False(12/12)    hi_mono correc
 → 删 `data_dir`（`run_grid` 用 `--data-dir` 注入）→ 写 12 条。这样 12 次抄错的机会被结构性排除。
 （若 grid 丢失需重生成：`python /tmp/mkgrid.py`，脚本逻辑即上述四步，重生成后 sha 应逐位相同。）
 
+**核对口径（防误判，2026-11-14 实测 12/12）**：
+
+| 比什么 | 差几个键 | 差哪些 |
+|---|---|---|
+| **grid 条目** vs 母体**同格** config | **3** | `tag`、`use_cycle`、`data_dir`（后者故意删掉） |
+| **落盘后 run 的 config.json** vs 母体**同格** config | **2** | `tag`、`use_cycle`（`run_grid` 会把 `data_dir` 注入回来） |
+
+所以「只差 `use_cycle` + `tag`」这句话**只对落盘 config 成立，对 grid 条目不成立**——
+按 grid 核会看到 3 个差异并误报失败。**`data_dir` 的消失是设计，不是错。**
+
 ---
 
 ## 6. 发射命令（燕子唯一发射）
