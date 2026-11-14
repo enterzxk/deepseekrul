@@ -85,7 +85,11 @@ def regime_frames(cmapss_dir, subsets):
             sd = np.where(sd > 0, sd, 1.0)
             z[m] = (sub - mu) / sd
         df["pc1"] = z @ np.linalg.svd(z, full_matrices=False)[2][0]
-        out[s] = df[["unit", "cycle", "regime", "pc1"]]
+        # lifetime per unit: the last cycle the engine appears in the train file
+        life = df.groupby("unit")["cycle"].max()
+        df["lifetime"] = df["unit"].map(life)
+        df["rel_pos"] = df["cycle"] / df["lifetime"]
+        out[s] = df[["unit", "cycle", "regime", "pc1", "lifetime", "rel_pos"]]
     return out
 
 
@@ -143,24 +147,49 @@ def main():
     add("schema", "all", "join", "points", n_all, "")
     add("schema", "all", "join", "points_unmatched_cycle", n_miss, "")
 
-    # ---- A1: same cycle, different engines ------------------------------- #
-    df["bin"] = (df["cut"] // 25) * 25
-    for (s, b), g in df.groupby(["subset", "bin"]):
-        per_run_sd, per_run_ae, n_eng = [], [], []
-        for (tag, seed), gg in g.groupby(["tag", "seed"]):
-            e = gg.groupby("unit")["err"].mean()
-            per_run_ae.append(gg["ae"].mean())
-            if len(e) >= 3:
-                per_run_sd.append(float(np.std(e, ddof=1)))
-                n_eng.append(len(e))
-        if not per_run_sd:
-            continue
-        sd_m, sd_lo, sd_hi, k = ci95(per_run_sd)
-        ae_m, ae_lo, ae_hi, _ = ci95(per_run_ae)
-        add("A1_cycle_bin", s, "cycle %d-%d" % (b, b + 24),
-            "cross_engine_sd_of_error", sd_m, k, "CI %.3f..%.3f" % (sd_lo, sd_hi))
-        add("A1_cycle_bin", s, "cycle %d-%d" % (b, b + 24),
-            "mean_abs_error", ae_m, len(per_run_ae), "CI %.3f..%.3f" % (ae_lo, ae_hi))
+    # ---- A1: same running age, different engines -------------------------- #
+    # Two axes, deliberately named differently and never substituted for each
+    # other:
+    #   A1a "same running age"     = absolute cycle, 50-cycle bins
+    #   A1b "same life fraction"   = cut / that engine's lifetime
+    # A machine at cycle 100 may be halfway through its life or 80% through it,
+    # so the two questions have different answers.
+    def engine_level(g):
+        """One mean error per engine, then the cross-engine spread."""
+        per_eng = g.groupby("unit")["err"].mean()
+        return per_eng
+
+    for axis, col, width, label in (("A1a_same_age", "cut", 50, "cycle"),
+                                    ("A1b_same_life_fraction", "rel_pos", 0.05, "life")):
+        if axis.startswith("A1a"):
+            df["axis_bin"] = (df[col] // width) * width
+        else:
+            df["axis_bin"] = (df[col] / width).round() * width
+        for (s, b), g in df.groupby(["subset", "axis_bin"]):
+            per_run_med, per_run_iqr, per_run_n = [], [], []
+            for (tag, seed), gg in g.groupby(["tag", "seed"]):
+                pe = engine_level(gg)
+                if len(pe) < 3:
+                    continue
+                per_run_med.append(float(np.median(pe)))
+                per_run_iqr.append(float(np.percentile(pe, 75) - np.percentile(pe, 25)))
+                per_run_n.append(len(pe))
+            if not per_run_med:
+                continue
+            all_eng = engine_level(g)
+            med = float(np.median(all_eng))
+            iqr = float(np.percentile(all_eng, 75) - np.percentile(all_eng, 25))
+            m, lo, hi, k = ci95(per_run_med)
+            if axis.startswith("A1a"):
+                stratum = "cycle %d-%d" % (b, b + width - 1)
+            else:
+                stratum = "life %.2f" % b
+            n_eng = int(g["unit"].nunique())
+            thin = "engines<10: raw value only" if n_eng < 10 else ""
+            add(axis, s, stratum, "median_error_across_engines", med, n_eng,
+                "IQR %.3f; CI over %d runs %.3f..%.3f%s"
+                % (iqr, k, lo, hi, ("; " + thin) if thin else ""))
+            add(axis, s, stratum, "engines", n_eng, len(g), "")
 
     # ---- A2: regime and post-switch -------------------------------------- #
     # a window is "post-switch" if the regime differs from the previous cycle
@@ -204,13 +233,16 @@ def main():
             len(cap), "positive = over-prediction")
 
     # ---- A4: sensor information inside (cycle bin, regime) cells --------- #
+    # 50-cycle bins, so a cell has enough engines for the comparison to mean
+    # something; a 25-cycle bin left cells with 5 engines and one regime.
+    df["bin50"] = (df["cut"] // 50) * 50
     for s in subsets:
         d = df[df["subset"] == s]
-        for (b, r), g in d.groupby(["bin", "regime"]):
+        for (b, r), g in d.groupby(["bin50", "regime"]):
             if len(g) < 50 or g["unit"].nunique() < 5:
                 continue
             rho = g[["pc1", "ae"]].corr(method="spearman").iloc[0, 1]
-            add("A4_sensor_within_cell", s, "cycle %d-%d regime %d" % (b, b + 24, r),
+            add("A4_sensor_within_cell", s, "cycle %d-%d regime %d" % (b, b + 49, r),
                 "spearman_abs_error_vs_pc1", float(rho), len(g),
                 "engines %d" % g["unit"].nunique())
 
@@ -224,7 +256,8 @@ def main():
     print("points:", n_all, "unmatched cycle join:", n_miss)
     print("rows written:", len(rows))
     for r in rows:
-        if r["analysis"] in ("A1_cycle_bin", "A2_regime", "A3_capped"):
+        if r["analysis"] in ("A1a_same_age", "A1b_same_life_fraction",
+                             "A2_regime", "A3_capped"):
             print("%-14s %-6s %-24s %-26s %8.3f n=%-5s %s"
                   % (r["analysis"], r["subset"], r["stratum"], r["metric"],
                      float(r["value"]), r["n"], r["note"]))
