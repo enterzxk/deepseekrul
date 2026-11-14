@@ -1,0 +1,234 @@
+"""Task C: four conditional-error tables from the saved validation predictions.
+
+Everything here is read-only: the predictions come from `paper_b/results/raw/*/`,
+the operating-condition clusters and the sensor values come from the CMAPSS text
+files.  No training, no new checkpoints.
+
+Conventions
+-----------
+* Primary reading: label capped at 125, prediction NOT clipped (the historical
+  convention; `metrics.py` computes from the stored predictions).
+* `cut` in val_pred.csv is joined to `cycle` in the CMAPSS train file.  The join
+  is counted and reported: an unmatched row is a schema problem, not a modelling
+  one, and it is never silently dropped.
+* Operating conditions: KMeans(k=6, random_state=7) on the three op-setting
+  columns, the same construction `data.py::OpScaler` uses, so a regime label
+  here means the same thing it meant to the model.
+* Every per-point statistic is first reduced to one number per (run, engine),
+  then aggregated.  Points inside one engine are not independent, so pooling
+  them would shrink every interval for free.
+
+Outputs `TASK_C_CONDITIONAL_ERRORS.csv` and a printed summary.
+"""
+import argparse
+import collections
+import csv
+import glob
+import math
+import os
+
+import numpy as np
+import pandas as pd
+
+CAP = 125.0
+OP_COLS = ["op1", "op2", "op3"]
+SENSOR_COLS = ["s%d" % i for i in range(1, 22)]
+RAW_COLS = ["unit", "cycle"] + OP_COLS + SENSOR_COLS
+T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447,
+        7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179,
+        13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101,
+        19: 2.093, 20: 2.086, 21: 2.080, 22: 2.074, 23: 2.069, 24: 2.064,
+        25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
+
+
+def t975(df):
+    return T975.get(df, 1.96 if df > 30 else float("nan"))
+
+
+def ci95(values):
+    """Mean and 95% t interval over independent units (runs or engines)."""
+    v = [x for x in values if x is not None and not (isinstance(x, float) and math.isnan(x))]
+    n = len(v)
+    if n == 0:
+        return float("nan"), float("nan"), float("nan"), 0
+    m = float(np.mean(v))
+    if n == 1:
+        return m, float("nan"), float("nan"), 1
+    sd = float(np.std(v, ddof=1))
+    half = t975(n - 1) * sd / math.sqrt(n)
+    return m, m - half, m + half, n
+
+
+def load_raw(cmapss_dir, subset):
+    path = os.path.join(cmapss_dir, "train_%s.txt" % subset)
+    df = pd.read_csv(path, sep=r"\s+", header=None, names=RAW_COLS)
+    df["cycle"] = df["cycle"].astype(int)
+    return df
+
+
+def regime_frames(cmapss_dir, subsets):
+    from sklearn.cluster import KMeans
+    out = {}
+    for s in subsets:
+        df = load_raw(cmapss_dir, s)
+        km = KMeans(n_clusters=6, random_state=7, n_init=20).fit(
+            df[OP_COLS].to_numpy(np.float64))
+        df["regime"] = km.predict(df[OP_COLS].to_numpy(np.float64))
+        # cluster-wise z-score, same shape as OpScaler.transform
+        z = np.zeros((len(df), len(SENSOR_COLS)))
+        for c in range(6):
+            m = df["regime"].to_numpy() == c
+            if m.sum() < 2:
+                continue
+            sub = df.loc[m, SENSOR_COLS].to_numpy(np.float64)
+            mu, sd = sub.mean(0), sub.std(0)
+            sd = np.where(sd > 0, sd, 1.0)
+            z[m] = (sub - mu) / sd
+        df["pc1"] = z @ np.linalg.svd(z, full_matrices=False)[2][0]
+        out[s] = df[["unit", "cycle", "regime", "pc1"]]
+    return out
+
+
+def load_preds(raw_dir, tags):
+    frames = []
+    for tag in tags:
+        for p in sorted(glob.glob(os.path.join(raw_dir, tag, "*", "*", "val_pred.csv"))):
+            parts = p.replace("\\", "/").split("/")
+            subset, seed = parts[-3], parts[-2]
+            df = pd.read_csv(p)
+            df["tag"] = tag
+            df["subset"] = subset
+            df["seed"] = seed
+            frames.append(df)
+    return pd.concat(frames, ignore_index=True)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--raw", default=os.path.expanduser("~/rulb/paper_b/results/raw"))
+    ap.add_argument("--cmapss", default=os.path.expanduser("~/rulb/data/CMAPSS"))
+    ap.add_argument("--tag", action="append", default=None,
+                    help="run tag to include; repeatable (default: parent + A8 arms)")
+    ap.add_argument("--out", default="TASK_C_CONDITIONAL_ERRORS.csv")
+    args = ap.parse_args()
+
+    tags = args.tag or (["F_full_basic_hi1"] +
+                        ["A8_%s_L70" % a for a in
+                         ("base", "ms", "sa", "hi", "mssa", "mshi", "sahi", "full")])
+    preds = load_preds(args.raw, tags)
+    subsets = sorted(preds["subset"].unique())
+    reg = regime_frames(args.cmapss, subsets)
+
+    joined = []
+    for s in subsets:
+        p = preds[preds["subset"] == s].copy()
+        m = p.merge(reg[s], left_on=["unit", "cut"], right_on=["unit", "cycle"],
+                    how="left")
+        joined.append(m)
+    df = pd.concat(joined, ignore_index=True)
+    n_all = len(df)
+    n_miss = int(df["regime"].isna().sum())
+    df = df[df["regime"].notna()].copy()
+    df["regime"] = df["regime"].astype(int)
+    df["err"] = df["y_pred"] - df["y_true"]
+    df["ae"] = df["err"].abs()
+    df["capped"] = (df["y_true"] >= CAP - 1e-9)
+
+    rows = []
+
+    def add(analysis, subset, stratum, metric, value, n, note=""):
+        rows.append(dict(analysis=analysis, subset=subset, stratum=stratum,
+                         metric=metric, value=value, n=n, note=note))
+
+    add("schema", "all", "join", "points", n_all, "")
+    add("schema", "all", "join", "points_unmatched_cycle", n_miss, "")
+
+    # ---- A1: same cycle, different engines ------------------------------- #
+    df["bin"] = (df["cut"] // 25) * 25
+    for (s, b), g in df.groupby(["subset", "bin"]):
+        per_run_sd, per_run_ae, n_eng = [], [], []
+        for (tag, seed), gg in g.groupby(["tag", "seed"]):
+            e = gg.groupby("unit")["err"].mean()
+            per_run_ae.append(gg["ae"].mean())
+            if len(e) >= 3:
+                per_run_sd.append(float(np.std(e, ddof=1)))
+                n_eng.append(len(e))
+        if not per_run_sd:
+            continue
+        sd_m, sd_lo, sd_hi, k = ci95(per_run_sd)
+        ae_m, ae_lo, ae_hi, _ = ci95(per_run_ae)
+        add("A1_cycle_bin", s, "cycle %d-%d" % (b, b + 24),
+            "cross_engine_sd_of_error", sd_m, k, "CI %.3f..%.3f" % (sd_lo, sd_hi))
+        add("A1_cycle_bin", s, "cycle %d-%d" % (b, b + 24),
+            "mean_abs_error", ae_m, len(per_run_ae), "CI %.3f..%.3f" % (ae_lo, ae_hi))
+
+    # ---- A2: regime and post-switch -------------------------------------- #
+    # a window is "post-switch" if the regime differs from the previous cycle
+    sw = {}
+    for s in subsets:
+        r = reg[s].sort_values(["unit", "cycle"])
+        prev = r.groupby("unit")["regime"].shift(1)
+        r = r.assign(post=(r["regime"] != prev) & prev.notna())
+        sw[s] = r.set_index(["unit", "cycle"])["post"]
+    df["post"] = [bool(sw[s].get((u, c), False)) for s, u, c in
+                  zip(df["subset"], df["unit"], df["cut"])]
+
+    for s in subsets:
+        d = df[df["subset"] == s]
+        if d["regime"].nunique() < 2:
+            add("A2_regime", s, "single regime", "regimes", d["regime"].nunique(), 0, "")
+            continue
+        # paired within engine: post-switch mean ae minus steady mean ae
+        diffs = []
+        for (tag, seed, unit), gg in d.groupby(["tag", "seed", "unit"]):
+            a = gg.loc[gg["post"], "ae"]
+            b = gg.loc[~gg["post"], "ae"]
+            if len(a) >= 1 and len(b) >= 1:
+                diffs.append(float(a.mean() - b.mean()))
+        m, lo, hi, n = ci95(diffs)
+        add("A2_regime", s, "post-switch vs steady", "paired_abs_error_diff", m, n,
+            "CI %.3f..%.3f over engines" % (lo, hi))
+        add("A2_regime", s, "post-switch vs steady", "n_post_windows",
+            int(d["post"].sum()), len(d), "")
+
+    # ---- A3: capped vs degradation --------------------------------------- #
+    for s in subsets:
+        d = df[df["subset"] == s]
+        cap = d[d["capped"]]
+        deg = d[~d["capped"]]
+        add("A3_capped", s, "y_true==125", "mean_abs_error", float(cap["ae"].mean()),
+            len(cap), "")
+        add("A3_capped", s, "y_true<125", "mean_abs_error", float(deg["ae"].mean()),
+            len(deg), "")
+        add("A3_capped", s, "y_true==125", "mean_signed_error", float(cap["err"].mean()),
+            len(cap), "positive = over-prediction")
+
+    # ---- A4: sensor information inside (cycle bin, regime) cells --------- #
+    for s in subsets:
+        d = df[df["subset"] == s]
+        for (b, r), g in d.groupby(["bin", "regime"]):
+            if len(g) < 50 or g["unit"].nunique() < 5:
+                continue
+            rho = g[["pc1", "ae"]].corr(method="spearman").iloc[0, 1]
+            add("A4_sensor_within_cell", s, "cycle %d-%d regime %d" % (b, b + 24, r),
+                "spearman_abs_error_vs_pc1", float(rho), len(g),
+                "engines %d" % g["unit"].nunique())
+
+    with open(args.out, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["analysis", "subset", "stratum", "metric",
+                                          "value", "n", "note"])
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+    print("points:", n_all, "unmatched cycle join:", n_miss)
+    print("rows written:", len(rows))
+    for r in rows:
+        if r["analysis"] in ("A1_cycle_bin", "A2_regime", "A3_capped"):
+            print("%-14s %-6s %-24s %-26s %8.3f n=%-5s %s"
+                  % (r["analysis"], r["subset"], r["stratum"], r["metric"],
+                     float(r["value"]), r["n"], r["note"]))
+
+
+if __name__ == "__main__":
+    main()
