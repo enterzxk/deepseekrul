@@ -72,7 +72,11 @@ Branch: `paper-b-contribution-attribution`，起点提交 `18a77f13`，本文件
 
 TEST：707 台机，每台 1 个预测。注意：每台机只有一个点，所以「逐机 RMSE」等于 |误差|，其均值等于 MAE；比较 RMSE 要看 pooled。
 
-> **口径更正（复核后）**：17 个变体的 TEST 数字**全部算过**，汇总表 `S1B_READOUT_VARIANTS.csv` 的 test 列就是这 17 次。所以「TEST 只评估一次」这个说法不成立——准确的说法是「选定之后**才允许**读 TEST，且选定值在读取前已固定」。选择函数只接触 val 列，test 列是事后补算的敏感性输出；但**看过的次数就是 17 次**，这一点必须如实记，不能含糊成「一次性」。
+> **口径更正（两轮复核后）**：17 个变体的 TEST 数字**全部算过**，汇总表的 test 列就是这 17 次，所以「TEST 只评估一次」不成立。
+>
+> 第一版实现里 `evaluate()` 一次同时算 val 和 test，而它在选择循环内就被调用——**test 指标在选择定下来之前就已经算完了**，因此当时「test 列是事后补算的敏感性输出」这个说法是错的，脚本 docstring 与 JSON 里的 `selection_rule` 也一并错了。复核指出后已拆分：`evaluate_split(points, split)`，选择循环只算 val，`selected` 定下之后才对全部变体算 test。重跑后 17 行数值**逐列完全相同**（max\|Δ\| = 0），只有 `selection_rule` 的文本变了。
+>
+> 因此现在能成立的保证是「**选定值在计算 test 之前已经固定**」，而不是「test 只算了一次」。看过的次数就是 17 次，这一点如实记。
 
 | | TEST pooled RMSE | TEST NASA sum | TEST MAE | TEST bias |
 |---|---:|---:|---:|---:|

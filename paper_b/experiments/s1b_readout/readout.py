@@ -5,9 +5,11 @@ Members for one evaluation point (subset, unit, cut):
   * for the multi-window family, the same seeds at windows ending j cycles
     earlier, whose estimate of the reference RUL is (pred_j - j).
 
-Selection happens on validation engines only. The official test numbers are
-computed for every variant afterwards, but they are sensitivity output: the
-selected configuration is fixed before they are read.
+Selection happens on validation engines only. The selection loop computes
+validation metrics alone; the test split is scored afterwards, for every
+variant, as sensitivity output. Note that this still means 17 variants' test
+numbers get computed - the guarantee is that the chosen configuration was fixed
+before that happened, not that the test set was read once.
 
 Usage:
   python readout.py --preds preds_fp32.csv --out-json readout.json --out-csv readout.csv
@@ -104,34 +106,37 @@ def score_points(df, config, by_seed=False):
     return pd.DataFrame(rows)
 
 
-def evaluate(points):
-    """Engine-level RMSE (primary) plus pooled RMSE, MAE, NASA, bias."""
-    out = {}
-    for split in ('val', 'test'):
-        p = points[points.split == split]
-        if p.empty:
-            continue
-        if split == 'val':
-            per_engine = p.groupby(['subset', 'unit']).apply(
-                lambda g: float(np.sqrt(np.mean((g.y_pred - g.y_true) ** 2))))
-            note = 'mean of per-engine RMSE over five cut points'
-        else:
-            per_engine = (p.y_pred - p.y_true).abs().groupby([p.subset, p.unit]).mean()
-            note = ('one prediction per engine, so the per-engine RMSE equals |error| and its '
-                    'mean equals the MAE; compare RMSE via rmse_pooled')
-        err = (p.y_pred - p.y_true).to_numpy(float)
-        out[split] = dict(
-            engine_mean_rmse=float(per_engine.mean()),
-            rmse_pooled=float(np.sqrt(np.mean(err ** 2))),
-            mae=float(np.mean(np.abs(err))),
-            nasa_sum=float(nasa_penalty(err).sum()),
-            nasa_mean=float(nasa_penalty(err).mean()),
-            bias=float(err.mean()),
-            n_points=int(len(p)),
-            n_engines=int(p.groupby(['subset', 'unit']).ngroups),
-            engine_metric_note=note,
-        )
-    return out
+def evaluate_split(points, split):
+    """Metrics for one split only.
+
+    The split is a required argument so the selection loop can compute
+    validation numbers without touching the test split. Scoring both at once
+    would mean the test column exists before the choice is fixed, which is the
+    thing this module is supposed to avoid.
+    """
+    p = points[points.split == split]
+    if p.empty:
+        return {}
+    if split == 'val':
+        per_engine = p.groupby(['subset', 'unit']).apply(
+            lambda g: float(np.sqrt(np.mean((g.y_pred - g.y_true) ** 2))))
+        note = 'mean of per-engine RMSE over five cut points'
+    else:
+        per_engine = (p.y_pred - p.y_true).abs().groupby([p.subset, p.unit]).mean()
+        note = ('one prediction per engine, so the per-engine RMSE equals |error| and its '
+                'mean equals the MAE; compare RMSE via rmse_pooled')
+    err = (p.y_pred - p.y_true).to_numpy(float)
+    return dict(
+        engine_mean_rmse=float(per_engine.mean()),
+        rmse_pooled=float(np.sqrt(np.mean(err ** 2))),
+        mae=float(np.mean(np.abs(err))),
+        nasa_sum=float(nasa_penalty(err).sum()),
+        nasa_mean=float(nasa_penalty(err).mean()),
+        bias=float(err.mean()),
+        n_points=int(len(p)),
+        n_engines=int(p.groupby(['subset', 'unit']).ngroups),
+        engine_metric_note=note,
+    )
 
 
 def per_seed_test(points_seed):
@@ -160,14 +165,14 @@ def main():
     for cfg in configs():
         name = config_name(*cfg)
         pts = score_points(df, cfg)
-        res = evaluate(pts)
-        cache[name] = (cfg, pts, res)
+        val = evaluate_split(pts, 'val')   # test is not computed in this loop
+        cache[name] = (cfg, pts, val)
         row = dict(config=name,
-                   val_engine_mean_rmse=res['val']['engine_mean_rmse'],
-                   val_rmse_pooled=res['val']['rmse_pooled'],
-                   val_nasa_sum=res['val']['nasa_sum'],
-                   val_mae=res['val']['mae'],
-                   val_bias=res['val']['bias'])
+                   val_engine_mean_rmse=val['engine_mean_rmse'],
+                   val_rmse_pooled=val['rmse_pooled'],
+                   val_nasa_sum=val['nasa_sum'],
+                   val_mae=val['mae'],
+                   val_bias=val['bias'])
         rows.append(row)
         if best is None or row['val_engine_mean_rmse'] < best[1]:
             best = (name, row['val_engine_mean_rmse'])
@@ -180,8 +185,8 @@ def main():
     # Sensitivity: test numbers for every variant, computed after the choice is
     # fixed and never used to change it.
     sens = []
-    for name, (cfg, pts, res) in cache.items():
-        t = res['test']
+    for name, (cfg, pts, val) in cache.items():
+        t = evaluate_split(pts, 'test')
         sens.append(dict(config=name, test_rmse_pooled=t['rmse_pooled'],
                          test_engine_mean_abs=t['engine_mean_rmse'],
                          test_nasa_sum=t['nasa_sum'], test_nasa_mean=t['nasa_mean'],
@@ -193,8 +198,10 @@ def main():
 
     base = 'mean'
     sel = cache[selected]
-    base_res = cache[base][2]
-    sel_res = sel[2]
+    base_val = cache[base][2]
+    sel_val = sel[2]
+    base_test = evaluate_split(cache[base][1], 'test')
+    sel_test = evaluate_split(sel[1], 'test')
 
     # per-seed spread of the selected readout on test
     pts_seed = score_points(df, sel[0], by_seed=True)
@@ -202,22 +209,23 @@ def main():
     ps.to_csv(a.out_csv.replace('.csv', '_perseed.csv'), index=False)
     sd_by_subset = ps.groupby('subset').rmse.std(ddof=1).to_dict()
 
-    d_nasa = sel_res['test']['nasa_sum'] - base_res['test']['nasa_sum']
-    rel_nasa = d_nasa / base_res['test']['nasa_sum']
-    d_rmse = sel_res['test']['rmse_pooled'] - base_res['test']['rmse_pooled']
+    d_nasa = sel_test['nasa_sum'] - base_test['nasa_sum']
+    rel_nasa = d_nasa / base_test['nasa_sum']
+    d_rmse = sel_test['rmse_pooled'] - base_test['rmse_pooled']
     max_sd = max(sd_by_subset.values()) if sd_by_subset else float('nan')
 
     payload = dict(
         selection_rule='minimum validation engine-level RMSE over the 17 frozen variants; '
-                       'test read only after the choice was fixed',
+                       'the selection loop computes validation metrics only, and the test '
+                       'split is scored afterwards for every variant as sensitivity',
         selected=selected,
         selected_config=dict(kind=sel[0][0], member_mode=sel[0][1], j_max=sel[0][2],
                              decay=sel[0][3], param=sel[0][4]),
         baseline_config=base,
-        validation=sel_res['val'],
-        baseline_validation=base_res['val'],
-        official_test=sel_res['test'],
-        baseline_official_test=base_res['test'],
+        validation=sel_val,
+        baseline_validation=base_val,
+        official_test=sel_test,
+        baseline_official_test=base_test,
         s1b_criterion=dict(
             nasa_abs_change=d_nasa,
             nasa_relative_change=rel_nasa,
@@ -232,11 +240,11 @@ def main():
     )
     Path(a.out_json).write_text(json.dumps(payload, indent=1, ensure_ascii=False))
 
-    print(f'\nSELECTED {selected} (val engine-RMSE {sel_res["val"]["engine_mean_rmse"]:.4f})')
-    print(f'baseline {base}: val {base_res["val"]["engine_mean_rmse"]:.4f} '
-          f'test {base_res["test"]["rmse_pooled"]:.4f} NASA {base_res["test"]["nasa_sum"]:.1f}')
-    print(f'selected       : val {sel_res["val"]["engine_mean_rmse"]:.4f} '
-          f'test {sel_res["test"]["rmse_pooled"]:.4f} NASA {sel_res["test"]["nasa_sum"]:.1f}')
+    print(f'\nSELECTED {selected} (val engine-RMSE {sel_val["engine_mean_rmse"]:.4f})')
+    print(f'baseline {base}: val {base_val["engine_mean_rmse"]:.4f} '
+          f'test {base_test["rmse_pooled"]:.4f} NASA {base_test["nasa_sum"]:.1f}')
+    print(f'selected       : val {sel_val["engine_mean_rmse"]:.4f} '
+          f'test {sel_test["rmse_pooled"]:.4f} NASA {sel_test["nasa_sum"]:.1f}')
     print(f'NASA change {d_nasa:+.1f} ({rel_nasa:+.2%}); RMSE change {d_rmse:+.4f} '
           f'vs max seed sd {max_sd:.4f}')
 
