@@ -936,3 +936,6 @@ $lo_0=lo+\hat q$、$hi_0=hi-\hat q$；E 把扩张项换成 $q_E\cdot s$，同一
 
 
 2026-11-14 888次开发训练闭环完成：module504原科学门FAILED；完整AIDGN192和Bayes192统一迁移均执行SUCCESS，native数值PARTIAL。全888cp/2184点预测、另336sigma逐位重载0差。独立报告核60数字格及7707归档文件SHA，PASS；公开Git只含代码/预测/配置/指标/审计，大cp仍在私有a40并全SHA留存。master报告docs/paper_b_baselines/OPEN_SOURCE_REPRODUCTION_REPORT.md和NC完整报告已落；D3仍仅inner探索另表。
+
+
+2026-11-14 PB-NC后续：D3已launch，source7bb98787/executiond5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224，48inner-only经典预处理筛查，不混入888outer表。source五文件连checks冻结，PREFLIGHT16PASS0optimizer；最多8共享GPU小时。新增两fresh-context数学/查新代理拒绝‘函数范数白化/解码差’作为新贡献：精确FE/KRR等价且background歧义未解，未写代码/未起GPU，见FUNCTIONAL_CONTRAST_REJECTION.md。H-CDE书目按出版社更正为2027卷期/2026公开记录，旧简写RESS2026仅指作者记录年。

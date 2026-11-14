@@ -60,3 +60,6 @@
 
 - N-CMAPSS已核BayesRUL/AIDGN/MOO_ELM/Concept等，完整DOI、固定SHA与协议风险见 docs/paper_b_ncmapss_response_20261113/NEW_DATASET_BASELINE_AUDIT.md。
 - 最近邻R2-D2、Function Encoders、operation-profile DA、physics/deep/PF：均有原始来源；不主张可微ridge本身创新。
+
+
+2026-11-14 PB-NC后续：D3已launch，source7bb98787/executiond5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224，48inner-only经典预处理筛查，不混入888outer表。source五文件连checks冻结，PREFLIGHT16PASS0optimizer；最多8共享GPU小时。新增两fresh-context数学/查新代理拒绝‘函数范数白化/解码差’作为新贡献：精确FE/KRR等价且background歧义未解，未写代码/未起GPU，见FUNCTIONAL_CONTRAST_REJECTION.md。H-CDE书目按出版社更正为2027卷期/2026公开记录，旧简写RESS2026仅指作者记录年。

@@ -1,0 +1,18 @@
+{
+  "status": "NO_NOVEL_METHOD_APPROVED",
+  "method_agent": "functional_method_review",
+  "novelty_agent": "functional_novelty_review",
+  "fresh_contexts": true,
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "high",
+  "actual_runtime_identifier": "not returned by tool; request metadata only, no fabricated verification",
+  "new_training_or_code": false,
+  "decision": "mathematical diagnostic only; reject as new module/stage candidate",
+  "reason": [
+    "exact whitening/generalized ridge/KRR equivalence",
+    "background translation and unequal shrinkage ambiguity",
+    "no health identification from support or PSD energy",
+    "direct verified nearest neighbours"
+  ],
+  "evidence": "FUNCTIONAL_CONTRAST_REJECTION.md"
+}

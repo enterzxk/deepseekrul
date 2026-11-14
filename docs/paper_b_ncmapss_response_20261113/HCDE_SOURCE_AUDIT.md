@@ -2,7 +2,7 @@
 
 结论：**PARTIAL（来源／静态审计），不进入当前 RUL 数值主表**。未执行作者脚本、训练、读取凭据或加载 checkpoint。
 
-作者：[Zhao and Fink，RESS2026，10.1016/j.ress.2026.112943](https://infoscience.epfl.ch/entities/publication/5e208282-d8bf-4d09-9140-4874bf95b2a0)，[arXiv2509.00639v2](https://arxiv.org/abs/2509.00639v2)。官方代码固定 [b5cfa1e069bd824ad65fc0ad427dd0e828ebf936](https://github.com/EPFL-IMOS/hcde/tree/b5cfa1e069bd824ad65fc0ad427dd0e828ebf936)，51 个原文件完整保存在私有本地 clone，逐文件 SHA256 见 `evidence/HCDE_SOURCE_MANIFEST.json`；根 LICENSE 为 MIT。独立审查者为 Codex `audit_secondary_sources`，仅只读。
+作者：[Zhao and Fink，RESS（2027卷期、2026公开记录），10.1016/j.ress.2026.112943](https://infoscience.epfl.ch/entities/publication/5e208282-d8bf-4d09-9140-4874bf95b2a0)，[arXiv2509.00639v2](https://arxiv.org/abs/2509.00639v2)。官方代码固定 [b5cfa1e069bd824ad65fc0ad427dd0e828ebf936](https://github.com/EPFL-IMOS/hcde/tree/b5cfa1e069bd824ad65fc0ad427dd0e828ebf936)，51 个原文件完整保存在私有本地 clone，逐文件 SHA256 见 `evidence/HCDE_SOURCE_MANIFEST.json`；根 LICENSE 为 MIT。独立审查者为 Codex `audit_secondary_sources`，仅只读。
 
 | 核查项 | 实际源码行为与可比性 |
 |---|---|
@@ -18,3 +18,5 @@
 | 依赖／checkpoint | README 要求 Python3.11，锁 torch2.2.0/numpy1.26.4、torchcde/torchdiffeq/torchsde 等；树内未见权重文件，README 未给权重下载链接。未核实外部 releases。 |
 
 慢快状态、可学习退化驱动和健康响应重构已是明确最近邻。因此“工况解耦”“正损伤时钟”及简单条件残差化不能直接作为我们的新颖性主张。当前只完成 D1/D2 和已注册外部基线；H-CDE 如需 RUL 迁移，必须先另行给出目标、读出和信息边界规格。
+
+书目信息纠正：作者EPFL记录归2026；[出版社正式卷期](https://doi.org/10.1016/j.ress.2026.112943)为277 Part1，2027年1月，article112943。不能仅因DOI含2026而称2026卷期。

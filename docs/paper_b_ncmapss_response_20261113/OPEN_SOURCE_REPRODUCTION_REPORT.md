@@ -56,7 +56,7 @@ NASA Score采用 e=prediction−truth，e≥0为exp(e/10)−1，e<0为exp(−e/1
 |BayesRUL-HNN，RESS2025，10.1016/j.ress.2024.110513|2943f4d85a1bb71910c100c956b32c3f6b595ceb|PARTIAL|SUCCESS|完整Inception/dense/双softplus、原weights_init与原HNN.step保留。单子集/按机/global训练侧scaler/正cap125/125/年龄metadata为显式迁移；未复现原DS01–05 joint/hs标签/随机窗/earlystop。192train及mu/sigma重载PASS。|
 |MOO_ELM，EvoApplications2022，10.1007/978-3-031-02462-7_13|b19b2bf47bdfc3b7d4ae2a540b605caf4fd087e3|PARTIAL|PARTIAL|完整ELM+NSGA-II来源已固定，统一搜索未运行，不用任意小ELM冒充原方法。|
 |Concept-Prognostics，Information Fusion2025，10.1016/j.inffus.2025.103427|25ec477c834e81440a288e161ec1f4461737ee49|PARTIAL|PARTIAL|原CBM/CEM依赖真实健康概念监督，须单列特权条件；不把其普通CNN对照当主方法。|
-|H-CDE，RESS2026，10.1016/j.ress.2026.112943|b5cfa1e069bd824ad65fc0ad427dd0e828ebf936|PARTIAL|PARTIAL|新增独立来源审查；实际为sensor重构/health对齐而非本协议RUL，健康筛选与划分/入口问题另记，不冒加head称原复现。|
+|H-CDE，RESS 2027卷期（2026公开记录），10.1016/j.ress.2026.112943|b5cfa1e069bd824ad65fc0ad427dd0e828ebf936|PARTIAL|PARTIAL|新增独立来源审查；实际为sensor重构/health对齐而非本协议RUL，健康筛选与划分/入口问题另记，不冒加head称原复现。|
 
 原公开checkpoint路径、论文历史分数、原始协议RMSE/NASA差值未在本轮完成的项目，均不填伪造差值。DOI/官方来源和额外数据风险详见 NEW_DATASET_BASELINE_AUDIT.md 与 HCDE_SOURCE_AUDIT.md。
 

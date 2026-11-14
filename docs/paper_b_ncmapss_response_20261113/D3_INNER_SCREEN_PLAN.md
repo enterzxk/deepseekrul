@@ -13,3 +13,6 @@
 真实验收：NumPy13合同PASS（独立复核）；实际原Model四subset×四family B64前向反向16记录PASS、0optimizer，输入逆变换/NumPy-Torch/无RNG/四臂初态一致/排除机scaler隔离通过；见evidence/D3_PREFLIGHT_V1.json。含25%margin投影约1.06h<8h，峰值约465MiB。正式训练尚待以提交的完全同源文件启动。
 
 执行SHA：d5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced。检查程序SHA：2d57d9e8840b706ff0b3c7fbcec74f5a05b6943febbe953c68fa66cc01986aff。旧五文件execution0d5a不变。此处仅预处理参考，不是“DSPT+新模块已改善”的证据。
+
+
+实际启动：source commit7bb98787459c3bf2b50fc64b84c5ec720fde243b，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224。仅48次inner_screen；formal_7bb98787.log/FAILED.json为恢复入口，禁止重复launch或改冻五文件。

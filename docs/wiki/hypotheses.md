@@ -106,3 +106,6 @@ C_ek 用温度=1 个 RUL 循环的 sigmoid 边界做可微覆盖；引擎等权�
 
 
 2026-11-14 PB-NC-response闭环：原common贡献判FAILED，504训练/24年龄/全504checkpoint真实重载，primary/age/sensor/attribution/mechanism全FAIL。证据见docs/paper_b_ncmapss_response_20261113/OPEN_SOURCE_REPRODUCTION_REPORT.md及experiments/paper_b_ncmapss_response_20261113；L2记录PB-NC-POSTFAIL-20261114。D1/D2是失败后训练侧探索，非RUL增益/HI识别；旧data_diagnostics_v1逐sensor错名已撤回，数字不变的schema纠正见data_diagnostics_v2_schema_corrected。
+
+
+2026-11-14 PB-NC后续：D3已launch，source7bb98787/executiond5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224，48inner-only经典预处理筛查，不混入888outer表。source五文件连checks冻结，PREFLIGHT16PASS0optimizer；最多8共享GPU小时。新增两fresh-context数学/查新代理拒绝‘函数范数白化/解码差’作为新贡献：精确FE/KRR等价且background歧义未解，未写代码/未起GPU，见FUNCTIONAL_CONTRAST_REJECTION.md。H-CDE书目按出版社更正为2027卷期/2026公开记录，旧简写RESS2026仅指作者记录年。

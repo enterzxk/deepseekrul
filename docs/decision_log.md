@@ -1965,3 +1965,6 @@ V3实际source/native/shape/FP32grad/预处理合同全部PASS，含25%margin预
 实际D1：120训练机内部crossfit，尺度比例中位~1.3–1.5%，尺度门MET；动态遗漏门NOT_MET，仅DS05≥10%，不调阈值。无Y/TEST/GPU/optimizer。
 实际D2：1120组训练侧eval态梯度，0optimizer，source/cache/config/initial/final身份锁通过；common末态weighted aux/task在response_body四subset=.040/.052/.322/.233，均远低于>10门；未支持‘aux支配RUL’解释。这不是历史随机优化过程的因果识别。全mode/group/block数据已保留。
 执行：保留原所有失败证据；不修改504/AIDGN/Bayes冻结程序。D3独立admission允许48次inner-only经典预处理2×2有限筛查（新目录、另注册，非新模块/非outer确认），先实际软件和身份验收后启动。未过固定门即不推进B1；通过也只建立强平凡对照。后续任何可学习模块必须超越该对照并另审创新性/数学规格。
+
+
+2026-11-14 PB-NC后续：D3已launch，source7bb98787/executiond5f117e60734d99a02a56d7d3d5f50961ecaaedd24ab0c13ced57c24dfe80ced，a40 /media/sangfor/vdb/user/zxk/ncmapss_conditioning_20261114/formal_7bb98787，PID3787224，48inner-only经典预处理筛查，不混入888outer表。source五文件连checks冻结，PREFLIGHT16PASS0optimizer；最多8共享GPU小时。新增两fresh-context数学/查新代理拒绝‘函数范数白化/解码差’作为新贡献：精确FE/KRR等价且background歧义未解，未写代码/未起GPU，见FUNCTIONAL_CONTRAST_REJECTION.md。H-CDE书目按出版社更正为2027卷期/2026公开记录，旧简写RESS2026仅指作者记录年。
