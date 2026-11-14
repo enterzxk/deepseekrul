@@ -14,12 +14,18 @@
 ## 0. 结论摘要
 
 1. **三个身份都能钉死到配置字段**，依据是 D039 X3 的显式表 + `RUN_INVENTORY` §5 的字段级 diff。
-2. **但同一个「`DSPT-V0-Cycle`」名下有两个不同的 TEST 数**（`11.512` 与 `11.1725`），
-   差别来自**精度协议**（默认 BF16 vs 统一 FP32），**不是来自模型**。原件 §1 原文即声明「不与历史 DSPT 默认 BF16 结果声称数值等价」。
-   **因此 Task A 固定身份时必须同时固定精度口径**，否则后续任何「新机制 vs 强基线」的比较都是跨口径相减。
-3. **`V0N`（无 cycle）从未跑过**——`runs.csv` 里 V0C/V0N 都无记录，`V0-Cycle` 是以 `F_full_basic_hi1` 的 tag 存在的。
-   所以 Task B 第 1 项「Cycle 的独立贡献」**必须新训练**，不可能靠复用。
-4. **`DSPT-TrainDefaults` 的身份仍待核**（见 §4）；它在 FP32 口径下的数在原件 §3 里，但**没有 3 seed 的 engine-level val 记录**。
+2. **但同一个「`DSPT-V0-Cycle`」名下有两个不同的 TEST 数**（`11.512` 与 `11.1725`）。
+   **它们之间至少有三个未分离的变量**：精度、选轮准则（`pooled` vs `engine-level`）、聚合方式（见 §2）。
+   **没有单变量对照，所以不能把 `0.34` 全归因到「BF16 → FP32」**——本文早先那版正是这样写的，已按军师 2026-11-14 的核对收窄。
+   **因此 Task A 固定身份时必须同时固定整套协议（精度 + 选轮准则 + 聚合），不只是精度。**
+3. **`V0N`（强骨干 + `use_cycle=False`）确实没有跑过**，证据是**三条独立链**而不是单看 `runs.csv`：
+   ① `paper_b/experiments/grids/nocycle.json` 只有 **12 条**，`tag` 全为 **`NC_base_L70`**、`use_cycle` 全 `False`、**`ms/sa/hi` 全为 `off/off/none`** ——**它定义的是 base 骨干的 cycle-off，不是 V0N**；
+   ② 盘上无任何 `V0*` 目录（管理员独立扫描）；
+   ③ `runs.csv` 无 V0C/V0N 标签（**仅此一条不足以定论**，因为台账不是全量，见 §4 第 5 行）。
+   **而 `V0-Cycle` 本身在网格层面就是 `A8_full_L70`**：`ablation8.json` 的 96 条里该 tag 12 条、`ms/sa/hi = full/basic/hf`、`use_cycle=True`。
+   所以 Task B 第 1 项「Cycle 的独立贡献」在强骨干上**必须新训练**；base 骨干上已有 12 格可复用（见 §4 第 6 行）。
+4. **`DSPT-TrainDefaults` 已闭合为 `A8_ms_L70`**（`full/off/none/cycle=on`，参数 **`82114`**，与 `DSPT(max_span=70)` 默认构造逐位相等）：**12 格 val 齐、val engine-mean `11.3404`；test 只有 `s101` 四格**（`n=1`/子集，均值 `11.3867`）。
+   **⚠ 但一个曾差点写错的地方**：`A0` **不是** TrainDefaults。`A0` 是 `cycle_only=True`（只喂年龄、无传感器），4 格全 `s101`、val `30.10/26.29/39.98/37.12`、**无 test**。**把 `A0` 当 TrainDefaults，基线会被写成差 3 倍。**
 5. 「base」在本项目里有 **4 个不同含义**，引用前必须写三开关取值 + tag 前缀。
 
 ## 1. 三个身份的配置钉定
@@ -27,15 +33,18 @@
 | 名字 | `ms_mode` | `sa_mode` | `hi_source` | `use_cycle` | `input_mode` | 可定位的 tag | 依据 |
 |---|---|---|---|---|---|---|---|
 | **`DSPT-V0-Cycle`**（主参考） | `full` | `basic` | `hf` | `True` | `raw` | **`F_full_basic_hi1`** ≡ **`A8_full_L70`** | D039 X3 表；`RUN_INVENTORY` §5.2 #5 |
-| **`DSPT-TrainDefaults`**（辅助参考） | `full` | `off` | `none` | `True` | `raw` | **待核**（疑似 `A0`，4 行） | 原件 §1「literal train DEFAULTS」；D039 X2 记 DEFAULTS 为 `sa_mode='off'` |
+| **`DSPT-TrainDefaults`**（辅助参考） | `full` | `off` | `none` | `True` | `raw` | **`A8_ms_L70`**（`82114` 参数，与 `DSPT(max_span=70)` 默认构造逐位相等） | 原件 §1「literal train DEFAULTS」；D039 X2 记 DEFAULTS 为 `sa_mode='off'`；管理员 2026-11-14 核实 |
 | **历史 `Selected`** | `single_proj` | `basic` | `hf` | `True` | `raw` | **`F_single_proj_basic_hi1`** | `SEED_ROBUSTNESS` 的 `cand` 行；factorial 线 |
-| （Task B 需要，**未跑**）`V0-NoCycle` | `full` | `basic` | `hf` | **`False`** | `raw` | 无 | D039 X3 已定义，`runs.csv` 无记录 |
+| （Task B 需要，**未跑**）`V0-NoCycle` | `full` | `basic` | `hf` | **`False`** | `raw` | 无 | D039 X3 已定义；**`nocycle.json` 12 条全为 `NC_base_L70`（`off/off/none`），不含本行** |
 | （Task B 需要，已存在）`V0-NoHI` | `full` | `basic` | **`none`** | `True` | `raw` | **≡ `A3`**（D039 X3 明写「同配置，只跑一次、双向引用」） | D039 X3 |
 
 **三个身份共享的 27 个训练/划分字段**（`RUN_INVENTORY` §5.1 已逐字段核对）：
 `span=70, epochs=40, patience=12, batch=512, lr=1e-3, weight_decay=1e-4, d_model=64, layers=2, dropout=0.2,
 mode=dual, hi_mono_coef=0.1, rul_cap=125, split_seed=7, fold=0, val_frac=0.2, n_cond=6, cuts=[0.4,0.55,0.7,0.85,0.95], …`
-**所以三者之间的差不是预算或划分造成的，只能归到结构/输入表示。**
+**所以三者之间的差不是预算或划分造成的**——**但这不等于「只剩结构/输入表示」**（军师指出，本文初版写得太满，已收窄）：
+**`RUN_INVENTORY` §5.1 那张表只覆盖 27 个训练/划分字段，不覆盖 checkpoint 选轮准则、数值精度和运行出处。**
+而 `SEED_ROBUSTNESS` 明写它的三个细胞是**在 GPU 主机上按 `pooled` 验证 RMSE 选的轮**（该主机仍是 pre-R2 `metrics.py`），`engine-level` 值是事后从保存的预测重算的。**所以「同 27 字段」只排除了预算与划分，选轮准则这一项仍在两批 run 之间可能不同。**
+**引用任何跨批差值前，必须另外核对：选轮准则、精度、`val_pred.csv` 的重算口径、run 出处（哪个根/哪台机）。**
 
 ## 2. 口径分裂：同一配置的两个 TEST 数
 
@@ -43,19 +52,30 @@ mode=dual, hi_mono_coef=0.1, rul_cap=125, split_seed=7, fold=0, val_frac=0.2, n_
 
 | 配置 | 口径 | val（engine-level，4 子集均值） | test（4 子集均值） | 逐子集 test | 来源 |
 |---|---|---:|---:|---|---|
-| `V0-Cycle`（= `full`） | **默认 BF16** | **10.981** | **11.512** | `10.379 / 10.988 / 12.317 / 12.362` | `SEED_ROBUSTNESS` test 表 `full` 行 |
-| `V0-Cycle-FP32` | **统一 FP32** | 无记录 | **11.1725** | `10.60 / 11.03 / 10.68 / 12.38` | 原件 §3/§6 主参考行 |
-| `Selected`（= `cand`） | **默认 BF16** | **10.896** | **11.134** | `10.854 / 10.960 / 10.799 / 11.922` | `SEED_ROBUSTNESS` test 表 `cand` 行 |
-| `Factorial base`（= `base`） | **默认 BF16** | **11.364** | **11.655** | `11.140 / 11.544 / 11.130 / 12.806` | `SEED_ROBUSTNESS` test 表 `base` 行 |
-| `TrainDefaults-FP32` | **统一 FP32** | 无记录 | **11.23** | `10.07 / 11.20 / 11.16 / 12.49` | 原件 §3 辅助参考行 |
+| `V0-Cycle`（= `full`） | **未记录**（见下「精度是推断」） | **10.981** | **11.512** | `10.379 / 10.988 / 12.317 / 12.362` | `SEED_ROBUSTNESS` test 表 `full` 行 |
+| `V0-Cycle-FP32` | **统一 FP32（明写）** | 无记录 | **11.1725** | `10.60 / 11.03 / 10.68 / 12.38` | 原件 §3/§6 主参考行 |
+| `Selected`（= `cand`） | **未记录** | **10.896** | **11.134** | `10.854 / 10.960 / 10.799 / 11.922` | `SEED_ROBUSTNESS` test 表 `cand` 行 |
+| `Factorial base`（= `base`） | **未记录** | **11.364** | **11.655** | `11.140 / 11.544 / 11.130 / 12.806` | `SEED_ROBUSTNESS` test 表 `base` 行 |
+| `TrainDefaults`（= `A8_ms_L70`） | **未记录** | **11.3404**（12 格） | **11.3867**（**仅 `s101`，`n=1`/子集**） | `—`（`n=1`，不报逐子集稳定性） | `RESULTS_AUDIT_20261114_IDENTITIES.md` |
+| `TrainDefaults-FP32` | **统一 FP32（明写）** | 无记录 | **11.23**（3 seed） | `10.07 / 11.20 / 11.16 / 12.49` | 原件 §3 辅助参考行 |
 
 （均值均为本文按四个子集等权计算：`V0-Cycle-FP32` = `(10.60+11.03+10.68+12.38)/4 = 11.1725`；`TrainDefaults-FP32` = `11.23`。）
 
+### 2.1 两个数之间至少三个变量，且没有单变量对照
+
+| 变量 | `SEED_ROBUSTNESS` 的 `full`（`11.512`） | 原件的 `V0-Cycle-FP32`（`11.1725`） | 证据强度 |
+|---|---|---|---|
+| **选轮准则** | **`pooled` 验证 RMSE**（GPU 主机 pre-R2 `metrics.py`） | **`engine-level`**（原件 §1「先算每台验证机 RMSE，再等权平均，以此选 checkpoint」） | **两侧均有明文** |
+| **聚合/汇报方式** | `engine-level` 为**事后重算** | 与选轮同一口径 | 有明文 |
+| **数值精度** | **未记录**（见下） | **FP32，禁 autocast/TF32**（原件 §1 明写） | 仅一侧有明文 |
+
+**⚠ 「`SEED_ROBUSTNESS` 是 BF16」是推断，不是查实。** 本文初版把它写成「默认 BF16」，依据只是原件 §1 那句「不与历史 DSPT 默认 BF16 结果声称数值等价」——**那说的是「历史默认值」，没有指认 `SEED_ROBUSTNESS` 那 12 格**。我在 `paper_b/experiments` 下也没找到带 `precision/autocast/tf32/dtype` 字段的 run config。**所以精度这一列应读作「未记录」，不是「BF16」。**
+
 **三条硬规则**：
 
-1. **`11.512` 与 `11.1725` 不能互相替代**，也不能各自与对方的基线相减。原件的 FP32 条件是为「与 5 篇公开基线同台」而设的，**它明确不声称与历史 BF16 数值等价**（原件 §1 末句）。
-2. **`11.512` 与 `11.1725` 的差（`0.34`）与 `Selected` 对 `full` 的效应（`−0.378`）是同一量级——占其 `90%`**（`0.3395 / 0.378 = 0.898`）。**精度口径的位移几乎等于要被检验的效应**，这是「不混口径」在本项目里最具体的一次理由：**换一次精度，就能把一条「无法区分」的比较推向任何一侧。**
-3. **`SEED_ROBUSTNESS` 的 val 是事后重算的 engine-level 值，而选模当时用的是 pooled**（该文件 §Validation 明写：GPU 主机上仍是 pre-R2 `metrics.py`，pooled 选轮，engine-level 事后重算）。**所以引用它的 val 时必须带这句**，否则会被读成「用 engine-level 选模」。
+1. **`11.512` 与 `11.1725` 不能互相替代**，也不能各自与对方的基线相减。原件的 FP32 条件是为「与 5 篇公开基线同台」而设的，**它明确不声称与历史 DSPT 数值等价**（原件 §1 末句）。
+2. **两数之差 `0.34` 与 `Selected` 对 `full` 的效应（`−0.378`）是同一量级——占其 `90%`**（`0.3395 / 0.378 = 0.898`）。**但它的来源未被分离**：至少含选轮准则、聚合方式、精度三项。**所以只能说「协议不同造成的位移与要检验的效应同量级」，不能说「精度把它推向某一侧」**——**没有单变量对照，任何方向性归因都是猜的**（本文初版那句「换一次精度就能推向任何一侧」已撤回）。
+3. **`SEED_ROBUSTNESS` 的 val 是事后重算的 engine-level 值，而选模当时用的是 pooled**。**所以引用它的 val 时必须带这句**，否则会被读成「用 engine-level 选模」。
 
 ## 3. `Selected` 对两套参考的配对结果（Task A 的现实起点）
 
@@ -73,11 +93,13 @@ mode=dual, hi_mono_coef=0.1, rul_cap=125, split_seed=7, fold=0, val_frac=0.2, n_
 
 | # | 项 | 现状 | 谁去核 |
 |---|---|---|---|
-| 1 | **`TrainDefaults` 的真实 tag / 运行记录** | 原件 §1 称其为「literal train DEFAULTS（`full/off/none/cycle=True`）」，但**仓库里没有 3 seed 的 engine-level val**；经理称「疑似 `A0`，4 行」 | 实验结果管理员 |
-| 2 | **`V0N` 是否真零运行** | `runs.csv` 无 V0C/V0N 记录；`V0-Cycle` 以 `F_full_basic_hi1` 存在 → 命名与 tag 不同源 | 实验结果管理员 |
+| 1 | **`TrainDefaults` 的真实 tag / 运行记录** | **已闭合 = `A8_ms_L70`**（`82114` 参数）：12 格 val 齐、engine-mean **`11.3404`**；**test 仅 `s101` 四格**（均值 `11.3867`，`n=1`/子集）。**`A0` 是 `cycle_only` 年龄臂，不是它**（`A0` val `30.10/26.29/39.98/37.12`、无 test） | 已核（管理员 `aaa4e8ba`） |
+| 2 | **`V0N` 是否真零运行** | **已闭合**：`nocycle.json` 12 条全为 `NC_base_L70`（`off/off/none`，`use_cycle=False`）→ **不含 V0N**；盘上无 `V0*` 目录；`runs.csv` 无 V0 标签。**三条链一致** | 已核（管理员 + 本文 §0 第 3 条） |
 | 3 | **`A8_full_L70` ≡ `F_full_basic_hi1`** 的去重 | 同一批 12 run 两个 tag，**任何合并表必须显式映射**，否则重复计数 | 台账维护方 |
 | 4 | **`MATCHED_COMPARISON_REPORT` 的跨分支可见性** | 已在另一分支存在却被判「不存在」——**检查工具用错分支范围**（见 §5） | 已修正，见恢复件横幅 |
-| 5 | **「已有 96 格消融」的确切所指** | `runs.csv` stage C 100 行（93 非 smoke）、`F_` 系列 24 行，都对不上 96 | 用户/经理指定后才能保证不重复执行 |
+| 5 | **「已有 96 格消融」的确切所指** | **已闭合**：就是 `paper_b/experiments/grids/ablation8.json` 的 **96 条 = 8 臂 × 4 子集 × 3 seed**，`use_cycle` 全 `True`，`A8_full_L70` 即 `V0-Cycle` | 已核（管理员 `a8_engine_level.csv` 96 行齐） |
+| 6 | **强骨干 cycle-off 的替代证据** | 强骨干无 `V0N`，但 **base 骨干有 12 格 `NC_base_L70`**：`cycle on 11.3118` vs `off 12.3523`，`Δ = +1.0405`（val，4 子集均值） | 可作方向，**不能外推到强骨干**（外推正是本轮禁止的写法） |
+| 7 | **`runs.csv` 不是全量** | `128` 行；`F_*` 每族只登 `s202/s303`（`s101` 全不在），A8 只登冻结清单外 4 格。**「12 run」必须引 `paper_b/results/`，引 `runs.csv` 会得到 8** | 台账维护方 |
 
 ## 5. 一处方法学：`git log` 不带 `--all` 会把另一分支的文件判成「从未存在」
 
