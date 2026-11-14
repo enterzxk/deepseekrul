@@ -1,6 +1,7 @@
 analysis,subset,stratum,metric,value,n,note
 schema,all,join,points,19170,,
 schema,all,join,points_unmatched_cycle,0,,
+schema,all,pool,runs,108,19170,A8 96 cells + F_full_basic_hi1 12 cells
 A1a_same_age,FD001,cycle 50-99,median_error_across_engines,-5.300925925925926,18,IQR 21.944; CI over 27 runs -4.693..-2.844
 A1a_same_age,FD001,cycle 50-99,engines,18,756,
 A1a_same_age,FD001,cycle 100-149,median_error_across_engines,-0.8993055555555556,20,IQR 6.360; CI over 27 runs -1.851..-0.791
@@ -161,3 +162,66 @@ A4_sensor_within_cell,FD004,cycle 200-249 regime 2,spearman_abs_error_vs_pc1,0.2
 A4_sensor_within_cell,FD004,cycle 200-249 regime 3,spearman_abs_error_vs_pc1,-0.1349476501362899,189,engines 6
 A4_sensor_within_cell,FD004,cycle 200-249 regime 4,spearman_abs_error_vs_pc1,0.058940282206946824,162,engines 6
 A4_sensor_within_cell,FD004,cycle 250-299 regime 1,spearman_abs_error_vs_pc1,-0.3023551064350243,270,engines 8
+A4b_per_arm_cell,FD002,A8_base_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.19159598347483342,60,engines 19
+A4b_per_arm_cell,FD002,A8_base_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.452729748265024,81,engines 24
+A4b_per_arm_cell,FD002,A8_base_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.2855196344399289,57,engines 17
+A4b_per_arm_cell,FD002,A8_base_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.16119897927300794,51,engines 16
+A4b_per_arm_cell,FD002,A8_base_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.32737424280161626,78,engines 21
+A4b_per_arm_cell,FD002,A8_full_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.08277302331217261,60,engines 19
+A4b_per_arm_cell,FD002,A8_full_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.49032463500801354,81,engines 24
+A4b_per_arm_cell,FD002,A8_full_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.10323170334775034,57,engines 17
+A4b_per_arm_cell,FD002,A8_full_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.13128958612664043,51,engines 16
+A4b_per_arm_cell,FD002,A8_full_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.4338955529585351,78,engines 21
+A4b_per_arm_cell,FD002,A8_hi_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.20737735969656548,60,engines 19
+A4b_per_arm_cell,FD002,A8_hi_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.43799557092467173,81,engines 24
+A4b_per_arm_cell,FD002,A8_hi_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.2352082439044125,57,engines 17
+A4b_per_arm_cell,FD002,A8_hi_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.06039176589481622,51,engines 16
+A4b_per_arm_cell,FD002,A8_hi_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.3694814308499044,78,engines 21
+A4b_per_arm_cell,FD002,A8_ms_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.1879357496390647,60,engines 19
+A4b_per_arm_cell,FD002,A8_ms_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.570991152528506,81,engines 24
+A4b_per_arm_cell,FD002,A8_ms_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.19638463141974405,57,engines 17
+A4b_per_arm_cell,FD002,A8_ms_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.0943940010622267,51,engines 16
+A4b_per_arm_cell,FD002,A8_ms_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.39090981538624053,78,engines 21
+A4b_per_arm_cell,FD002,A8_mshi_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.13595936518024257,60,engines 19
+A4b_per_arm_cell,FD002,A8_mshi_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.5148292312791933,81,engines 24
+A4b_per_arm_cell,FD002,A8_mshi_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.2797130929405572,57,engines 17
+A4b_per_arm_cell,FD002,A8_mshi_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,0.21026399591651673,51,engines 16
+A4b_per_arm_cell,FD002,A8_mshi_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.31962483829127664,78,engines 21
+A4b_per_arm_cell,FD002,A8_mssa_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.06027467393893982,60,engines 19
+A4b_per_arm_cell,FD002,A8_mssa_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.5253772191100602,81,engines 24
+A4b_per_arm_cell,FD002,A8_mssa_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.11110034478068354,57,engines 17
+A4b_per_arm_cell,FD002,A8_mssa_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.14038912636378734,51,engines 16
+A4b_per_arm_cell,FD002,A8_mssa_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.4129957827595894,78,engines 21
+A4b_per_arm_cell,FD002,A8_sa_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.20956254623711734,60,engines 19
+A4b_per_arm_cell,FD002,A8_sa_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.4594677383440588,81,engines 24
+A4b_per_arm_cell,FD002,A8_sa_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.269738483018633,57,engines 17
+A4b_per_arm_cell,FD002,A8_sa_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.0608039492104686,51,engines 16
+A4b_per_arm_cell,FD002,A8_sa_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.4482939981025502,78,engines 21
+A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.15957803731440479,60,engines 19
+A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.4031622140901743,81,engines 24
+A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.14898250619638584,57,engines 17
+A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.030485872325573295,51,engines 16
+A4b_per_arm_cell,FD002,A8_sahi_L70 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.37232087724410146,78,engines 21
+A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 50-99 regime 0,spearman_abs_error_vs_pc1,0.08277302331217261,60,engines 19
+A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 0,spearman_abs_error_vs_pc1,0.49032463500801354,81,engines 24
+A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 3,spearman_abs_error_vs_pc1,0.10323170334775034,57,engines 17
+A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 100-149 regime 5,spearman_abs_error_vs_pc1,-0.13128958612664043,51,engines 16
+A4b_per_arm_cell,FD002,F_full_basic_hi1 cycle 150-199 regime 0,spearman_abs_error_vs_pc1,0.4338955529585351,78,engines 21
+A4c_per_arm_summary,all,A8_base_L70,cells,5,5,pos 4 neg 1 median +0.286
+A4c_per_arm_summary,all,A8_base_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,A8_full_L70,cells,5,5,pos 4 neg 1 median +0.103
+A4c_per_arm_summary,all,A8_full_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,A8_hi_L70,cells,5,5,pos 4 neg 1 median +0.235
+A4c_per_arm_summary,all,A8_hi_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,A8_ms_L70,cells,5,5,pos 5 neg 0 median +0.196
+A4c_per_arm_summary,all,A8_ms_L70,sign_consistency,consistent,5,pos 5 neg 0
+A4c_per_arm_summary,all,A8_mshi_L70,cells,5,5,pos 5 neg 0 median +0.280
+A4c_per_arm_summary,all,A8_mshi_L70,sign_consistency,consistent,5,pos 5 neg 0
+A4c_per_arm_summary,all,A8_mssa_L70,cells,5,5,pos 4 neg 1 median +0.111
+A4c_per_arm_summary,all,A8_mssa_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,A8_sa_L70,cells,5,5,pos 4 neg 1 median +0.270
+A4c_per_arm_summary,all,A8_sa_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,A8_sahi_L70,cells,5,5,pos 4 neg 1 median +0.160
+A4c_per_arm_summary,all,A8_sahi_L70,sign_consistency,mixed,5,pos 4 neg 1
+A4c_per_arm_summary,all,F_full_basic_hi1,cells,5,5,pos 4 neg 1 median +0.103
+A4c_per_arm_summary,all,F_full_basic_hi1,sign_consistency,mixed,5,pos 4 neg 1

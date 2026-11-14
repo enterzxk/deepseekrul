@@ -1,7 +1,12 @@
 # Task C: what the four conditional-error tables can and cannot say
 
-Numbers: `TASK_C_CONDITIONAL_ERRORS.csv` (162 rows).
+Numbers: `TASK_C_CONDITIONAL_ERRORS.csv` (226 rows).
 Script: `task_c_conditional_errors.py` (read-only; no training).
+
+**Pool:** 108 runs = the eight A8 arms (96 cells) + the strong parent
+`F_full_basic_hi1` (12 cells), 19170 validation points. The snapshot is a point
+in time: the raw tree held 277 runs when this was written, so the run count is
+not a constant and should never be quoted without a date.
 
 ## Schema facts that had to be established first
 
@@ -76,16 +81,19 @@ reported separately.
 | FD003 | +1.402 | [+0.736, +2.068] | 432 |
 | FD004 | -4.011 | [-4.960, -3.063] | 783 |
 
-Two structural reasons, both in the data:
+Two structural reasons, both measured:
 
-1. **`FD001` and `FD003` are single-condition subsets.** Forcing `k=6` splits
-   noise, so consecutive cycles flip between clusters and "post-switch" is an
-   artefact.
-2. **On `FD002`/`FD004` the condition changes almost every cycle** — post-switch
-   windows are 81% of all windows (5697/7020 and 5535/6750). There is no
-   persistent regime to transition between, so "the first N windows after a
-   switch" is not a defined stratum.
+1. **`FD001` and `FD003` have no operating conditions to find.** `op3` is
+   constant at 100.0000 and `op1` moves only within `[-0.0087, +0.0087]`, so
+   `k=6` splits that noise. By contrast `FD002`/`FD004` have `op1` up to 42.008
+   and `op3` spanning 60-100, i.e. six real conditions.
+2. **The condition changes almost every cycle in all four subsets** — post-switch
+   windows are 84.0% / 81.2% / 80.0% / 82.0% of all windows. This is not a
+   property of two subsets; at the `k=6` granularity the dataset has no
+   persistent regime anywhere.
 
+So "there is no transition to speak of" and "the error does not rise after a
+transition" are two different statements, and only the first is supported here.
 The signs disagree across subsets, which is what a non-interpretable stratum
 looks like. This is a negative result about the analysis, not about the model.
 
@@ -106,20 +114,52 @@ absolute error is larger in three of four.
 
 Spearman correlation of absolute error against the first principal component of
 regime-wise z-scored sensors, inside cells with at least 50 points and 5
-engines: 58 cells.
+engines.
+
+**Pooled over the nine arms (58 cells):**
 
 ```
-rho range   -0.713 .. +0.828
-median      +0.099
-|rho| > 0.1 47/58 cells
-|rho| > 0.2 33/58 cells
-negative    25/58 cells
+rho range   -0.7544 .. +0.7247
+median      +0.1819
+negative    20/58
+|rho| > 0.2 37/58
+|rho| > 0.3 26/58
 ```
 
-Sensor state carries information about the error after holding age and regime
-fixed, but the sign is not consistent: 25 cells negative, 33 positive. The
-defensible statement is "the error depends on sensor state within a fixed age
-and regime", not "more sensor signal means lower error".
+**The same test run inside each arm (45 cells, one arm at a time):**
+
+```
+rho range   -0.1612 .. +0.5710
+median      +0.2103
+negative     7/45
+```
+
+Per arm:
+
+| arm | cells | positive | negative | median rho |
+|---|---|---|---|---|
+| A8_base_L70 | 5 | 4 | 1 | +0.286 |
+| A8_full_L70 | 5 | 4 | 1 | +0.103 |
+| A8_hi_L70 | 5 | 4 | 1 | +0.235 |
+| A8_ms_L70 | 5 | 5 | 0 | +0.196 |
+| A8_mshi_L70 | 5 | 5 | 0 | +0.280 |
+| A8_mssa_L70 | 5 | 4 | 1 | +0.111 |
+| A8_sa_L70 | 5 | 4 | 1 | +0.270 |
+| A8_sahi_L70 | 5 | 4 | 1 | +0.160 |
+| F_full_basic_hi1 | 5 | 4 | 1 | +0.103 |
+
+What the per-arm check changes: **no arm is internally all-negative, and every
+arm is predominantly positive (at least 4 of 5 cells)**. So the direction does
+not depend on the module configuration. But the negative share roughly doubles
+when arms are pooled (7/45 = 16% inside arms, 20/58 = 34% pooled), so the pooled
+table overstates how unstable the direction is: mixing arms adds sign flips that
+are not present within any single configuration.
+
+The defensible statement is therefore: **after holding age and regime fixed,
+error still depends on sensor state, and the association is predominantly
+positive (larger PC1, larger error) in every arm; the pooled table's larger
+share of negative cells is a mixing artefact, not evidence that the direction is
+arbitrary.**
 
 ## What is not in these tables
 

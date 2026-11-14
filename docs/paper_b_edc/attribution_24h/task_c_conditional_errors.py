@@ -146,6 +146,8 @@ def main():
 
     add("schema", "all", "join", "points", n_all, "")
     add("schema", "all", "join", "points_unmatched_cycle", n_miss, "")
+    add("schema", "all", "pool", "runs", int(preds.groupby(["tag", "subset", "seed"]).ngroups),
+        n_all, "A8 96 cells + F_full_basic_hi1 12 cells")
 
     # ---- A1: same running age, different engines -------------------------- #
     # Two axes, deliberately named differently and never substituted for each
@@ -245,6 +247,33 @@ def main():
             add("A4_sensor_within_cell", s, "cycle %d-%d regime %d" % (b, b + 49, r),
                 "spearman_abs_error_vs_pc1", float(rho), len(g),
                 "engines %d" % g["unit"].nunique())
+
+    # ---- A4b: the same test inside each arm ------------------------------ #
+    # The pooled A4 mixes eight arms, so "the sign is inconsistent across cells"
+    # could be an artefact of mixing arms whose sensor-error relation points in
+    # opposite directions.  If every arm is internally mixed, the pooled
+    # statement stands; if each arm is internally consistent and the arms differ,
+    # the statement has to become "the direction depends on the module
+    # configuration", which is a different claim.
+    per_arm = collections.defaultdict(list)
+    for (tag, s, b, r), g in df.groupby(["tag", "subset", "bin50", "regime"]):
+        if len(g) < 50 or g["unit"].nunique() < 5:
+            continue
+        rho = g[["pc1", "ae"]].corr(method="spearman").iloc[0, 1]
+        if rho != rho:
+            continue
+        per_arm[tag].append(float(rho))
+        add("A4b_per_arm_cell", s, "%s cycle %d-%d regime %d" % (tag, b, b + 49, r),
+            "spearman_abs_error_vs_pc1", float(rho), len(g),
+            "engines %d" % g["unit"].nunique())
+    for tag, v in sorted(per_arm.items()):
+        n_pos = sum(1 for x in v if x > 0)
+        n_neg = sum(1 for x in v if x < 0)
+        add("A4c_per_arm_summary", "all", tag, "cells", len(v), len(v),
+            "pos %d neg %d median %+.3f" % (n_pos, n_neg, float(np.median(v))))
+        add("A4c_per_arm_summary", "all", tag, "sign_consistency",
+            ("mixed" if n_pos and n_neg else "consistent"), len(v),
+            "pos %d neg %d" % (n_pos, n_neg))
 
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["analysis", "subset", "stratum", "metric",
