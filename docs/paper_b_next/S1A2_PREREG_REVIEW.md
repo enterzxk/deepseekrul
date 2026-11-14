@@ -1,0 +1,119 @@
+# S1-A 第二半预注册复核（军师）
+
+复核对象：`docs/paper_b_next/S1A2_PUBLIC_PREREG.md`（`cffd4bd9`，195 行）
+复核时点：任何 V1 / sham 训练开始之前
+结论：**暂不可开跑**。两处必须补进预注册，两处需澄清；其余条款通过。
+
+---
+
+## 0. 结论
+
+| 项 | 判定 |
+|---|---|
+| 主张 R 判据（≥3/4 方法 × ≥3/4 子集同向 + 合并 95% CI 不含 0） | **部分通过**：「门槛」未定义、「不成立」分支缺失，见 §2 |
+| 主张 I（`dual_mixer` 单方法 V1−sham，n=1，不合并） | **通过** |
+| `pre_norm` 只作「默认位置」，不写胜出/最优 | **通过**（§0、§6；`two_phase` 已正确标 `post_norm`） |
+| 四条 V0 协议（all-cycle 训练窗 / pooled 选轮 / FC-STGNN 不早停 / FFVE 上限不动） | **通过**（§3） |
+| 指标与配对（engine-level 从 `validation_predictions.csv` 重算；四子集等权；10,000 次；RNG 20261114；点估计观测值） | **通过**（§5） |
+| sham 硬条件（params/trainable 相等；config diff 只允许 sham 标志与 permutation_seed；split/scaler 哈希相同） | **通过**（§4） |
+| 容量表与逐方法 d_head（aidgn 56 / two_phase 32 / dual_mixer 960 / ffve 200 / fcstgnn 8） | **通过**（§2.2） |
+| `dual_mixer` 全量训练、旧冻结方案已撤回并写明原因 | **通过**（§3） |
+| 信息边界（sham 只置换插件编码、不置换 `age`；干净信息效应只在 `dual_mixer` 单方法） | **通过**（§4、§5.2） |
+| **五方法梯度集合相等判据** | **缺失，阻塞**（见 §1） |
+| **主张 R 的「不成立」分支** | **缺失，阻塞**（见 §2） |
+
+---
+
+## 1. 阻塞项一：预注册没有「梯度集合相等」判据
+
+§7 的自检只要求「五个方法 `pe_proj.weight.grad is not None`、头权重有梯度」，这比实际需要的松。
+`model_grads=2/22`、`2/31` 只说明头在图上，**说明不了基座没有被 pre-hook 静默切断**。三种病它都抓不到：
+
+- pre-hook 里对 `h` 做了 `detach()` 或替换 → 基座冻结，V1 不再是全量训练；
+- 注入把某个分支从计算图里切断 → 该分支参数永远不更新；
+- `two_phase` 本来就冻结 transferred encoder → 必须在**两臂都冻结**才算一致，不能只在 V1 冻。
+
+**要求补进 §7（或带日期的 amendment，判据不变）**：五方法各跑一个真实训练步，输出三行：
+
+```
+V0 grad-tensor set: {...}
+V1 grad-tensor set: {...}
+V1 - V0 = {pe_proj.weight, pe_proj.bias}
+```
+
+判据：V1 的非 None 梯度参数张量集合 **恰好等于** V0 集合加上 `pe_proj` 的两个张量。
+`two_phase` 的 frozen encoder 在 V0/V1 两臂都必须不在集合里；若 V0 里它在、V1 里不在，说明 V1 改了冻结逻辑，不合格。
+`dual_mixer` 已报 128/128，但这条要对五个方法都成立，不能只对 `dual_mixer`。
+
+**这是开跑前必须过的门，不是跑完再补的检查。**
+
+---
+
+## 2. 阻塞项二：主张 R 的「门槛」定义与「不成立」分支
+
+**2.1 「各自通过门槛」没有定义。** §5.1 写「≥3/4 方法各自通过门槛」，但门槛是什么没写；
+现在读起来像「合并 CI 不含 0」一个条件，实际需要三个条件同时成立：
+
+> 该方法的**主比较合并点估计为负** **且** 该方法的 **≥3/4 子集点估计为负** **且**
+> 该方法的**主比较合并 95% CI 不含 0**。
+
+不写死，执行时容易只看合并 CI，把「方向 2/4、CI 刚好不含 0」的方法也算通过。
+
+**2.2 「不成立」分支缺失。** §5.1 定义了「强结论」与「弱结论」，但没有定义「两条都不满足」时的判定与后果。
+阶段目标要求「判定强/弱/不成立」，用户判据也写了「否则主线改为协议审计、强基线与机制归因」。
+缺这一支，结果出来后再定就变成事后解释。
+
+**要求补进 §5.1**：
+
+> **不成立**：若方向一致的方法数 < 3/4（即四个方法里少于三个在 ≥3/4 子集上点估计为负），
+> 则主张 R 判为不成立；主线按预登记改为协议审计 + 强基线 + 机制归因，不得从结果里另挑一个子集或方法救回。
+
+同时把「各自通过门槛」写死为「该方法的 V1−主比较在 ≥3/4 子集上点估计为负」，
+避免「通过门槛」被读成只看合并 CI。
+
+---
+
+## 3. 两处澄清（不阻塞，但建议冻结前改）
+
+1. **pooled 字段名要写两个**：§5 说「`metrics.json::val_engine_rmse` 是 pooled，禁用」。这是 DSPT 的字段名；
+   open_source 的 V0/V1/sham 台账里叫 **`validation_rmse`**。不写清，执行者可能在 open_source 的
+   `metrics.json` 里找不到 `val_engine_rmse`，转而去用 `validation_rmse` 还以为换了口径。
+   建议写成：「`metrics.json` 的 pooled 验证字段禁用——DSPT 叫 `val_engine_rmse`，open_source 叫 `validation_rmse`；
+   一律从 `validation_predictions.csv` 重算 engine-level。」
+2. **`two_phase` 的 sham 预训练**：§4 已要求「同一置换」，但没写预训练阶段的注入点。
+   建议补一句「配对预训练的回归头同样走 `pe_proj` pre-hook，使用同一 (subset, seed) 置换」，
+   否则实现时容易只改微调阶段、漏掉预训练。
+
+---
+
+## 4. 通过的部分（不再重复核）
+
+- §0/§6：`pre_norm` 只作「默认位置」；正文不得写「最优位置」；`two_phase` 逐方法标 `post_norm`。
+- §3：all-cycle 训练窗、pooled 选轮、FC-STGNN 41 轮不早停、FFVE 100000 上限不动；
+  `dual_mixer` 全量训练、旧 5,057 参数残差头 + 冻结基座已撤回并写明原因。
+- §4：sham 的 subset×split 置换、每 (subset, seed) 固定、多重集保留、非恒等、记录索引与 SHA-256、
+  `two_phase` 预训练同置换、params/trainable 相等、config diff 限制、split/scaler 哈希相同。
+- §5：engine-level 从 `validation_predictions.csv` 重算、四子集等权、分层 bootstrap 10,000、RNG 20261114、
+  点估计观测值、Bonferroni 98.33%、方向计数、机数加权敏感性；R 与 I 的主比较逐方法写明；
+  五方法不平权平均；`dual_mixer` 单列。
+- §1/§2.2：96 格、V0 不重跑、d_head 实测值、容量增量、12.5 卡时 ETA。
+
+---
+
+## 5. 复核证据
+
+```
+$ git log --oneline -1
+cffd4bd9 S1-A phase 2 preregistration: cycle plug-in on five public methods (frozen before any V1 run)
+
+# 逐条核对的原文位置
+§0 L12-14       默认位置、重编码增量、不合并
+§2.1 L56-66     逐方法注入点与语义；two_phase = post_norm；aidgn = channel_decoder.2
+§3 L88-108      四条 V0 协议 + dual_mixer 全量训练 + 旧方案撤回
+§4 L112-129     sham 构造、信息边界、two_phase 预训练同置换、硬条件
+§5 L135-171     指标、配对、R/I、标签
+§6 L177-182     TEST 不参与、两半不可比、默认位置、two_phase post_norm
+§7 L188-195     自检命令与冻结时输出（缺梯度集合相等判据）
+```
+
+未改动任何已有文件；本文件为复核记录。
