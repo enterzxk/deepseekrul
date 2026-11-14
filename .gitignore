@@ -81,3 +81,8 @@ paper/*.toc
 !/experiments/ida/
 !/experiments/README.md
 /results/
+
+# trained weights: regenerable, never commit (repo policy)
+*.pt
+*.pth
+*.ckpt
