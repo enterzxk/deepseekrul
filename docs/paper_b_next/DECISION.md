@@ -140,7 +140,10 @@
 锚点：`a94bc594`（创建 `S1B_READOUT.md`）＝ **2026-11-14T17:33:19+08:00**。
 
 检索范围：**本仓库全部分支**（`--all`，20 个分支，含 `codex/paper-b-open-source-reproduction`），
-以及共享同一对象库的 `ncmapss-ds02` worktree。命令与结果原样列出，读者可自行复跑：
+以及共享同一对象库的 `ncmapss-ds02` worktree。另一个 checkout（a40 上
+`/home/yndx/paper_b_public_baselines_20261111`，`d7bd9c17` 的树）**没有 `docs/paper_b_next/`
+目录**（`ls -d docs/paper_b_next` 不存在），因此那棵树不可能藏有更早的 S1-B 注册。
+命令与结果原样列出，读者可自行复跑：
 
 ```bash
 # 1) 百分号在前的写法
