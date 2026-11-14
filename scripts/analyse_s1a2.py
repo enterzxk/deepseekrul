@@ -30,8 +30,14 @@ import pandas as pd
 
 METHODS = ("aidgn", "two_phase", "dual_mixer", "ffve", "fcstgnn")
 SHAM = ("aidgn", "two_phase", "dual_mixer")
+# Claim R is these four only. dual_mixer is deliberately excluded: it carries
+# claim I on its own (n = 1) and must never enter a cross-method average. This
+# is an explicit whitelist, not an accident of loop order.
+CLAIM_R_METHODS = ("aidgn", "two_phase", "ffve", "fcstgnn")
 SUBSETS = ("FD001", "FD002", "FD003", "FD004")
 SEEDS = (101, 202, 303)
+ENGINES = {"FD001": 20, "FD002": 52, "FD003": 20, "FD004": 50}
+CUTS = 5
 BONFERRONI = 100.0 * (1.0 - 0.05 / 3.0)
 
 
@@ -42,47 +48,74 @@ def engine_rmse(path):
     return work.groupby("unit")["se"].mean().pow(0.5).sort_index()
 
 
-def find_cell(roots, arm, method, subset, seed):
-    """V0's tree has no arm level, so an empty ``arm`` means no extra segment."""
+def locate(roots, arm, method, subset, seed):
+    """Return (predictions path, problem). ``problem`` is None when the cell is valid.
+
+    A cell counts as complete only when all three hold: metrics.json exists, the
+    recorded config agrees with the path, and the prediction file has exactly
+    ``engines x 5 cuts`` rows. The row check catches both a run that exited
+    halfway and a wrong number of truncation cuts.
+    """
     for root in roots:
         base = Path(root) / arm if arm else Path(root)
-        path = base / method / subset / f"s{seed}" / "validation_predictions.csv"
-        if path.exists():
-            return path
-    return None
+        folder = base / method / subset / f"s{seed}"
+        preds = folder / "validation_predictions.csv"
+        if not folder.is_dir():
+            continue
+        if not (folder / "metrics.json").exists():
+            return None, "no metrics.json"
+        config = folder / "config.json"
+        if config.exists():
+            try:
+                recorded = json.loads(config.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return None, "unreadable config.json"
+            if arm:
+                recorded_arm = recorded.get("arm", recorded.get("cycle_arm"))
+                if recorded_arm != arm:
+                    return None, f"config.arm={recorded_arm!r}!={arm!r}"
+            name = recorded.get("method", recorded.get("model"))
+            if name != method:
+                return None, f"config.method={name!r}!={method!r}"
+            if recorded.get("subset") != subset:
+                return None, f"config.subset={recorded.get('subset')!r}!={subset!r}"
+            if recorded.get("seed") != seed:
+                return None, f"config.seed={recorded.get('seed')!r}!={seed!r}"
+        if not preds.exists():
+            return None, "no validation_predictions.csv"
+        with preds.open() as stream:
+            rows = sum(1 for _ in stream) - 1
+        want = ENGINES[subset] * CUTS
+        if rows != want:
+            return None, f"prediction rows {rows}!={want}"
+        return preds, None
+    return None, "missing"
 
 
 def load(roots, arm, method, subset, seed):
-    path = find_cell(roots, arm, method, subset, seed)
-    return None if path is None else engine_rmse(path)
+    path, problem = locate(roots, arm, method, subset, seed)
+    return (None, problem) if path is None else (engine_rmse(path), None)
 
 
 def stack(roots, arm, method, subset):
-    """(n_seeds, n_engines) matrix plus the seeds actually present."""
-    series = [(seed, load(roots, arm, method, subset, seed)) for seed in SEEDS]
-    usable = [(seed, value) for seed, value in series if value is not None]
+    """(n_seeds, n_engines) matrix, the seeds present, and why any are missing."""
+    usable, problems = [], {}
+    for seed in SEEDS:
+        value, problem = load(roots, arm, method, subset, seed)
+        if value is None:
+            problems[seed] = problem
+        else:
+            usable.append((seed, value))
     if not usable:
-        return None, []
+        return None, [], problems
     index = usable[0][1].index
     for seed, value in usable[1:]:
         if not value.index.equals(index):
-            raise SystemExit(f"engine sets differ: {arm}/{method}/{subset}/s{seed}")
-    return np.vstack([value.to_numpy() for _, value in usable]), [s for s, _ in usable]
-
-
-def paired(left_roots, left_arm, right_roots, right_arm, method, subset):
-    left, left_seeds = stack(left_roots, left_arm, method, subset)
-    right, right_seeds = stack(right_roots, right_arm, method, subset)
-    if left is None or right is None:
-        return None, []
-    shared = [s for s in left_seeds if s in right_seeds]
-    if not shared:
-        return None, []
-    left, _ = stack(left_roots, left_arm, method, subset)
-    right, _ = stack(right_roots, right_arm, method, subset)
-    left = left[[left_seeds.index(s) for s in shared]]
-    right = right[[right_seeds.index(s) for s in shared]]
-    return left - right, shared
+            problems[seed] = "engine set differs"
+            usable = [(s, v) for s, v in usable if s != seed]
+    if not usable:
+        return None, [], problems
+    return np.vstack([value.to_numpy() for _, value in usable]), [s for s, _ in usable], problems
 
 
 def bootstrap(matrix, resamples, rng):
@@ -97,8 +130,22 @@ def interval(samples, level):
     return float(low), float(high)
 
 
+def paired(left_roots, left_arm, right_roots, right_arm, method, subset):
+    left, left_seeds, left_problems = stack(left_roots, left_arm, method, subset)
+    right, right_seeds, right_problems = stack(right_roots, right_arm, method, subset)
+    problems = {f"{left_arm or 'v0'}:s{s}": v for s, v in left_problems.items()}
+    problems.update({f"{right_arm or 'v0'}:s{s}": v for s, v in right_problems.items()})
+    if left is None or right is None:
+        return None, [], problems
+    shared = [s for s in left_seeds if s in right_seeds]
+    if not shared:
+        return None, [], problems
+    return left[[left_seeds.index(s) for s in shared]] - \
+        right[[right_seeds.index(s) for s in shared]], shared, problems
+
+
 def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
-    """comparison: 'v1_minus_v0' or 'v1_minus_sham'."""
+    """comparison: 'v1_minus_v0' or 'v1_minus_sham'. Always returns a dict."""
     if comparison == "v1_minus_v0":
         left_roots, left_arm, right_roots, right_arm = new_roots, "v1", v0_roots, ""
     else:
@@ -106,27 +153,35 @@ def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
 
     per_subset, samples = {}, []
     for subset in SUBSETS:
-        matrix, seeds = paired(left_roots, left_arm, right_roots, right_arm, method, subset)
+        matrix, seeds, problems = paired(left_roots, left_arm, right_roots, right_arm,
+                                         method, subset)
         if matrix is None:
+            per_subset[subset] = {"delta": None, "n_engines": 0, "seeds": [],
+                                  "problems": problems}
             continue
         per_subset[subset] = {"delta": float(matrix.mean()),
                               "n_engines": int(matrix.shape[1]), "seeds": seeds,
-                              "matrix": matrix.tolist()}
+                              "matrix": matrix.tolist(), "problems": problems}
         samples.append(bootstrap(matrix, resamples, rng))
+
+    usable = {s: v for s, v in per_subset.items() if v["delta"] is not None}
     if not samples:
-        return None
+        return {"method": method, "comparison": comparison, "delta": None,
+                "ci95": [None, None], "ci9833": [None, None], "engine_weighted": None,
+                "direction_negative": 0, "n_subsets": 0, "complete": False,
+                "per_subset": per_subset}
+
     combined = np.mean(np.vstack(samples), axis=0)
-    delta = float(np.mean([v["delta"] for v in per_subset.values()]))
+    delta = float(np.mean([v["delta"] for v in usable.values()]))
     low, high = interval(combined, 95.0)
     low_b, high_b = interval(combined, BONFERRONI)
-    weights = np.array([v["n_engines"] for v in per_subset.values()], float)
-    values = np.array([v["delta"] for v in per_subset.values()], float)
-    weighted = float(np.sum(weights * values) / np.sum(weights))
+    weights = np.array([v["n_engines"] for v in usable.values()], float)
+    values = np.array([v["delta"] for v in usable.values()], float)
     return {"method": method, "comparison": comparison, "delta": delta,
             "ci95": [low, high], "ci9833": [low_b, high_b],
-            "engine_weighted": weighted,
-            "direction_negative": int(sum(1 for v in per_subset.values() if v["delta"] < 0)),
-            "n_subsets": len(per_subset), "complete": len(per_subset) == len(SUBSETS),
+            "engine_weighted": float(np.sum(weights * values) / np.sum(weights)),
+            "direction_negative": int(sum(1 for v in usable.values() if v["delta"] < 0)),
+            "n_subsets": len(usable), "complete": len(usable) == len(SUBSETS),
             "per_subset": per_subset}
 
 
@@ -158,7 +213,7 @@ def main():
         secondary = analyse(v0_roots, new_roots, method, "v1_minus_v0",
                             args.resamples, rng)
         report["results"][method] = {"primary": entry, "secondary": secondary}
-        if entry is None:
+        if entry["n_subsets"] == 0:
             print(f"| {method} | {primary} | 0/4 | pending | | | | |")
             continue
         report["results"][method]["secondary"] = secondary
@@ -173,15 +228,18 @@ def main():
     print("| method | FD001 | FD002 | FD003 | FD004 | drop FD003 | drop FD004 |")
     print("|---|---|---|---|---|---|---|")
     for method in METHODS:
-        entry = report["results"][method]["primary"] or report["results"][method]["secondary"]
-        if entry is None:
+        primary = report["results"][method]["primary"]
+        entry = primary if primary["n_subsets"] else report["results"][method]["secondary"]
+        if entry["n_subsets"] == 0:
             print(f"| {method} | pending | | | | | |")
             continue
         cells = [f"{entry['per_subset'][s]['delta']:+.3f}"
-                 if s in entry["per_subset"] else "-" for s in SUBSETS]
+                 if entry["per_subset"].get(s, {}).get("delta") is not None else "-"
+                 for s in SUBSETS]
         drops = []
         for drop in ("FD003", "FD004"):
-            rest = [v["delta"] for s, v in entry["per_subset"].items() if s != drop]
+            rest = [v["delta"] for s, v in entry["per_subset"].items()
+                    if s != drop and v["delta"] is not None]
             drops.append(f"{np.mean(rest):+.3f}" if rest else "-")
         print(f"| {method} | " + " | ".join(cells) + " | " + " | ".join(drops) + " |")
 
@@ -190,8 +248,8 @@ def main():
     print("| method | subsets | delta | 95% CI | direction |")
     print("|---|---|---|---|---|")
     for method in METHODS:
-        entry = report["results"][method].get("secondary")
-        if entry is None:
+        entry = report["results"][method]["secondary"]
+        if entry["n_subsets"] == 0:
             print(f"| {method} | 0/4 | pending | | |")
             continue
         print(f"| {method} | {entry['n_subsets']}/4 | {entry['delta']:+.4f} | "
@@ -199,17 +257,41 @@ def main():
               f"{entry['direction_negative']}/{entry['n_subsets']} |")
 
     # Claim R: aidgn / two_phase / ffve / fcstgnn, each with its own primary.
-    claim_r = [m for m in ("aidgn", "two_phase", "ffve", "fcstgnn")]
+    claim_r = list(CLAIM_R_METHODS)
     passed, aligned = 0, 0
     for method in claim_r:
         entry = report["results"][method]["primary"]
-        if not entry or not entry["complete"]:
+        if not entry["complete"]:
             continue
         if entry["direction_negative"] >= 3:
             aligned += 1
         if (entry["delta"] < 0 and entry["direction_negative"] >= 3
                 and entry["ci95"][1] < 0):
             passed += 1
+    # No tier until every method's primary comparison is complete. With sham
+    # missing, aidgn and two_phase would silently fall back to V1-V0, which is
+    # capacity + information, not the pre-registered primary.
+    missing = [m for m in claim_r if not report["results"][m]["primary"]["complete"]]
+    if missing:
+        tier = None
+        print(f"\n## Claim R\n\ntier withheld: primary comparison incomplete for "
+              f"{', '.join(missing)}. V1-V0 for a sham method is capacity + "
+              f"information, not the pre-registered primary.\n")
+        for method in missing:
+            entry = report["results"][method]["primary"]
+            print(f"- {method} ({entry['comparison']}): {entry['n_subsets']}/4 subsets usable")
+            for subset, value in entry["per_subset"].items():
+                if value["delta"] is not None:
+                    continue
+                detail = "; ".join(f"{k}:{v}" for k, v in value.get("problems", {}).items())
+                print(f"    {subset}: {detail or 'no usable cell'}")
+        report["claims"]["R"] = {"passed": passed, "aligned": aligned, "tier": None,
+                                 "incomplete": missing, "methods": claim_r}
+        if args.json:
+            Path(args.json).write_text(
+                json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(f"\nWrote {args.json}")
+        return
     if aligned >= 3 and passed >= 3:
         tier = "strong"
     elif aligned >= 3:
@@ -226,7 +308,7 @@ def main():
     # Claim I: dual_mixer only, single method, no cross-method pooling.
     dual = report["results"]["dual_mixer"]["primary"]
     print("\n## Claim I (dual_mixer only, n=1)\n")
-    if dual and dual["complete"]:
+    if dual["complete"]:
         print(f"V1 - sham = {dual['delta']:+.4f} "
               f"95% CI [{dual['ci95'][0]:+.4f}, {dual['ci95'][1]:+.4f}] "
               f"direction {dual['direction_negative']}/4")
@@ -236,10 +318,11 @@ def main():
     if args.drop_cell:
         method, subset, seed = args.drop_cell.split("/")
         seed = int(seed)
-        entry = report["results"][method]["primary"] or report["results"][method]["secondary"]
+        primary = report["results"][method]["primary"]
+        entry = primary if primary["n_subsets"] else report["results"][method]["secondary"]
         print(f"\n## Influence check: {args.drop_cell} removed (descriptive only; "
               f"the decision above still uses every cell)\n")
-        if entry is None:
+        if entry["n_subsets"] == 0:
             print("pending")
         else:
             deltas, emptied = [], []
