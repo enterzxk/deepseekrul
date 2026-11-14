@@ -166,6 +166,30 @@ says the error is larger in some sensor regions; it does not say the sensor
 predicts the remaining life. The task asks the second question, so it is
 answered separately below.
 
+## Estimating equations and R2 denominators (what is actually controlled)
+
+Written out because "controlled for age" is ambiguous: **age enters only as the
+50-cycle bin dummy**. There is no continuous cycle term and no within-bin trend,
+so inside a bin the relation `dRUL = -dage` is still uncontrolled.
+
+```
+A5    y_i = sum_c a_c * 1[cell_i = c]                 + b*pc1_i + e_i
+      R2_inc = 1 - RSS(A5) / RSS(cell only)
+      denominator = sum_i (y_i - mean_cell(i))^2
+
+A5c   y_i = sum_c a_c*1[cell_i=c] + sum_e g_e*1[eng_i=e] + b*pc1_i + e_i
+      R2_inc = 1 - RSS(A5c) / RSS(cell + engine only)
+      denominator = residual sum of squares after cell AND engine means
+
+A5e   same as A5c, restricted to (cell, engine) pairs with >= 2 observations
+```
+
+`cell = (subset, floor(cycle/50), regime)`. Every R2 increment above is
+**in-sample**: it says the within-cell variance is explained by PC1 in the fitted
+sample, not that PC1 improves prediction on an unseen engine. A single-point
+(cell, engine) pair contributes to neither numerator nor denominator once engine
+dummies are present, which is why A5c and A5e return the same estimate.
+
 ## A5: does PC1 explain the label after age and condition?
 
 Within-cell regression of `y_true` on PC1 (cells are 50-cycle bin x regime, so
@@ -259,15 +283,24 @@ model does not convert the available sensor signal into a directional bias; the
 error is heteroscedastic along the sensor axis (A4) but not shifted along it
 (A6).
 
-The 4 statement that survives all three checks:
+The 4 statement that survives the checks, and no more than it:
 
-> After age, condition **and engine identity** are held fixed, the sensor state
-> still carries a large incremental signal about the label (R2 increment
-> 0.19-0.50, so it is degradation state and not engine identity), the residual
-> magnitude depends on it (predominantly positive inside every arm), but the
-> signed error does not: no arm shows a detectable slope (0/36). The model's
-> error is spread by sensor state, not biased by it - the mean is used, the
-> conditional variance is not.
+> After the 50-cycle bin, the regime and engine identity are held fixed, PC1
+> explains 19-50% of the remaining within-cell label variance in-sample, resting
+> on 9-19 engines per subset. The residual magnitude is associated with PC1
+> inside every arm (7/45 cells negative, 20/58 when pooled). The signed error
+> shows **no detected** slope on PC1 in any of 36 arm-by-subset regressions.
+
+Three limits that must travel with it:
+
+1. **"Not detected" is not "no improvement possible".** `0/36`, `0/4` and `0/28`
+   are all non-detections at these sample sizes; none of them establishes that
+   the mean has been exhausted.
+2. **Age is controlled by a 50-cycle bin dummy, not continuously.** Within a bin
+   `dRUL = -dage` remains, so part of what PC1 explains can be that within-bin
+   time trend.
+3. **The R2 increment is in-sample.** It is not an out-of-sample predictive
+   increment and must not be quoted as one.
 
 ## What is not in these tables
 
