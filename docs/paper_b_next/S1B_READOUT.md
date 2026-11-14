@@ -68,9 +68,11 @@ Branch: `paper-b-contribution-attribution`，起点提交 `18a77f13`，本文件
 
 ---
 
-## 4. 官方 TEST（选定之后一次性评估）
+## 4. 官方 TEST（选定之后计算，但**不是只算了一次**）
 
 TEST：707 台机，每台 1 个预测。注意：每台机只有一个点，所以「逐机 RMSE」等于 |误差|，其均值等于 MAE；比较 RMSE 要看 pooled。
+
+> **口径更正（复核后）**：17 个变体的 TEST 数字**全部算过**，汇总表 `S1B_READOUT_VARIANTS.csv` 的 test 列就是这 17 次。所以「TEST 只评估一次」这个说法不成立——准确的说法是「选定之后**才允许**读 TEST，且选定值在读取前已固定」。选择函数只接触 val 列，test 列是事后补算的敏感性输出；但**看过的次数就是 17 次**，这一点必须如实记，不能含糊成「一次性」。
 
 | | TEST pooled RMSE | TEST NASA sum | TEST MAE | TEST bias |
 |---|---:|---:|---:|---:|
@@ -121,11 +123,24 @@ TEST：707 台机，每台 1 个预测。注意：每台机只有一个点，所
 
 ---
 
-## 6. 必须一起报的两条限制
+## 6. 必须一起报的四条限制
 
 **① 验证集 NASA 不能预测 TEST NASA。** `nasa_bayes` 是验证集 NASA 最优的变体（13210.8），在 TEST 上却只降 0.32%；反之选中变体验证集 NASA 只排中游，TEST 反而最好。真正按 NASA 代价设计的那个变体没有迁移过去——这正是「风险感知读出」这个说法要小心的地方。
 
 **② 10% 只超了 0.87 个百分点，且 FD001 变差。** 选中的本质是**时间平滑**（用前 5 个窗口加权平均、扣掉时间偏移），不是概率意义上的风险感知。它在 3/4 子集上改善 NASA，FD001 上 RMSE 和 NASA 都变差。
+
+**③ 17 个变体里有 4 个同向过线，现象稳、确证性弱。** 过线门槛是均值基线的 90%，即 TEST NASA ≤ 1596.15。同向过线的是：
+
+| 变体 | TEST NASA | 相对基线 |
+|---|---:|---|
+| multiwindow J10 decay0.9 | 1534.46 | −13.48% |
+| multiwindow J10 decay1.0 | 1536.71 | −13.35% |
+| multiwindow J5 decay1.0 | 1570.90 | −11.43% |
+| multiwindow J5 decay0.9（选中） | 1580.76 | −10.87% |
+
+四条全是 J ≥ 5 的多窗口；J3 的两条都不过（1671.2 / 1668.1）。这说明**现象本身是稳的**（多窗口平滑确实压低 NASA），弱的是确证性——因为我们在 17 个已经见过 TEST 的变体里挑了一条，而 4 条都能过线。
+
+**④ 第二条判据在 RMSE 改善时是空条件。** 「RMSE 变化不超过种子标准差」只在 RMSE **变差**时才起约束作用；选中变体的 RMSE 是下降的（−0.2455），这条自动满足。所以真正起作用的只有 NASA 那一条，判据的实际强度比字面看起来弱。
 
 ---
 
@@ -135,12 +150,12 @@ TEST：707 台机，每台 1 个预测。注意：每台机只有一个点，所
 # 1) 推理（FP32，含 j=0..9 平移窗口；--check 与已存预测比对）
 python infer.py --out preds_fp32.csv --j-max 10 --fp32 --check
 
-# 2) 读出：验证集选择 + 一次性 TEST + 敏感性表
+# 2) 读出：验证集选择 + 17 变体 TEST（仅作敏感性，不参与选择）
 python readout.py --preds preds_fp32.csv --out-json readout_fp32.json --out-csv readout_fp32.csv
 ```
 
-产物：`infer.py`、`readout.py`、`preds_fp32.csv`、`readout_fp32.json`、`readout_fp32.csv`（17 变体全表）、`readout_fp32_perseed.csv`。
-脚本与数据位于 `/home/user/s1b/`（GPU 主机），仓库内只放本文件与两张汇总表。
+产物：`infer.py`、`readout.py`（均已入库，见 `paper_b/experiments/s1b_readout/`）、`preds_fp32.csv`、`readout_fp32.json`、`readout_fp32.csv`（17 变体全表）、`readout_fp32_perseed.csv`。
+大文件（预测表、权重）位于 `/home/user/s1b/`（GPU 主机），仓库内只放本文件、两张汇总表与两个脚本。
 12 个 checkpoint 原本只在 Windows 克隆里，3090 与 a40 都没有，已打包到 `/home/user/s1b/weights/`。
 
 ---
