@@ -1,9 +1,12 @@
 # S1-C 证据审计：A8 96 格可用性 + `val_engine_rmse` 口径
 
-状态：**完成**（2026-11-14）
+状态：**完成（v2，2026-11-14 经 `S1_PHASE1_REVIEW.md` §2 复核后修正四处）**
 仓库：`deepseek-rul`，分支 `paper-b-contribution-attribution`，`98506429`
 合并来源：`docs/paper_b_edc/attribution_24h/A8_96_REUSE_INVENTORY.md` + `LEGACY_VAL_FIELDS.md`
 本文件**只做合并、逐格判定与独立重算**，不改任何已发布数字，不重跑任何训练。
+
+v2 修正：§2.1 补 BF16 限定；§2.2 的限制理由改为「单 seed + 每台 1 点」；§2.3 补剔除方向披露；
+§3.2 表头 24→12。结论不变。
 
 ---
 
@@ -57,10 +60,25 @@ cycle-off 的证据在别处：base 骨干 `NC_base_L70`（12 格 val）、强�
 与上一轮独立重算件 `VAL_RECOMPUTE.csv::engine_label_capped` 差 **0**（逐位相同）。
 每格 5 个截点、engine 数 = 该子集验证机数（FD001 20 / FD002 52 / FD003 20 / FD004 50）。
 
+**BF16 限定——「可用」必须和它一起读。** 这 96 格是 autocast 的产物：
+`paper_b/training/train.py` 的 `_amp()`（`:65-75`）在 `fp32=False` 时返回
+`torch.autocast(device_type='cuda', dtype=bfloat16)`，调用点在 `:85` 与 `:144`；
+而 A8 的 `config.json` **根本没有 `fp32` 这个键**（实测 `A8_base_L70/FD001/s101`），即 96 格全部走 BF16。
+
+所以这里的「可用」只能读成**「台账里的历史数字可引用」**，
+**不能**读成「可从 checkpoint 逐位复现」——BF16 在本栈上跨进程不可复现（见
+`S1B_READOUT.md` §8）。也**不得**与 S1-A / S1-B 的 FP32 结果同表比较。
+
 ### 2.2 32 个 test 格：**可用（仅描述性）**
 
-只有 seed 101、且只有 pooled（`test_metrics.json` 里没有逐机预测的 engine-level 口径）。
-所以它**不能**与 3-seed 的 val 数并排比较精度，也不能用于任何选择。
+限制**不是**「只有 pooled」——`test_pred.csv` 在盘上（实测 FD001：列 `unit,y_true,y_pred`，
+100 行 = 100 台机），逐机可算。真正的限制有两条：
+
+- **单 seed**（只有 101），所以没有 test 侧的种子离散度；
+- **TEST 每台机只有 1 个预测点**，所以 engine-level RMSE 就等于该机的绝对误差、跨机平均即 **MAE**。
+  它和 val 的「每机 5 个截点先算逐机 RMSE 再跨机平均」**不是同一个量**。
+
+因此：可以描述，**不能用于任何选择**，也不能与 3-seed 的 val 数字并排比较精度。
 
 ### 2.3 4 个 test 格：**作废**
 
@@ -71,6 +89,12 @@ A8_mssa_L70/FD001/s202   A8_mssa_L70/FD001/s303
 
 在冻结清单之外评测。**把它们补进冻结声明等于改写评价顺序**，而这正是冻结要防的事。
 标记 `n/a`，不进任何表。
+
+**剔除的方向不是中性的，必须披露。** 这 4 格恰好都落在 FD001 的 base→mssa 对比上。
+TEST 差距（base − mssa）按 seed 实测：**s101 0.7244 / s202 0.5896 / s303 0.0555**，
+三 seed 均值 **0.4565**。只报 s101（冻结口径）会把 treatment 的优势放大 **0.27 个 RMSE**——
+所以这里的「剔除」**偏向 treatment**。引用 FD001 的 test 对比时必须把这一点写在旁边。
+这 4 个数只用于判断方向，**不进表**。
 
 ### 2.4 8 臂 × 4 子集的 val 对照（engine-level vs 存储字段）
 
@@ -139,7 +163,8 @@ A8_mssa_L70/FD001/s202   A8_mssa_L70/FD001/s303
 
 ### 3.2 后果：如果把该字段当 engine-level 用，A8 的结论会变成什么
 
-主效应 = 「开关为 on 的 4 臂均值」−「开关为 off 的 4 臂均值」，每子集 24 格对 24 格。
+主效应 = 「开关为 on 的 4 臂均值」−「开关为 off 的 4 臂均值」。
+每个子集 8 臂 × 3 seed = 24 格，对任一开关 **on 12 格、off 12 格**（12 对 12）。
 
 | 开关 | 子集 | engine-level（正确） | 若用 stored（pooled） | 差 | 符号 |
 |---|---|---:|---:|---:|---|
