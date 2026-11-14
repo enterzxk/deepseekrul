@@ -151,9 +151,16 @@ def paired(left_roots, left_arm, right_roots, right_arm, method, subset):
 
 
 def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
-    """comparison: 'v1_minus_v0' or 'v1_minus_sham'. Always returns a dict."""
+    """comparison: 'v1_minus_v0', 'sham_minus_v0' or 'v1_minus_sham'.
+
+    ``sham_minus_v0`` exists only to decompose the frozen primary:
+    V1 - sham = (V1 - V0) - (sham - V0). If the sham arm damages training, the
+    apparent primary effect comes from that damage, not from V1 improving.
+    """
     if comparison == "v1_minus_v0":
         left_roots, left_arm, right_roots, right_arm = new_roots, "v1", v0_roots, ""
+    elif comparison == "sham_minus_v0":
+        left_roots, left_arm, right_roots, right_arm = new_roots, "sham", v0_roots, ""
     else:
         left_roots, left_arm, right_roots, right_arm = new_roots, "v1", new_roots, "sham"
 
@@ -171,6 +178,11 @@ def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
         samples.append(bootstrap(matrix, resamples, rng))
 
     usable = {s: v for s, v in per_subset.items() if v["delta"] is not None}
+    # "complete" means every subset carries all three seeds, not merely that all
+    # four subsets have something. With one seed per subset the estimate is a
+    # single run, and emitting a tier from it would report an intermediate state
+    # as a result.
+    full_seeds = all(len(v["seeds"]) == len(SEEDS) for v in usable.values())
     if not samples:
         return {"method": method, "comparison": comparison, "delta": None,
                 "ci95": [None, None], "ci9833": [None, None], "engine_weighted": None,
@@ -187,7 +199,7 @@ def analyse(v0_roots, new_roots, method, comparison, resamples, rng):
             "ci95": [low, high], "ci9833": [low_b, high_b],
             "engine_weighted": float(np.sum(weights * values) / np.sum(weights)),
             "direction_negative": int(sum(1 for v in usable.values() if v["delta"] < 0)),
-            "n_subsets": len(usable), "complete": len(usable) == len(SUBSETS),
+            "n_subsets": len(usable), "complete": len(usable) == len(SUBSETS) and full_seeds,
             "per_subset": per_subset}
 
 
@@ -292,6 +304,26 @@ def main():
         print(f"| {method} | {entry['n_subsets']}/4 | {entry['delta']:+.4f} | "
               f"[{entry['ci95'][0]:+.4f}, {entry['ci95'][1]:+.4f}] | "
               f"{entry['direction_negative']}/{entry['n_subsets']} |")
+
+    print("\n## sham - V0 (decomposition: V1 - sham = (V1 - V0) - (sham - V0))\n")
+    print("A positive sham - V0 means the sham arm is worse than the untouched method. "
+          "That is damage, not capacity, and it inflates V1 - sham.\n")
+    print("| method | subsets | sham-V0 | 95% CI | V1-V0 | V1-sham |")
+    print("|---|---|---|---|---|---|")
+    for method in SHAM:
+        entry = analyse(v0_roots, new_roots, method, "sham_minus_v0",
+                        args.resamples, rng)
+        report["results"][method]["sham_minus_v0"] = entry
+        if entry["n_subsets"] == 0:
+            print(f"| {method} | 0/4 | pending | | | |")
+            continue
+        v1v0 = report["results"][method]["secondary"]
+        primary = report["results"][method]["primary"]
+        v1v0_text = "pending" if v1v0["delta"] is None else f"{v1v0['delta']:+.4f}"
+        primary_text = "pending" if primary["delta"] is None else f"{primary['delta']:+.4f}"
+        print(f"| {method} | {entry['n_subsets']}/4 | {entry['delta']:+.4f} | "
+              f"[{entry['ci95'][0]:+.4f}, {entry['ci95'][1]:+.4f}] | "
+              f"{v1v0_text} | {primary_text} |")
 
     # Claim R: aidgn / two_phase / ffve / fcstgnn, each with its own primary.
     claim_r = list(CLAIM_R_METHODS)
