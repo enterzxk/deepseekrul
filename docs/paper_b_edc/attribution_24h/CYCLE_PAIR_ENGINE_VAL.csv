@@ -1,0 +1,25 @@
+pair,backbone,subset,seed,cycle_on_tag,cycle_on_val_eng,cycle_off_tag,cycle_off_val_eng,diff_off_minus_on,source
+base,off/off/none,FD001,101,A8_base_L70,11.600841,NC_base_L70,12.7834,1.182559,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD001,202,A8_base_L70,10.679573,NC_base_L70,10.9592,0.279627,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD001,303,A8_base_L70,10.97492,NC_base_L70,11.3418,0.36688,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD002,101,A8_base_L70,11.052673,NC_base_L70,11.5088,0.456127,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD002,202,A8_base_L70,10.945497,NC_base_L70,11.4037,0.458203,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD002,303,A8_base_L70,10.925061,NC_base_L70,11.3907,0.465639,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD003,101,A8_base_L70,11.295436,NC_base_L70,12.5693,1.273864,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD003,202,A8_base_L70,10.831324,NC_base_L70,12.9936,2.162276,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD003,303,A8_base_L70,12.017237,NC_base_L70,12.4168,0.399563,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD004,101,A8_base_L70,12.131175,NC_base_L70,13.6948,1.563625,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD004,202,A8_base_L70,11.992431,NC_base_L70,13.8547,1.862269,a8_engine_level.csv val_eng / NC val_pred recompute
+base,off/off/none,FD004,303,A8_base_L70,11.295582,NC_base_L70,13.3103,2.014718,a8_engine_level.csv val_eng / NC val_pred recompute
+vanilla,off/off/none (vanilla model),FD001,101,VAN_dsp_cycle_L70,12.0669,VAN_raw_L70,11.9704,-0.0965,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD001,202,VAN_dsp_cycle_L70,10.5244,VAN_raw_L70,11.8406,1.3162,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD001,303,VAN_dsp_cycle_L70,11.7522,VAN_raw_L70,11.9415,0.1893,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD002,101,VAN_dsp_cycle_L70,11.5311,VAN_raw_L70,12.9879,1.4568,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD002,202,VAN_dsp_cycle_L70,10.9371,VAN_raw_L70,12.8139,1.8768,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD002,303,VAN_dsp_cycle_L70,11.0604,VAN_raw_L70,12.9988,1.9384,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD003,101,VAN_dsp_cycle_L70,11.9376,VAN_raw_L70,12.6849,0.7473,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD003,202,VAN_dsp_cycle_L70,11.6278,VAN_raw_L70,13.1103,1.4825,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD003,303,VAN_dsp_cycle_L70,11.1013,VAN_raw_L70,13.1085,2.0072,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD004,101,VAN_dsp_cycle_L70,12.0679,VAN_raw_L70,13.0792,1.0113,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD004,202,VAN_dsp_cycle_L70,11.8211,VAN_raw_L70,14.5371,2.716,val_pred recompute on lab3090
+vanilla,off/off/none (vanilla model),FD004,303,VAN_dsp_cycle_L70,12.0838,VAN_raw_L70,13.522,1.4382,val_pred recompute on lab3090
