@@ -21,8 +21,7 @@
 ## 0. 结论摘要
 
 1. **三个身份都能钉死到配置字段**，依据是 D039 X3 的显式表 + `RUN_INVENTORY` §5 的字段级 diff。
-2. **但同一个「`DSPT-V0-Cycle`」名下有两个不同的 TEST 数**（`11.512` 与 `11.1725`）。
-   **它们之间至少有三个未分离的变量**：精度、选轮准则（`pooled` vs `engine-level`）、聚合方式（见 §2）。
+2. **但同一个「`DSPT-V0-Cycle`」名下有两个不同的 TEST 数**（`11.512` 与 `11.1725`），**而且它们不是同一个完整配置**：架构相同（`full/basic/hf/cycle=on`），**训练协议不同**——**`hi_mono` 一个是 `correct`、一个是 `none`**（实核见 §2.1），加上精度、选轮准则、聚合方式，**共四个未分离的变量**（见 §2）。
    **没有单变量对照，所以不能把 `0.34` 全归因到「BF16 → FP32」**——本文早先那版正是这样写的，已按军师 2026-11-14 的核对收窄。
    **因此 Task A 固定身份时必须同时固定整套协议（精度 + 选轮准则 + 聚合），不只是精度。**
 3. **`V0N`（强骨干 + `use_cycle=False`）在已核查的档案范围内没有找到可复用运行。** **⚠ 这句话的上限就在这里——它不能升级成「历史上从未运行过」**（军师 2026-11-14 指出）：网格定义、目录扫描、台账标签**三者都是「档案里没有」**，而「档案里没有」推不出「没发生过」——可能跑在未归档的机器/目录上、可能跑过但没进任何台账。**所以补跑的依据是「证据缺口」，不是「确证未跑」；发射前必须由燕子按配置字段（`ms=full, sa=basic, hi=hf, use_cycle=False`）在 3090 侧全盘查重，不能只查台账。**
@@ -38,13 +37,17 @@
 
 ## 1. 三个身份的配置钉定
 
-| 名字 | `ms_mode` | `sa_mode` | `hi_source` | `use_cycle` | `input_mode` | 可定位的 tag | 依据 |
-|---|---|---|---|---|---|---|---|
-| **`DSPT-V0-Cycle`**（主参考） | `full` | `basic` | `hf` | `True` | `raw` | **`F_full_basic_hi1`** ≡ **`A8_full_L70`** | D039 X3 表；`RUN_INVENTORY` §5.2 #5 |
-| **`DSPT-TrainDefaults`**（辅助参考） | `full` | `off` | `none` | `True` | `raw` | **`A8_ms_L70`**（`82114` 参数，与 `DSPT(max_span=70)` 默认构造逐位相等） | 原件 §1「literal train DEFAULTS」；D039 X2 记 DEFAULTS 为 `sa_mode='off'`；管理员 2026-11-14 核实 |
-| **历史 `Selected`** | `single_proj` | `basic` | `hf` | `True` | `raw` | **`F_single_proj_basic_hi1`** | `SEED_ROBUSTNESS` 的 `cand` 行；factorial 线 |
-| （Task B 需要，**档案内未找到**）`V0-NoCycle` | `full` | `basic` | `hf` | **`False`** | `raw` | 无 | D039 X3 已定义；**`nocycle.json` 12 条全为 `NC_base_L70`（`off/off/none`），不含本行**；**「未找到」≠「未运行」** |
-| （Task B 需要，已存在）`V0-NoHI` | `full` | `basic` | **`none`** | `True` | `raw` | **≡ `A3`**（D039 X3 明写「同配置，只跑一次、双向引用」） | D039 X3 |
+| 名字 | `ms_mode` | `sa_mode` | `hi_source` | **`hi_mono`** | `use_cycle` | `input_mode` | 可定位的 tag | 依据 |
+|---|---|---|---|---|---|---|---|---|
+| **`DSPT-V0-Cycle`**（主参考，历史批） | `full` | `basic` | `hf` | **`correct`** | `True` | `raw` | **`F_full_basic_hi1`** ≡ **`A8_full_L70`** | D039 X3 表；`RUN_INVENTORY` §5.2 #5；`ablation8.json` 12 条 `hi_mono=correct` |
+| **`DSPT-V0-Cycle-FP32`**（公开基线批，**不同训练协议**） | `full` | `basic` | `hf` | **`none`** | `True` | `raw` | `physical_runs/fixed40/dspt_v0_cycle` | `d7bd9c17` 的 `FD001/s101/config.json`：`hi_mono:"none"`、`precision:"float32"`、`tf32:false`、`checkpoint_selection:"val_engine_mean_rmse"` |
+| **`DSPT-TrainDefaults`**（辅助参考） | `full` | `off` | `none` | **`none`** | `True` | `raw` | **`A8_ms_L70`**（`82114` 参数，与 `DSPT(max_span=70)` 默认构造逐位相等） | 原件 §1「literal train DEFAULTS」；D039 X2 记 DEFAULTS 为 `sa_mode='off'`；管理员 2026-11-14 核实 |
+| **历史 `Selected`** | `single_proj` | `basic` | `hf` | **`correct`** | `True` | `raw` | **`F_single_proj_basic_hi1`** | `SEED_ROBUSTNESS` 的 `cand` 行；factorial 线 |
+| （Task B 需要，**档案内未找到**）`V0-NoCycle` | `full` | `basic` | `hf` | **`correct`** | **`False`** | `raw` | 无 | D039 X3 已定义；**`nocycle.json` 12 条全为 `NC_base_L70`（`off/off/none`），不含本行**；**「未找到」≠「未运行」** |
+| （Task B 需要，已存在）`V0-NoHI` | `full` | `basic` | **`none`** | **`none`** | `True` | `raw` | **≡ `A3`**（D039 X3 明写「同配置，只跑一次、双向引用」） | D039 X3 |
+
+> **⚠ `hi_mono` 不是装饰字段（军师 2026-11-14 终审新增）**：`train.py:137–144` 里只有在 `hi_mono == 'correct'` 时才实际施加单调损失；`'none'` 直接跳过。所以 `hi_mono` 从 `correct` 换成 `none` **会改变训练目标本身**，不是记录项。**后果**：`DSPT-V0-Cycle`（历史批，`correct`）与 `DSPT-V0-Cycle-FP32`（公开基线批，`none`）**只能称为「同架构、不同训练协议」，不能当作同一完整配置的两个别名**；两者数字之差也因此不能全部归给「选轮/精度」。
+> **而 `hi_mono` 在 `A8` 网格里是跟着 `hi_source` 走的**：`hi_source=hf` 的 4 个臂全为 `correct`，`hi_source=none` 的 4 个臂全为 `none`（实核 8 个 tag 各 12 条）。**所以 A8 内部不存在「同 `hi_source` 但 `hi_mono` 不同」的对照——`hi_mono` 的主效应在这 96 格里不可识别**，这是本轮必须显式标注的不可识别项。
 
 **三个身份共享的 27 个训练/划分字段**（`RUN_INVENTORY` §5.1 已逐字段核对）：
 `span=70, epochs=40, patience=12, batch=512, lr=1e-3, weight_decay=1e-4, d_model=64, layers=2, dropout=0.2,
@@ -69,12 +72,13 @@ mode=dual, hi_mono_coef=0.1, rul_cap=125, split_seed=7, fold=0, val_frac=0.2, n_
 
 （均值均为本文按四个子集等权计算：`V0-Cycle-FP32` = `(10.60+11.03+10.68+12.38)/4 = 11.1725`；`TrainDefaults-FP32` = `11.23`。）
 
-### 2.1 两个数之间至少三个变量，且没有单变量对照
+### 2.1 两个数之间至少四个变量，且没有单变量对照
 
 | 变量 | `SEED_ROBUSTNESS` 的 `full`（`11.512`） | 原件的 `V0-Cycle-FP32`（`11.1725`） | 是否已被排除 | 证据强度 |
 |---|---|---|---|---|
 | **seed 数** | **3**（`runs per cell: base=12, cand=12, full=12` = 3 seed × 4 子集） | **3**（12 逻辑条件 = 3 seed × 4 子集） | **✅ 已排除：两侧都是 3** | 两侧均有明文 |
-| **选轮准则** | **`pooled` 验证 RMSE**（GPU 主机 pre-R2 `metrics.py`） | **`engine-level`**（原件 §1「先算每台验证机 RMSE，再等权平均，以此选 checkpoint」） | **❌ 未排除** | **两侧均有明文** |
+| **`hi_mono`** | **`correct`**（`ablation8.json` 12 条） | **`none`**（`config.json` 明文） | **❌ 未排除，且是训练目标差异** | **两侧均有明文（本日新增实核）** |
+| **选轮准则** | **`pooled` 验证 RMSE**（GPU 主机 pre-R2 `metrics.py`） | **`val_engine_mean_rmse`**（`config.json` 的 `checkpoint_selection` 字段明文） | **❌ 未排除** | **两侧均有明文** |
 | **聚合/汇报方式** | `engine-level` 为**事后重算**（不是选轮时用的量） | 与选轮同一口径 | **❌ 未排除** | 有明文 |
 | **数值精度** | **未记录**（见下） | **FP32，禁 autocast/TF32**（原件 §1 明写） | **❌ 未排除（但也不敢认定是它）** | 仅一侧有明文 |
 
@@ -85,7 +89,7 @@ mode=dual, hi_mono_coef=0.1, rul_cap=125, split_seed=7, fold=0, val_frac=0.2, n_
 **三条硬规则**：
 
 1. **`11.512` 与 `11.1725` 不能互相替代**，也不能各自与对方的基线相减。原件的 FP32 条件是为「与 5 篇公开基线同台」而设的，**它明确不声称与历史 DSPT 数值等价**（原件 §1 末句）。
-2. **两数之差 `0.34` 与 `Selected` 对 `full` 的效应（`−0.378`）是同一量级——占其 `90%`**（`0.3395 / 0.378 = 0.898`）。**但它的来源未被分离**：**未排除的有选轮准则、聚合方式、精度三项**（seed 数已排除，见上表）。**所以只能说「协议不同造成的位移与要检验的效应同量级」，不能说「精度把它推向某一侧」**——**没有单变量对照，任何方向性归因都是猜的**（本文初版那句「换一次精度就能推向任何一侧」已撤回）。
+2. **两数之差 `0.34` 与 `Selected` 对 `full` 的效应（`−0.378`）是同一量级——占其 `90%`**（`0.3395 / 0.378 = 0.898`）。**但它的来源未被分离**：**未排除的有 `hi_mono`、选轮准则、聚合方式、精度四项**（seed 数已排除，见上表）。**其中 `hi_mono` 是最硬的一项——它不是记录差异，而是训练目标差异**（`train.py:137–144` 只在 `correct` 时施加单调损失）。**所以只能说「协议不同造成的位移与要检验的效应同量级」，不能说「精度把它推向某一侧」**——**没有单变量对照，任何方向性归因都是猜的**（本文初版那句「换一次精度就能推向任何一侧」已撤回）。
 3. **`SEED_ROBUSTNESS` 的 val 是事后重算的 engine-level 值，而选模当时用的是 pooled**。**所以引用它的 val 时必须带这句**，否则会被读成「用 engine-level 选模」。
 
 ## 3. `Selected` 对两套参考的配对结果（Task A 的现实起点）
