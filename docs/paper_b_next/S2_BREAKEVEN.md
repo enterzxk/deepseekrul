@@ -79,7 +79,17 @@ FD001 s101 s010: val_engine 8.8482 ep34/40 369.3s
 - **ctrl 臂是什么**：同一个网络（`DSPTWithLife`，**115,715** 参数），但那一维恒为常数 0。两臂逐参数同宽（§1.3），差别只在「这一列有没有信息」。100 格实测参数量**全部 = 115,715**，无例外。
 - **ΔRMSE 相对谁**：同一 (子集, seed) 内配对，Δ = RMSE_treat − RMSE_ctrl，**负值 = 寿命辅助有用**。RMSE 是 engine-level：每台发动机先算 RMSE，再对发动机等权平均（**不是 pooled**）；每格 5 个 seed 取均值，括号内为 seed 间标准差。
 - **复算来源**：所有数从 `val_pred.csv` 重算，不读 `metrics.json` 的聚合字段。100 格「重算 − 记录」最大差 **4.6e-07**；pooled 与 engine-level 的差均值 **+1.93 周期**、最大 **5.43**——这就是禁用 pooled 的理由。
-- **实跑脚本**（3090，sha256 前 12 位）：`train_s2.py` `309843f8757b`、`model.py` `b5eacd2901fa`、`analyse_s2.py` `72ecd3174e8c`，独立复算 `verify_s2_metric.py`。仓库里原来的 `train_s2.py` 是容量匹配改造**之前**的旧版（该改动只部署在 3090），已按实跑版同步回仓库；本文数字以 3090 上这一版为准。
+- **实跑脚本**：下表五个文件与 3090 上实跑的版本**逐字节相同**，可直接用 `git show HEAD:paper_b/experiments/s2_breakeven/<file> | sha256sum` 复核。
+
+| 文件 | sha256 |
+|---|---|
+| `train_s2.py` | `309843f8757b98579ea2a3d084956012c3d359ba3ca48a6deb83d2819f5f69ba` |
+| `model.py` | `b5eacd2901fa5533c361a987a28aa084852da5daa2f3c131056a44230c9d96aa` |
+| `analyse_s2.py` | `72ecd3174e8c3efdfc1265298ef1eb3351c3d5dd8c8760e3d3c0c7fdf4f1a093` |
+| `verify_s2_metric.py` | `06b9b7b39e2260a044ff4f14e0f0057ae450da9b5cc21150005c1273044247ab` |
+| `plot_s2.py` | `1f9ebd4f0bf05cfe54ce805de8120f47e22e0408f3d6ddaa4da50f4882cbe267` |
+
+  **注意**：仓库里原来的 `train_s2.py` 是容量匹配改造**之前**的旧版（该改动当时只部署在 3090），本文数字一律以实跑版为准，旧版不可用于复现或写文档。`analyse_s2.py` 与 `verify_s2_metric.py` 是两套独立实现，16 格 Δ 表逐位一致。
 
 ### 4.2 数值表（ΔRMSE，周期；括号内为 5 个 seed 间的标准差）
 
