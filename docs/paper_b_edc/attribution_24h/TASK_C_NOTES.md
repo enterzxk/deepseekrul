@@ -216,6 +216,34 @@ That matters for what comes next: because the information is state, not
 identity, "the model does not use the sensor fully" is a claim that survives,
 and individual self-calibration is not the only way to reach it.
 
+**Degrees of freedom, checked.** Each engine contributes at most five truncation
+points and a 50-cycle bin is wide, so most (cell, engine) pairs hold a single
+point and are absorbed by the engine dummy. Pair sizes:
+
+| subset | pairs | 1 point | 2 points | 3+ points | engines covered |
+|---|---|---|---|---|---|
+| FD001 | 89 | 78 | 11 | 0 | 20 |
+| FD002 | 239 | 218 | 21 | 0 | 52 |
+| FD003 | 88 | 76 | 12 | 0 | 20 |
+| FD004 | 234 | 218 | 16 | 0 | 50 |
+
+So the slope is identified only by the engines that have two truncation points
+inside the same cell. Re-estimating on those pairs alone:
+
+| subset | slope | 95% CI | R2 increment | points | engines |
+|---|---|---|---|---|---|
+| FD001 | +8.301 | [5.110, 11.492] | 0.609 | 22 | 9 |
+| FD002 | +10.310 | [7.532, 13.089] | 0.720 | 42 | 19 |
+| FD003 | +9.444 | [2.524, 16.365] | 0.363 | 24 | 11 |
+| FD004 | -7.151 | [-9.860, -4.443] | 0.390 | 32 | 15 |
+
+The signal does not vanish when the singletons are dropped - it gets larger,
+because the denominator loses the pairs that carried no identifying variation.
+But the honest scope is narrower than "all four subsets": it rests on 9-19
+engines per subset (30-50% of the engines present), 22-42 observations, and the
+engine-FE estimate on the full data is the same estimate, not an independent
+one, since singleton pairs contribute nothing to identification.
+
 ## A6: does the model's signed error track that signal?
 
 Same within-cell construction, response `err` (signed), one arm at a time:

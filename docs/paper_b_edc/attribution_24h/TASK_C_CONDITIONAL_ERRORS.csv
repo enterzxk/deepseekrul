@@ -277,3 +277,19 @@ A5c_ytrue_on_pc1_with_engine_fe,FD003,all cells,slope,5.033814333065151,100,CI 2
 A5c_ytrue_on_pc1_with_engine_fe,FD003,all cells,r2_increment,0.18835408565259515,100,within cell + engine fixed effects
 A5c_ytrue_on_pc1_with_engine_fe,FD004,all cells,slope,-3.9229478991354725,250,CI -5.1467..-2.6992; R2 increment 0.1942; engines 50
 A5c_ytrue_on_pc1_with_engine_fe,FD004,all cells,r2_increment,0.194150687933005,250,within cell + engine fixed effects
+A5d_pair_sizes,FD001,cell x engine pairs,pairs,89,89,"one point 78, two 11, three-plus 0; engines covered 20"
+A5d_pair_sizes,FD001,cell x engine pairs,pairs_multi_point,11,9,engines with at least one multi-point pair
+A5e_ytrue_pc1_multi_point_only,FD001,engines with >=2 points in a cell,slope,8.300884508733967,22,CI 5.1101..11.4917; R2 increment 0.6088; engines 9
+A5e_ytrue_pc1_multi_point_only,FD001,engines with >=2 points in a cell,r2_increment,0.6088044533330869,22,"restricted to multi-point (cell, engine) pairs"
+A5d_pair_sizes,FD002,cell x engine pairs,pairs,239,239,"one point 218, two 21, three-plus 0; engines covered 52"
+A5d_pair_sizes,FD002,cell x engine pairs,pairs_multi_point,21,19,engines with at least one multi-point pair
+A5e_ytrue_pc1_multi_point_only,FD002,engines with >=2 points in a cell,slope,10.310363915537485,42,CI 7.5317..13.0890; R2 increment 0.7196; engines 19
+A5e_ytrue_pc1_multi_point_only,FD002,engines with >=2 points in a cell,r2_increment,0.7195926171859204,42,"restricted to multi-point (cell, engine) pairs"
+A5d_pair_sizes,FD003,cell x engine pairs,pairs,88,88,"one point 76, two 12, three-plus 0; engines covered 20"
+A5d_pair_sizes,FD003,cell x engine pairs,pairs_multi_point,12,11,engines with at least one multi-point pair
+A5e_ytrue_pc1_multi_point_only,FD003,engines with >=2 points in a cell,slope,9.444220819040874,24,CI 2.5238..16.3647; R2 increment 0.3633; engines 11
+A5e_ytrue_pc1_multi_point_only,FD003,engines with >=2 points in a cell,r2_increment,0.36327078374182015,24,"restricted to multi-point (cell, engine) pairs"
+A5d_pair_sizes,FD004,cell x engine pairs,pairs,234,234,"one point 218, two 16, three-plus 0; engines covered 50"
+A5d_pair_sizes,FD004,cell x engine pairs,pairs_multi_point,16,15,engines with at least one multi-point pair
+A5e_ytrue_pc1_multi_point_only,FD004,engines with >=2 points in a cell,slope,-7.151388334393941,32,CI -9.8596..-4.4431; R2 increment 0.3902; engines 15
+A5e_ytrue_pc1_multi_point_only,FD004,engines with >=2 points in a cell,r2_increment,0.39018519092262294,32,"restricted to multi-point (cell, engine) pairs"

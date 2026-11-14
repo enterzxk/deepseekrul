@@ -394,6 +394,35 @@ def main():
             "r2_increment", res["r2_increment"], res["n"],
             "within cell + engine fixed effects")
 
+    # Degrees of freedom check for A5c.  Each engine contributes at most five
+    # truncation points, and a 50-cycle bin is wide, so most (cell, engine) pairs
+    # hold a single point.  With engine dummies a singleton pair is absorbed
+    # entirely, so the slope would be identified only by engines that happen to
+    # have two or more points inside the same cell.  Report that distribution and
+    # re-estimate on the multi-point pairs alone.
+    pair_n = uniq.groupby(["subset", "cell", "unit"]).size().reset_index(name="k")
+    for s in subsets:
+        p = pair_n[pair_n["subset"] == s]
+        add("A5d_pair_sizes", s, "cell x engine pairs", "pairs", len(p), len(p),
+            "one point %d, two %d, three-plus %d; engines covered %d"
+            % (int((p["k"] == 1).sum()), int((p["k"] == 2).sum()),
+               int((p["k"] >= 3).sum()), int(p["unit"].nunique())))
+        keep = p[p["k"] >= 2]
+        add("A5d_pair_sizes", s, "cell x engine pairs", "pairs_multi_point", len(keep),
+            int(keep["unit"].nunique()),
+            "engines with at least one multi-point pair")
+        if keep.empty or keep["unit"].nunique() < 3:
+            continue
+        d = uniq.merge(keep[["cell", "unit"]], on=["cell", "unit"], how="inner")
+        res = two_way_slope(d, "y_true", "pc1")
+        add("A5e_ytrue_pc1_multi_point_only", s, "engines with >=2 points in a cell",
+            "slope", res["slope"], res["n"],
+            "CI %.4f..%.4f; R2 increment %.4f; engines %d"
+            % (res["lo"], res["hi"], res["r2_increment"], res["units"]))
+        add("A5e_ytrue_pc1_multi_point_only", s, "engines with >=2 points in a cell",
+            "r2_increment", res["r2_increment"], res["n"],
+            "restricted to multi-point (cell, engine) pairs")
+
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["analysis", "subset", "stratum", "metric",
                                           "value", "n", "note"])
