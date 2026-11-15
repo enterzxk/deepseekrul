@@ -27,7 +27,7 @@
 | 增强实现 | `paper_b/sensor_aug/{augmentation,noise_stats,evaluation}.py` |
 | 改动文件 | `paper_b/models/dspt.py`（`sensor_keep`：注意力 key-mask、pooling 重归一化、encode 清洗）、`paper_b/training/{data,train,metrics}.py`（`cond_seq`、增强钩子、engine-equal 指标） |
 | 代码指纹 | `code_fingerprint()` = **8 个文件** sha256[:12]：7 个模型/训练文件 + `scripts/run_sensor_aug.py`（臂的 BASE 定义写在这里，不纳入指纹就会「改了协议但指纹不变」）。另存 7 文件 legacy 值供跨 study 对照。manifest/freeze 记两个值，每格 `metadata.json` 记 `git_head`。 |
-| 本轮指纹 | `h8=740809bed8c9`，`h7=3f3a3e68594e`（旧 study 的 `h7` 是 `90f20d35953d`；差异来自 `train.py` 的 `fp32` 默认值与入口断言，不改模型数学） |
+| 本轮指纹 | `h8=515eb76fc396`，`h7=3f3a3e68594e`（旧 study 的 `h7` 是 `90f20d35953d`；差异来自 `train.py` 的 `fp32` 默认值与入口断言，不改模型数学） |
 
 `data.py` 新增 `cond_seq`（每窗每时间步的工况簇）**只**供噪声增强按步取尺度；回归网络仍只吃窗口末端工况。
 
