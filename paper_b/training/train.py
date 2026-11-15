@@ -39,7 +39,7 @@ DEFAULTS = dict(
     model='dspt', subset='FD001', seed=101, span=70, epochs=40, patience=12,
     batch=512, lr=1e-3, weight_decay=1e-4, d_model=64, layers=2, dropout=0.2,
     mode='dual', ms_mode='full', sa_mode='off', hi_source='none', hi_mono='none',
-    hi_lambda=0.5, hi_mono_coef=0.1, use_cycle=True, fp32=False,
+    hi_lambda=0.5, hi_mono_coef=0.1, use_cycle=True, fp32=True,
     use_pad_mask=True,
     input_mode='raw', aux_dual=True, instnorm=False, rul_cap=125.0,
     split_seed=7, fold=0, val_frac=0.2, n_cond=6, cuts=(0.4, 0.55, 0.7, 0.85, 0.95),
@@ -135,6 +135,12 @@ def _augmentor(cfg, dev):
 
 def train_one(cfg, device='cuda:0', out_root=None):
     cfg = {**DEFAULTS, **cfg}
+    if cfg.get('fp32') is not True and not cfg.get('allow_bf16'):
+        raise ValueError(
+            'train_one requires fp32=True: BF16 is not reproducible across '
+            'processes on this stack (same weights re-run over 12 runs drifted '
+            'up to 1.12 cycles). Set allow_bf16=True only to reproduce a '
+            'historical BF16 run, and never for a comparison.')
     data_dir = Path(cfg['data_dir'])
     set_seed(cfg['seed'])
     t0 = time.time()

@@ -97,6 +97,12 @@ $ grep -h '"git_head"' runs/*/*/*/metadata.json | sort | uniq -c
 | 「G2 的 +8.73% 是噪声鲁棒性、不是噪声注入」 | 成立，见 `SENSOR_RESEARCH_PLAN.md` §5 |
 | E1a/E1b 的性质 | **仍为重做**（协议不同），不是「复核同一协议」 |
 
+## 7a. 本轮追加记录（2026-11-15 18:05）
+
+1. **BF16 事故**：E0 的前几格跑在 `fp32=false`（`DEFAULTS` 默认值）上，违反冻结件。根因：build 路径从未设置 `fp32`。已修：`task_config` 写死 `fp32=True`；`build` 拒绝写入任何 `fp32 is not True` 的 manifest；`train_one` 入口对非 True 抛错（`allow_bf16=True` 只作历史复现开关）。
+2. **作废格未留档**：那几格被 `rm -rf runs/*` 删除，没有按约定 `mv` 到 `_invalid_bf16/`，终值不可审计，只剩日志逐轮轨迹。这是操作错误，记录在案；它们本就不进任何表。
+3. **指纹口径变更**：`code_fingerprint()` 从 7 文件扩到 8 文件（加入 `scripts/run_sensor_aug.py`——臂的 BASE 定义在那里）。新 `h8=740809bed8c9`，`h7=3f3a3e68594e`；旧 study 的 `h7` 是 `90f20d35953d`，差异来自 `train.py` 的 fp32 默认值与入口断言，不改模型数学。
+
 ## 8. 复核命令
 
 ```bash

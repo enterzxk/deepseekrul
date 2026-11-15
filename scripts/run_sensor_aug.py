@@ -47,7 +47,7 @@ BASE = dict(
     weight_decay=1e-4, d_model=64, layers=2, dropout=0.2, mode='dual',
     ms_mode='full', sa_mode='basic', hi_source='hf', hi_mono='correct',
     hi_lambda=0.5, hi_mono_coef=0.1, use_cycle=True, use_pad_mask=True,
-    input_mode='raw', aux_dual=True, instnorm=False, rul_cap=125,
+    input_mode='raw', aux_dual=True, instnorm=False, rul_cap=125, fp32=True,
     split_seed=17, fold=0, val_frac=0.2, n_cond=6,
     cuts=[0.4, 0.55, 0.7, 0.85, 0.95],
     legacy_rul=False, global_hi=False, legacy_ms_pad=False, legacy_ema=False,
@@ -74,19 +74,38 @@ STAGE2_SEEDS = [101, 202, 303, 404, 505]
 
 
 # --------------------------------------------------------------------- utils
-def code_fingerprint():
+FINGERPRINT_FILES = (
+    'paper_b/models/dspt.py', 'paper_b/training/train.py',
+    'paper_b/training/data.py', 'paper_b/training/metrics.py',
+    'paper_b/sensor_aug/augmentation.py', 'paper_b/sensor_aug/noise_stats.py',
+    'paper_b/sensor_aug/evaluation.py')
+RUNNER_FILE = 'scripts/run_sensor_aug.py'
+
+
+def _hash_files(paths):
     h = hashlib.sha256()
-    for rel in ('paper_b/models/dspt.py', 'paper_b/training/train.py',
-                'paper_b/training/data.py', 'paper_b/training/metrics.py',
-                'paper_b/sensor_aug/augmentation.py', 'paper_b/sensor_aug/noise_stats.py',
-                'paper_b/sensor_aug/evaluation.py'):
+    for rel in paths:
         h.update((REPO / rel).read_bytes())
+    return h.hexdigest()[:12]
+
+
+def code_fingerprint():
+    """Two fingerprints plus the git head.
+
+    `h8` covers the 7 model/training files **and this runner**, because the
+    runner defines every arm's BASE config: editing it changes the protocol
+    without changing any model file. `h7` keeps the exact 7-file definition
+    used by research/dspt-sensor-aug-20261114 (`90f20d35953d`), so a new run
+    can still be traced back to that study.
+    """
+    h8 = _hash_files(FINGERPRINT_FILES + (RUNNER_FILE,))
+    h7 = _hash_files(FINGERPRINT_FILES)
     try:
         head = subprocess.check_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD'],
                                        text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:
         head = ''
-    return h.hexdigest()[:12], head
+    return h8, h7, head
 
 
 def config_hash(cfg):
@@ -99,10 +118,15 @@ def run_id_for(group, subset, seed, cfg):
 
 
 def task_config(group, subset, seed, data_dir):
+    if group not in GROUPS:
+        raise ValueError(f'unknown group {group!r}; known: {sorted(GROUPS)} '
+                         '(E3 mask+noise is out of scope for this study)')
     g = GROUPS[group]
     if g['mask_prob'] > 0 and g['noise_alpha'] > 0:
         raise ValueError('E3 (mask + noise combined) is out of scope for this study')
     cfg = dict(BASE)
+    cfg['fp32'] = True          # protocol constant, not a per-run option
+    cfg['allow_bf16'] = False   # BF16 is not reproducible across processes here
     cfg.update(subset=subset, seed=seed, data_dir=str(data_dir), tag='',
                study_id=STUDY_ID)
     if g['mask_prob'] > 0 or g['noise_alpha'] > 0:
@@ -194,10 +218,10 @@ def build(args):
     for d in (SHARED, RUNS, CLAIMS, LOCKS, MANIFESTS, LOGS):
         d.mkdir(parents=True, exist_ok=True)
     data_dir = Path(args.data_dir)
-    code_hash, head = code_fingerprint()
+    code_hash, legacy7, head = code_fingerprint()
     subsets = args.subsets.split(',')
     manifest = []
-    shared_meta = {'study_id': STUDY_ID, 'code_fingerprint': code_hash,
+    shared_meta = {'study_id': STUDY_ID, 'code_fingerprint': code_hash, 'code_fingerprint_legacy7': legacy7,
                    'git_head': head, 'data_dir': str(data_dir),
                    'base': BASE, 'groups': GROUPS, 'built': time.time()}
 
@@ -260,8 +284,12 @@ def build(args):
                             max_std_relative_to_robust_scale=0.20,
                             location='before_features', baseline_policy='fixed_clean_prefix')
         (cfg_dir / f'{g}.yaml').write_text(yaml.safe_dump(c, sort_keys=False))
+    bad = [r['run_id'] for r in manifest if r['config'].get('fp32') is not True]
+    if bad:
+        raise SystemExit('refusing to write manifest: fp32 is not True for '
+                         f'{len(bad)} runs, e.g. {bad[:3]}')
     out = MANIFESTS / args.name
-    out.write_text(json.dumps({'study_id': STUDY_ID, 'code_fingerprint': code_hash,
+    out.write_text(json.dumps({'study_id': STUDY_ID, 'code_fingerprint': code_hash, 'code_fingerprint_legacy7': legacy7,
                                'git_head': head, 'runs': manifest}, indent=1))
     (SHARED / 'study_meta.json').write_text(json.dumps(shared_meta, indent=1))
     print(f'[build] wrote {out} with {len(manifest)} runs', flush=True)
@@ -471,14 +499,14 @@ def freeze(args):
             raise SystemExit(f'run not COMPLETE: {t["run_id"]}')
         rows.append(dict(group=t['group'], subset=t['subset'], seed=int(t['seed']),
                          run_id=t['run_id'], best_pt_sha256=sha256_file(rd / 'best.pt')))
-    code_hash, head = code_fingerprint()
+    code_hash, legacy7, head = code_fingerprint()
     out = dict(study_id=STUDY_ID, frozen=True, time=time.time(),
                candidate=dict(group=cand,
                               mask_prob=GROUPS[cand]['mask_prob'],
                               noise_alpha=GROUPS[cand]['noise_alpha']),
                channel=screen.get('channel'),
                robustness_target=screen.get('robustness_target'),
-               screen=screen, runs=rows, code_fingerprint=code_hash, git_head=head,
+               screen=screen, runs=rows, code_fingerprint=code_hash, code_fingerprint_legacy7=legacy7, git_head=head,
                test_rules=dict(metrics=['pooled_rmse', 'engine_equal_rmse', 'mae',
                                         'nasa_mean', 'nasa_sum'],
                                missing_ks=[0, 1, 2, 3, 4],
