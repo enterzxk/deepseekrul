@@ -163,8 +163,14 @@ def _window(seq, end, span):
 
 def make_train_windows(frame, values, clusters, pop_ref, span, max_rul=125.0,
                        hi_map=None, legacy_rul=False):
-    """Vectorised sliding-window construction (all cycle positions per engine)."""
-    xs, ys, ms, bs, cs, cds, hs = [], [], [], [], [], [], []
+    """Vectorised sliding-window construction (all cycle positions per engine).
+
+    cond_seq (n, span) carries the operating-condition cluster of every time
+    step of every window. It is only consumed by the noise augmentor, which
+    needs the per-step condition to pick a per-step residual scale; the
+    regression network keeps receiving the endpoint condition only.
+    """
+    xs, ys, ms, bs, cs, cds, hs, css = [], [], [], [], [], [], [], []
     for uid, g in frame.groupby('unit', sort=True):
         pos = g.index.to_numpy(np.int64)
         seq = np.asarray(values[pos], np.float32)
@@ -178,13 +184,15 @@ def make_train_windows(frame, values, clusters, pop_ref, span, max_rul=125.0,
         for t in range(n):
             m = min(t + 1, span)
             mask[t, span - m:] = 1.0
+        padded_c = np.concatenate([np.zeros(span - 1, np.int64), cl])
+        cwin = np.lib.stride_tricks.sliding_window_view(padded_c, span)[:n].copy()
         refs = np.empty((n, seq.shape[1]), np.float32)
         for t in range(n):
             refs[t] = _baseline_ref(seq, cl, cyc, t, pop_ref)
         xs.append(win); ms.append(mask); ys.append(_rul_curve(n, max_rul, legacy_rul))
         bs.append(refs)
         cs.append(np.minimum(cyc / CYCLE_SCALE, 1.0).astype(np.float32))
-        cds.append(cl)
+        cds.append(cl); css.append(cwin)
         if hi_map:
             hs.append(np.asarray([hi_map.get((int(uid), int(c)), 0.0) for c in cyc], np.float32))
         else:
@@ -193,6 +201,7 @@ def make_train_windows(frame, values, clusters, pop_ref, span, max_rul=125.0,
                 mask=np.concatenate(ms), baseline=np.concatenate(bs),
                 cycle=np.concatenate(cs).astype(np.float32),
                 cond=np.concatenate(cds).astype(np.int64),
+                cond_seq=np.concatenate(css).astype(np.int64),
                 hi=np.concatenate(hs).astype(np.float32))
 
 
@@ -204,7 +213,7 @@ def make_val_windows(frame, values, clusters, pop_ref, span, cuts=(0.4, 0.55, 0.
     f in cuts. True RUL at cycle c is n-c. The cut rule is a protocol constant;
     it never reads official test RUL values.
     """
-    xs, ys, ms, bs, cs, cds, us, cts = [], [], [], [], [], [], [], []
+    xs, ys, ms, bs, cs, cds, us, cts, css = [], [], [], [], [], [], [], [], []
     for uid, g in frame.groupby('unit', sort=True):
         pos = g.index.to_numpy(np.int64)
         seq = np.asarray(values[pos], np.float32)
@@ -219,19 +228,22 @@ def make_val_windows(frame, values, clusters, pop_ref, span, cuts=(0.4, 0.55, 0.
             seen.add(c)
             t = c - 1
             x, mask = _window(seq, t + 1, span)
-            xs.append(x); ms.append(mask)
+            cw = np.zeros(span, np.int64)
+            mm = min(t + 1, span)
+            cw[span - mm:] = cl[t + 1 - mm:t + 1]
+            xs.append(x); ms.append(mask); css.append(cw)
             ys.append(float(min(max(n - c, 0), max_rul)))
             bs.append(_baseline_ref(seq, cl, cyc, t, pop_ref))
             cs.append(min(cyc[t] / CYCLE_SCALE, 1.0)); cds.append(int(cl[t]))
             us.append(int(uid)); cts.append(int(c))
     return dict(x=np.stack(xs), y=np.asarray(ys, np.float32), mask=np.stack(ms),
                 baseline=np.stack(bs), cycle=np.asarray(cs, np.float32),
-                cond=np.asarray(cds, np.int64), unit=np.asarray(us),
-                cut=np.asarray(cts))
+                cond=np.asarray(cds, np.int64), cond_seq=np.stack(css),
+                unit=np.asarray(us), cut=np.asarray(cts))
 
 
 def make_test_windows(test_frame, values, clusters, pop_ref, span, rul_map, max_rul=125.0):
-    xs, ms, bs, cs, cds, us, ys = [], [], [], [], [], [], []
+    xs, ms, bs, cs, cds, us, ys, css, cts = [], [], [], [], [], [], [], [], []
     for uid, g in test_frame.groupby('unit', sort=True):
         pos = g.index.to_numpy(np.int64)
         seq = np.asarray(values[pos], np.float32)
@@ -239,13 +251,18 @@ def make_test_windows(test_frame, values, clusters, pop_ref, span, rul_map, max_
         cyc = g['cycle'].to_numpy(np.int64)
         t = len(seq) - 1
         x, mask = _window(seq, t + 1, span)
-        xs.append(x); ms.append(mask)
+        cw = np.zeros(span, np.int64)
+        mm = min(t + 1, span)
+        cw[span - mm:] = cl[t + 1 - mm:t + 1]
+        xs.append(x); ms.append(mask); css.append(cw)
         bs.append(_baseline_ref(seq, cl, cyc, t, pop_ref))
         cs.append(min(cyc[t] / CYCLE_SCALE, 1.0)); cds.append(int(cl[t]))
         us.append(int(uid)); ys.append(float(min(rul_map[int(uid)], max_rul)))
+        cts.append(int(cyc[t]))
     return dict(x=np.stack(xs), y=np.asarray(ys, np.float32), mask=np.stack(ms),
                 baseline=np.stack(bs), cycle=np.asarray(cs, np.float32),
-                cond=np.asarray(cds, np.int64), unit=np.asarray(us))
+                cond=np.asarray(cds, np.int64), cond_seq=np.stack(css),
+                unit=np.asarray(us), cut=np.asarray(cts))
 
 
 _CACHE = {}
