@@ -110,6 +110,14 @@ $ grep -h '"git_head"' runs/*/*/*/metadata.json | sort | uniq -c
 
 **已知操作（跑批期间）**：`build` 会重写 `paper_b/sensor_aug/configs/` 下 6 个已跟踪 YAML，工作树会显示 diff。跑完 `git checkout -- paper_b/sensor_aug/configs/` 还原即可，不影响 manifest 与指纹。
 
+**已知操作（每批收尾）**：`train.py` 在 h8 里，不能中途加字段，所以逐格 `metadata.json` 只记 `git_head`、不记 `code_fingerprint`。每批跑完后执行
+
+```
+python scripts/backfill_provenance.py --manifest <manifest.json>
+```
+
+把 `code_fingerprint` / `legacy7` / `manifest_git_head` / `run_git_head` / `config_sha256` 写进每个 COMPLETE 格的 `provenance.json`（E0 的 12 格已补）。**逐格指纹只能从 `provenance.json` 断言，不要从 `metadata.json` 断言。**
+
 **备份链（2026-11-15 21:05 恢复演练后）**：本仓库是 `blob:none` 部分克隆。`git bundle --all`（251 MB）与范围包（79 KB）都缺历史 blob（如 `f2d8056`），**在全新目录 clone 全部失败**——bundle 目前不是可用备份。可恢复的是：
 
 ```
