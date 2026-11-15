@@ -118,6 +118,16 @@ python scripts/backfill_provenance.py --manifest <manifest.json>
 
 把 `code_fingerprint` / `legacy7` / `manifest_git_head` / `run_git_head` / `config_sha256` 写进每个 COMPLETE 格的 `provenance.json`（E0 的 12 格已补）。**逐格指纹只能从 `provenance.json` 断言，不要从 `metadata.json` 断言。**
 
+**但 `provenance.json` 里是 manifest 声明的值，不是运行期独立重算的值。** 它只能证明「每格都从同一个 manifest 启动」。闭环需要独立复算：
+
+```
+git worktree add --detach <tmp> ec3289a7   # E0 那批的 git_head
+git worktree add --detach <tmp2> 3468954e  # E1/E2 那批的 git_head
+# 在两个干净 checkout 上各重算 8 文件指纹
+```
+
+2026-11-16 实测：`ec3289a7 → h8=515eb76fc396`、`3468954e → h8=515eb76fc396`。所以报告只能写「48 格共用同一 manifest，其声明的 h8 在 E0 与 E1/E2 两个 `git_head` 上分别复算均为 `515eb76fc396`」，**不能**写「逐格重算指纹一致」。
+
 **备份链（2026-11-15 21:05 恢复演练后）**：本仓库是 `blob:none` 部分克隆。`git bundle --all`（251 MB）与范围包（79 KB）都缺历史 blob（如 `f2d8056`），**在全新目录 clone 全部失败**——bundle 目前不是可用备份。可恢复的是：
 
 ```
