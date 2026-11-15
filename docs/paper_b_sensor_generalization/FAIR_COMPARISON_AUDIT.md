@@ -103,6 +103,13 @@ $ grep -h '"git_head"' runs/*/*/*/metadata.json | sort | uniq -c
 2. **作废格未留档**：那几格被 `rm -rf runs/*` 删除，没有按约定 `mv` 到 `_invalid_bf16/`，终值不可审计，只剩日志逐轮轨迹。这是操作错误，记录在案；它们本就不进任何表。
 3. **指纹口径变更**：`code_fingerprint()` 从 7 文件扩到 8 文件（加入 `scripts/run_sensor_aug.py`——臂的 BASE 定义在那里）。新 `h8=515eb76fc396`，`h7=3f3a3e68594e`；旧 study 的 `h7` 是 `90f20d35953d`，差异来自 `train.py` 的 fp32 默认值与入口断言，不改模型数学。
 
+## 7b. 代码身份的读法（以后核对照这两条）
+
+1. **判代码身份看 `h8`，不看 `git_head` 是否等于分支头。** `git_head` 在 manifest 里只是建 manifest 那一刻的 HEAD；之后任何文档提交都会让分支头前进，但 `h8` 不变。`e931cb93` 就是这种提交：head 从 `ec3289a7` 变成 `e931cb93`，`h8` 仍是 `515eb76fc396`。
+2. **同一批里各格 `metadata.json` 的 `git_head` 可以不同，但 `h8` 必须相同。** 12 格跑了约 65 分钟，期间若有文档提交，后启动的格会记到更新的 HEAD。这是正常的；判「是不是同一份代码」只认 `h8`。
+
+**已知操作（跑批期间）**：`build` 会重写 `paper_b/sensor_aug/configs/` 下 6 个已跟踪 YAML，工作树会显示 diff。跑完 `git checkout -- paper_b/sensor_aug/configs/` 还原即可，不影响 manifest 与指纹。
+
 ## 8. 复核命令
 
 ```bash

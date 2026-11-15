@@ -154,3 +154,18 @@ experiments/paper_b_sensor_generalization/runs/{run_id}/{subset}/s{seed}/
 - **改了什么**：`runs/{run_id}/` → `runs/{run_id}/{subset}/s{seed}/`。
 - **为什么**：原文档少写两层，军师与郑总按文档找不到文件。
 
+### 2026-11-15 20:45 · 主指标口径更正（§7 的落地定义）
+
+- **问题**：§7 写的主指标是 engine-equal `sqrt(mean_u MSE_u)`，但实测 `metrics.json` 里 `val_engine_equal_rmse` 是 **pooled 的副本**（FD004/s303 = 13.989556），真正的「逐机 RMSE 再平均」是 `val_engine_mean_roots_rmse`（11.900607）。且在平衡设计（每机正好 5 个截点）下 `sqrt(mean_u MSE_u)` 恒等于 pooled，等于没有定义出独立口径。
+- **决定**：主指标改为 **`val_engine_mean_roots_rmse` = `mean_u RMSE_u`**；`val_engine_equal_rmse` / `val_pooled_rmse` / `rmse` 降为辅助，只作交叉核对。
+- **理由**：与前几轮 Paper B 口径一致；数值更高更保守；不依赖各机截点数是否均衡。
+- **影响**：§7 的阈值形式（−0.3 cycle、95% CI、≥3/4 同号）不变，只是 Δ 改用新口径计算；E0 基线从 `val_pred.csv` 重算即可；尚无任何臂间决策，不影响已作结论。
+- **不改代码**：`metrics.py` 在 h8 里，本轮不动；只改「读哪个字段」。
+
+### 2026-11-15 20:45 · runner 改动时机收紧（覆盖 18:20 那条）
+
+- **决定**：**整个发现阶段不改 `scripts/run_sensor_aug.py`**，E1a/E1b/E2a/E2b 与 E0 共用 `h8=515eb76fc396`。
+- **理由**：runner 在 h8 里，中途改会让 E0 与后续臂的配对基线不是同一份代码；而指纹机制分不清「只改输出路径」和「改了数学」。为工作树是否干净把整轮拆成两个指纹，不值得。
+- **代价**：`build` 之后执行一次 `git checkout -- paper_b/sensor_aug/configs/`，已写进 `FAIR_COMPARISON_AUDIT.md` §7b「已知操作」。
+
+
