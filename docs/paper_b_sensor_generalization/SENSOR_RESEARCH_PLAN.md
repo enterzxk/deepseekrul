@@ -25,7 +25,7 @@
 | 切出点 | `0e7893e8`（`paper-b-contribution-attribution` HEAD） |
 | 训练入口 | `scripts/run_sensor_aug.py` |
 | 增强实现 | `paper_b/sensor_aug/{augmentation,noise_stats,evaluation}.py` |
-| 改动文件 | `paper_b/training/{data,train,metrics}.py`（`cond_seq`、增强钩子、engine-equal 指标） |
+| 改动文件 | `paper_b/models/dspt.py`（`sensor_keep`：注意力 key-mask、pooling 重归一化、encode 清洗）、`paper_b/training/{data,train,metrics}.py`（`cond_seq`、增强钩子、engine-equal 指标） |
 | 代码指纹 | `code_fingerprint()` = 7 个源文件 sha256[:12] + `git rev-parse HEAD`，每格写入 `config.json` |
 
 `data.py` 新增 `cond_seq`（每窗每时间步的工况簇）**只**供噪声增强按步取尺度；回归网络仍只吃窗口末端工况。

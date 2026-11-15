@@ -306,9 +306,25 @@ def claim(task, gpu):
     return True
 
 
+MAX_ATTEMPTS = 3
+
+
+def attempts_path(task):
+    return run_dir_of(task) / 'attempts.json'
+
+
+def attempts_of(task):
+    try:
+        return int(json.loads(attempts_path(task).read_text()).get('attempts', 0))
+    except Exception:
+        return 0
+
+
 def next_task(manifest):
     for task in manifest:
         if is_complete(task):
+            continue
+        if attempts_of(task) >= MAX_ATTEMPTS:
             continue
         p = CLAIMS / f"{task['run_id']}.claim"
         if p.exists():
@@ -366,6 +382,7 @@ def evaluate_run(task, data_dir, device):
 def worker(args):
     manifest = json.loads(Path(args.manifest).read_text())['runs']
     print(f'[worker gpu{args.gpu}] {len(manifest)} runs in manifest', flush=True)
+    streak, last_err = 0, None
     while True:
         task = next_task(manifest)
         if task is None:
@@ -401,12 +418,25 @@ def worker(args):
                 evaluate_run(task, args.data_dir, f'cuda:{args.gpu}')
             print(f'[worker gpu{args.gpu}] DONE {task["run_id"]} in '
                   f'{time.time() - t0:.0f}s', flush=True)
+            streak, last_err = 0, None
         except Exception as exc:
             (rd / 'error.txt').write_text(traceback.format_exc())
             status = 'EVAL_FAILED' if trained else 'FAILED'
             (rd / 'status.json').write_text(json.dumps(
                 {'status': status, 'error': repr(exc), 'time': time.time()}, indent=1))
+            n = attempts_of(task) + 1
+            attempts_path(task).write_text(json.dumps(
+                {'attempts': n, 'last_error': repr(exc), 'time': time.time()}, indent=1))
             print(f'[worker gpu{args.gpu}] FAIL {task["run_id"]} ({status}): {exc}', flush=True)
+            err = repr(exc)
+            if err == last_err:
+                streak += 1
+            else:
+                streak, last_err = 1, err
+            if streak >= args.max_fail:
+                print(f'[worker gpu{args.gpu}] STOP after {streak} consecutive identical '
+                      f'failures (attempts={n}): {err}', flush=True)
+                return
         finally:
             (CLAIMS / f"{task['run_id']}.claim").unlink(missing_ok=True)
             try:
@@ -555,6 +585,8 @@ def main():
     w.add_argument('--data-dir', required=True)
     w.add_argument('--need-free', type=int, default=20000)
     w.add_argument('--poll', type=int, default=60)
+    w.add_argument('--max-fail', type=int, default=3,
+                   help='stop after N consecutive identical failures')
     w.add_argument('--no-eval', action='store_true')
     w.set_defaults(func=worker)
     s = sub.add_parser('status')

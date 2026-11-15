@@ -55,12 +55,27 @@ class FastSensorAttention(nn.Module):
                                 nn.Dropout(dropout), nn.Linear(2 * d_model, d_model))
         self.drop = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, key_keep=None):
+        """key_keep: (M, N) bool, True = the sensor may be attended to.
+
+        A masked sensor is removed from the Key/Value set by an additive -inf
+        bias. SDPA's *float* mask is additive; a boolean mask would mean the
+        opposite of a key-padding mask, so ~keep is never passed as a bool
+        mask. None keeps the original call unchanged.
+        """
         M, N, D = x.shape
         h = self.norm1(x)
         qkv = self.qkv(h).reshape(M, N, 3, self.nhead, self.dh).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
-        o = F.scaled_dot_product_attention(q, k, v, dropout_p=self.drop.p if self.training else 0.0)
+        attn_bias = None
+        if key_keep is not None:
+            keep = key_keep.to(device=x.device, dtype=torch.bool)
+            if keep.shape != (M, N):
+                raise ValueError(f'key_keep must be {(M, N)}, got {tuple(keep.shape)}')
+            attn_bias = torch.zeros((M, 1, 1, N), dtype=q.dtype, device=q.device)
+            attn_bias = attn_bias.masked_fill(~keep[:, None, None, :], float('-inf'))
+        o = F.scaled_dot_product_attention(q, k, v, attn_mask=attn_bias,
+                                           dropout_p=self.drop.p if self.training else 0.0)
         o = o.transpose(1, 2).reshape(M, N, D)
         x = x + self.drop(self.out(o))
         x = x + self.drop(self.ff(self.norm2(x)))
@@ -190,8 +205,37 @@ class DSPT(nn.Module):
         return self.ms_proj(ms.transpose(1, 2)).transpose(1, 2)
 
     # ---------------------------------------------------------------- forward
-    def encode(self, x, baseline, mask, cycle, cond=None):
+    def encode(self, x, baseline, mask, cycle, cond=None, sensor_keep=None):
+        """Encode a window.
+
+        sensor_keep: (B, N) bool, True = the sensor is available. None runs the
+        original, unmodified path: no sanitising, no masking and no extra
+        random numbers. A hidden sensor is removed *before the first
+        cross-sensor mixing* (the SA block) and again after it, and every
+        sensor pooling re-normalises over the available set, so no hidden
+        value can enter the prediction through a residual, a statistic or a
+        pooling weight.
+        """
         B, L, N = x.shape
+        keep = None
+        if sensor_keep is not None:
+            keep = sensor_keep.to(device=x.device, dtype=torch.bool)
+            if keep.shape != (B, N):
+                raise ValueError(f'sensor_keep must be {(B, N)}, got {tuple(keep.shape)}')
+            if not bool(keep.any(dim=1).all()):
+                raise ValueError('sensor_keep must retain at least one sensor per sample')
+            # Replace hidden channels with a finite placeholder before any
+            # feature is computed: a NaN/Inf in an unavailable channel must not
+            # reach a convolution, a variance or a normalisation. A non-finite
+            # value on a channel declared available is an error, not a zero.
+            finite_x = torch.where(keep[:, None, :], torch.isfinite(x),
+                                   torch.ones_like(x, dtype=torch.bool))
+            finite_b = torch.where(keep, torch.isfinite(baseline),
+                                   torch.ones_like(baseline, dtype=torch.bool))
+            if not (bool(finite_x.all()) and bool(finite_b.all())):
+                raise ValueError('non-finite sensor value on a channel marked available')
+            x = torch.where(keep[:, None, :], x, torch.zeros_like(x))
+            baseline = torch.where(keep, baseline, torch.zeros_like(baseline))
         feats = self._features(x, baseline, mask)
         h = self.sensor_in(feats)                                  # (B,L,N,D)
         hh4 = h.permute(0, 2, 3, 1)                                # (B,N,D,L)
@@ -217,6 +261,9 @@ class DSPT(nn.Module):
             tokens = layer(tokens, src_key_padding_mask=pad) if self.use_pad_mask else layer(tokens)
         tokens = tokens.reshape(B, N, L, self.d_model).permute(0, 2, 1, 3)
 
+        if keep is not None:                       # hidden tokens are exactly 0
+            tokens = torch.where(keep[:, None, :, None], tokens, torch.zeros_like(tokens))
+
         if self.sa_mode in ('basic', 'identity', 'cond', 'identity_cond'):
             st = tokens.reshape(B * L, N, self.d_model)
             if self.sa_mode in ('identity', 'identity_cond'):
@@ -225,17 +272,46 @@ class DSPT(nn.Module):
                 cc = cond if cond is not None else torch.zeros(B, dtype=torch.long, device=x.device)
                 cc = cc.unsqueeze(1).expand(B, L).reshape(B * L)
                 st = st + self.cond_emb(cc).unsqueeze(1)
-            st = self.sensor_attn(st)
+            if keep is None:
+                st = self.sensor_attn(st)
+            else:
+                # A hidden sensor may not be used as Key/Value. After attention
+                # its own Query output is zeroed again: a key-padding mask does
+                # not remove the hidden rows' outputs by itself.
+                keep_bl = keep[:, None, :].expand(B, L, N).reshape(B * L, N)
+                if self.use_pad_mask:
+                    st = self.sensor_attn(st, src_key_padding_mask=~keep_bl)
+                else:
+                    st = self.sensor_attn(st)
+                st = torch.where(keep_bl[..., None], st, torch.zeros_like(st))
             tokens = st.reshape(B, L, N, self.d_model)
 
-        if self.sa_mode == 'mean':
-            pooled = tokens.mean(dim=2)                                        # (B,L,D)
-        elif self.sa_mode == 'static':
-            w = torch.softmax(self.static_score, dim=0).view(1, 1, -1, 1)      # (1,1,N,1)
-            pooled = (w * tokens).sum(dim=2)                                   # (B,L,D)
+        if keep is None:
+            if self.sa_mode == 'mean':
+                pooled = tokens.mean(dim=2)                                        # (B,L,D)
+            elif self.sa_mode == 'static':
+                w = torch.softmax(self.static_score, dim=0).view(1, 1, -1, 1)      # (1,1,N,1)
+                pooled = (w * tokens).sum(dim=2)                                   # (B,L,D)
+            else:
+                score = torch.softmax(self.sensor_score(tokens).squeeze(-1), dim=-1)  # (B,L,N)
+                pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)                     # (B,L,D)
         else:
-            score = torch.softmax(self.sensor_score(tokens).squeeze(-1), dim=-1)  # (B,L,N)
-            pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)                     # (B,L,D)
+            # Pooling re-normalises over the available sensors only. Static
+            # logits are masked *before* the softmax (never softmax-then-
+            # delete); mean pooling divides by the number actually kept.
+            kf = keep[:, None, :].to(tokens.dtype)                              # (B,1,N)
+            if self.sa_mode == 'mean':
+                pooled = (tokens * kf.unsqueeze(-1)).sum(dim=2) / kf.sum(dim=2, keepdim=True).clamp_min(1.0)
+            elif self.sa_mode == 'static':
+                logits = self.static_score.view(1, 1, -1).expand(B, L, N)
+                logits = logits.masked_fill(~keep[:, None, :], float('-inf'))
+                w = torch.softmax(logits, dim=-1).to(tokens.dtype)
+                pooled = (w.unsqueeze(-1) * tokens).sum(dim=2)
+            else:
+                logits = self.sensor_score(tokens).squeeze(-1)                  # (B,L,N)
+                logits = logits.masked_fill(~keep[:, None, :], float('-inf'))
+                score = torch.softmax(logits, dim=-1)
+                pooled = (score.unsqueeze(-1) * tokens).sum(dim=2)
         if self.use_cycle:
             c_abs = cycle * 250.0
             ang = (2.0 * math.pi) * c_abs.unsqueeze(1) / self.pe_periods.view(1, -1)
@@ -243,7 +319,8 @@ class DSPT(nn.Module):
             pooled = pooled + self.pe_proj(pe).unsqueeze(1)
         return self.norm(pooled)
 
-    def forward(self, x, mask=None, baseline=None, cycle=None, cond=None, mode='dual'):
+    def forward(self, x, mask=None, baseline=None, cycle=None, cond=None, mode='dual',
+                sensor_keep=None):
         B, L, N = x.shape
         if mask is None:
             mask = torch.ones(B, L, device=x.device)
@@ -251,7 +328,7 @@ class DSPT(nn.Module):
             baseline = x[:, 0]
         if cycle is None:
             cycle = torch.zeros(B, device=x.device)
-        h = self.encode(x, baseline, mask, cycle, cond)
+        h = self.encode(x, baseline, mask, cycle, cond, sensor_keep=sensor_keep)
         dist = torch.arange(L - 1, -1, -1, device=x.device)
         valid = mask.bool()
         short = valid & (dist.unsqueeze(0) < SHORT_SPAN)
