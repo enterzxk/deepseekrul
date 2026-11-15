@@ -26,8 +26,7 @@
 | 训练入口 | `scripts/run_sensor_aug.py` |
 | 增强实现 | `paper_b/sensor_aug/{augmentation,noise_stats,evaluation}.py` |
 | 改动文件 | `paper_b/models/dspt.py`（`sensor_keep`：注意力 key-mask、pooling 重归一化、encode 清洗）、`paper_b/training/{data,train,metrics}.py`（`cond_seq`、增强钩子、engine-equal 指标） |
-| 代码指纹 | `code_fingerprint()` = **8 个文件** sha256[:12]：7 个模型/训练文件 + `scripts/run_sensor_aug.py`（臂的 BASE 定义写在这里，不纳入指纹就会「改了协议但指纹不变」）。另存 7 文件 legacy 值供跨 study 对照。manifest/freeze 记两个值，每格 `metadata.json` 记 `git_head`。 |
-| 本轮指纹 | `h8=515eb76fc396`，`h7=3f3a3e68594e`（旧 study 的 `h7` 是 `90f20d35953d`；差异来自 `train.py` 的 `fp32` 默认值与入口断言，不改模型数学） |
+| 代码指纹 | `code_fingerprint()` = 7 个源文件 sha256[:12] + `git rev-parse HEAD`，每格写入 `config.json` |
 
 `data.py` 新增 `cond_seq`（每窗每时间步的工况簇）**只**供噪声增强按步取尺度；回归网络仍只吃窗口末端工况。
 
@@ -103,7 +102,7 @@ DSPT(num_sensors=14, d_model=64, num_layers=2, dropout=0.2, max_span=70,
 
 ```
 run_id = {arm}-{subset}-s{seed}-{config_hash8}
-experiments/paper_b_sensor_generalization/runs/{run_id}/
+experiments/paper_b_sensor_generalization/runs/{run_id}/{subset}/s{seed}/
     config.json        # 完整配置 + code_fingerprint + git HEAD
     status.json        # RUNNING / COMPLETE / FAILED
     best.pt
@@ -128,3 +127,30 @@ experiments/paper_b_sensor_generalization/runs/{run_id}/
 - 不改 `min(cycle/250,1)`、不改 Cycle 注入位置、不改窗口长度。
 - 不新增 Attention / 不改骨干（E4/E5 属于后续阶段，且必须先过文献员的新颖性判断）。
 - 不用官方 TEST 做任何选择。
+
+---
+
+## 修订记录
+
+> 冻结后只追加，不改上文。每条写清「改了什么、什么时候、为什么、影响谁」。
+
+### 2026-11-15 18:08 · 指纹口径 7 → 8 文件（不涉及阈值或臂定义）
+
+- **改了什么**：`code_fingerprint()` 从 7 个模型/训练文件扩为 8 个，加入 `scripts/run_sensor_aug.py`；manifest/freeze 同时记 `code_fingerprint`（h8）与 `code_fingerprint_legacy7`（h7）。
+- **为什么**：臂的 BASE 配置写在 runner 里。只改 runner、不改模型文件时，旧 7 文件指纹不变，记录会显示「与旧 study 同一份代码」，但协议已经变了（BF16 → FP32）。
+- **值**：`h8=515eb76fc396`，`h7=3f3a3e68594e`。旧 study 的 h7 是 `90f20d35953d`，差异来自 `train.py` 的 `fp32` 默认值与入口断言，不改模型数学。
+- **影响**：§7 阈值、§5 臂定义、§6 引用边界均未变；已开跑的格不受影响（重建 manifest 后 `run_id`/`config_hash` 全部变化）。
+- **做法反省**：本条最初直接改在 §2，违反「冻结后只追加」；§2 已还原为 7 文件表述，改动只留在这里。
+
+### 2026-11-15 18:20 · `build` 改写 arm YAML 的问题（**推迟执行**）
+
+- **问题**：`build` 用 `yaml.safe_dump` 重写 `paper_b/sensor_aug/configs/` 下 6 个已跟踪 YAML，导致跑批期间工作树变脏、`git status` 不可信。
+- **计划改法**：把输出改到 `experiments/paper_b_sensor_generalization/shared/frozen_configs/`，已跟踪的那份只作冻结快照。
+- **为什么推迟**：`scripts/run_sensor_aug.py` 在 h8 指纹里。12 格 E0 正在跑、manifest 记的是 `h8=515eb76fc396`；此刻改 runner 会让分支头的指纹与 manifest 不一致，重现旧 study 那个「记录与实跑不同」的问题。等 E0 落盘后再改，并同步升 h8。
+- **过渡做法**：跑批期间若 `configs/` 显示 diff，`git checkout -- paper_b/sensor_aug/configs/` 还原即可，不影响 manifest。
+
+### 2026-11-15 18:20 · §8 目录结构更正
+
+- **改了什么**：`runs/{run_id}/` → `runs/{run_id}/{subset}/s{seed}/`。
+- **为什么**：原文档少写两层，军师与郑总按文档找不到文件。
+
