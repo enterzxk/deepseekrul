@@ -119,6 +119,26 @@ git format-patch 0e7893e8..HEAD -> 13 个 patch  （提交序列）
 
 已演练：tree 包解压到全新目录后，8 文件指纹重算 = `515eb76fc396`。彻底修复需要 `git fetch --refetch origin` 补齐缺失 blob，等 GitHub 链路恢复再做；在此之前不要用 bundle 当唯一备份。
 
+**实验产物备份（2026-11-15 21:21）**：代码只是资产的一半，论文证据是 `experiments/paper_b_sensor_generalization/` 下的 `config.json` / `metrics.json` / `val_pred.csv` / `val_noise_predictions.csv` / `robustness_val.json` / `provenance.json` / `best.pt`。
+
+| 项 | 值 |
+|---|---|
+| 包 | `/home/user/pb_recovery/pb_experiments_2111.tar.gz`（37 MB） |
+| sha256 | `b029a2f5d898eeaeedc89e24c4d332e438b1dd76d3fd0b99b833a2900f9c56d9` |
+| 第二份 | `a40:/home/yndx/pb_recovery/`（sha256 逐字节一致） |
+| 覆盖范围 | 打包时 17 格（E0 12 + E1 前 5 格），后续每检查点重打 |
+
+**数据侧恢复演练**（从恢复包解出 `E0-FD001-s101` 的 `val_pred.csv` 重算）：
+
+```
+n_engines 20   cuts_per_engine [5]
+recomputed_mean_roots 8.573980577
+recorded_mean_roots   8.573980290883457
+abs_diff              2.856e-07        (< 1e-6)
+```
+
+**a40 不能做裸仓库**：那台机器没有 `git`（`bash: git: 未找到命令`），所以没有 `git init --bare`，改为文件级复制。a40 是另一台物理机，与 3090 故障、GitHub TLS 都无关，备份目标成立。
+
 ## 8. 复核命令
 
 ```bash
