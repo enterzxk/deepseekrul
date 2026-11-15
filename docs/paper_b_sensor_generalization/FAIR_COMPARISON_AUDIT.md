@@ -128,6 +128,14 @@ git worktree add --detach <tmp2> 3468954e  # E1/E2 那批的 git_head
 
 2026-11-16 实测：`ec3289a7 → h8=515eb76fc396`、`3468954e → h8=515eb76fc396`。所以报告只能写「48 格共用同一 manifest，其声明的 h8 在 E0 与 E1/E2 两个 `git_head` 上分别复算均为 `515eb76fc396`」，**不能**写「逐格重算指纹一致」。
 
+**独立性怎么数（2026-11-16 订正）**：真正的独立实现是**两个**——① detached worktree 干净 checkout 后对文件系统取字节；② `git show <rev>:<path>` 直接从对象库取字节。仓库里的 `scripts/audit_fingerprint.py` 是 ② 的可复跑入口，**不是第三条路径**；服务器上 `/tmp` 的同方法脚本也不算。把同一方法写在两处不能数成两次独立验证——这正是这份审计要防的错误。
+
+```
+python scripts/audit_fingerprint.py <repo> ec3289a7 3468954e
+ec3289a7  H8=515eb76fc396 H7=3f3a3e68594e
+3468954e  H8=515eb76fc396 H7=3f3a3e68594e
+```
+
 **备份链（2026-11-15 21:05 恢复演练后）**：本仓库是 `blob:none` 部分克隆。`git bundle --all`（251 MB）与范围包（79 KB）都缺历史 blob（如 `f2d8056`），**在全新目录 clone 全部失败**——bundle 目前不是可用备份。可恢复的是：
 
 ```
