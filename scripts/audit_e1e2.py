@@ -89,12 +89,16 @@ def main():
     ap.add_argument('root')
     ap.add_argument('--boot', type=int, default=10000)
     ap.add_argument('--json', default=None)
+    ap.add_argument('--arms', default=','.join(ARMS),
+                    help='comma-separated arms to analyse; incomplete arms are '
+                         'skipped so a partial grid cannot look like a final one')
     a = ap.parse_args()
     root = Path(a.root)
     rng = np.random.default_rng(20261115)
 
     cells, deviations, structural = {}, [], []
-    for arm in ('E0',) + ARMS:
+    arms_wanted = tuple(x.strip() for x in a.arms.split(',') if x.strip())
+    for arm in ('E0',) + arms_wanted:
         for subset in SUBSETS:
             for seed in SEEDS:
                 c = find_cell(root, arm, subset, seed)
@@ -129,7 +133,13 @@ def main():
 
     # ---- deltas ------------------------------------------------------------
     report = {}
-    for arm in ARMS:
+    for arm in arms_wanted:
+        have = sum(1 for s in SUBSETS for sd in SEEDS if (arm, s, sd) in cells)
+        if have < len(SUBSETS) * len(SEEDS):
+            report[arm] = dict(incomplete=True, cells_present=have,
+                               cells_expected=len(SUBSETS) * len(SEEDS),
+                               note='arm aggregate withheld until all cells land')
+            continue
         d_by_subset, per_sub_cell = {}, {}
         for subset in SUBSETS:
             ds = []
