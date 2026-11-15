@@ -110,6 +110,15 @@ $ grep -h '"git_head"' runs/*/*/*/metadata.json | sort | uniq -c
 
 **已知操作（跑批期间）**：`build` 会重写 `paper_b/sensor_aug/configs/` 下 6 个已跟踪 YAML，工作树会显示 diff。跑完 `git checkout -- paper_b/sensor_aug/configs/` 还原即可，不影响 manifest 与指纹。
 
+**备份链（2026-11-15 21:05 恢复演练后）**：本仓库是 `blob:none` 部分克隆。`git bundle --all`（251 MB）与范围包（79 KB）都缺历史 blob（如 `f2d8056`），**在全新目录 clone 全部失败**——bundle 目前不是可用备份。可恢复的是：
+
+```
+git archive HEAD -> pb_tree_<sha>.tar.gz        （4.2 MB，当前树）
+git format-patch 0e7893e8..HEAD -> 13 个 patch  （提交序列）
+```
+
+已演练：tree 包解压到全新目录后，8 文件指纹重算 = `515eb76fc396`。彻底修复需要 `git fetch --refetch origin` 补齐缺失 blob，等 GitHub 链路恢复再做；在此之前不要用 bundle 当唯一备份。
+
 ## 8. 复核命令
 
 ```bash
