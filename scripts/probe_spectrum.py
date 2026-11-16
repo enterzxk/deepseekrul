@@ -119,7 +119,11 @@ def random_rho(C, r, n, gen=None):
         Q = np.stack([np.linalg.qr(rng.standard_normal((14, r)))[0]
                       for _ in range(n)], axis=0)                # (n, 14, r)
     total = float(np.linalg.eigvalsh(C).sum())
-    null = np.einsum('kni,ij,knj->k', Q, C, Q) / total
+    # Explicit loop: n <= a few thousand 14x14 matmuls is instant, and this form
+    # has no index-labeling to get wrong. (A three-operand einsum with a repeated
+    # batch index does not broadcast the way it reads.)
+    null = np.array([float(np.trace(Q[k].T @ C @ Q[k]) / total)
+                     for k in range(Q.shape[0])])
     return float(np.percentile(null, 95)), null
 
 
