@@ -85,7 +85,14 @@ def noise_by_beta(cell):
                 for u, pts in d.items()} for b, d in out.items()}
 
 
-def boot_merge(d_by_subset, n_boot, rng):
+BOOT_SEED = 20261115
+
+
+def boot_merge(d_by_subset, n_boot):
+    # Own RNG per interval: clean main, clean LOO and each noise beta are
+    # different statistics; sharing one stream makes a value depend on what
+    # else the run computed (see FAIR_COMPARISON_AUDIT.md 10.3).
+    rng = np.random.default_rng(BOOT_SEED)
     keys = list(d_by_subset)
     merged = float(np.mean([d_by_subset[k].mean() for k in keys]))
     draws = np.empty(n_boot)
@@ -103,7 +110,6 @@ def main():
     ap.add_argument('--boot', type=int, default=10000)
     ap.add_argument('--json', default=None)
     a = ap.parse_args()
-    rng = np.random.default_rng(20261115)
 
     clean, noise, eqpct = {}, {}, {}
     for arm in ('E0',) + ARMS:
@@ -138,9 +144,9 @@ def main():
             if ds:
                 dsub[s] = np.mean(np.stack(ds, axis=0), axis=0)
                 sign[s] = signs
-        merged, lo, hi, nneg, nsub = boot_merge(dsub, a.boot, rng)
+        merged, lo, hi, nneg, nsub = boot_merge(dsub, a.boot)
         keep = {k: v for k, v in dsub.items() if k != 'FD001'}
-        m2, l2, h2, n2, _ = boot_merge(keep, a.boot, rng)
+        m2, l2, h2, n2, _ = boot_merge(keep, a.boot)
         seed_means = {}
         for sd in SEEDS:
             v = [float(np.mean([clean[(arm, s, sd)][u] - clean[('E0', s, sd)][u]
@@ -176,7 +182,7 @@ def main():
                     dsub_b[s] = np.mean(np.stack(ds, axis=0), axis=0)
             if not dsub_b:
                 continue
-            m, l, h, nn, ns = boot_merge(dsub_b, a.boot, rng)
+            m, l, h, nn, ns = boot_merge(dsub_b, a.boot)
             for s in SUBSETS:
                 ra = [eqpct[(arm, s, sd)][b] for sd in SEEDS if (arm, s, sd) in eqpct]
                 r0 = [eqpct[('E0', s, sd)][b] for sd in SEEDS if ('E0', s, sd) in eqpct]
