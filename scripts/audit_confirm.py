@@ -114,6 +114,9 @@ def roots_and_cuts(path):
     return out
 
 
+BOOT_SEED = 20261116
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
@@ -122,7 +125,6 @@ def main():
     ap.add_argument('--boot', type=int, default=10000)
     ap.add_argument('--json', default=None)
     a = ap.parse_args()
-    rng = np.random.default_rng(20261116)
 
     exp = (expected_from_manifests(a.root, a.manifest) if a.manifest
            else expected_from_scan(a.root, a.split_seed))
@@ -209,6 +211,7 @@ def main():
             continue
         keys = list(d_by_subset)
         merged = float(np.mean([d_by_subset[k].mean() for k in keys]))
+        rng = np.random.default_rng(BOOT_SEED)   # own stream per interval
         draws = np.empty(a.boot)
         for i in range(a.boot):
             draws[i] = float(np.mean([d_by_subset[k][rng.integers(0, len(d_by_subset[k]),

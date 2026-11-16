@@ -41,7 +41,13 @@ def roots(path):
     return {u: math.sqrt(sum((p - t) ** 2 for t, p in v) / len(v)) for u, v in acc.items()}
 
 
-def boot(d_by_subset, n_boot, rng):
+BOOT_SEED = 20261116
+
+
+def boot(d_by_subset, n_boot):
+    # Own RNG per call: the main CI, the FD001-LOO CI and lr4-mlp are three
+    # different statistics and must not consume one another's stream.
+    rng = np.random.default_rng(BOOT_SEED)
     keys = list(d_by_subset)
     merged = float(np.mean([d_by_subset[k].mean() for k in keys]))
     draws = np.empty(n_boot)
@@ -62,7 +68,6 @@ def main():
 
     out = {}
     for name, prefix in ARMS.items():
-        rng = np.random.default_rng(20261116)
         dsub, per_cell, seed_means = {}, {}, {}
         ok = True
         for s in SUBSETS:
@@ -87,9 +92,9 @@ def main():
         if not dsub:
             out[name] = dict(complete=False)
             continue
-        merged, lo, hi, nneg = boot(dsub, a.boot, rng)
+        merged, lo, hi, nneg = boot(dsub, a.boot)
         keep = {k: v for k, v in dsub.items() if k != 'FD001'}
-        m2, l2, h2, n2 = boot(keep, a.boot, rng)
+        m2, l2, h2, n2 = boot(keep, a.boot)
         for sd in SEEDS:
             v = [per_cell[f'{s}/s{sd}']['delta'] for s in SUBSETS if f'{s}/s{sd}' in per_cell]
             if v:
@@ -127,7 +132,7 @@ def main():
         if ds:
             dsub[s] = np.mean(np.stack(ds, axis=0), axis=0)
     if dsub:
-        m, lo, hi, nneg = boot(dsub, a.boot, rng)
+        m, lo, hi, nneg = boot(dsub, a.boot)
         out['lr4_minus_mlp'] = dict(merged=round(m, 4), ci95=[round(lo, 4), round(hi, 4)],
                                     n_negative=nneg, n_subsets=len(dsub),
                                     per_subset={k: round(float(v.mean()), 4)

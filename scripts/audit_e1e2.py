@@ -82,8 +82,17 @@ def find_cell(root, arm, subset, seed, split_seed=SPLIT_SEED):
     return c if (c / 'val_pred.csv').exists() and (c / 'metrics.json').exists() else None
 
 
-def boot_ci(d_by_subset, n_boot, rng):
-    """d_by_subset: {subset: np.array over engines}. Returns (delta, lo, hi, merged)."""
+BOOT_SEED = 20261115
+
+
+def boot_ci(d_by_subset, n_boot):
+    """d_by_subset: {subset: np.array over engines}. Returns (delta, lo, hi, merged).
+
+    The RNG is created *inside* the function on purpose: an interval must be a
+    function of (data, seed, statistic) only. Sharing one stream across calls makes
+    the reported value depend on what else the script happened to compute.
+    """
+    rng = np.random.default_rng(BOOT_SEED)
     per_sub = {}
     for s, d in d_by_subset.items():
         per_sub[s] = (float(d.mean()), len(d))
@@ -148,7 +157,6 @@ def main():
     # ---- deltas ------------------------------------------------------------
     report = {}
     for arm in arms_wanted:
-        rng = np.random.default_rng(20261115)
         have = sum(1 for s in SUBSETS for sd in SEEDS if (arm, s, sd) in cells)
         if have < len(SUBSETS) * len(SEEDS):
             report[arm] = dict(incomplete=True, cells_present=have,
@@ -174,7 +182,7 @@ def main():
                 d_by_subset[subset] = np.mean(np.stack(ds, axis=0), axis=0)
         if not d_by_subset:
             continue
-        per_sub, merged, lo, hi = boot_ci(d_by_subset, a.boot, rng)
+        per_sub, merged, lo, hi = boot_ci(d_by_subset, a.boot)
         report[arm] = dict(
             per_subset={s: dict(delta=per_sub[s][0], n_engines=per_sub[s][1])
                         for s in per_sub},
@@ -191,7 +199,7 @@ def main():
         all_cuts5=all(d['cuts5'] for d in deviations),
         pairing_all_ok=all(p['same_engines'] and p['cuts_match'] for p in pairing),
         pairing=pairing, deviations=deviations, arms=report,
-        n_boot=a.boot, boot_seed=20261115,
+        n_boot=a.boot, boot_seed=BOOT_SEED,
     )
     txt = json.dumps(summary, indent=1)
     if a.json:

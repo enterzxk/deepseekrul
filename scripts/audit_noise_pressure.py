@@ -99,6 +99,9 @@ def blocks_for(cell):
     return blocks, betas, n_fields, worst
 
 
+BOOT_SEED = 20261115
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
@@ -108,7 +111,6 @@ def main():
     a = ap.parse_args()
     root = Path(a.root)
     arms = [x.strip() for x in a.arms.split(',') if x.strip()]
-    rng = np.random.default_rng(20261115)
 
     cache, worst_all = {}, 0.0
     for arm in ('E0',) + tuple(arms):
@@ -159,6 +161,7 @@ def main():
             if not d_by_subset:
                 continue
             merged = float(np.mean([v.mean() for v in d_by_subset.values()]))
+            rng = np.random.default_rng(BOOT_SEED)   # own stream per (arm, beta)
             draws = np.empty(a.boot)
             keys = list(d_by_subset)
             for i in range(a.boot):
