@@ -128,10 +128,24 @@ def bootstrap_merged(d_by_subset, n_boot, rng):
 
 
 def all_arm_cis(gathered, arms, n_boot, seed):
-    """Reproduce the verdict-time stream: one rng, arms in sorted order."""
-    rng = np.random.default_rng(seed)
+    """One fresh rng per arm, seeded from (seed, arm ordinal).
+
+    The verdict-time scripts created one rng and carried it across arms, so an arm's
+    endpoints depended on how many arms had been bootstrapped before it -- i.e. on the
+    command that happened to be run. Measured: E1b/discovery came out as [-0.992,
+    -0.367] in the verdict run, [-1.0000, -0.3758] with one shared stream over four
+    arms, and [-1.0033, -0.3723] with a fresh stream, all from identical per-cell
+    deltas (verified 12/12) and an identical bootstrap function (verified bit-equal on
+    the same input). A number that depends on invocation history is not reproducible.
+
+    Seeding per arm removes that dependency: the same arm always gets the same stream,
+    no matter which other arms are present. The cost is that endpoints move by about
+    the measured MC drift (<=0.015); `arm_mc_endpoint_drift_max` reports that, and the
+    verdict criteria are re-checked in the summary.
+    """
     out = {}
-    for arm in sorted(a for a in arms if a in gathered):
+    for idx, arm in enumerate(sorted(a for a in arms if a in gathered)):
+        rng = np.random.default_rng([seed, idx])
         out[arm] = bootstrap_merged(gathered[arm][2], n_boot, rng)
     return out
 
@@ -284,10 +298,15 @@ def main() -> int:
         if key in seen:
             continue
         seen.add(key)
+        c1 = r['arm_merged_delta'] <= -0.3
+        c2 = r['arm_ci_hi'] < 0
+        c3 = int(r['arm_direction_negative'].split('/')[0]) >= 3
         print(f"  {r['arm']:4s} split{r['split_seed']}  merged {r['arm_merged_delta']:+.4f} "
               f"[{r['arm_ci_lo']:+.4f}, {r['arm_ci_hi']:+.4f}]  "
-              f"(seed {r['arm_ci_seed']}, MC drift {r['arm_mc_endpoint_drift_max']:.4f})  "
-              f"dir {r['arm_direction_negative']}  n={r['arm_n_engines']}")
+              f"(MC drift {r['arm_mc_endpoint_drift_max']:.4f})  "
+              f"dir {r['arm_direction_negative']}  n={r['arm_n_engines']}  "
+              f"criteria {'PASS' if (c1 and c2 and c3) else 'FAIL'}"
+              f" [le-0.3 {c1}, ci<0 {c2}, dir {c3}]")
     return 0
 
 
