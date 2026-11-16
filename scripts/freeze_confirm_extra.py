@@ -98,10 +98,10 @@ def main() -> int:
         ref = json.loads(Path(args.reference).read_text())
         want = [r for r in ref['runs'] if r['group'] in ref_groups]
         # reference arms may not be in --groups; rebuild them just for the check
-        check = {r['run_id']: r for r in
-                 (rows.get(x['run_id']) or
-                  make_row(x['group'], x['subset'], x['seed'], data_dir, args.split_seed))
-                 for x in want}
+        rebuilt = [rows.get(x['run_id'])
+                   or make_row(x['group'], x['subset'], x['seed'], data_dir, args.split_seed)
+                   for x in want]
+        check = {r['run_id']: r for r in rebuilt}
         missing, mismatched = [], []
         for r in want:
             got = check.get(r['run_id'])
