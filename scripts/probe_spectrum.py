@@ -104,15 +104,22 @@ def rho_optimal(C, r):
 
 
 def random_rho(C, r, n, gen=None):
-    """95th percentile and the whole null of rho for random rank-r subspaces."""
+    """95th percentile and the whole null of rho for random rank-r subspaces.
+
+    Note the draw shape: torch.linalg.qr batches over the LAST TWO dims, so the
+    draws must be (n, 14, r) to get n independent (14, r) orthonormal bases.
+    Drawing (14, r, n) instead makes it factorise n matrices of shape (r, n) and
+    the resulting "bases" are not orthonormal -- which yields rho > 1.
+    """
     if gen is not None:
-        draws = torch.randn(14, r, n, generator=gen, dtype=torch.float64)
-        Q = torch.linalg.qr(draws)[0].numpy()
+        draws = torch.randn(n, 14, r, generator=gen, dtype=torch.float64)
+        Q = torch.linalg.qr(draws)[0].numpy()                    # (n, 14, r)
     else:
         rng = np.random.default_rng(20261116)
-        Q = np.stack([np.linalg.qr(rng.standard_normal((14, r)))[0] for _ in range(n)], axis=2)
+        Q = np.stack([np.linalg.qr(rng.standard_normal((14, r)))[0]
+                      for _ in range(n)], axis=0)                # (n, 14, r)
     total = float(np.linalg.eigvalsh(C).sum())
-    null = np.einsum('irk,ij,jrk->k', Q, C, Q) / total
+    null = np.einsum('kni,ij,knj->k', Q, C, Q) / total
     return float(np.percentile(null, 95)), null
 
 
