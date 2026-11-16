@@ -175,3 +175,47 @@ python fp_check.py <worktree>/paper-b-sensor-generalization  # → COMBINED 90f2
 # 每格启动时间
 ls -l --time-style=+%H:%M runs/*/*/*/config.json | sort -k6
 ```
+
+## 9. 确认集的评测侧与训练侧产物（2026-11-16）
+
+确认集第一次起跑时整批崩在鲁棒性评测上，暴露了 `shared/` 下两个产物的**性质不同**，
+必须分开处置。这条写在这里，是因为它决定了确认集的数能不能和发现集并排比。
+
+**故障现象**：`E0-FD001-s101-ff1a0bc2` 与 `E0-FD002-s101-cd6c016a` 均为
+`EVAL_FAILED`，`last_error` 分别是 `KeyError('8')` 和 `KeyError('5')`——
+同一个 bug 撞到不同发动机 id，不是两个独立故障。
+
+**根因**：`shared/missing_patterns_val_<subset>.json` 是**按发动机 id 建键**的
+（`patterns[str(unit)][pid][:k]`），而它由 `build` 用 `BASE['split_seed']=17` 的验证机生成。
+`split_seed=29` 的验证机是另一批发动机，`evaluation.missing_keep` 找不到键就抛 KeyError。
+干净指标不受影响（它在崩溃点之前就由训练循环写入），崩的是鲁棒性那半边。
+
+**处置（两类分开）**
+
+| 产物 | 用途 | 是否重建 | 理由 |
+|---|---|---|---|
+| `missing_patterns_val_*.json` | **评测专用** | **重建为 split_seed=29** | 训练期 mask 由 `mask_prob` 逐样本随机抽通道，不读这个库；按 29 重建**不改变臂定义**，只是让评测在新划分上有定义 |
+| `noise_stats_*.json` | **训练期注入** | **不重建，保持 17** | 噪声尺度在训练时注入，属**臂定义**；在确认划分上重估等于换臂而不是确认臂。`sigma` 是逐传感器向量、不按发动机建键，不会崩 |
+
+重建后 4 个子集与 17 版的验证机差异：FD001 18/20、FD002 46/52、FD003 18/20、FD004 48/50。
+17 版原文件归档在 `shared/archive_split17/`，两版都在，可追溯。
+
+**必须披露的泄漏边界**：E2a 的训练期噪声尺度由 split_seed=17 的**训练机**估计，
+而 29 的验证机在 17 里多为训练机，故该尺度间接见过 29 的验证发动机——
+但它只是无标签的传感器统计量，且 29 的划分从未参与选臂。
+E0/E1a/E1b 的 clean 指标不读 `noise_stats`/`missing_patterns`（两者只喂鲁棒性评测），
+所以此泄漏只涉及 E2a 一条臂。
+
+**对论文口径的影响**：确认集 E0/E1a/E1b 的**噪声压力**数值用的是 17 的 `sigma`，
+但四条臂用的是同一个 `sigma`，臂间比较仍然成立；跨阶段（发现 vs 确认）比绝对噪声压力值
+则不可直接并排。**主指标（mean-of-roots clean ΔRMSE）不涉及这两个产物，跨阶段可比。**
+
+**代码身份不变**：`refresh_eval_patterns.py` 与 `freeze_confirm_extra.py` 都不在 h8 文件列表里，
+`scripts/run_sensor_aug.py` 与 `paper_b/` 相对 `3468954e` 零改动，确认集仍为 `h8=515eb76fc396`。
+
+**验收**：两格最终必须是 `status=COMPLETE` 且八件产物齐全
+（`config.json`、`metrics.json`、`val_pred.csv`、`best.pt`、`robustness_val.json`、
+`val_noise_predictions.csv`、`val_missing_predictions.csv`、`provenance.json`）。
+补评测走 `trained=True` 的 eval-only 分支（`train_complete.json` 与 `best.pt` 都在），
+不重训——重训会重新初始化并重排训练顺序，得到的是**另一个模型抽样**，
+同一个 `run_id` 下就会出现两个不同模型，追溯链反而变脏。
