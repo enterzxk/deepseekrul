@@ -19,6 +19,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import numpy as np
 import torch
 
 
@@ -56,6 +57,24 @@ def main():
         return 1
     q, _ = torch.linalg.qr(torch.randn(14, 4, generator=gen, dtype=torch.float64))
     check('rho on isotropic H', m.rho_of(C, q), 4 / 14, 0.03)
+
+    # ---- centering: covariance vs raw second moment -------------------------
+    # Isotropic and zero-mean synthetic data CANNOT tell these apart: with zero
+    # means, centring changes nothing. Real H does not have zero per-sensor means,
+    # so this case is the only one that pins the definition down.
+    #
+    # H = mu + tiny noise.  Centred C is ~isotropic noise -> any 4-dim subspace
+    # holds ~4/14.  An uncentred second moment is dominated by mu -> a 4-dim
+    # subspace containing mu holds ~1.0.  E5_PREREG.md §3 H1 says "covariance",
+    # so 4/14 is the expected value.
+    mu = torch.randn(14, generator=gen, dtype=torch.float64)
+    mu = mu / mu.norm()
+    H3 = (mu.float().view(1, 1, 14, 1).repeat(64, 70, 1, 64)
+          + 0.01 * torch.randn(64, 70, 14, 64, generator=gen))
+    C3 = m.chat(H3)
+    e3 = torch.eye(14, dtype=torch.float64)[:, :3]
+    U4 = torch.linalg.qr(torch.cat([mu.view(14, 1), e3], dim=1))[0]
+    check('chat is a covariance (not a raw second moment)', m.rho_of(C3, U4), 4 / 14, 0.03)
     # The isotropic null is a THEORETICAL constant (4/14, sd ~1e-4), so it is
     # the only cross-implementation anchor: two implementations agree iff both
     # return 0.2857 here. A null95 near 0.41 can only come from an anisotropic
@@ -68,7 +87,13 @@ def main():
           + 0.01 * torch.randn(64, 70, 14, 64, generator=gen))
     C2 = m.chat(H2)
     check('rho on rank-4 H, true U', m.rho_of(C2, U0), 1.0, 0.01)
-    check('rho on rank-4 H, random U', m.rho_of(C2, q), 4 / 14, 0.05)
+    # Average over many random bases: a single draw has a spread of ~0.03 and
+    # made this check flaky (0.3120 vs 0.3367 on identical code).
+    vals = []
+    for _ in range(200):
+        qq, _ = torch.linalg.qr(torch.randn(14, 4, generator=gen, dtype=torch.float64))
+        vals.append(m.rho_of(C2, qq))
+    check('rho on rank-4 H, mean over 200 random U', float(np.mean(vals)), 4 / 14, 0.02)
     # Regression anchor only: this value is a property of THIS synthetic C,
     # not a theoretical constant, so it cannot be compared across data sets.
     check('null95 on rank-4 H (regression anchor)', m.random_rho(C2, 4, 200, gen)[0], 0.42, 0.05)
