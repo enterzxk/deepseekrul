@@ -399,14 +399,30 @@ E5 改了 `paper_b/models/dspt.py`（新增 `SensorInteraction`）与
 `lr_mode='none'` 时不创建任何新模块、不额外消耗 RNG，所以建出的图与旧 h8 完全一致。
 实测（`scripts/audit_e5_none.py`，用 `==` 比 `val_engine_mean_roots_rmse`，不是容差）：
 
+先在前 5 格落盘时比过一次（5/5），`E5none` 12 格全部 `COMPLETE` 后**扩到 12/12**：
+
 ```
-FD001 s101  8.573980 vs 8.573980  IDENTICAL
-FD002 s101 10.071332 vs 10.071332 IDENTICAL
-FD003 s101  8.689980 vs 8.689980  IDENTICAL
-FD004 s101 11.077094 vs 11.077094 IDENTICAL
-FD001 s202  7.817681 vs 7.817681  IDENTICAL
-compared 5, identical 5
+subset    seed           E0       E5none  verdict
+FD001      101     8.573980     8.573980  IDENTICAL
+FD002      101    10.071332    10.071332  IDENTICAL
+FD003      101     8.689980     8.689980  IDENTICAL
+FD004      101    11.077094    11.077094  IDENTICAL
+FD001      202     7.817681     7.817681  IDENTICAL
+FD002      202     9.838620     9.838620  IDENTICAL
+FD003      202     8.623595     8.623595  IDENTICAL
+FD004      202    11.367865    11.367865  IDENTICAL
+FD001      303     8.744210     8.744210  IDENTICAL
+FD002      303    10.053853    10.053853  IDENTICAL
+FD003      303     9.021650     9.021650  IDENTICAL
+FD004      303    11.900607    11.900607  IDENTICAL
+
+compared 12, identical 12
+VERDICT: E5 none arm reproduces stage-1 E0 exactly -> it is a true identity baseline under the new h8
 ```
+
+**12/12，没有任何一格不等。** 这里没有「大部分相同所以放过」的余地：判定用 `==` 精确相等，
+任何一格出现 `diff` 都会在 `verdict` 列显式打出来，且结论会自动翻成
+「`none` 不是 E0」。既然一格都没有，`none` 与 E0 的同一性就是逐格成立的，不是抽样成立。
 
 **结论：`none` 臂就是「E0 那个模型」，论文里可以这样称呼**，不必退成
 「同一架构在新 h8 下重训」。同时这也说明 E5 的 within-pairing 干净——
