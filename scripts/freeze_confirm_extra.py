@@ -56,10 +56,26 @@ def make_row(group: str, subset: str, seed: int, data_dir: Path, split_seed: int
     cfg = task_config(group, subset, seed, data_dir)
     aug = cfg['augment']
     if aug is not None and aug['noise_alpha'] > 0:
-        st = json.loads((SHARED / f'noise_stats_{subset}.json').read_text())
+        # The pre-registered rule is "scale estimated from the training engines
+        # only", so under split_seed=29 it must come from the 29 training
+        # engines. Point the run at the split-specific file (the runner reads
+        # cfg['augment']['noise_stats_path']) and refuse if that file was
+        # produced for a different partition.
+        st_path = SHARED / f'noise_stats_{subset}_split{split_seed}.json'
+        if st_path.exists():
+            st = json.loads(st_path.read_text())
+            if st.get('split_seed') != split_seed:
+                raise SystemExit(f'{st_path} records split_seed={st.get("split_seed")}, '
+                                 f'expected {split_seed}')
+            aug['noise_stats_path'] = str(st_path)
+        else:
+            st = json.loads((SHARED / f'noise_stats_{subset}.json').read_text())
         aug['noise_stats_hash'] = st['hash']
     if aug is not None and aug['mask_prob'] > 0:
         mp = json.loads((SHARED / f'missing_patterns_val_{subset}.json').read_text())
+        if mp.get('split_seed') != split_seed:
+            raise SystemExit(f'missing_patterns_val_{subset}.json records '
+                             f'split_seed={mp.get("split_seed")}, expected {split_seed}')
         aug['mask_hash'] = mp['hash']
     # The confirmation split is applied before the run id is derived, exactly
     # like freeze_confirm_manifest.py does it.
@@ -132,17 +148,19 @@ def main() -> int:
         'code_fingerprint_legacy7': legacy7,
         'git_head': head,
         'split_seed_override': args.split_seed,
-        'shared_noise_stats_split_seed': 17,
+        'shared_noise_stats_split_seed': args.split_seed,
         'shared_noise_stats_unused_by': noise_free,
         'shared_missing_patterns_split_seed': args.split_seed,
         'derived_from': Path(args.reference).name if args.reference else '',
         'baseline_rows_are_shared': True,
         'note': ('confirmation set: same arms as the discovery stage, only the data partition '
-                 'changes (17 -> 29). noise_stats stays on split_seed=17 on purpose: the noise '
-                 'scale is injected during training and is part of the frozen arm definition. '
-                 'missing_patterns is rebuilt on split_seed=29 because it is evaluation-only and '
-                 'keyed by engine id. The E0 baseline is NOT rerun; the paired baseline is the '
-                 'E0 rows of the confirmation manifest.'),
+                 'changes (17 -> 29). noise_alpha stays frozen at the discovery value, but the '
+                 'scale it multiplies is re-estimated on the split_seed=29 TRAINING engines, '
+                 'because the pre-registered rule is "scale estimated from the training engines '
+                 'only"; reusing the 17 file would have put 88-96% of the 29 validation engines '
+                 'inside the estimate. missing_patterns_val is also rebuilt on split_seed=29 '
+                 'because it is evaluation-only and keyed by engine id. The E0 baseline is NOT '
+                 'rerun; the paired baseline is the E0 rows of the confirmation manifest.'),
         'runs': out_rows,
     }
     out = MANIFESTS / args.name
