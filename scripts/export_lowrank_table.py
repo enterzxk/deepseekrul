@@ -142,7 +142,9 @@ def main() -> int:
                 # a state_dict also holds buffers (BN running stats) and would inflate it.
                 params = sum(p.numel() for p in _build(cfg).parameters())
 
-                none_id = cells[('E5none', subset, seed)]['cell'].name
+                # `cell` is the leaf <run>/<subset>/s<seed>; the run directory (the one
+                # that identifies the run) is two levels up.
+                none_id = cells[('E5none', subset, seed)]['cell'].parent.parent.name
                 if arm == 'E5none':
                     delta, neng = 0.0, len(rr)
                     arm_merged, lo, hi = 0.0, 0.0, 0.0
@@ -165,7 +167,7 @@ def main() -> int:
 
                 rows.append({
                     'arm': arm, 'subset': subset, 'seed': seed,
-                    'run_id': cell.name, 'lr_mode': cfg.get('lr_mode'),
+                    'run_id': cell.parent.parent.name, 'lr_mode': cfg.get('lr_mode'),
                     'params': params,
                     'val_engine_mean_roots_rmse': f(val),
                     'paired_none_run_id': none_id,

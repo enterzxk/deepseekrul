@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import sys
 
 # Values produced by `audit_e5_arms.py` (per-interval RNG) and used by the stage-5
@@ -70,7 +71,39 @@ def main() -> int:
             for sd in SEEDS:
                 if (arm, s, sd) not in seen:
                     fail(f'missing row {(arm, s, sd)}')
-    print('structure: 48 unique rows, 4 arms x 4 subsets x 3 seeds')
+    print('structure: 48 rows, 4 arms x 4 subsets x 3 seeds; (arm,subset,seed) unique')
+
+    # ---- run_id identity -------------------------------------------------
+    # The first export shipped `run_id` = the leaf's basename (`s101`), so all 48 rows
+    # carried one of three values and `(arm,subset,seed)` uniqueness still passed. That
+    # is why this check exists separately: the key that is checked must be the key the
+    # column claims to be.
+    pat = re.compile(r'^(E5none|E5lr4|E5lr14|E5mlp)-(FD00[1-4])-s(101|202|303)-[0-9a-f]{8}$')
+    seen_run = {}
+    for r in low:
+        rid = r['run_id']
+        m = pat.match(rid)
+        if not m:
+            fail(f'run_id {rid!r} does not match <arm>-<subset>-s<seed>-<8 hex>')
+        if (m.group(1), m.group(2), m.group(3)) != (r['arm'], r['subset'], r['seed']):
+            fail(f'run_id {rid!r} disagrees with its own arm/subset/seed '
+                 f'{(r["arm"], r["subset"], r["seed"])}')
+        if rid in seen_run:
+            fail(f'run_id {rid!r} appears twice: {seen_run[rid]} and '
+                 f'{(r["arm"], r["subset"], r["seed"])}')
+        seen_run[rid] = (r['arm'], r['subset'], r['seed'])
+    print(f'run_id: {len(seen_run)} distinct values, all matching <arm>-<subset>-s<seed>-<8hex>')
+
+    # ---- pairing: every treatment row points at its own cell's E5none run --
+    for arm in ('E5lr4', 'E5lr14', 'E5mlp'):
+        for s in SUBSETS:
+            for sd in SEEDS:
+                want = seen[('E5none', s, sd)]['run_id']
+                got = seen[(arm, s, sd)]['paired_none_run_id']
+                if got != want:
+                    fail(f'{arm} {s}/{sd}: paired_none_run_id {got!r} != '
+                         f'E5none run_id {want!r}')
+    print('pairing: every treatment row points at the same-cell E5none run_id')
 
     # ---- params ----------------------------------------------------------
     for arm, want in FROZEN_PARAMS.items():
