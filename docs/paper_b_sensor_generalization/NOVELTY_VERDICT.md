@@ -140,3 +140,77 @@
 | LATC | arXiv:2006.10436 | arXiv abs 页 | sensor×time 低秩张量补全 |
 
 **未核实项**：Garzón 2025 的 DOI（未找到）；RobustUQ 完整作者列表（只核到前两位）；iTransformer/LoRA/low-rank bottleneck/BRITS 的会议 DOI（arXiv 已核验，会议录用信息未在 Crossref 建 DOI）。
+
+---
+
+## 8. E1a/E1b 若复现，贡献定位
+
+> 2026-11-16 增补。触发：确认阶段 E1a（mask p=0.10，clean Δ −0.545，seed sd 0.040）与 E1b（p=0.20，−0.689）在发现阶段过了预注册判据，经理问「这条能不能作为贡献」。
+
+### 8.1 三个问题的直接回答
+
+**Q1：有没有论文已经在 C-MAPSS / RUL 上报告过「训练期传感器通道 dropout 提升干净集精度」？**
+
+**有，而且几乎同协议。** Wang, Q.; Liu, Z.; Jin, Z. 等，*Availability-Aware Remaining Useful Life Prediction for Aero-Engines with Unavailable Sensor Channels*，*Aerospace* 2026, 13(9):826，DOI 10.3390/aerospace13090826。Table 6（FD001，complete input，10 seeds 42–51）：DA-CNN-LSTM **16.403 ± 0.783** → 加 SD **15.663 ± 0.748**，**干净集 RMSE 降 0.740 周期**。同协议要素：14 传感器、整通道、训练期、每窗每通道独立 Bernoulli、至少留 1 路、125 cap、engine equal weighting。差别：L=30（我们 70）、CNN-LSTM（我们 DSPT）、干净集 2×2 只在 FD001 报。
+
+另有 MSCCAN（Zhang, T.; Jiang, L.; Huang, R.; Zhang, X., *A Multiscale Cross-Channel Attention Network for RUL Prediction With Variable Sensors*, IEEE TIM 2025, DOI 10.1109/TIM.2025.3551011）用 variable-sensor augmentation + mask-aware aggregation，是同一族。
+
+**Q2：有没有人报告过「dropout 提升的是干净精度而不只是鲁棒性」？**
+
+**有，就是同一篇。** 他们明确把「SD 是否带来 complete-input penalty」作为一个问题问出来，答案是 FD001 上没有惩罚、反而降 0.74（§3.1）。更一般地，dropout 作为正则化提升泛化是 Srivastava et al. 2014（JMLR 15:1929–1958）的经典结论；masking 类增强（Cutout、SpecAugment）也以提升干净精度著称。所以「反直觉」在文献里并不反直觉——审稿人不会觉得新鲜。
+
+**Q3：如果两者都有，我们唯一能主张什么？**
+
+不能主张「现象」。能主张的是**复现 + 扩展**；扩展必须具体到 §8.3 的三条之一，否则只能写成复现。
+
+### 8.2 一个必须先查的陷阱：逐子集方向
+
+Wang et al. 的干净集增益**只发生在单工况子集**。Table 13（complete input）：
+
+- FD001：16.403 ± 0.783 → +SD **15.663 ± 0.748**（变好 0.740）
+- FD002：38.012 ± 11.077 → +SD **41.019 ± 11.107**（**变差 3.007**）
+- FD004：32.848 ± 1.776 → +SD **38.793 ± 8.320**（**变差 5.945**）
+- FD003：干净集未报
+
+所以他们的结论是「单工况有增益、多工况有惩罚」。**在写 headline 之前，必须把 E1a/E1b 的逐子集 ΔRMSE 列出来**：
+
+- 若我们是 FD001/FD003 改善、FD002/FD004 恶化 → 与 Wang et al. 同向，合并 −0.5 是 Simpson 悖论，只能写「单工况现象 + 多工况边界」，不能写「四子集稳定增益」。
+- 若我们四个子集都改善（预注册要求 ≥3/4 同号，需要确认第 4 个是谁）→ 与 Wang et al. **相反**，这是唯一可能有点意思的差异，但必须先排除协议差异（L=70、DSPT 的 sensor attention/cycle、pooled 选轮），再谈机制。
+
+**这条比任何 novelty 措辞都重要**：如果逐子集方向与 Wang et al. 相反而我们没解释，审稿人会用他们的 Table 13 直接质疑。
+
+### 8.3 能写进 introduction 的一句话（取决于 8.2 的结果）
+
+**情形 A（我们四个子集都改善，与 Wang et al. 相反）：**
+
+> Training-time whole-channel sensor dropout, which reduces complete-input RMSE on FD001 with a CNN–LSTM backbone (Wang et al., 2026), also reduces clean-input engine-level RMSE on a strong Transformer across all four C-MAPSS subsets — including the multi-condition subsets where the CNN–LSTM study reported a penalty.
+
+这句主张的是 **backbone/regime dependence**，是 empirical finding，不是 method。要成立，必须给出协议对照（同 L、同 cap、同 metric）排除「只是 L=70 或 backbone 不同」。
+
+**情形 B（我们也是单工况改善、多工况恶化）：**
+
+> We reproduce the FD001 complete-input gain of training-time sensor dropout on a strong Transformer, and show that it does not transfer to the multi-condition subsets, where the sign reverses.
+
+这句是 boundary/negative result，可以写，但只能作为一节，**不足以单独支撑一篇 TIM**。
+
+### 8.4 「剂量关系」和「强基线仍有效」能不能单独主张
+
+- **剂量关系**：Wang et al. 只在缺失协议下扫 ps（Fig. 5b），没有在 clean 上报剂量。我们的 p=0.10→0.20 是 clean 上的一个增量，但**两个点不构成剂量关系**（至少要 3 个点 + 单调性检验）。可以写「p=0.20 的效应大于 p=0.10」，不能写「收益随屏蔽概率单调」。
+- **强基线仍有效**：Wang et al. 的 Table 9 有 Transformer + SD（FD001 complete 14.245 ± 0.506），但**没有 no-SD Transformer 对照**，所以「SD 在 Transformer 上是否仍有效」在他们的论文里没有被隔离。这是唯一真实的缝，但它是「补一个对照」，不是「新机制」。
+- 两条都只能作为 replication/extension 的一部分。
+
+### 8.5 判定
+
+- E1a/E1b 若在 split_seed=29 复现：可以写成 **「训练期传感器集增强在强 Transformer 上的复现与边界分析」**，属于 ENGINEERING-ONLY 的证据，**不是方法创新**。
+- **不足以单独支撑一篇 IEEE TIM。** 它可以是：(i) 另一条主贡献下的一节；(ii) 与 E5 的机制分析合并成「传感器冗余/低秩」的故事——但 E5 本身也不新（见 §2）；(iii) 一篇以 boundary/negative result 为主的小文（TIM 不太收）。
+- 如果本轮只剩 E1 能站住：**按 STOP 处理，把 E1 写成复现，不要包装成贡献。**
+
+### 8.6 核验记录
+
+| 文献 | 标识 | 核验方式 | 关键数字 |
+|---|---|---|---|
+| Wang et al. 2026 | DOI 10.3390/aerospace13090826 | MDPI 全文（Table 6、Table 13、§3.1、§3.4） | FD001 clean 16.403→15.663（−0.740，10 seeds）；FD002 clean 38.012→41.019；FD004 clean 32.848→38.793 |
+| Zhang et al. 2025 (MSCCAN) | DOI 10.1109/TIM.2025.3551011 | Crossref | variable-sensor augmentation + mask-aware aggregation；IEEE TIM 2025 |
+| Srivastava et al. 2014 | JMLR 15:1929–1958 | 经 Wang et al. 参考文献 [39]（未独立核 JMLR 页） | dropout 作为正则化提升泛化 |
+
+**未核实**：FD003 的 clean SD 效应（Wang et al. 未报）；Cutout/SpecAugment 的具体编号与结论（未独立核，正文不引具体数字）。

@@ -76,13 +76,14 @@
 
 | # | 文献 | 年份 / venue | 标识 | 做了什么 | 数据 | 与我们的差异 | 深度 |
 |---|---|---|---|---|---|---|---|
+| **D0** | **Wang, Q.; Liu, Z.; Jin, Z. 等** *Availability-Aware Remaining Useful Life Prediction for Aero-Engines with Unavailable Sensor Channels* | **2026, *Aerospace* 13(9):826** | **DOI 10.3390/aerospace13090826** | RUL-DARNet：CNN-LSTM 骨干 + **训练期整通道 Sensor Dropout（SD，ps=0.2，至少留 1 路）** + Mask-Aware 特征注意力 + 时间注意力；10 seeds × 10 配对 mask，C-MAPSS 四子集，125 cap、engine equal weighting | C-MAPSS FD001–FD004 | **这是 E1 的直接前作**：同协议要素几乎逐项对应（14 传感器、整通道、训练期、每窗 Bernoulli、至少留 1 路、125 cap、engine equal）。差别：L=30 vs 70；CNN-LSTM vs DSPT；clean 2×2 只在 FD001 报。**Table 6：FD001 clean 16.403→15.663（−0.740）**；**Table 13：FD002 clean 38.012→41.019、FD004 clean 32.848→38.793（多工况变差）** | 全文 |
 | D1 | Wang, W.; Wang, Z. 等（作者列表未完整核实）*Robust uncertainty quantification for online remaining useful life prediction with randomly missing and partially faulty sensor data* | 2025, *Reliab. Eng. Syst. Saf.* 262:111177 | DOI 10.1016/j.ress.2025.111177 | 用扩散模型拟合随机缺失/部分故障数据的分布，结合深度度量学习与 conformal prediction 做在线 RUL 不确定性量化 | 设备 RUL（含在线场景） | 属于「先补后预测 + UQ」范式；我们的 E1/E2 是训练期增强，不做显式补全 | 仅摘要 |
 | D2 | Tang, D. *A deep learning framework for remaining useful life prediction of turbofan engines with partial sensor failure* | 2026, *PLoS ONE* 21(4):e0347312 | DOI 10.1371/journal.pone.0347312 | WGAN-GP 缺失参数生成器补全受损传感器序列，CNN-LSTM 预测 RUL，对抗损失与回归损失联合优化；去掉生成器 RMSE 恶化 39% | C-MAPSS，缺失率扫描 | 端到端「修复—预测」联合训练；我们的 mask 增强不重建数据，只让模型见过缺失 | 全文 |
 | D3 | Li, J. 等（同 B2）*HPVSGNN* | 2026, *Aerosp. Sci. Technol.* | DOI 10.1016/j.ast.2026.112160 | 变分信息瓶颈图滤波按方差抑制高噪声节点，直接面向数据碎片化与高噪声 | C-MAPSS + QAR | 架构内鲁棒；我们靠训练期扰动 | 摘要+引言 |
 | D4 | Xu, Z. 等（同 A1） | 2026, *Meas. Sci. Technol.* | DOI 10.1088/1361-6501/ae7463 | 传感器攻击场景下用不确定性加权融合抑制被污染传感器的贡献 | C-MAPSS + 攻击注入 | 推理期加权；我们是训练期增强 | 全文 |
 | D5 | Cao, W. 等（arXiv 显示 6 位作者）*BRITS: Bidirectional Recurrent Imputation for Time Series* | 2018, NeurIPS | arXiv:1805.10572 | 双向 RNN 直接在动态系统里学缺失值，不预设数据生成过程 | 空气质量/医疗/定位 | 缺失值建模的方法学祖先；与 RUL 无直接关系 | 摘要 |
 
-**这条线的结论**：缺失/噪声鲁棒有两条成熟范式——**先补后预测**（D1/D2/D5）与**架构内鲁棒**（D3/D4）。我们的 E1/E2 是第三条：训练期增强 + 显式 availability mask。这条在方法上不新；在实证上，旧 study 已 36/36 跑完且 clean 通道全负（`SENSOR_RESEARCH_PLAN.md` §6），所以它也不承担新颖性。
+**这条线的结论**：缺失/噪声鲁棒有两条成熟范式——**先补后预测**（D1/D2/D5）与**架构内鲁棒**（D3/D4）。我们的 E1/E2 是第三条：训练期增强 + 显式 availability mask。**D0 已经把 E1 的同款做法在 C-MAPSS 上做掉了**（整通道 SD，FD001 clean −0.740，10 seeds），所以 E1 是复现而不是新现象；旧 study 的 36 格（clean 全负）说明这个效应还高度依赖协议。E2 同理，不承担新颖性。详见 `NOVELTY_VERDICT.md` §8。
 
 ---
 
