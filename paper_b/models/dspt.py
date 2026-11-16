@@ -82,6 +82,55 @@ class FastSensorAttention(nn.Module):
         return x
 
 
+class SensorInteraction(nn.Module):
+    """E5 low-rank sensor interaction branch. Frozen spec: E5_PREREG.md §1.
+
+        H_new = H + lam * U @ g(U^T H)      U: (N, r) orthonormal, g shared over factors
+
+    `g` is applied to the r factors with the SAME weights, which is what makes the
+    branch's parameter count independent of r; that in turn is what makes lr4 vs
+    lr14 a clean rank comparison instead of a capacity comparison.
+
+    mode='mlp' is the parameter-matched control: the same g applied per sensor with
+    no cross-sensor mixing and no bottleneck. It controls for capacity only -- it
+    cannot stand in for the low-rank arm, and the low-rank arm cannot stand in for
+    it (see E5_PREREG.md §1).
+    """
+
+    def __init__(self, num_sensors=14, d_model=64, rank=4, width=64,
+                 dropout=0.2, mode='lowrank'):
+        super().__init__()
+        assert mode in ('lowrank', 'mlp'), mode
+        self.mode = mode
+        self.rank = int(rank) if mode == 'lowrank' else 0
+        if mode == 'lowrank':
+            self.raw_u = nn.Parameter(torch.randn(num_sensors, self.rank))
+        self.g = nn.Sequential(
+            nn.Linear(d_model, width), nn.GELU(), nn.Dropout(dropout),
+            nn.Linear(width, d_model),
+        )
+        # Zero-init the last layer: delta H == 0 at step 0, so the branch starts as
+        # an exact identity and can only add a perturbation.
+        nn.init.zeros_(self.g[-1].weight)
+        nn.init.zeros_(self.g[-1].bias)
+        self.lam = nn.Parameter(torch.tensor(1e-2))
+
+    def orthonormal_u(self):
+        q, r = torch.linalg.qr(self.raw_u)
+        d = torch.diagonal(r, dim1=-2, dim2=-1)
+        s = torch.where(d >= 0, torch.ones_like(d), -torch.ones_like(d))
+        return q * s.unsqueeze(0)
+
+    def forward(self, h):
+        if self.mode == 'mlp':
+            delta = self.g(h)                                   # (B,L,N,D)
+        else:
+            u = self.orthonormal_u()                            # (N,r)
+            f = torch.einsum('nr,blnd->blrd', u, h)
+            delta = torch.einsum('nr,blrd->blnd', u, self.g(f))
+        return h + self.lam * delta
+
+
 class DSPT(nn.Module):
     dual_span = True
 
@@ -89,12 +138,14 @@ class DSPT(nn.Module):
                  pe_periods=(25.0, 50.0, 125.0, 250.0), max_span=MAX_SPAN,
                  instnorm=False, ms_mode='full', sa_mode='off', hi_source='none',
                  hi_mono='none', use_pad_mask=True, use_cycle=True, n_cond=6,
-                 legacy_ms_pad=False, legacy_ema=False):
+                 legacy_ms_pad=False, legacy_ema=False, lr_mode='none'):
         super().__init__()
         assert ms_mode in ('off', 'full', 'single_proj', 'multi_noproj', 'multi3', 'linear_only')
         assert sa_mode in ('off', 'basic', 'identity', 'cond', 'identity_cond', 'mean', 'static')
         assert hi_source in ('none', 'hf', 'hB', 'hA')
         assert hi_mono in ('none', 'correct', 'wrong')
+        assert lr_mode in ('none', 'lr4', 'lr14', 'mlp'), lr_mode
+        self.lr_mode = lr_mode
         self.num_sensors = num_sensors
         self.d_model = d_model
         self.max_span = max_span
@@ -108,6 +159,15 @@ class DSPT(nn.Module):
         self.legacy_ms_pad = bool(legacy_ms_pad)
         self.legacy_ema = bool(legacy_ema)
         self.n_feat = 4 if self.instnorm else 3
+
+        if self.lr_mode == 'none':
+            self.lr = None
+        else:
+            _rank = 4 if self.lr_mode == 'lr4' else 14
+            self.lr = SensorInteraction(
+                num_sensors=num_sensors, d_model=d_model, rank=_rank,
+                width=64, dropout=dropout,
+                mode='mlp' if self.lr_mode == 'mlp' else 'lowrank')
 
         self.sensor_in = nn.Linear(self.n_feat, d_model)
 
@@ -286,6 +346,15 @@ class DSPT(nn.Module):
                 st = torch.where(keep_bl[..., None], st, torch.zeros_like(st))
             tokens = st.reshape(B, L, N, self.d_model)
 
+        if self.lr is not None:
+            # E5 branch. Applied to H after the sensor-attention block, before
+            # pooling. Hidden sensors contribute 0 to the projection, but the
+            # branch mixes, so their rows must be re-zeroed to keep the existing
+            # "hidden sensors are exactly 0" invariant.
+            tokens = self.lr(tokens)
+            if keep is not None:
+                tokens = torch.where(keep[:, None, :, None], tokens, torch.zeros_like(tokens))
+
         if keep is None:
             if self.sa_mode == 'mean':
                 pooled = tokens.mean(dim=2)                                        # (B,L,D)
@@ -356,9 +425,9 @@ class DSPT(nn.Module):
 def build_dspt(num_sensors=14, d_model=64, num_layers=2, dropout=0.2, max_span=MAX_SPAN,
                instnorm=False, ms_mode='full', sa_mode='off', hi_source='none',
                hi_mono='none', use_pad_mask=True, use_cycle=True, n_cond=6,
-               legacy_ms_pad=False, legacy_ema=False):
+               legacy_ms_pad=False, legacy_ema=False, lr_mode='none'):
     return DSPT(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers,
                 dropout=dropout, max_span=max_span, instnorm=instnorm, ms_mode=ms_mode,
                 sa_mode=sa_mode, hi_source=hi_source, hi_mono=hi_mono,
                 use_pad_mask=use_pad_mask, use_cycle=use_cycle, n_cond=n_cond,
-                legacy_ms_pad=legacy_ms_pad, legacy_ema=legacy_ema)
+                legacy_ms_pad=legacy_ms_pad, legacy_ema=legacy_ema, lr_mode=lr_mode)

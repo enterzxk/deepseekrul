@@ -63,7 +63,8 @@ def _build(cfg):
                           sa_mode=cfg['sa_mode'], hi_source=cfg['hi_source'],
                           hi_mono=cfg['hi_mono'], use_pad_mask=cfg['use_pad_mask'],
                           use_cycle=cfg['use_cycle'], n_cond=cfg['n_cond'],
-                          legacy_ms_pad=cfg['legacy_ms_pad'], legacy_ema=cfg['legacy_ema'])
+                          legacy_ms_pad=cfg['legacy_ms_pad'], legacy_ema=cfg['legacy_ema'],
+                          lr_mode=cfg.get('lr_mode', 'none'))
     return build_vanilla(num_sensors=14, d_model=cfg['d_model'], num_layers=cfg['layers'],
                          dropout=cfg['dropout'], max_span=cfg['span'],
                          input_mode=cfg['input_mode'], use_cycle=cfg['use_cycle'])
