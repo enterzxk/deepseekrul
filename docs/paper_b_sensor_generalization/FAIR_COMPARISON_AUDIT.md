@@ -250,6 +250,28 @@ FD003 18/20（90%）、FD004 48/50（96%）**——沿用等于让九成被评�
 **验收**：两格最终必须是 `status=COMPLETE` 且八件产物齐全
 （`config.json`、`metrics.json`、`val_pred.csv`、`best.pt`、`robustness_val.json`、
 `val_noise_predictions.csv`、`val_missing_predictions.csv`、`provenance.json`）。
-补评测走 `trained=True` 的 eval-only 分支（`train_complete.json` 与 `best.pt` 都在），
-不重训——重训会重新初始化并重排训练顺序，得到的是**另一个模型抽样**，
-同一个 `run_id` 下就会出现两个不同模型，追溯链反而变脏。
+
+**eval-only 重试在这个 runner 版本里无法到达终态（已实测，会影响复现性）**
+
+初稿写的是「补评测走 `trained=True` 的 eval-only 分支、不重训」。这个方案**技术上不成立**，
+实测推翻了它：
+
+- `status='COMPLETE'` 全仓只有**一个**写入点：`train.py:361`，在 `train_one` 内部。
+  worker 的成功分支只 `print('DONE')`，**不写 `status.json`**。
+- 于是走 `trained=True` 跳过 `train_one` 的格子，`is_complete()` 永远返回 False，
+  `next_task()` 每轮都重新返回同一格——**4 秒一轮无限空转**，日志形态是
+  `resume evaluation only` → `DONE ... in 4s` → `START` 同一 run_id → 循环。
+- 后果：该卡被这一格永久占住，且 `E0-FD002-s101` 被捡起后会同样死循环。
+
+**结论**：任何走过 eval-only 重试的格子在这个版本里都到不了 `COMPLETE`。
+要修只能改 `scripts/run_sensor_aug.py`，而那会改变 `h8`，把 60 个发现格与已跑确认格的
+指纹声明全部作废。所以处置改为**让它走 `trained=False`**：删掉这两格的
+`train_complete.json` / `attempts.json` / `status.json`，重训后由 `train_one` 正常写 `COMPLETE`。
+
+代价与收益：两格各重训约 13 分钟，旧的 `best.pt` 与崩溃期产物被覆盖，得到的是新的模型抽样。
+收益是最终八件产物全部出自同一次训练、同一个 `train_one`，不存在「状态是手写的」或
+「checkpoint 与评测产物来自不同代码路径」这类瑕疵。**追溯链上不出现同一 `run_id` 下两个模型，
+因为旧产物已被覆盖，留下的只有一次完整训练的结果。**
+
+**后来者注意**：如果重跑本轮的确认集，必须确认跑的是带此缺陷的 runner 版本；
+任何需要「补评测而不重训」的场景在这个 `h8` 下都不可行。
