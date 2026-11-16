@@ -15,6 +15,8 @@
 
 **因此：本轮不能靠 E4/E5 形成 IEEE TIM 的「方法创新」。** 若实验只显示「不比 baseline 差 / 略好一点」，按团队已冻结的口径（96 格消融 28 项对比均未达区分门槛）不能主张模块更优，E5 也不成立。唯一可能站住的写法是把问题从「提出模块」改写成「传感器交互的低秩假设在什么条件下成立/失效」的**机制研究**，其上限是 ENGINEERING-ONLY，且需要额外证据（见 §4）。
 
+> **定稿补记（2026-11-16）**：E5 实测 `lr4` 变差 **+0.6714** [+0.2401, +1.1129]，路线不成立；E1a/E1b 确认集复现（4/4）但只到 ENGINEERING-ONLY。最终判定、不构成新颖性的终稿清单与可发表的刻画见 **§10**。
+
 ---
 
 ## 1. E4 逐条判断
@@ -146,6 +148,7 @@
 ## 8. E1a/E1b 若复现，贡献定位
 
 > 2026-11-16 增补。触发：确认阶段 E1a（mask p=0.10，clean Δ −0.545，seed sd 0.040）与 E1b（p=0.20，−0.689）在发现阶段过了预注册判据，经理问「这条能不能作为贡献」。
+> **确认后定稿（2026-11-16）**：情形 A 成立——确认集 4/4 同号（E1a −0.3599 [−0.5779,−0.1491]、E1b −0.3418 [−0.6120,−0.0752]），多工况未出现 Wang et al. 报告的恶化；定稿措辞与边界见 **§10.3(a)**。
 
 ### 8.1 三个问题的直接回答
 
@@ -220,6 +223,7 @@ Wang et al. 的干净集增益**只发生在单工况子集**。Table 13（compl
 ## 9. E5 三种结局的论文定位（结果出来前写死）
 
 > 2026-11-16 增补。E5 尚未起跑（48 格 0 格，两卡空闲），本节先写定位，避免结果出来后往有利方向解释。
+> **结果后定稿（2026-11-16）**：E5 落在结局 ③，且不是「无增益」而是「变差」——`lr4` 合并 **+0.6714** [+0.2401, +1.1129]；按预注册 §4 步骤 0 触发，H1–H4 判 **N/A**（不是不成立）。定稿见 **§10.3(c)**。
 > 依据：`E5_PREREG.md`（FROZEN v1.0 + v1.1 跑前预测）、本文 §2、E4 的实测（合并 −0.4098，FD001 是唯一变差 +0.3544）。
 
 ### 9.1 H1–H4 的可发表性审计（逐条）
@@ -281,3 +285,81 @@ E4 的实测：加一个零初始化身份嵌入（+896 参数、0.77% 容量）
 ### 9.6 一句话
 
 E5 的论文价值不在「低秩模块有没有用」，而在「能不能证明这个强基线的传感器表示已经是低秩的、低秩瓶颈因此没有新约束可加」。如果是后者，它是一个干净的负结果；如果是前者，它也只是 ENGINEERING-ONLY 的机制发现。两种都不是 IEEE TIM 的方法贡献。
+
+---
+
+## 10. 定稿（2026-11-16，全部结果落地后）
+
+### 10.1 最终判定与三档对齐
+
+| 候选 | 确认集结果 | 判定 | 触发条款 | 论文用途 |
+|---|---|---|---|---|
+| **E4 identity** | −0.4098 [−0.7088,−0.1080]，3/4，FD001 唯一变差 +0.3544 | **只作控制** | 已有开关 + Xu 2026 §2.2 式(6) 精确重叠 | 不进候选 |
+| **E1a** mask p=0.10 | −0.3599 [−0.5779,−0.1491]，4/4 | **ENGINEERING-ONLY** | 确认集过线，但效应约为发现阶段一半、贴 −0.3 | 复现 + 边界 |
+| **E1b** mask p=0.20 | −0.3418 [−0.6120,−0.0752]，4/4 | **ENGINEERING-ONLY** | 同上 | 复现 + 边界 |
+| **E2a** noise α=0.25 | −0.1275 [−0.3713,+0.1199]，3/4 | **不复现** | CI 含 0 | 不作贡献 |
+| **E2b** noise α=0.50 | 无增益 | **无增益** | — | 不作贡献 |
+| **E5 lr4** | **+0.6714** [+0.2401,+1.1129]，变差 | **路线不成立** | 预注册 §4 步骤 0（Δ > −0.3 且为正） | 负结果 |
+| **总判定** | — | **STOP**（传感器正则化 + 低秩路线） | 目标规则「若所有候选无增益，结束传感器正则化与低秩路线」 | 保留原 DSPT |
+
+**E5 的 H1–H4 必须写成 N/A，不能写成「不成立」。** 预注册 §4 是顺序门，步骤 0 触发后后面根本不进入判定；「不成立」会被误读为「测过并证伪」。这一点与牢莫、军师的更正一致。
+
+### 10.2 哪些做法不构成新颖性（终稿清单）
+
+1. **sensor id 嵌入（E4）**：Xu et al. 2026 §2.2 式(6) `z_{t,i} = u_{t,i} + δ_i` 精确同构；Garzón 2025、iTransformer、TFT 同类；本仓库 `sa_mode='identity'` 已是现成开关并跑过 12 格。零初始化身份嵌入 +896 参数买到 −0.41，与 dropout 同量级——是旋钮，不是机制。
+2. **低秩残差传感器交互（E5）**：Xu et al. 2026 §3.3 的 prior-adjacency 低秩残差扰动（rank=8、λ=0.10、gate）同构；LMF、LoRA、low-rank bottleneck 各自独立覆盖「低秩 + 残差」的代数结构。实测还变差，连「有效」都不成立。
+3. **条件感知低秩 / 工况门控**：Xu 2026 的 context-dependent 低秩因子 + Li 2026 的 condition modulation 已覆盖；CTNet、Garzón、Aasi、TFT 覆盖四种落点。
+4. **训练期整通道 sensor dropout（E1a/E1b）**：Wang et al. 2026（*Aerospace* 13(9):826）已在 C-MAPSS FD001 报过 clean −0.740（10 seeds）；E1 是复现，不是新现象。
+5. **训练期噪声注入（E2a/E2b）**：方法上不新；实测 E2a 不复现、E2b 无增益。
+6. **等参 MLP / full-rank / no-branch 对照**：审稿人期待的对照，做了不加分，不做会被打。
+7. **r 的敏感性扫描**：超参，不是机制。
+8. **「在强基线上加模块」本身**：96 格消融 28 项对比未达区分门槛，base 已很强。
+
+### 10.3 哪些是可发表的刻画（本轮唯一能写的）
+
+必须把「可发表」限定为**刻画（characterization）**，不是方法贡献。三条：
+
+**(a) 复现 + 协议差异（E1a/E1b）**
+
+可写的一句话：
+
+> Training-time whole-channel sensor dropout, previously shown to reduce complete-input RMSE by 0.74 cycles on FD001 with a CNN–LSTM backbone (Wang et al., 2026), reproduces on a strong Transformer baseline with a smaller but consistent effect (−0.36 cycles, 4/4 subsets), and the multi-condition penalty reported by that study does not appear under our protocol.
+
+边界：合并效应 −0.36，约为 Wang et al. FD001 单子集值 0.74 的一半（协议不同，不能逐点比）；子集强弱排序在两个划分之间翻转，所以**不能写「哪些子集有效」**；只能写合并层面复现 + 多工况未观察到恶化。协议差异必须列全：L=70 vs 30、DSPT vs CNN-LSTM、5 seeds/split 29 vs 10 seeds、engine-mean-of-roots vs 其 complete-input RMSE。
+
+**(b) 基线可及空间（E4 + E1 合并）**
+
+可写的一句话：
+
+> Two unrelated, near-zero-cost interventions — a zero-initialized sensor identity embedding (+896 parameters) and whole-channel sensor dropout — each move the same strong baseline by about 0.4 cycles, indicating an accessible space of that order that is not specific to either mechanism.
+
+边界：这是 **n=2 的旁证**，不是受控估计；「0.4」是量级不是精确值；不能写成「基线有 0.4 周期的上限」。用途是解释「为什么这个量级的单模块增益不能当机制」，只能进讨论/归因段，不能进主结果。
+
+**(c) 预注册四臂负结果（E5）**
+
+可写的一句话：
+
+> A pre-registered four-arm test (none / equal-parameter MLP / rank-4 / rank-14) finds that a rank-4 sensor-space interaction is worse than no branch (+0.67 cycles, 95% CI [0.24, 1.11]), so the low-rank hypothesis fails at the effect level; by the pre-registered sequential gate, H1–H4 are not tested (N/A).
+
+边界：不能说「低秩在一般情况下无效」，只能说「在本协议、本骨干、本实现下无效」；H1–H4 是 N/A 不是被证伪；`rel` 三点排序（0.868 > 0.608 > 0.473）只能作假设（n=3），不能写成机制。
+
+### 10.4 这三条刻画够不够一篇 TIM
+
+**不够。** 逐条说：
+
+- (a) 是复现 + 一个协议差异，不是新机制；TIM 的方法论文要「新方法 + 优于强基线」，我们没有。
+- (b) 是两条旁证（n=2），不是受控实验；它解释现象，不提出方法。
+- (c) 是负结果；TIM 不接受「我们试了没成」作为主贡献，除非它是某个更大主张的关键反证。
+- 三条合起来能支撑的是一篇**协议 / 基线 / 机制归因**性质的论文（例如「强 Transformer RUL 基线上传感器增强与低秩交互的边界：一个预注册研究」），但贡献是「评测与归因」，不是「方法」；这需要重新定位投稿类型与期刊（TIM 的 scope 偏方法/仪器，负结果 + 评测的接受度低）。
+- 如果一定要投 TIM：主贡献必须换成协议 / 基线 / 评测（统一协议下的强基线复现 + 传感器增强的边界刻画），并把本轮定位成 benchmark / characterization；E1/E4/E5 只能作为其中的节。
+
+### 10.5 与 FINAL_RESEARCH_DECISION 的对齐
+
+- 档位：**STOP**（传感器正则化 + 低秩路线），保留原 DSPT。
+- E1a/E1b 的 ENGINEERING-ONLY 是「增强有效」的工程结论，不是方法贡献；可进工程报告/应用文，不进 TIM 方法主张。
+- E4 只作控制；E5 路线关闭。
+- 机制：没有一条站得住的解释（三条探针里一条方向相反、一条有训练分布混淆、一条只有 n=3；见 `SENSOR_MECHANISM_ANALYSIS.md`），不得用旁证顶。
+
+### 10.6 一句话
+
+本轮没有产生 IEEE TIM 意义上的方法贡献；可发表的是三条刻画（复现、可及空间、负结果），它们能支撑「为什么这类模块增益不能当机制」，但撑不起一篇方法论文。
