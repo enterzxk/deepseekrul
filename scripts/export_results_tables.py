@@ -128,7 +128,7 @@ def main() -> int:
                 f = cell_facts(Path(cell))
                 base_index[(subset, seed, split)] = f
                 base_rows.append({
-                    'run_id': Path(cell).parent.name,
+                    'run_id': Path(cell).parent.parent.name,
                     'subset': subset, 'seed': seed, 'split_seed': split,
                     'val_engine_mean_roots_rmse': round(f['clean_mean_roots'], 6),
                     'val_engine_mean_roots_rmse_recorded': f['metrics_mean_roots'],
@@ -179,10 +179,10 @@ def main() -> int:
             for (subset, seed), (cell, f) in sorted(arm_facts.items()):
                 base = base_index[(subset, seed, split)]
                 row = {
-                    'arm': arm, 'run_id': cell.parent.name,
+                    'arm': arm, 'run_id': cell.parent.parent.name,
                     'subset': subset, 'seed': seed, 'split_seed': split,
                     'baseline_run_id': Path(
-                        try_resolve(runs, 'E0', subset, seed, split)).parent.name,
+                        try_resolve(runs, 'E0', subset, seed, split)).parent.parent.name,
                     'clean_mean_roots': round(f['clean_mean_roots'], 6),
                     'baseline_clean_mean_roots': round(base['clean_mean_roots'], 6),
                     'delta_rmse': round(f['clean_mean_roots'] - base['clean_mean_roots'], 6),
