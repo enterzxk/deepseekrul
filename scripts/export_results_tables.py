@@ -52,7 +52,6 @@ def per_engine_roots(rows, pred_col='y_pred'):
     return {u: math.sqrt(sum((p - t) ** 2 for t, p in pts) / len(pts))
             for u, pts in acc.items()}
 
-
 def mean_of_roots(per_engine):
     return float(np.mean(list(per_engine.values())))
 
@@ -78,11 +77,15 @@ def cell_facts(cell: Path):
     out['clean_mean_roots'] = mean_of_roots(clean)
     nz = cell / 'val_noise_predictions.csv'
     if nz.exists():
+        # This file has a different schema from val_pred.csv: the prediction column
+        # is y_pred_evaluated (the noise-stress protocol output), and the engine key
+        # is engine_id. Same column audit_noise_pressure.py reads, so the numbers
+        # here match the published noise-pressure table.
         rows = read_rows(nz)
         for b in BETAS:
             sel = [r for r in rows if abs(float(r['corruption_level']) - b) < 1e-9]
             if sel:
-                pe = per_engine_roots(sel)
+                pe = per_engine_roots(sel, 'y_pred_evaluated')
                 out[f'noise_beta{b:g}_per_engine'] = pe
                 out[f'noise_beta{b:g}_mean_roots'] = mean_of_roots(pe)
     return out
