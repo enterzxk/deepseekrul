@@ -57,29 +57,29 @@ def main():
         return 1
     q, _ = torch.linalg.qr(torch.randn(14, 4, generator=gen, dtype=torch.float64))
     check('rho on isotropic H', m.rho_of(C, q), 4 / 14, 0.03)
-
-    # ---- centering: covariance vs raw second moment -------------------------
-    # Isotropic and zero-mean synthetic data CANNOT tell these apart: with zero
-    # means, centring changes nothing. Real H does not have zero per-sensor means,
-    # so this case is the only one that pins the definition down.
-    #
-    # H = mu + tiny noise.  Centred C is ~isotropic noise -> any 4-dim subspace
-    # holds ~4/14.  An uncentred second moment is dominated by mu -> a 4-dim
-    # subspace containing mu holds ~1.0.  E5_PREREG.md §3 H1 says "covariance",
-    # so 4/14 is the expected value.
-    mu = torch.randn(14, generator=gen, dtype=torch.float64)
-    mu = mu / mu.norm()
-    H3 = (mu.float().view(1, 1, 14, 1).repeat(64, 70, 1, 64)
-          + 0.01 * torch.randn(64, 70, 14, 64, generator=gen))
-    C3 = m.chat(H3)
-    e3 = torch.eye(14, dtype=torch.float64)[:, :3]
-    U4 = torch.linalg.qr(torch.cat([mu.view(14, 1), e3], dim=1))[0]
-    check('chat is a covariance (not a raw second moment)', m.rho_of(C3, U4), 4 / 14, 0.03)
     # The isotropic null is a THEORETICAL constant (4/14, sd ~1e-4), so it is
     # the only cross-implementation anchor: two implementations agree iff both
     # return 0.2857 here. A null95 near 0.41 can only come from an anisotropic
     # C and must never be quoted as evidence that two implementations match.
     check('null95 on isotropic H (theory-anchored)', m.random_rho(C, 4, 200, gen)[0], 4 / 14, 0.01)
+
+    # ---- centring: covariance vs raw second moment -------------------------
+    # Every case above uses zero-mean synthetic data, where centring changes
+    # nothing -- so two implementations can agree bit-for-bit on all of them and
+    # still diverge on real H, whose per-sensor means are not zero. Measured on
+    # E0 that divergence reaches +0.117 in rho (FD002), always upward.
+    #
+    # H = mu + tiny noise separates them: a centred covariance is ~isotropic
+    # noise, so any 4-dim subspace holds ~4/14; an uncentred second moment is
+    # dominated by mu, so a 4-dim subspace containing mu holds ~1.0.
+    # E5_PREREG.md 3 H1 says "covariance", so 4/14 is the expected value.
+    mu = torch.randn(14, generator=gen, dtype=torch.float64)
+    mu = mu / mu.norm()
+    H3 = (mu.float().view(1, 1, 14, 1).repeat(64, 70, 1, 64)
+          + 0.01 * torch.randn(64, 70, 14, 64, generator=gen))
+    U4 = torch.linalg.qr(torch.cat([mu.view(14, 1),
+                                    torch.eye(14, dtype=torch.float64)[:, :3]], dim=1))[0]
+    check('chat is a covariance (not a raw second moment)', m.rho_of(m.chat(H3), U4), 4 / 14, 0.03)
 
     U0, _ = torch.linalg.qr(torch.randn(14, 4, generator=gen, dtype=torch.float64))
     lat = torch.randn(64, 70, 4, generator=gen)
