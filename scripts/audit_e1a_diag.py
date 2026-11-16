@@ -34,11 +34,22 @@ def roots_of(cell):
     return {u: math.sqrt(sum((p - t) ** 2 for t, p in pts) / len(pts)) for u, pts in acc.items()}
 
 
-def cell(root, arm, subset, seed):
+SPLIT_SEED = 17   # discovery split
+
+
+def cell(root, arm, subset, seed, split_seed=SPLIT_SEED):
+    """Resolve by config.json split_seed; refuse ambiguity (see _cells.py)."""
     hits = sorted(root.glob(f'{arm}-{subset}-s{seed}-*'))
-    if len(hits) != 1:
+    ok = []
+    for h in hits:
+        cfgp = h / subset / f's{seed}' / 'config.json'
+        if not cfgp.exists():
+            continue
+        if int(json.loads(cfgp.read_text()).get('split_seed', -1)) == split_seed:
+            ok.append(h / subset / f's{seed}')
+    if len(ok) != 1:
         return None
-    c = hits[0] / subset / f's{seed}'
+    c = ok[0]
     return c if (c / 'val_pred.csv').exists() else None
 
 

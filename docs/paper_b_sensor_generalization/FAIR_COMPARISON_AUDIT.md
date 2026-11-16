@@ -275,3 +275,59 @@ FD003 18/20（90%）、FD004 48/50（96%）**——沿用等于让九成被评�
 
 **后来者注意**：如果重跑本轮的确认集，必须确认跑的是带此缺陷的 runner 版本；
 任何需要「补评测而不重训」的场景在这个 `h8` 下都不可行。
+
+## 10. 两条分析纪律（2026-11-16，均由确认集并行跑引出）
+
+### 10.1 前缀 glob 会跨分划串台，且错了看不出
+
+`runs/` 现在同时存放发现集（split 17）与确认集（split 29），而 run id 的格式是
+`<arm>-<subset>-s<seed>-<config_hash>`——**两个分划的同名格子共享前缀、只有 hash 后缀不同**：
+
+```
+E0-FD001-s202-2040584e   split_seed=29（确认集，当时还在训练，只有 2 台机）
+E0-FD001-s202-5b89adbc   split_seed=17（发现集，20 台机）
+```
+
+`sorted(glob('E0-FD001-s202-*'))[0]` 取到确认集那份，算出的 Δ 是 **−0.1285（n=2）**，
+真值是 **−0.5198（n=20）**。**错得完全看不出来**——它照样给出一个合理的数。
+
+**纪律**：任何碰 `runs/` 的脚本只能用两种方式认格——
+
+1. 按 manifest 里的**完整 run_id** 精确匹配；
+2. 走 `scripts/_cells.py`：按前缀匹配后读 `config.json` 的 `split_seed` 过滤，
+   并**要求恰好一个命中，否则抛错**（不得 `return None` 静默跳过）。
+
+`audit_e0.py` 原本是 `root.glob("E0-*")` 无过滤遍历，改后加 `--split-seed`（默认 17）。
+另外四个脚本原本有 `len(hits) != 1 → 放弃`，不会给出错数，但已全部改走 `_cells.py`。
+
+**已公布数字是否需要重算：不需要。** 四个脚本原本的「匹配数≠1 就放弃」保证了它们没给过错数；
+`audit_e0.py` 无防护，但它当时跑的时候盘上只有 12 个发现格。改后回归：
+
+```
+audit_e0.py        -> cells 12, missing 0, max|mean_roots - recorded| 4.089199308054958e-07
+audit_final_table  -> E1a clean merged=-0.5450  neg=4/4
+                      per-subset {'FD001':-0.6432,'FD002':-0.2382,'FD003':-0.9553,'FD004':-0.3433}
+```
+
+与改前逐位一致。
+
+### 10.2 `COMPLETE` 只表示训练结束，不表示评测完成
+
+`status='COMPLETE'` 由 `train.py:361` 在**训练结束时**写；`evaluate_run`
+（写 `robustness_val.json` / `val_noise_predictions.csv` / `val_missing_predictions.csv`）
+在它**之后**才跑。所以存在一个窗口：格子已是 `COMPLETE`、八件产物也都在，
+但鲁棒性三件仍是**上一个模型**算出的旧文件。
+
+确认集那两格正好是这种情况——eval-only 重试曾用旧 `best.pt` 成功写出过鲁棒性三件，
+而训练正在用新的 `best.pt` 重跑。只看状态和齐全度**查不出来**。
+
+**纪律**：每格必须核 mtime 顺序
+
+```
+best.pt <= robustness_val.json <= val_noise_predictions.csv
+        <= val_missing_predictions.csv <= provenance.json
+```
+
+工具：`scripts/audit_cell_integrity.py`（`--manifest` 或 `--all-on-disk`），
+同时检查 `status=='COMPLETE'` 与八件齐全。60 个发现格与 80 个确认格都要过这一关，
+不能只看总数。

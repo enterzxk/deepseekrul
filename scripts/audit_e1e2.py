@@ -59,11 +59,26 @@ def cell_metrics(cell):
                 rec=m)
 
 
-def find_cell(root, arm, subset, seed):
+SPLIT_SEED = 17   # discovery split; the confirmation set has its own script
+
+
+def find_cell(root, arm, subset, seed, split_seed=SPLIT_SEED):
+    """Resolve by config.json split_seed; refuse ambiguity.
+
+    runs/ holds every split side by side under the same prefix, so a bare
+    prefix glob is not enough -- see scripts/_cells.py for the incident.
+    """
     hits = sorted(root.glob(f'{arm}-{subset}-s{seed}-*'))
-    if len(hits) != 1:
+    ok = []
+    for h in hits:
+        cfgp = h / subset / f's{seed}' / 'config.json'
+        if not cfgp.exists():
+            continue
+        if int(json.loads(cfgp.read_text()).get('split_seed', -1)) == split_seed:
+            ok.append(h / subset / f's{seed}')
+    if len(ok) != 1:
         return None
-    c = hits[0] / subset / f's{seed}'
+    c = ok[0]
     return c if (c / 'val_pred.csv').exists() and (c / 'metrics.json').exists() else None
 
 

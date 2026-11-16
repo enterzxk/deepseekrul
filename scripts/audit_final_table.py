@@ -34,11 +34,23 @@ ARMS = ('E1a', 'E1b', 'E2a', 'E2b')
 BETAS = (0.25, 0.5, 1.0)
 
 
-def cell_dir(root, arm, sub, seed):
+SPLIT_SEED = 17   # discovery split
+
+
+def cell_dir(root, arm, sub, seed, split_seed=SPLIT_SEED):
+    """Resolve by config.json split_seed; refuse ambiguity (see _cells.py)."""
     hits = sorted(glob.glob(os.path.join(root, f'{arm}-{sub}-s{seed}-*')))
-    if len(hits) != 1:
+    ok = []
+    for h in hits:
+        c = os.path.join(h, sub, f's{seed}')
+        cfgp = os.path.join(c, 'config.json')
+        if not os.path.exists(cfgp):
+            continue
+        if int(json.load(open(cfgp)).get('split_seed', -1)) == split_seed:
+            ok.append(c)
+    if len(ok) != 1:
         return None
-    c = os.path.join(hits[0], sub, f's{seed}')
+    c = ok[0]
     return c if os.path.exists(os.path.join(c, 'val_pred.csv')) else None
 
 
