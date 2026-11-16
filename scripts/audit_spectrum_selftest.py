@@ -64,14 +64,15 @@ def main():
     check('null95 on isotropic H (theory-anchored)', m.random_rho(C, 4, 200, gen)[0], 4 / 14, 0.01)
 
     # ---- centring: covariance vs raw second moment -------------------------
-    # Every case above uses zero-mean synthetic data, where centring changes
-    # nothing -- so two implementations can agree bit-for-bit on all of them and
-    # still diverge on real H, whose per-sensor means are not zero. Measured on
-    # E0 that divergence reaches +0.117 in rho (FD002), always upward.
+    # This is a GUARD, not a discriminator between the two current
+    # implementations: both centre correctly (verified on real E0 H -- rho agrees
+    # to 5.6e-16), so both pass. It exists because a future implementation that
+    # forgets to subtract the per-sensor mean would agree bit-for-bit on every
+    # other case here (all zero-mean) and still be wrong on real H.
     #
-    # H = mu + tiny noise separates them: a centred covariance is ~isotropic
-    # noise, so any 4-dim subspace holds ~4/14; an uncentred second moment is
-    # dominated by mu, so a 4-dim subspace containing mu holds ~1.0.
+    # H = mu + tiny noise separates the two definitions: a centred covariance is
+    # ~isotropic noise, so any 4-dim subspace holds ~4/14; an uncentred second
+    # moment is dominated by mu, so a 4-dim subspace containing mu holds ~1.0.
     # E5_PREREG.md 3 H1 says "covariance", so 4/14 is the expected value.
     mu = torch.randn(14, generator=gen, dtype=torch.float64)
     mu = mu / mu.norm()
