@@ -35,8 +35,13 @@ if str(REPO) not in sys.path:
 ARTIFACTS = ('config.json', 'metrics.json', 'val_pred.csv', 'best.pt',
              'robustness_val.json', 'val_noise_predictions.csv',
              'val_missing_predictions.csv', 'provenance.json')
-ORDER = ('best.pt', 'robustness_val.json', 'val_noise_predictions.csv',
-         'val_missing_predictions.csv', 'provenance.json')
+# Actual write order, confirmed in paper_b/sensor_aug/evaluation.py: eval_missing
+# writes val_missing_predictions.csv, eval_noise writes val_noise_predictions.csv,
+# and only after evaluate_robustness returns does evaluate_run write
+# robustness_val.json. provenance.json comes last (backfill). best.pt is written
+# at the end of training, before any of them.
+ORDER = ('best.pt', 'val_missing_predictions.csv', 'val_noise_predictions.csv',
+         'robustness_val.json', 'provenance.json')
 
 
 def check_cell(cell: Path) -> dict:
