@@ -1,0 +1,55 @@
+{
+ "study_id": "paper_b_sensor_generalization",
+ "frozen": true,
+ "post_hoc": true,
+ "cannot_change_verdict": true,
+ "verdict_frozen_at": "11c57bc0",
+ "opened_once": true,
+ "why_handwritten": "run_sensor_aug.freeze() accepts a single candidate (group in (\"E0\", cand)); this round has two ENGINEERING-ONLY arms (E1a, E1b) plus controls, which that gate cannot express. test_role() only needs frozen:true plus a runs allow-list.",
+ "arms": [
+  "E0",
+  "E1a",
+  "E1b",
+  "E2a"
+ ],
+ "splits": [
+  17,
+  29
+ ],
+ "scope_note": "Official TEST results are a POST-HOC robustness report only. The GO / ENGINEERING-ONLY / STOP verdict was fixed on the validation partition under the preregistered criteria; TEST may not revise it. If TEST disagrees with the validation ordering, that is recorded as a limitation and the claim scope is narrowed -- never the verdict.",
+ "metric_note": "C-MAPSS standard: one prediction per test engine at the last window, pooled RMSE over all test engines, NASA score as usual. The validation quantity val_engine_mean_roots_rmse (mean over 5 cut points per engine) has NO TEST counterpart; a validation delta must not be compared numerically against a TEST delta.",
+ "test_rules": {
+  "metrics": [
+   "pooled_rmse",
+   "engine_equal_rmse",
+   "mae",
+   "nasa_mean",
+   "nasa_sum"
+  ],
+  "missing_ks": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "noise_betas": [
+   0.0,
+   0.25,
+   0.5,
+   1.0
+  ],
+  "single_sensor": true,
+  "opened_once": true
+ },
+ "runs": [
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E0-FD001-s101-4ec72f00",
+   "split_seed": 17
+  }
+ ],
+ "smoke_only": true
+}

@@ -1,0 +1,943 @@
+{
+ "study_id": "paper_b_sensor_generalization",
+ "frozen": true,
+ "post_hoc": true,
+ "cannot_change_verdict": true,
+ "verdict_frozen_at": "11c57bc0",
+ "opened_once": true,
+ "why_handwritten": "run_sensor_aug.freeze() accepts a single candidate (group in (\"E0\", cand)); this round has two ENGINEERING-ONLY arms (E1a, E1b) plus controls, which that gate cannot express. test_role() only needs frozen:true plus a runs allow-list.",
+ "arms": [
+  "E0",
+  "E1a",
+  "E1b",
+  "E2a"
+ ],
+ "splits": [
+  17,
+  29
+ ],
+ "scope_note": "Official TEST results are a POST-HOC robustness report only. The GO / ENGINEERING-ONLY / STOP verdict was fixed on the validation partition under the preregistered criteria; TEST may not revise it. If TEST disagrees with the validation ordering, that is recorded as a limitation and the claim scope is narrowed -- never the verdict.",
+ "metric_note": "C-MAPSS standard: one prediction per test engine at the last window, pooled RMSE over all test engines, NASA score as usual. The validation quantity val_engine_mean_roots_rmse (mean over 5 cut points per engine) has NO TEST counterpart; a validation delta must not be compared numerically against a TEST delta.",
+ "test_rules": {
+  "metrics": [
+   "pooled_rmse",
+   "engine_equal_rmse",
+   "mae",
+   "nasa_mean",
+   "nasa_sum"
+  ],
+  "missing_ks": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "noise_betas": [
+   0.0,
+   0.25,
+   0.5,
+   1.0
+  ],
+  "single_sensor": true,
+  "opened_once": true
+ },
+ "runs": [
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E0-FD001-s101-4ec72f00",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E0-FD001-s202-5b89adbc",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E0-FD001-s303-61d8d7d9",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E0-FD002-s101-21450868",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E0-FD002-s202-8b3e91a0",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E0-FD002-s303-1a2edd6a",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E0-FD003-s101-7bf08448",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E0-FD003-s202-1e4953cf",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E0-FD003-s303-3438229f",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E0-FD004-s101-8e5bfd99",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E0-FD004-s202-8e9a2afe",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E0-FD004-s303-5f559552",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E1a-FD001-s101-0d22e3ef",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E1a-FD001-s202-530be6b8",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E1a-FD001-s303-5794b7f0",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E1a-FD002-s101-2e9f5ddd",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E1a-FD002-s202-ee5cd495",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E1a-FD002-s303-91b165ea",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E1a-FD003-s101-f9e9be24",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E1a-FD003-s202-5a5ba6e4",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E1a-FD003-s303-13d226c5",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E1a-FD004-s101-b7ddc827",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E1a-FD004-s202-c746eb12",
+   "split_seed": 17
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E1a-FD004-s303-f59bc2b0",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E1b-FD001-s101-d191569f",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E1b-FD001-s202-68852d30",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E1b-FD001-s303-947b6ad6",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E1b-FD002-s101-0a9b5a72",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E1b-FD002-s202-e3139180",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E1b-FD002-s303-594ec744",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E1b-FD003-s101-5384e65d",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E1b-FD003-s202-ebf06752",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E1b-FD003-s303-5cf0b499",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E1b-FD004-s101-413b4f85",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E1b-FD004-s202-4222cacd",
+   "split_seed": 17
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E1b-FD004-s303-36add790",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E2a-FD001-s101-434a98d1",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E2a-FD001-s202-4c74801e",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E2a-FD001-s303-f95d8cc0",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E2a-FD002-s101-c8835994",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E2a-FD002-s202-843c0e15",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E2a-FD002-s303-916ce84e",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E2a-FD003-s101-0323da17",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E2a-FD003-s202-571b6d8e",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E2a-FD003-s303-3bde214c",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E2a-FD004-s101-25b18b86",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E2a-FD004-s202-90ee41df",
+   "split_seed": 17
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E2a-FD004-s303-393c5add",
+   "split_seed": 17
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 42,
+   "run_id": "E0-FD001-s42-6e391e41",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 43,
+   "run_id": "E0-FD001-s43-d757431e",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E0-FD001-s101-ff1a0bc2",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E0-FD001-s202-2040584e",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E0-FD001-s303-ebf4badf",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 42,
+   "run_id": "E0-FD002-s42-cc0b498d",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 43,
+   "run_id": "E0-FD002-s43-eb6044de",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E0-FD002-s101-cd6c016a",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E0-FD002-s202-169d5ba0",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E0-FD002-s303-5709d63f",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 42,
+   "run_id": "E0-FD003-s42-ba11bc47",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 43,
+   "run_id": "E0-FD003-s43-2459c7ad",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E0-FD003-s101-c14aced8",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E0-FD003-s202-07644ecd",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E0-FD003-s303-e1a7fbe3",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 42,
+   "run_id": "E0-FD004-s42-2edcf851",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 43,
+   "run_id": "E0-FD004-s43-21e008df",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E0-FD004-s101-43cb4e5b",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E0-FD004-s202-cc93dec5",
+   "split_seed": 29
+  },
+  {
+   "group": "E0",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E0-FD004-s303-0e9e422d",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 42,
+   "run_id": "E1a-FD001-s42-c20c9ed8",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 43,
+   "run_id": "E1a-FD001-s43-05e7f914",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E1a-FD001-s101-31e5c075",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E1a-FD001-s202-262cfd8a",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E1a-FD001-s303-83ac01de",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 42,
+   "run_id": "E1a-FD002-s42-56f06856",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 43,
+   "run_id": "E1a-FD002-s43-80cc52ab",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E1a-FD002-s101-50a69860",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E1a-FD002-s202-abe58fa1",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E1a-FD002-s303-ff88665e",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 42,
+   "run_id": "E1a-FD003-s42-f233a079",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 43,
+   "run_id": "E1a-FD003-s43-02033220",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E1a-FD003-s101-142e453a",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E1a-FD003-s202-2c9461be",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E1a-FD003-s303-90fe6049",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 42,
+   "run_id": "E1a-FD004-s42-1aedbdee",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 43,
+   "run_id": "E1a-FD004-s43-6905c345",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E1a-FD004-s101-370df047",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E1a-FD004-s202-caa7ffa9",
+   "split_seed": 29
+  },
+  {
+   "group": "E1a",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E1a-FD004-s303-f3a5143d",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 42,
+   "run_id": "E1b-FD001-s42-9b662132",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 43,
+   "run_id": "E1b-FD001-s43-47364e36",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E1b-FD001-s101-73a3a7fb",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E1b-FD001-s202-243cb0cd",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E1b-FD001-s303-bb3f6658",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 42,
+   "run_id": "E1b-FD002-s42-ee66e48e",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 43,
+   "run_id": "E1b-FD002-s43-999af385",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E1b-FD002-s101-7befbccc",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E1b-FD002-s202-9428e9b5",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E1b-FD002-s303-cbca6f05",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 42,
+   "run_id": "E1b-FD003-s42-f450b1ba",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 43,
+   "run_id": "E1b-FD003-s43-b286d017",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E1b-FD003-s101-99080763",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E1b-FD003-s202-d1b5e4a8",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E1b-FD003-s303-164e4724",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 42,
+   "run_id": "E1b-FD004-s42-d151940c",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 43,
+   "run_id": "E1b-FD004-s43-72851abc",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E1b-FD004-s101-42080d93",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E1b-FD004-s202-44cfe786",
+   "split_seed": 29
+  },
+  {
+   "group": "E1b",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E1b-FD004-s303-c1120504",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 42,
+   "run_id": "E2a-FD001-s42-a5ac48d5",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 43,
+   "run_id": "E2a-FD001-s43-8ee0fa36",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E2a-FD001-s101-7fc13adb",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E2a-FD001-s202-f9da7473",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E2a-FD001-s303-964a8983",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 42,
+   "run_id": "E2a-FD002-s42-aaa4d36f",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 43,
+   "run_id": "E2a-FD002-s43-6edb2f7b",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E2a-FD002-s101-6bb4d940",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E2a-FD002-s202-516fa800",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E2a-FD002-s303-8f3ed6dd",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 42,
+   "run_id": "E2a-FD003-s42-bcb904b0",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 43,
+   "run_id": "E2a-FD003-s43-d3fd7833",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E2a-FD003-s101-84bf4d9b",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E2a-FD003-s202-cd95e07c",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E2a-FD003-s303-01a7739b",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 42,
+   "run_id": "E2a-FD004-s42-164e135d",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 43,
+   "run_id": "E2a-FD004-s43-d4a16398",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E2a-FD004-s101-78c948f0",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E2a-FD004-s202-d74b1089",
+   "split_seed": 29
+  },
+  {
+   "group": "E2a",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E2a-FD004-s303-48a7149e",
+   "split_seed": 29
+  }
+ ]
+}
