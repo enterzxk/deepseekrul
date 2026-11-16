@@ -109,7 +109,6 @@ def main():
                          'skipped so a partial grid cannot look like a final one')
     a = ap.parse_args()
     root = Path(a.root)
-    rng = np.random.default_rng(20261115)
 
     cells, deviations, structural = {}, [], []
     arms_wanted = tuple(x.strip() for x in a.arms.split(',') if x.strip())
@@ -149,6 +148,7 @@ def main():
     # ---- deltas ------------------------------------------------------------
     report = {}
     for arm in arms_wanted:
+        rng = np.random.default_rng(20261115)
         have = sum(1 for s in SUBSETS for sd in SEEDS if (arm, s, sd) in cells)
         if have < len(SUBSETS) * len(SEEDS):
             report[arm] = dict(incomplete=True, cells_present=have,

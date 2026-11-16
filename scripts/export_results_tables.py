@@ -144,8 +144,10 @@ def all_arm_cis(gathered, arms, n_boot, seed):
     verdict criteria are re-checked in the summary.
     """
     out = {}
-    for idx, arm in enumerate(sorted(a for a in arms if a in gathered)):
-        rng = np.random.default_rng([seed, idx])
+    for arm in sorted(a for a in arms if a in gathered):
+        # Same convention as the audit scripts: fresh rng with the same seed for
+        # every arm, so an arm's endpoints never depend on which other arms ran.
+        rng = np.random.default_rng(seed)
         out[arm] = bootstrap_merged(gathered[arm][2], n_boot, rng)
     return out
 
