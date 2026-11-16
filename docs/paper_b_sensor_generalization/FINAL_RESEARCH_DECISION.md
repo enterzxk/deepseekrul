@@ -295,6 +295,8 @@ S1-A 第一半 / 第二半 CI**，与本轮九份交付物无关：**未重算�
 | `SENSOR_RESULTS_README.md` §4.1 | old→new 值表 | §2.1 采用修复后值 |
 | `TEST_EVAL_PLAN.md` v1.3 | TEST 协议（预注册冻结点 v1.0） | §9 的判读规则来源 |
 | `TEST_ARTIFACT_INDEX.csv` | 128 格 TEST 产物索引 | §9.4 数值的逐位校验源、§9.5 的落点凭据 |
+| `scripts/audit_test.py` | TEST 配对 Δ 与 CI | §9.4 Δ 与 CI 的来源 |
+| `scripts/audit_test_nasa.py` | NASA 逐机重算（`5580789a`） | §9.4 NASA 总和的凭据 |
 
 ---
 
@@ -372,10 +374,14 @@ split 29（5 seed）：
 
 **NASA score（逐台总和，C-MAPSS 原始口径；seed 平均）**
 
-> **来源：派生量，不是实测。** `test_metrics.json` **不落** `nasa_sum`，本表由
-> `pooled_nasa_mean × n` 推出。军师另走了一条更强的路径：从每格 `test_predictions.csv` 的逐机
-> 误差按 C-MAPSS 原始公式**重算** NASA 分再求和，与落盘的 `pooled_nasa_mean` 比对，
-> **128 格全部一致、0 例外**（`n` 也全一致）。两条路径现在等价，但来源不同，**不得写成「实测」**。
+> **来源：从逐机预测重算——不是实测，也不是恒等式。** `test_metrics.json` **不落** `nasa_sum`，
+> 所以 `mean × n` 只是定义、验不出东西。本表的数由 `scripts/audit_test_nasa.py`（`5580789a`）
+> 从每格 `test_predictions.csv` 的 clean 行按 C-MAPSS 原始公式**逐机重算再求和**（`d<0` 用
+> `exp(−d/13)−1`、`d≥0` 用 `exp(d/10)−1`），再用重算出的**均值**与落盘 `pooled_nasa_mean`
+> 比对（容差 `1e-6`）、并核 `n` 相等：**128 格全部一致、0 例外**。clean 行判据与
+> `audit_test.py` 完全一致（`corruption_type` + `evaluation_protocol` + 重复 `engine_id` 即
+> `SystemExit`），严格口径下 32 个数逐位不变。**仍不得写成「实测」**：`test_metrics.json` 里
+> 没有这个数，它是从预测重算出来的。
 
 split 17：
 
