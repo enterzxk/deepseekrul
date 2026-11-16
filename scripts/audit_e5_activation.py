@@ -49,32 +49,50 @@ DORMANT_BELOW = 1e-6
 
 
 class BranchTap:
-    """Capture the branch's input and output on the same forward pass."""
+    """Accumulate the branch's input/output norms over EVERY batch.
+
+    A previous version kept only the last batch (setattr overwrite). That happens to
+    be the whole validation set today -- at most 260 windows against a batch of 512 --
+    but it would silently degrade to "one batch" the moment the window count exceeds
+    the batch size or the batch shrinks. Accumulating squared norms makes the value
+    independent of how the forward is chunked, and the batch count is reported so the
+    multi-batch case is visible rather than invisible.
+    """
 
     def __init__(self):
-        self.h_in = None
-        self.h_out = None
+        self.num_sq = 0.0
+        self.den_sq = 0.0
+        self.n_batches = 0
+        self._pending = None
         self.handles = []
 
     def attach(self, net):
         if getattr(net, 'lr', None) is None:
             return False
-        self.handles.append(net.lr.register_forward_pre_hook(
-            lambda m, inp: setattr(self, 'h_in', inp[0].detach().float())))
-        self.handles.append(net.lr.register_forward_hook(
-            lambda m, inp, out: setattr(self, 'h_out', out.detach().float())))
+        self.handles.append(net.lr.register_forward_pre_hook(self._pre))
+        self.handles.append(net.lr.register_forward_hook(self._post))
         return True
+
+    def _pre(self, _m, inp):
+        self._pending = inp[0].detach().float()
+
+    def _post(self, _m, _inp, out):
+        if self._pending is None:
+            return
+        o = out.detach().float()
+        self.num_sq += float((o - self._pending).pow(2).sum())
+        self.den_sq += float(self._pending.pow(2).sum())
+        self.n_batches += 1
+        self._pending = None
 
     def close(self):
         for h in self.handles:
             h.remove()
 
     def rel(self):
-        if self.h_in is None or self.h_out is None:
+        if self.n_batches == 0 or self.den_sq <= 0:
             return None
-        num = (self.h_out - self.h_in).norm().item()
-        den = self.h_in.norm().item()
-        return num / den if den > 0 else None
+        return (self.num_sq / self.den_sq) ** 0.5
 
 
 def last_g_weight(sd):
@@ -128,6 +146,7 @@ def main() -> int:
                 _predict(net, ds['val'], 'cpu', cfg)
                 tap.close()
                 rel = tap.rel()
+                nb = tap.n_batches
                 if rel is None:
                     print(f'{arm:7} {subset:7} {seed:>5} {lam:>10.3e} {wn:>11.3e}  '
                           f'{"(no capture)":>18}  UNKNOWN')
@@ -136,7 +155,8 @@ def main() -> int:
                 dormant += int(is_dormant)
                 awake += int(not is_dormant)
                 print(f'{arm:7} {subset:7} {seed:>5} {lam:>10.3e} {wn:>11.3e} '
-                      f'{rel:>18.3e}  {"DORMANT" if is_dormant else "AWAKE"}')
+                      f'{rel:>18.3e}  {"DORMANT" if is_dormant else "AWAKE"}'
+                      f'  ({nb} batch{"es" if nb != 1 else ""})')
 
     print()
     print(f'awake {awake}, dormant {dormant} (dormant threshold rel < {DORMANT_BELOW:g})')
