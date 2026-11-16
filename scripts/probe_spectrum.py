@@ -67,22 +67,65 @@ class TokenTap:
             self.handle.remove()
 
 
-def covariance_from_tokens(chunks):
-    H = torch.cat(chunks, dim=0)            # (B_total, L, N, D)
-    B, L, N, D = H.shape
-    X = H.reshape(-1, N, D).numpy()         # (S, N, D)
+def chat(h):
+    """Per-sensor covariance averaged over feature dims. Canonical name shared
+    with scripts/audit_spectrum_selftest.py so one closed-form test can check
+    both implementations.
+
+    h: (B, L, N, D) torch tensor or ndarray. Returns (N, N) float64.
+    """
+    if hasattr(h, 'detach'):
+        h = h.detach().float().cpu().numpy()
+    h = np.asarray(h, dtype=np.float64)
+    _, _, N, D = h.shape
+    x = h.reshape(-1, N, D)
     C = np.zeros((N, N), dtype=np.float64)
     for d in range(D):
-        C += np.cov(X[:, :, d], rowvar=False)
-    return C / D, (B, L, N, D)
+        C += np.cov(x[:, :, d], rowvar=False)
+    return C / D
 
 
-def rho_of(C, r, U=None):
+def covariance_from_tokens(chunks):
+    return chat(torch.cat(chunks, dim=0)), tuple(torch.cat(chunks, dim=0).shape)
+
+
+def rho_of(C, U):
+    """Variance fraction captured by the given subspace U (N, r)."""
+    if hasattr(U, 'detach'):
+        U = U.detach().double().cpu().numpy()
+    U = np.asarray(U, dtype=np.float64)
+    total = float(np.linalg.eigvalsh(C).sum())
+    return float(np.trace(U.T @ C @ U) / total)
+
+
+def rho_optimal(C, r):
     vals = np.linalg.eigvalsh(C)[::-1]
-    total = vals.sum()
-    if U is None:
-        return float(vals[:r].sum() / total), vals
-    return float(np.trace(U.T @ C @ U) / total), vals
+    return float(vals[:r].sum() / vals.sum()), vals
+
+
+def random_rho(C, r, n, gen=None):
+    """95th percentile and the whole null of rho for random rank-r subspaces."""
+    if gen is not None:
+        draws = torch.randn(14, r, n, generator=gen, dtype=torch.float64)
+        Q = torch.linalg.qr(draws)[0].numpy()
+    else:
+        rng = np.random.default_rng(20261116)
+        Q = np.stack([np.linalg.qr(rng.standard_normal((14, r)))[0] for _ in range(n)], axis=2)
+    total = float(np.linalg.eigvalsh(C).sum())
+    null = np.einsum('irk,ij,jrk->k', Q, C, Q) / total
+    return float(np.percentile(null, 95)), null
+
+
+def principal_angle(U, V):
+    """Largest principal angle in degrees between two subspaces."""
+    if hasattr(U, 'detach'):
+        U = U.detach().double().cpu().numpy()
+    if hasattr(V, 'detach'):
+        V = V.detach().double().cpu().numpy()
+    q1 = np.linalg.qr(np.asarray(U, dtype=np.float64))[0]
+    q2 = np.linalg.qr(np.asarray(V, dtype=np.float64))[0]
+    s = np.linalg.svd(q1.T @ q2, compute_uv=False)
+    return float(np.degrees(np.arccos(np.clip(s.min(), -1.0, 1.0))))
 
 
 def main() -> int:
@@ -135,14 +178,10 @@ def main() -> int:
             row = {'cell': str(cell), 'subset': subset, 'seed': seed,
                    'token_shape': list(shape), 'sa_mode': cfg.get('sa_mode')}
             for r in ranks:
-                rho, vals = rho_of(C, r)
-                null = []
-                for _ in range(args.n_null):
-                    Q, _ = np.linalg.qr(rng.standard_normal((14, r)))
-                    null.append(float(np.trace(Q.T @ C @ Q) / vals.sum()))
-                null = np.array(null)
+                rho, vals = rho_optimal(C, r)
+                p95, null = random_rho(C, r, args.n_null)
                 row[f'rho_r{r}'] = rho
-                row[f'null_r{r}_p95'] = float(np.percentile(null, 95))
+                row[f'null_r{r}_p95'] = p95
                 row[f'null_r{r}_mean'] = float(null.mean())
             row['eigenvalues'] = [float(v) for v in vals]
             results.append(row)
