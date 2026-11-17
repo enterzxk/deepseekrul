@@ -1,26 +1,27 @@
-"""Post-hoc TEST analysis for Paper B, per TEST_EVAL_PLAN.md.
-
-The criteria were fixed at plan v1.0 before any TEST cell ran; later versions only
-corrected wording (v1.1 field mapping, v1.2/v1.3 status lines). This script
-implements those criteria and must not be edited to change them after the fact.
+"""Post-hoc TEST analysis for Paper B, per TEST_EVAL_PLAN.md v1.2.
 
 Reads each cell's `test_predictions.csv` (clean rows only), pairs per engine
-against the same `(subset, seed)` E0 cell, and reports:
+against the same `(subset, seed)` baseline cell, and reports:
 
   * merged Delta pooled RMSE with an engine-level paired bootstrap CI
   * merged Delta MAE (per-engine |error|) with the same kind of CI
   * bias = mean(y_pred - y_true)
+
+Pairing baseline is per arm: E1/E2/E4 pair with E0; **the E5 arms pair with
+`E5none`**, never with E0 -- E0 is a magnitude reference only (project rule).
+The two happen to be bit-identical, but the rule is the rule.
 
 Two things the plan fixes that this file must honour:
 
 1. **Equal weight over the four subsets.** Engine counts are 100/259/100/248;
    pooling engines would let FD002/FD004 dominate the merged number.
 2. **Every statistic gets its own rng.** The bootstrap stream must be a
-   function of (data, seed, statistic) and nothing else. We already shipped one
-   bug where a shared stream made an interval depend on call order.
+   function of (data, seed, statistic) and nothing else.
 
 Seeds are averaged inside a (subset, seed) cell first, then engines are
 resampled -- never the other way round (that would inflate n and narrow the CI).
+Delta pooled RMSE averages the per-seed RMSE differences (mean-of-per-seed),
+not sqrt-of-seed-mean; the two differ by ~1e-3.
 """
 from __future__ import annotations
 
@@ -38,7 +39,27 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / 'scripts'))
 from _cells import resolve                                    # noqa: E402
 
-ARMS = ('E1a', 'E1b', 'E2a')
+# (arm, split, pairing baseline)
+#
+# The baseline is per (arm, split), not per arm. Reason: the split-29 cells of
+# E2b/E4 will be trained on code fingerprint 574ac4a06ae7 while E0's split-29
+# cells sit on 515eb76fc396. `run_id_for` hashes the config only and never the
+# code fingerprint, so E0 cannot be retrained on the new tree -- the worker sees
+# train_complete.json and skips the cell. Every arm trained on the new tree
+# therefore pairs with `E5none` from the same tree. E5none equals E0 bit-for-bit
+# on split 17 (12/12, exact `==`); the split-29 identity is a claim that still
+# has to be checked once those 20 cells land, not assumed.
+SPECS = (
+    ('E1a', 17, 'E0'), ('E1a', 29, 'E0'),
+    ('E1b', 17, 'E0'), ('E1b', 29, 'E0'),
+    ('E2a', 17, 'E0'), ('E2a', 29, 'E0'),
+    ('E2b', 17, 'E0'), ('E2b', 29, 'E5none'),
+    ('E4', 17, 'E0'), ('E4', 29, 'E5none'),
+    ('E3', 17, 'E5none'),
+    ('E5lr4', 17, 'E5none'), ('E5lr4', 29, 'E5none'),
+    ('E5lr14', 17, 'E5none'), ('E5lr14', 29, 'E5none'),
+    ('E5mlp', 17, 'E5none'), ('E5mlp', 29, 'E5none'),
+)
 SUBSETS = ('FD001', 'FD002', 'FD003', 'FD004')
 SEEDS = {17: (101, 202, 303), 29: (42, 43, 101, 202, 303)}
 BOOT_SEED = {17: 20261115, 29: 20261116}
@@ -47,8 +68,11 @@ N_BOOT = 10000
 
 def load_clean(cell: Path):
     """{engine_id: (y_true, y_pred)} for the clean TEST rows of one cell."""
+    path = cell / 'test_predictions.csv'
+    if not path.exists():
+        raise FileNotFoundError(str(path))
     out = {}
-    with open(cell / 'test_predictions.csv', newline='') as fh:
+    with open(path, newline='') as fh:
         for row in csv.DictReader(fh):
             if row.get('corruption_type') not in ('none', '', None):
                 continue
@@ -83,6 +107,75 @@ def boot_ci(d_by_subset, n_boot, seed, stat_id):
     return float(lo), float(hi)
 
 
+def analyse_arm(arm, base, split, root, n_boot):
+    seeds = SEEDS[split]
+    cells = {}
+    for role in (base, arm):
+        for subset in SUBSETS:
+            for seed in seeds:
+                cells[(role, subset, seed)] = load_clean(
+                    Path(resolve(root, role, subset, seed, split)))
+
+    d_mae, se_arm, se_e0, bias, per_subset = {}, {}, {}, {}, {}
+    for subset in SUBSETS:
+        rows = []
+        for seed in seeds:
+            b0 = cells[(base, subset, seed)]
+            ea = cells[(arm, subset, seed)]
+            eng = sorted(set(b0) & set(ea))
+            if len(eng) != len(b0) or len(eng) != len(ea):
+                raise SystemExit(f'{arm} {subset} s{seed}: engine sets differ '
+                                 f'(base={len(b0)} arm={len(ea)} common={len(eng)})')
+            rows.append((eng, b0, ea))
+        engs = [r[0] for r in rows]
+        if any(e != engs[0] for e in engs):
+            raise SystemExit(f'{arm} {subset}: seeds disagree on engine set')
+        eng = engs[0]
+        ae_a = np.mean([[abs(r[2][u][1] - r[2][u][0]) for u in eng] for r in rows], axis=0)
+        ae_0 = np.mean([[abs(r[1][u][1] - r[1][u][0]) for u in eng] for r in rows], axis=0)
+        sq_a = [np.array([(r[2][u][1] - r[2][u][0]) ** 2 for u in eng]) for r in rows]
+        sq_0 = [np.array([(r[1][u][1] - r[1][u][0]) ** 2 for u in eng]) for r in rows]
+        d_mae[subset] = {'d': ae_a - ae_0, 'n_engines': len(eng)}
+        se_arm[subset] = sq_a
+        se_e0[subset] = sq_0
+        bias[subset] = float(np.mean([[r[2][u][1] - r[2][u][0] for u in eng] for r in rows]))
+        per_seed_d = [math.sqrt(x.mean()) - math.sqrt(y.mean()) for x, y in zip(sq_a, sq_0)]
+        per_subset[subset] = dict(
+            delta_mae=float(np.mean(ae_a - ae_0)),
+            delta_pooled_rmse=float(np.mean(per_seed_d)),
+            arm_pooled=float(np.mean([math.sqrt(x.mean()) for x in sq_a])),
+            base_pooled=float(np.mean([math.sqrt(y.mean()) for y in sq_0])),
+            n_engines=len(eng),
+        )
+
+    merged_mae = float(np.mean([v['delta_mae'] for v in per_subset.values()]))
+    merged_rmse = float(np.mean([v['delta_pooled_rmse'] for v in per_subset.values()]))
+    lo_m, hi_m = boot_ci(d_mae, n_boot, BOOT_SEED[split], 0)
+
+    # Delta pooled RMSE is not a per-engine functional: its own loop, own stream.
+    rng = np.random.default_rng([BOOT_SEED[split], 1])
+    keys = list(d_mae)
+    draws = np.empty(n_boot)
+    for b in range(n_boot):
+        vals = []
+        for k in keys:
+            n = d_mae[k]['n_engines']
+            idx = rng.integers(0, n, n)
+            va, v0 = se_arm[k], se_e0[k]
+            vals.append(float(np.mean([math.sqrt(x[idx].mean()) - math.sqrt(y[idx].mean())
+                                       for x, y in zip(va, v0)])))
+        draws[b] = float(np.mean(vals))
+    lo_r, hi_r = np.percentile(draws, [2.5, 97.5])
+
+    return dict(
+        base=base, merged_delta_mae=merged_mae, mae_ci95=[lo_m, hi_m],
+        merged_delta_pooled_rmse=merged_rmse, rmse_ci95=[float(lo_r), float(hi_r)],
+        n_negative=int(sum(1 for v in per_subset.values() if v['delta_mae'] < 0)),
+        n_subsets=len(per_subset), per_subset=per_subset,
+        bias_merged=float(np.mean(list(bias.values()))), bias_per_subset=bias,
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
@@ -91,96 +184,30 @@ def main():
     a = ap.parse_args()
     root = Path(a.root)
 
-    report = {}
+    report, skipped = {}, []
     for split in (17, 29):
-        seeds = SEEDS[split]
-        cells = {}
-        for arm in ('E0',) + ARMS:
-            for subset in SUBSETS:
-                for seed in seeds:
-                    cells[(arm, subset, seed)] = load_clean(
-                        Path(resolve(root, arm, subset, seed, split)))
-
         arms_out = {}
-        for arm in ARMS:
-            d_mae, se_arm, se_e0, n_eng, bias = {}, {}, {}, {}, {}
-            per_subset = {}
-            for subset in SUBSETS:
-                rows = []
-                for seed in seeds:
-                    e0 = cells[('E0', subset, seed)]
-                    ea = cells[(arm, subset, seed)]
-                    eng = sorted(set(e0) & set(ea))
-                    if len(eng) != len(e0) or len(eng) != len(ea):
-                        raise SystemExit(f'{arm} {subset} s{seed}: engine sets differ '
-                                         f'(e0={len(e0)} arm={len(ea)} common={len(eng)})')
-                    rows.append((eng, e0, ea))
-                engs = [r[0] for r in rows]
-                if any(e != engs[0] for e in engs):
-                    raise SystemExit(f'{arm} {subset}: seeds disagree on engine set')
-                eng = engs[0]
-                # average per-engine statistics over seeds, THEN resample
-                ae_a = np.mean([[abs(r[2][u][1] - r[2][u][0]) for u in eng] for r in rows], axis=0)
-                ae_0 = np.mean([[abs(r[1][u][1] - r[1][u][0]) for u in eng] for r in rows], axis=0)
-                sq_a = [np.array([(r[2][u][1] - r[2][u][0]) ** 2 for u in eng]) for r in rows]
-                sq_0 = [np.array([(r[1][u][1] - r[1][u][0]) ** 2 for u in eng]) for r in rows]
-                d_mae[subset] = {'d': ae_a - ae_0, 'n_engines': len(eng)}
-                se_arm[subset] = sq_a
-                se_e0[subset] = sq_0
-                n_eng[subset] = len(eng)
-                bias[subset] = float(np.mean([[r[2][u][1] - r[2][u][0] for u in eng] for r in rows]))
-                # Delta pooled RMSE: per-seed RMSE difference, then average over seeds.
-                # mean-of-per-seed-RMSE, not sqrt-of-seed-mean -- the two differ by ~1e-3.
-                per_seed_d = [math.sqrt(x.mean()) - math.sqrt(y.mean()) for x, y in zip(sq_a, sq_0)]
-                per_subset[subset] = dict(
-                    delta_mae=float(np.mean(ae_a - ae_0)),
-                    delta_pooled_rmse=float(np.mean(per_seed_d)),
-                    arm_pooled=float(np.mean([math.sqrt(x.mean()) for x in sq_a])),
-                    e0_pooled=float(np.mean([math.sqrt(y.mean()) for y in sq_0])),
-                    n_engines=len(eng),
-                )
+        for arm, sp, base in SPECS:
+            if sp != split:
+                continue
+            try:
+                r = analyse_arm(arm, base, split, root, a.boot)
+            except (FileNotFoundError, RuntimeError) as exc:
+                skipped.append(dict(arm=arm, split=split, why=str(exc).splitlines()[0][:120]))
+                print(f'split {split} {arm:7} SKIP  {type(exc).__name__}', flush=True)
+                continue
+            arms_out[arm] = r
+            print(f'split {split} {arm:7} dMAE {r["merged_delta_mae"]:+.4f} '
+                  f'[{r["mae_ci95"][0]:+.4f},{r["mae_ci95"][1]:+.4f}]  '
+                  f'dRMSE {r["merged_delta_pooled_rmse"]:+.4f} '
+                  f'[{r["rmse_ci95"][0]:+.4f},{r["rmse_ci95"][1]:+.4f}]  '
+                  f'neg {r["n_negative"]}/4  bias {r["bias_merged"]:+.4f}', flush=True)
+        report[str(split)] = dict(arms=arms_out, n_boot=a.boot, boot_seed=BOOT_SEED[split],
+                                  seeds=list(SEEDS[split]))
 
-            merged_mae = float(np.mean([v['delta_mae'] for v in per_subset.values()]))
-            merged_rmse = float(np.mean([v['delta_pooled_rmse'] for v in per_subset.values()]))
-
-            lo_m, hi_m = boot_ci(d_mae, a.boot, BOOT_SEED[split], 0)
-            # Delta pooled RMSE is not a per-engine functional, so it needs its own
-            # resampling loop over squared errors, with its own stream (stat id 1).
-            rng = np.random.default_rng([BOOT_SEED[split], 1])
-            keys = list(d_mae)
-            draws = np.empty(a.boot)
-            for b in range(a.boot):
-                vals = []
-                for k in keys:
-                    n = d_mae[k]['n_engines']
-                    idx = rng.integers(0, n, n)
-                    va, v0 = se_arm[k], se_e0[k]
-                    vals.append(float(np.mean([math.sqrt(x[idx].mean()) - math.sqrt(y[idx].mean())
-                                               for x, y in zip(va, v0)])))
-                draws[b] = float(np.mean(vals))
-            lo_r, hi_r = np.percentile(draws, [2.5, 97.5])
-            lo_r, hi_r = float(lo_r), float(hi_r)
-
-            arms_out[arm] = dict(
-                merged_delta_mae=merged_mae, mae_ci95=[lo_m, hi_m],
-                merged_delta_pooled_rmse=merged_rmse, rmse_ci95=[lo_r, hi_r],
-                n_negative=int(sum(1 for v in per_subset.values() if v['delta_mae'] < 0)),
-                n_subsets=len(per_subset),
-                per_subset=per_subset,
-                bias_merged=float(np.mean(list(bias.values()))),
-                bias_per_subset=bias,
-            )
-            r = arms_out[arm]
-            print(f'split {split} {arm:4} dMAE {r["merged_delta_mae"]:+.4f} '
-                  f'[{lo_m:+.4f},{hi_m:+.4f}]  dRMSE {r["merged_delta_pooled_rmse"]:+.4f} '
-                  f'[{lo_r:+.4f},{hi_r:+.4f}]  neg {r["n_negative"]}/4  '
-                  f'bias {r["bias_merged"]:+.4f}', flush=True)
-
-        report[str(split)] = dict(
-            arms=arms_out, n_boot=a.boot, boot_seed=BOOT_SEED[split],
-            n_cells=len(cells), seeds=list(seeds),
-        )
-
+    if skipped:
+        report['skipped'] = skipped
+        print(f'skipped {len(skipped)} arm/split combinations (cells not evaluated yet)')
     txt = json.dumps(report, indent=1)
     if a.json:
         Path(a.json).write_text(txt, encoding='utf-8')
