@@ -17,7 +17,7 @@
 > | `NOISE1` 投影噪声 | **已完成**：`\|Δ\| = 0.030123 RMSE` | 本文 §12.16；run `HC-C-A2-FD001-s101-NOISE1` |
 > | **σ 记 2.80，不记 3.5** | `σ_p = 0.030123/1.128 = 0.0267`；`σ_Δ = √2·σ_p = 0.0378`；`0.106/0.0378 = 2.80σ`。**阈值处单次检出概率约 50% → G2 报区间，不报 pass/fail** | 本文 §12.18.1；预注册文件 §4 |
 > | **判定器位置（v10 决定）** | **留在 `tools/`，不进 `paper_b/hc/`、不进 `OWN` 列表**。理由：评估器必须能独立演化；冻结面应是「产生结果的代码」，不是「评估结果的代码」。溯源靠快照里的 sha256（粒度比锁更细） | `tools/gate_a_judge.py`；主控裁定 |
-> | 骨干同源 | **通过**：10 对 × 57 键 × 0 不匹配 | 本文 §12.12 |
+> | 骨干同源 | **通过**：10 对 × 57 个学习键（共同键 58，含常量 buffer `pe_periods`）× 0 不匹配 | 本文 §12.12 |
 > | G1（A1→A2，四子集） | **PASS**：+6.10 / +13.52 / +11.46 / +10.74%，均值 +10.46% | `tools/gate_a_judge.py` |
 > | G3（A1→A0） | **PASS**：四子集 −166.8 / −122.7 / −232.4 / −181.0% | 同上 |
 > | **G2（A2→A3a）** | FD001 = **−6.84%**（符号反向）；**但 FD001 的通道惰性、A3a≈A1，且惰性随子集变化** | 本文 §12.18 / §12.18.2 |
@@ -753,6 +753,32 @@ wave1_init_A5_s101.pt      init_v9_A3p_s101.pt           57     0
 ```
 
 57 个骨干键包含主控点名担心的全部键：`temporal_pe`、`sensor_in.*`、`conv3/5/7.*`、`ms_proj.*`、`time_norm.*`、`layers.*`。**一格没漏。**
+
+> **键数口径（2026-11-17 直接读 dump 复核，消除 57/58 的混用）**
+>
+> 六个 init 文件实测（`experiments/hc/tmp/`，`torch.load` 后取 `state_dict`）：
+>
+> | 文件 | 键数 | 循环相关键 |
+> |---|---:|---|
+> | `wave1_init_A1_s101.pt` | 58 | `pe_periods` |
+> | `wave1_init_A2_s101.pt` | 60 | `cycle_enc.proj.weight/bias`、`pe_periods` |
+> | `wave1_init_A4_s101.pt` | 60 | `cycle_enc.proj.weight/bias`、`pe_periods` |
+> | `wave1_init_A5_s101.pt` | 61 | `cycle_enc.proj.weight/bias`、`cycle_enc.knots`、`pe_periods` |
+> | `a3p_init_s101.pt` | 60 | `pe_proj.weight/bias`、`pe_periods` |
+> | `a3a_init_s101.pt` | 61 | `cycle_enc.proj.weight/bias`、`cycle_enc.periods`、`pe_periods` |
+>
+> **六者交集 = 58 键**；交集之外的键只有六个：`cycle_enc.proj.weight/bias`（A2/A4/A5/A3a）、
+> `pe_proj.weight/bias`（仅 A3p）、`cycle_enc.knots`（仅 A5）、`cycle_enc.periods`（仅 A3a）。
+>
+> 所以「58」与「57」的差别**只是要不要把常量 buffer `pe_periods` 算进去**：
+> 58 = 全部共同键；57 = 共同键里去掉 `pe_periods` 的学习权重。
+> `L2_G2_SCALE_20261112.md` §9.0 的更正说的是同一件事（58 → 57 非 cycle 学习键 + 第 58 条 `pe_periods`）。
+>
+> **一处要澄清的误传**：A2 的 60 键里**有** `pe_periods`，只是**没有** `cycle_enc.periods`
+> （仅 A3a 有）和 `cycle_enc.knots`（仅 A5 有）。所以不能写成「A2 无 periods buffer」——
+> 准确写法是「A2 无 `cycle_enc.periods` / `cycle_enc.knots`，但有常量 buffer `pe_periods`」。
+> 61 vs 60 的来源是 A3a 多一个 `cycle_enc.periods`（`train_hc.py:210` 的 copy 而非 pop），
+> 与 `pe_periods` 无关。
 
 另核：每个 W1 run 的 `config.json:init_from` 与预期一致（A1 的 11 个 run 全用 `wave1_init_A1`、A2 的 6 个全用 `wave1_init_A2`、A3p-FD001 用 `init_v9_A3p`、A0 四格无 init），**没有一格用错文件**。
 
