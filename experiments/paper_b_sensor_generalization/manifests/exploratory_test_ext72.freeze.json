@@ -1,0 +1,517 @@
+{
+ "study_id": "paper_b_sensor_generalization",
+ "frozen": true,
+ "post_hoc": true,
+ "cannot_change_verdict": true,
+ "exploratory": true,
+ "verdict_frozen_at": "11c57bc0",
+ "test_read_extension": true,
+ "what_was_already_read": "the primary post-hoc TEST read covered E0/E1a/E1b/E2a x split 17 and 29 (128 cells) and is recorded under posthoc_test_128.freeze.json; this extension adds arms that were NOT in that read",
+ "extension_policy": "These 72 cells are evaluated AFTER the primary read. They are exploratory: they enter no frozen criterion and cannot change the three-tier verdict or revive a candidate. Reporting them without this label would be exactly the \"look, then keep what looks good\" failure the opened-once rule exists to prevent.",
+ "runs": [
+  {
+   "group": "E2b",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E2b-FD001-s101-036c96a1",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E2b-FD001-s202-d4b9efc5",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E2b-FD001-s303-8ef661ab",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E2b-FD002-s101-5c8d7ed1",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E2b-FD002-s202-627f62c4",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E2b-FD002-s303-4d9e19d1",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E2b-FD003-s101-ce0fb42d",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E2b-FD003-s202-10bad450",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E2b-FD003-s303-731cd3ad",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E2b-FD004-s101-57abb1e6",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E2b-FD004-s202-a2852f5e",
+   "split_seed": 17
+  },
+  {
+   "group": "E2b",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E2b-FD004-s303-4d9ede0c",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E4-FD001-s101-6056f544",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E4-FD001-s202-6d404930",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E4-FD001-s303-727284ad",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E4-FD002-s101-7656b6b9",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E4-FD002-s202-2a6f79e7",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E4-FD002-s303-5f8367b0",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E4-FD003-s101-aad46cdc",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E4-FD003-s202-1eee6b55",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E4-FD003-s303-e2b1ff4a",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E4-FD004-s101-6dbb2713",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E4-FD004-s202-05d7c17d",
+   "split_seed": 17
+  },
+  {
+   "group": "E4",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E4-FD004-s303-dd1a2b45",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E5none-FD001-s101-1829c0cd",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E5none-FD001-s202-50e89183",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E5none-FD001-s303-36bf01f1",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E5none-FD002-s101-c6411d31",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E5none-FD002-s202-0a5ea682",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E5none-FD002-s303-a3952369",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E5none-FD003-s101-0c53e7f4",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E5none-FD003-s202-434a36be",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E5none-FD003-s303-07508c53",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E5none-FD004-s101-e81301b6",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E5none-FD004-s202-fd4f9277",
+   "split_seed": 17
+  },
+  {
+   "group": "E5none",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E5none-FD004-s303-036df69d",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E5lr4-FD001-s101-4a86b0e0",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E5lr4-FD001-s202-bba05b67",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E5lr4-FD001-s303-c1e514c7",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E5lr4-FD002-s101-56e20bb6",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E5lr4-FD002-s202-e302dfce",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E5lr4-FD002-s303-2d5f6641",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E5lr4-FD003-s101-7a751c00",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E5lr4-FD003-s202-ce77f24e",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E5lr4-FD003-s303-abdcaa5d",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E5lr4-FD004-s101-a12cf8f6",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E5lr4-FD004-s202-973bec32",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr4",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E5lr4-FD004-s303-2a193707",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E5lr14-FD001-s101-a92fca04",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E5lr14-FD001-s202-516f6ecf",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E5lr14-FD001-s303-3e0a2df5",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E5lr14-FD002-s101-8d2c640d",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E5lr14-FD002-s202-d1af719b",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E5lr14-FD002-s303-1caa0e45",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E5lr14-FD003-s101-cf98e6e1",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E5lr14-FD003-s202-2d2da170",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E5lr14-FD003-s303-b9687112",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E5lr14-FD004-s101-932e0aed",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E5lr14-FD004-s202-750d1913",
+   "split_seed": 17
+  },
+  {
+   "group": "E5lr14",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E5lr14-FD004-s303-f3ab50e4",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD001",
+   "seed": 101,
+   "run_id": "E5mlp-FD001-s101-571566ab",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD001",
+   "seed": 202,
+   "run_id": "E5mlp-FD001-s202-13a61739",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD001",
+   "seed": 303,
+   "run_id": "E5mlp-FD001-s303-fac88eba",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD002",
+   "seed": 101,
+   "run_id": "E5mlp-FD002-s101-70e6dd1f",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD002",
+   "seed": 202,
+   "run_id": "E5mlp-FD002-s202-3c3d0983",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD002",
+   "seed": 303,
+   "run_id": "E5mlp-FD002-s303-766ab134",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD003",
+   "seed": 101,
+   "run_id": "E5mlp-FD003-s101-a499c384",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD003",
+   "seed": 202,
+   "run_id": "E5mlp-FD003-s202-db4c60bb",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD003",
+   "seed": 303,
+   "run_id": "E5mlp-FD003-s303-166b618a",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD004",
+   "seed": 101,
+   "run_id": "E5mlp-FD004-s101-d34f57ff",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD004",
+   "seed": 202,
+   "run_id": "E5mlp-FD004-s202-4e753897",
+   "split_seed": 17
+  },
+  {
+   "group": "E5mlp",
+   "subset": "FD004",
+   "seed": 303,
+   "run_id": "E5mlp-FD004-s303-ca58494f",
+   "split_seed": 17
+  }
+ ]
+}
