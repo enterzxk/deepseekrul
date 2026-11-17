@@ -1,0 +1,1382 @@
+{
+ "study_id": "paper_b_sensor_generalization",
+ "purpose": "pre-registered diagnostic truncation table",
+ "built_by": "scripts/make_diag43.py",
+ "rule": "bucket allocation = official TEST RUL histogram of the same subset (cap 125), largest-remainder rounding; target RUL drawn uniformly inside the bucket with a fixed per-subset seed; truncation_cycle = engine life - target_rul",
+ "cap": 125,
+ "seeds": {
+  "per_subset": "split_seed*1000 + subset_index"
+ },
+ "subsets": {
+  "FD001": {
+   "n_val": 20,
+   "n_diag": 20,
+   "bucket_counts": [
+    4,
+    2,
+    2,
+    5,
+    7
+   ],
+   "test_fraction": [
+    0.19,
+    0.11,
+    0.13,
+    0.23,
+    0.34
+   ],
+   "val_units": [
+    3,
+    8,
+    23,
+    26,
+    28,
+    30,
+    37,
+    43,
+    45,
+    46,
+    47,
+    48,
+    63,
+    67,
+    69,
+    75,
+    80,
+    84,
+    96,
+    98
+   ],
+   "n_fallback": 0,
+   "rows": [
+    {
+     "unit": 3,
+     "life": 179,
+     "bucket": "0-25",
+     "target_rul": 16,
+     "truncation_cycle": 163,
+     "fallback": false
+    },
+    {
+     "unit": 8,
+     "life": 150,
+     "bucket": "0-25",
+     "target_rul": 5,
+     "truncation_cycle": 145,
+     "fallback": false
+    },
+    {
+     "unit": 23,
+     "life": 168,
+     "bucket": "0-25",
+     "target_rul": 10,
+     "truncation_cycle": 158,
+     "fallback": false
+    },
+    {
+     "unit": 26,
+     "life": 199,
+     "bucket": "0-25",
+     "target_rul": 23,
+     "truncation_cycle": 176,
+     "fallback": false
+    },
+    {
+     "unit": 28,
+     "life": 165,
+     "bucket": "25-50",
+     "target_rul": 32,
+     "truncation_cycle": 133,
+     "fallback": false
+    },
+    {
+     "unit": 30,
+     "life": 194,
+     "bucket": "25-50",
+     "target_rul": 49,
+     "truncation_cycle": 145,
+     "fallback": false
+    },
+    {
+     "unit": 37,
+     "life": 170,
+     "bucket": "50-75",
+     "target_rul": 57,
+     "truncation_cycle": 113,
+     "fallback": false
+    },
+    {
+     "unit": 43,
+     "life": 207,
+     "bucket": "50-75",
+     "target_rul": 69,
+     "truncation_cycle": 138,
+     "fallback": false
+    },
+    {
+     "unit": 45,
+     "life": 158,
+     "bucket": "75-100",
+     "target_rul": 83,
+     "truncation_cycle": 75,
+     "fallback": false
+    },
+    {
+     "unit": 46,
+     "life": 256,
+     "bucket": "75-100",
+     "target_rul": 99,
+     "truncation_cycle": 157,
+     "fallback": false
+    },
+    {
+     "unit": 47,
+     "life": 214,
+     "bucket": "75-100",
+     "target_rul": 76,
+     "truncation_cycle": 138,
+     "fallback": false
+    },
+    {
+     "unit": 48,
+     "life": 231,
+     "bucket": "75-100",
+     "target_rul": 91,
+     "truncation_cycle": 140,
+     "fallback": false
+    },
+    {
+     "unit": 63,
+     "life": 174,
+     "bucket": "75-100",
+     "target_rul": 84,
+     "truncation_cycle": 90,
+     "fallback": false
+    },
+    {
+     "unit": 67,
+     "life": 313,
+     "bucket": "100-126",
+     "target_rul": 102,
+     "truncation_cycle": 211,
+     "fallback": false
+    },
+    {
+     "unit": 69,
+     "life": 362,
+     "bucket": "100-126",
+     "target_rul": 102,
+     "truncation_cycle": 260,
+     "fallback": false
+    },
+    {
+     "unit": 75,
+     "life": 229,
+     "bucket": "100-126",
+     "target_rul": 114,
+     "truncation_cycle": 115,
+     "fallback": false
+    },
+    {
+     "unit": 80,
+     "life": 185,
+     "bucket": "100-126",
+     "target_rul": 105,
+     "truncation_cycle": 80,
+     "fallback": false
+    },
+    {
+     "unit": 84,
+     "life": 267,
+     "bucket": "100-126",
+     "target_rul": 116,
+     "truncation_cycle": 151,
+     "fallback": false
+    },
+    {
+     "unit": 96,
+     "life": 336,
+     "bucket": "100-126",
+     "target_rul": 115,
+     "truncation_cycle": 221,
+     "fallback": false
+    },
+    {
+     "unit": 98,
+     "life": 156,
+     "bucket": "100-126",
+     "target_rul": 117,
+     "truncation_cycle": 39,
+     "fallback": false
+    }
+   ]
+  },
+  "FD002": {
+   "n_val": 52,
+   "n_diag": 52,
+   "bucket_counts": [
+    12,
+    6,
+    6,
+    9,
+    19
+   ],
+   "test_fraction": [
+    0.224,
+    0.112,
+    0.12,
+    0.185,
+    0.359
+   ],
+   "val_units": [
+    3,
+    8,
+    14,
+    21,
+    31,
+    44,
+    48,
+    49,
+    65,
+    71,
+    81,
+    82,
+    83,
+    84,
+    89,
+    96,
+    97,
+    111,
+    113,
+    118,
+    130,
+    133,
+    136,
+    140,
+    147,
+    153,
+    154,
+    155,
+    157,
+    158,
+    160,
+    165,
+    169,
+    170,
+    173,
+    183,
+    188,
+    192,
+    211,
+    213,
+    219,
+    222,
+    223,
+    224,
+    225,
+    233,
+    237,
+    244,
+    245,
+    247,
+    255,
+    257
+   ],
+   "n_fallback": 0,
+   "rows": [
+    {
+     "unit": 3,
+     "life": 206,
+     "bucket": "0-25",
+     "target_rul": 4,
+     "truncation_cycle": 202,
+     "fallback": false
+    },
+    {
+     "unit": 8,
+     "life": 151,
+     "bucket": "0-25",
+     "target_rul": 5,
+     "truncation_cycle": 146,
+     "fallback": false
+    },
+    {
+     "unit": 14,
+     "life": 193,
+     "bucket": "0-25",
+     "target_rul": 20,
+     "truncation_cycle": 173,
+     "fallback": false
+    },
+    {
+     "unit": 21,
+     "life": 189,
+     "bucket": "0-25",
+     "target_rul": 12,
+     "truncation_cycle": 177,
+     "fallback": false
+    },
+    {
+     "unit": 31,
+     "life": 343,
+     "bucket": "0-25",
+     "target_rul": 14,
+     "truncation_cycle": 329,
+     "fallback": false
+    },
+    {
+     "unit": 44,
+     "life": 205,
+     "bucket": "0-25",
+     "target_rul": 23,
+     "truncation_cycle": 182,
+     "fallback": false
+    },
+    {
+     "unit": 48,
+     "life": 239,
+     "bucket": "0-25",
+     "target_rul": 13,
+     "truncation_cycle": 226,
+     "fallback": false
+    },
+    {
+     "unit": 49,
+     "life": 168,
+     "bucket": "0-25",
+     "target_rul": 6,
+     "truncation_cycle": 162,
+     "fallback": false
+    },
+    {
+     "unit": 65,
+     "life": 206,
+     "bucket": "0-25",
+     "target_rul": 8,
+     "truncation_cycle": 198,
+     "fallback": false
+    },
+    {
+     "unit": 71,
+     "life": 194,
+     "bucket": "0-25",
+     "target_rul": 16,
+     "truncation_cycle": 178,
+     "fallback": false
+    },
+    {
+     "unit": 81,
+     "life": 288,
+     "bucket": "0-25",
+     "target_rul": 6,
+     "truncation_cycle": 282,
+     "fallback": false
+    },
+    {
+     "unit": 82,
+     "life": 200,
+     "bucket": "0-25",
+     "target_rul": 17,
+     "truncation_cycle": 183,
+     "fallback": false
+    },
+    {
+     "unit": 83,
+     "life": 170,
+     "bucket": "25-50",
+     "target_rul": 30,
+     "truncation_cycle": 140,
+     "fallback": false
+    },
+    {
+     "unit": 84,
+     "life": 259,
+     "bucket": "25-50",
+     "target_rul": 37,
+     "truncation_cycle": 222,
+     "fallback": false
+    },
+    {
+     "unit": 89,
+     "life": 188,
+     "bucket": "25-50",
+     "target_rul": 46,
+     "truncation_cycle": 142,
+     "fallback": false
+    },
+    {
+     "unit": 96,
+     "life": 208,
+     "bucket": "25-50",
+     "target_rul": 49,
+     "truncation_cycle": 159,
+     "fallback": false
+    },
+    {
+     "unit": 97,
+     "life": 145,
+     "bucket": "25-50",
+     "target_rul": 27,
+     "truncation_cycle": 118,
+     "fallback": false
+    },
+    {
+     "unit": 111,
+     "life": 200,
+     "bucket": "25-50",
+     "target_rul": 33,
+     "truncation_cycle": 167,
+     "fallback": false
+    },
+    {
+     "unit": 113,
+     "life": 232,
+     "bucket": "50-75",
+     "target_rul": 65,
+     "truncation_cycle": 167,
+     "fallback": false
+    },
+    {
+     "unit": 118,
+     "life": 344,
+     "bucket": "50-75",
+     "target_rul": 58,
+     "truncation_cycle": 286,
+     "fallback": false
+    },
+    {
+     "unit": 130,
+     "life": 182,
+     "bucket": "50-75",
+     "target_rul": 57,
+     "truncation_cycle": 125,
+     "fallback": false
+    },
+    {
+     "unit": 133,
+     "life": 159,
+     "bucket": "50-75",
+     "target_rul": 66,
+     "truncation_cycle": 93,
+     "fallback": false
+    },
+    {
+     "unit": 136,
+     "life": 160,
+     "bucket": "50-75",
+     "target_rul": 65,
+     "truncation_cycle": 95,
+     "fallback": false
+    },
+    {
+     "unit": 140,
+     "life": 214,
+     "bucket": "50-75",
+     "target_rul": 70,
+     "truncation_cycle": 144,
+     "fallback": false
+    },
+    {
+     "unit": 147,
+     "life": 207,
+     "bucket": "75-100",
+     "target_rul": 90,
+     "truncation_cycle": 117,
+     "fallback": false
+    },
+    {
+     "unit": 153,
+     "life": 292,
+     "bucket": "75-100",
+     "target_rul": 99,
+     "truncation_cycle": 193,
+     "fallback": false
+    },
+    {
+     "unit": 154,
+     "life": 193,
+     "bucket": "75-100",
+     "target_rul": 93,
+     "truncation_cycle": 100,
+     "fallback": false
+    },
+    {
+     "unit": 155,
+     "life": 226,
+     "bucket": "75-100",
+     "target_rul": 84,
+     "truncation_cycle": 142,
+     "fallback": false
+    },
+    {
+     "unit": 157,
+     "life": 237,
+     "bucket": "75-100",
+     "target_rul": 91,
+     "truncation_cycle": 146,
+     "fallback": false
+    },
+    {
+     "unit": 158,
+     "life": 308,
+     "bucket": "75-100",
+     "target_rul": 97,
+     "truncation_cycle": 211,
+     "fallback": false
+    },
+    {
+     "unit": 160,
+     "life": 212,
+     "bucket": "75-100",
+     "target_rul": 94,
+     "truncation_cycle": 118,
+     "fallback": false
+    },
+    {
+     "unit": 165,
+     "life": 165,
+     "bucket": "75-100",
+     "target_rul": 85,
+     "truncation_cycle": 80,
+     "fallback": false
+    },
+    {
+     "unit": 169,
+     "life": 185,
+     "bucket": "75-100",
+     "target_rul": 89,
+     "truncation_cycle": 96,
+     "fallback": false
+    },
+    {
+     "unit": 170,
+     "life": 179,
+     "bucket": "100-126",
+     "target_rul": 115,
+     "truncation_cycle": 64,
+     "fallback": false
+    },
+    {
+     "unit": 173,
+     "life": 151,
+     "bucket": "100-126",
+     "target_rul": 116,
+     "truncation_cycle": 35,
+     "fallback": false
+    },
+    {
+     "unit": 183,
+     "life": 207,
+     "bucket": "100-126",
+     "target_rul": 110,
+     "truncation_cycle": 97,
+     "fallback": false
+    },
+    {
+     "unit": 188,
+     "life": 148,
+     "bucket": "100-126",
+     "target_rul": 121,
+     "truncation_cycle": 27,
+     "fallback": false
+    },
+    {
+     "unit": 192,
+     "life": 133,
+     "bucket": "100-126",
+     "target_rul": 113,
+     "truncation_cycle": 20,
+     "fallback": false
+    },
+    {
+     "unit": 211,
+     "life": 214,
+     "bucket": "100-126",
+     "target_rul": 104,
+     "truncation_cycle": 110,
+     "fallback": false
+    },
+    {
+     "unit": 213,
+     "life": 196,
+     "bucket": "100-126",
+     "target_rul": 103,
+     "truncation_cycle": 93,
+     "fallback": false
+    },
+    {
+     "unit": 219,
+     "life": 156,
+     "bucket": "100-126",
+     "target_rul": 124,
+     "truncation_cycle": 32,
+     "fallback": false
+    },
+    {
+     "unit": 222,
+     "life": 195,
+     "bucket": "100-126",
+     "target_rul": 106,
+     "truncation_cycle": 89,
+     "fallback": false
+    },
+    {
+     "unit": 223,
+     "life": 218,
+     "bucket": "100-126",
+     "target_rul": 102,
+     "truncation_cycle": 116,
+     "fallback": false
+    },
+    {
+     "unit": 224,
+     "life": 174,
+     "bucket": "100-126",
+     "target_rul": 119,
+     "truncation_cycle": 55,
+     "fallback": false
+    },
+    {
+     "unit": 225,
+     "life": 156,
+     "bucket": "100-126",
+     "target_rul": 109,
+     "truncation_cycle": 47,
+     "fallback": false
+    },
+    {
+     "unit": 233,
+     "life": 190,
+     "bucket": "100-126",
+     "target_rul": 107,
+     "truncation_cycle": 83,
+     "fallback": false
+    },
+    {
+     "unit": 237,
+     "life": 209,
+     "bucket": "100-126",
+     "target_rul": 124,
+     "truncation_cycle": 85,
+     "fallback": false
+    },
+    {
+     "unit": 244,
+     "life": 128,
+     "bucket": "100-126",
+     "target_rul": 118,
+     "truncation_cycle": 10,
+     "fallback": false
+    },
+    {
+     "unit": 245,
+     "life": 253,
+     "bucket": "100-126",
+     "target_rul": 115,
+     "truncation_cycle": 138,
+     "fallback": false
+    },
+    {
+     "unit": 247,
+     "life": 197,
+     "bucket": "100-126",
+     "target_rul": 102,
+     "truncation_cycle": 95,
+     "fallback": false
+    },
+    {
+     "unit": 255,
+     "life": 340,
+     "bucket": "100-126",
+     "target_rul": 123,
+     "truncation_cycle": 217,
+     "fallback": false
+    },
+    {
+     "unit": 257,
+     "life": 309,
+     "bucket": "100-126",
+     "target_rul": 116,
+     "truncation_cycle": 193,
+     "fallback": false
+    }
+   ]
+  },
+  "FD003": {
+   "n_val": 20,
+   "n_diag": 20,
+   "bucket_counts": [
+    3,
+    3,
+    4,
+    3,
+    7
+   ],
+   "test_fraction": [
+    0.15,
+    0.14,
+    0.2,
+    0.18,
+    0.33
+   ],
+   "val_units": [
+    3,
+    8,
+    23,
+    26,
+    28,
+    30,
+    37,
+    43,
+    45,
+    46,
+    47,
+    48,
+    63,
+    67,
+    69,
+    75,
+    80,
+    84,
+    96,
+    98
+   ],
+   "n_fallback": 0,
+   "rows": [
+    {
+     "unit": 3,
+     "life": 222,
+     "bucket": "0-25",
+     "target_rul": 19,
+     "truncation_cycle": 203,
+     "fallback": false
+    },
+    {
+     "unit": 8,
+     "life": 267,
+     "bucket": "0-25",
+     "target_rul": 16,
+     "truncation_cycle": 251,
+     "fallback": false
+    },
+    {
+     "unit": 23,
+     "life": 196,
+     "bucket": "0-25",
+     "target_rul": 10,
+     "truncation_cycle": 186,
+     "fallback": false
+    },
+    {
+     "unit": 26,
+     "life": 243,
+     "bucket": "25-50",
+     "target_rul": 28,
+     "truncation_cycle": 215,
+     "fallback": false
+    },
+    {
+     "unit": 28,
+     "life": 200,
+     "bucket": "25-50",
+     "target_rul": 39,
+     "truncation_cycle": 161,
+     "fallback": false
+    },
+    {
+     "unit": 30,
+     "life": 218,
+     "bucket": "25-50",
+     "target_rul": 45,
+     "truncation_cycle": 173,
+     "fallback": false
+    },
+    {
+     "unit": 37,
+     "life": 324,
+     "bucket": "50-75",
+     "target_rul": 61,
+     "truncation_cycle": 263,
+     "fallback": false
+    },
+    {
+     "unit": 43,
+     "life": 321,
+     "bucket": "50-75",
+     "target_rul": 57,
+     "truncation_cycle": 264,
+     "fallback": false
+    },
+    {
+     "unit": 45,
+     "life": 205,
+     "bucket": "50-75",
+     "target_rul": 54,
+     "truncation_cycle": 151,
+     "fallback": false
+    },
+    {
+     "unit": 46,
+     "life": 204,
+     "bucket": "50-75",
+     "target_rul": 65,
+     "truncation_cycle": 139,
+     "fallback": false
+    },
+    {
+     "unit": 47,
+     "life": 269,
+     "bucket": "75-100",
+     "target_rul": 91,
+     "truncation_cycle": 178,
+     "fallback": false
+    },
+    {
+     "unit": 48,
+     "life": 174,
+     "bucket": "75-100",
+     "target_rul": 97,
+     "truncation_cycle": 77,
+     "fallback": false
+    },
+    {
+     "unit": 63,
+     "life": 231,
+     "bucket": "75-100",
+     "target_rul": 95,
+     "truncation_cycle": 136,
+     "fallback": false
+    },
+    {
+     "unit": 67,
+     "life": 263,
+     "bucket": "100-126",
+     "target_rul": 104,
+     "truncation_cycle": 159,
+     "fallback": false
+    },
+    {
+     "unit": 69,
+     "life": 170,
+     "bucket": "100-126",
+     "target_rul": 110,
+     "truncation_cycle": 60,
+     "fallback": false
+    },
+    {
+     "unit": 75,
+     "life": 259,
+     "bucket": "100-126",
+     "target_rul": 113,
+     "truncation_cycle": 146,
+     "fallback": false
+    },
+    {
+     "unit": 80,
+     "life": 147,
+     "bucket": "100-126",
+     "target_rul": 112,
+     "truncation_cycle": 35,
+     "fallback": false
+    },
+    {
+     "unit": 84,
+     "life": 226,
+     "bucket": "100-126",
+     "target_rul": 121,
+     "truncation_cycle": 105,
+     "fallback": false
+    },
+    {
+     "unit": 96,
+     "life": 491,
+     "bucket": "100-126",
+     "target_rul": 107,
+     "truncation_cycle": 384,
+     "fallback": false
+    },
+    {
+     "unit": 98,
+     "life": 307,
+     "bucket": "100-126",
+     "target_rul": 124,
+     "truncation_cycle": 183,
+     "fallback": false
+    }
+   ]
+  },
+  "FD004": {
+   "n_val": 50,
+   "n_diag": 50,
+   "bucket_counts": [
+    10,
+    6,
+    5,
+    8,
+    21
+   ],
+   "test_fraction": [
+    0.198,
+    0.121,
+    0.105,
+    0.165,
+    0.411
+   ],
+   "val_units": [
+    3,
+    10,
+    14,
+    21,
+    31,
+    44,
+    48,
+    52,
+    65,
+    81,
+    82,
+    83,
+    92,
+    96,
+    98,
+    117,
+    120,
+    122,
+    127,
+    128,
+    129,
+    130,
+    132,
+    136,
+    141,
+    147,
+    151,
+    153,
+    154,
+    155,
+    159,
+    165,
+    167,
+    169,
+    177,
+    182,
+    190,
+    198,
+    205,
+    210,
+    211,
+    216,
+    217,
+    224,
+    225,
+    227,
+    231,
+    235,
+    238,
+    245
+   ],
+   "n_fallback": 0,
+   "rows": [
+    {
+     "unit": 3,
+     "life": 307,
+     "bucket": "0-25",
+     "target_rul": 12,
+     "truncation_cycle": 295,
+     "fallback": false
+    },
+    {
+     "unit": 10,
+     "life": 354,
+     "bucket": "0-25",
+     "target_rul": 19,
+     "truncation_cycle": 335,
+     "fallback": false
+    },
+    {
+     "unit": 14,
+     "life": 253,
+     "bucket": "0-25",
+     "target_rul": 11,
+     "truncation_cycle": 242,
+     "fallback": false
+    },
+    {
+     "unit": 21,
+     "life": 227,
+     "bucket": "0-25",
+     "target_rul": 17,
+     "truncation_cycle": 210,
+     "fallback": false
+    },
+    {
+     "unit": 31,
+     "life": 263,
+     "bucket": "0-25",
+     "target_rul": 12,
+     "truncation_cycle": 251,
+     "fallback": false
+    },
+    {
+     "unit": 44,
+     "life": 203,
+     "bucket": "0-25",
+     "target_rul": 17,
+     "truncation_cycle": 186,
+     "fallback": false
+    },
+    {
+     "unit": 48,
+     "life": 322,
+     "bucket": "0-25",
+     "target_rul": 8,
+     "truncation_cycle": 314,
+     "fallback": false
+    },
+    {
+     "unit": 52,
+     "life": 357,
+     "bucket": "0-25",
+     "target_rul": 14,
+     "truncation_cycle": 343,
+     "fallback": false
+    },
+    {
+     "unit": 65,
+     "life": 351,
+     "bucket": "0-25",
+     "target_rul": 11,
+     "truncation_cycle": 340,
+     "fallback": false
+    },
+    {
+     "unit": 81,
+     "life": 187,
+     "bucket": "0-25",
+     "target_rul": 24,
+     "truncation_cycle": 163,
+     "fallback": false
+    },
+    {
+     "unit": 82,
+     "life": 197,
+     "bucket": "25-50",
+     "target_rul": 43,
+     "truncation_cycle": 154,
+     "fallback": false
+    },
+    {
+     "unit": 83,
+     "life": 184,
+     "bucket": "25-50",
+     "target_rul": 46,
+     "truncation_cycle": 138,
+     "fallback": false
+    },
+    {
+     "unit": 92,
+     "life": 191,
+     "bucket": "25-50",
+     "target_rul": 29,
+     "truncation_cycle": 162,
+     "fallback": false
+    },
+    {
+     "unit": 96,
+     "life": 270,
+     "bucket": "25-50",
+     "target_rul": 38,
+     "truncation_cycle": 232,
+     "fallback": false
+    },
+    {
+     "unit": 98,
+     "life": 245,
+     "bucket": "25-50",
+     "target_rul": 37,
+     "truncation_cycle": 208,
+     "fallback": false
+    },
+    {
+     "unit": 117,
+     "life": 342,
+     "bucket": "25-50",
+     "target_rul": 43,
+     "truncation_cycle": 299,
+     "fallback": false
+    },
+    {
+     "unit": 120,
+     "life": 177,
+     "bucket": "50-75",
+     "target_rul": 57,
+     "truncation_cycle": 120,
+     "fallback": false
+    },
+    {
+     "unit": 122,
+     "life": 174,
+     "bucket": "50-75",
+     "target_rul": 74,
+     "truncation_cycle": 100,
+     "fallback": false
+    },
+    {
+     "unit": 127,
+     "life": 235,
+     "bucket": "50-75",
+     "target_rul": 74,
+     "truncation_cycle": 161,
+     "fallback": false
+    },
+    {
+     "unit": 128,
+     "life": 248,
+     "bucket": "50-75",
+     "target_rul": 68,
+     "truncation_cycle": 180,
+     "fallback": false
+    },
+    {
+     "unit": 129,
+     "life": 190,
+     "bucket": "50-75",
+     "target_rul": 70,
+     "truncation_cycle": 120,
+     "fallback": false
+    },
+    {
+     "unit": 130,
+     "life": 166,
+     "bucket": "75-100",
+     "target_rul": 94,
+     "truncation_cycle": 72,
+     "fallback": false
+    },
+    {
+     "unit": 132,
+     "life": 254,
+     "bucket": "75-100",
+     "target_rul": 75,
+     "truncation_cycle": 179,
+     "fallback": false
+    },
+    {
+     "unit": 136,
+     "life": 205,
+     "bucket": "75-100",
+     "target_rul": 95,
+     "truncation_cycle": 110,
+     "fallback": false
+    },
+    {
+     "unit": 141,
+     "life": 199,
+     "bucket": "75-100",
+     "target_rul": 96,
+     "truncation_cycle": 103,
+     "fallback": false
+    },
+    {
+     "unit": 147,
+     "life": 234,
+     "bucket": "75-100",
+     "target_rul": 85,
+     "truncation_cycle": 149,
+     "fallback": false
+    },
+    {
+     "unit": 151,
+     "life": 351,
+     "bucket": "75-100",
+     "target_rul": 87,
+     "truncation_cycle": 264,
+     "fallback": false
+    },
+    {
+     "unit": 153,
+     "life": 168,
+     "bucket": "75-100",
+     "target_rul": 83,
+     "truncation_cycle": 85,
+     "fallback": false
+    },
+    {
+     "unit": 154,
+     "life": 203,
+     "bucket": "75-100",
+     "target_rul": 75,
+     "truncation_cycle": 128,
+     "fallback": false
+    },
+    {
+     "unit": 155,
+     "life": 295,
+     "bucket": "100-126",
+     "target_rul": 102,
+     "truncation_cycle": 193,
+     "fallback": false
+    },
+    {
+     "unit": 159,
+     "life": 288,
+     "bucket": "100-126",
+     "target_rul": 121,
+     "truncation_cycle": 167,
+     "fallback": false
+    },
+    {
+     "unit": 165,
+     "life": 255,
+     "bucket": "100-126",
+     "target_rul": 112,
+     "truncation_cycle": 143,
+     "fallback": false
+    },
+    {
+     "unit": 167,
+     "life": 263,
+     "bucket": "100-126",
+     "target_rul": 125,
+     "truncation_cycle": 138,
+     "fallback": false
+    },
+    {
+     "unit": 169,
+     "life": 227,
+     "bucket": "100-126",
+     "target_rul": 104,
+     "truncation_cycle": 123,
+     "fallback": false
+    },
+    {
+     "unit": 177,
+     "life": 242,
+     "bucket": "100-126",
+     "target_rul": 120,
+     "truncation_cycle": 122,
+     "fallback": false
+    },
+    {
+     "unit": 182,
+     "life": 205,
+     "bucket": "100-126",
+     "target_rul": 111,
+     "truncation_cycle": 94,
+     "fallback": false
+    },
+    {
+     "unit": 190,
+     "life": 381,
+     "bucket": "100-126",
+     "target_rul": 119,
+     "truncation_cycle": 262,
+     "fallback": false
+    },
+    {
+     "unit": 198,
+     "life": 164,
+     "bucket": "100-126",
+     "target_rul": 110,
+     "truncation_cycle": 54,
+     "fallback": false
+    },
+    {
+     "unit": 205,
+     "life": 242,
+     "bucket": "100-126",
+     "target_rul": 112,
+     "truncation_cycle": 130,
+     "fallback": false
+    },
+    {
+     "unit": 210,
+     "life": 167,
+     "bucket": "100-126",
+     "target_rul": 101,
+     "truncation_cycle": 66,
+     "fallback": false
+    },
+    {
+     "unit": 211,
+     "life": 146,
+     "bucket": "100-126",
+     "target_rul": 112,
+     "truncation_cycle": 34,
+     "fallback": false
+    },
+    {
+     "unit": 216,
+     "life": 244,
+     "bucket": "100-126",
+     "target_rul": 117,
+     "truncation_cycle": 127,
+     "fallback": false
+    },
+    {
+     "unit": 217,
+     "life": 200,
+     "bucket": "100-126",
+     "target_rul": 116,
+     "truncation_cycle": 84,
+     "fallback": false
+    },
+    {
+     "unit": 224,
+     "life": 268,
+     "bucket": "100-126",
+     "target_rul": 124,
+     "truncation_cycle": 144,
+     "fallback": false
+    },
+    {
+     "unit": 225,
+     "life": 418,
+     "bucket": "100-126",
+     "target_rul": 111,
+     "truncation_cycle": 307,
+     "fallback": false
+    },
+    {
+     "unit": 227,
+     "life": 287,
+     "bucket": "100-126",
+     "target_rul": 114,
+     "truncation_cycle": 173,
+     "fallback": false
+    },
+    {
+     "unit": 231,
+     "life": 194,
+     "bucket": "100-126",
+     "target_rul": 100,
+     "truncation_cycle": 94,
+     "fallback": false
+    },
+    {
+     "unit": 235,
+     "life": 199,
+     "bucket": "100-126",
+     "target_rul": 104,
+     "truncation_cycle": 95,
+     "fallback": false
+    },
+    {
+     "unit": 238,
+     "life": 187,
+     "bucket": "100-126",
+     "target_rul": 104,
+     "truncation_cycle": 83,
+     "fallback": false
+    },
+    {
+     "unit": 245,
+     "life": 205,
+     "bucket": "100-126",
+     "target_rul": 119,
+     "truncation_cycle": 86,
+     "fallback": false
+    }
+   ]
+  }
+ }
+}

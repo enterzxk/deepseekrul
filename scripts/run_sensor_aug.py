@@ -239,8 +239,9 @@ def build(args):
         # only after the test evaluation is frozen (the test files stay sealed
         # until then); the same seed makes them reproducible.
         pat = make_missing_patterns(s['val_units'])
-        (SHARED / f'missing_patterns_val_{subset}.json').write_text(json.dumps(
-            {'subset': subset, 'split': 'val', 'seed': 20261114,
+        _ss = int(BASE['split_seed'])
+        (SHARED / f'missing_patterns_val_{subset}_split{_ss}.json').write_text(json.dumps(
+            {'subset': subset, 'split': 'val', 'seed': 20261114, 'split_seed': _ss,
              'n_patterns': 10, 'hash': patterns_hash(pat), 'patterns': pat}, indent=1))
         shared_meta.setdefault('noise_stats', {})[subset] = {
             'hash': stats['hash'], 'n_global': stats['n_global'],
@@ -263,7 +264,12 @@ def build(args):
                     st = json.loads((SHARED / f'noise_stats_{subset}.json').read_text())
                     cfg['augment']['noise_stats_hash'] = st['hash']
                 if cfg['augment'] is not None and cfg['augment']['mask_prob'] > 0:
-                    mp = json.loads((SHARED / f'missing_patterns_val_{subset}.json').read_text())
+                    mp = json.loads((SHARED / f'missing_patterns_val_{subset}'
+                                     f'_split{int(BASE["split_seed"])}.json').read_text())
+                    if int(mp.get('split_seed', -1)) != int(BASE['split_seed']):
+                        raise SystemExit(
+                            f'missing_patterns_val_{subset} is split {mp.get("split_seed")}, '
+                            f'caller wants {BASE["split_seed"]}')
                     cfg['augment']['mask_hash'] = mp['hash']
                 rid = run_id_for(group, subset, seed, cfg)
                 cfg['tag'] = rid
@@ -387,7 +393,12 @@ def evaluate_run(task, data_dir, device):
     net = _build(cfg).to(dev)
     net.load_state_dict(torch.load(rd / 'best.pt', map_location='cpu', weights_only=True))
     best_ep = json.loads((rd / 'metrics.json').read_text())['best_ep']
-    mp = json.loads((SHARED / f"missing_patterns_val_{cfg['subset']}.json").read_text())
+    mp = json.loads((SHARED / f"missing_patterns_val_{cfg['subset']}"
+                     f"_split{int(cfg['split_seed'])}.json").read_text())
+    if int(mp.get('split_seed', -1)) != int(cfg['split_seed']):
+        raise SystemExit(
+            f"missing_patterns_val_{cfg['subset']} is split {mp.get('split_seed')}, "
+            f"this run is split {cfg['split_seed']}")
     st = json.loads((SHARED / f"noise_stats_{cfg['subset']}.json").read_text())
     lengths = engine_lengths(va)
     fields = make_noise_fields(va['unit'], lengths)

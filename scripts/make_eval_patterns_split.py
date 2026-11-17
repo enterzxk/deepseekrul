@@ -80,7 +80,8 @@ def main() -> int:
         payload = dict(subset=subset, split_seed=a.split, fold=a.fold,
                        n_patterns=10, hash=patterns_hash(pat), patterns=pat,
                        written_by='scripts/make_eval_patterns_split.py')
-        dest = Path(a.out) if a.out else root / 'shared' / f'missing_patterns_val_{subset}.json'
+        dest = (Path(a.out) if a.out
+                else root / 'shared' / f'missing_patterns_val_{subset}_split{a.split}.json')
         if not a.dry_run:
             dest.write_text(json.dumps(payload, indent=1), encoding='utf-8')
         blob = json.dumps(payload, indent=1).encode()
