@@ -80,3 +80,32 @@ for label, cols in LEVELS.items():
 print('Reading: "sig?" asks whether the arm differs from G0 under that corruption.')
 print('It says nothing about reaching the 10pp practical bar -- a significant +5%')
 print('is still half the bar. The macro/BAR column is the one the gate uses.')
+
+# ---------------------------------------------------------------------------
+# Per-subset view of the noise channel: is FD004's small gain a power problem or
+# a real null? The macro MDE cannot answer that, so compute it per subset.
+# ---------------------------------------------------------------------------
+cols = LEVELS['NOISE']
+print()
+print('=' * 82)
+print('NOISE channel, PER SUBSET (is the small FD004 gain undetectable, or absent?)')
+print('=' * 82)
+print('%-4s %-6s %10s %10s %8s %6s %10s %12s' % (
+    'arm', 'subset', 'gain%', 'se%', '|t|', 'sig?', 'MDE80%', 'gain/MDE'))
+for arm in ('G1', 'G2', 'G5'):
+    for sub in SUBSETS:
+        per = []
+        for s in seeds:
+            b = avg_rmse('G0', sub, s, cols)
+            a = avg_rmse(arm, sub, s, cols)
+            if b is None or a is None:
+                continue
+            per.append(100.0 * (b - a) / b)
+        per = np.array(per)
+        m = float(per.mean())
+        se = float(per.std(ddof=1) / np.sqrt(len(per)))
+        mde = coef * se
+        print('%-4s %-6s %10.3f %10.3f %8.2f %6s %10.3f %12.2f' % (
+            arm, sub, m, se, abs(m / se),
+            'YES' if abs(m / se) > tcrit else 'no', mde, m / mde))
+
