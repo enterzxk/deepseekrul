@@ -83,6 +83,8 @@
 | D4 | Xu, Z. 等（同 A1） | 2026, *Meas. Sci. Technol.* | DOI 10.1088/1361-6501/ae7463 | 传感器攻击场景下用不确定性加权融合抑制被污染传感器的贡献 | C-MAPSS + 攻击注入 | 推理期加权；我们是训练期增强 | 全文 |
 | D5 | Cao, W. 等（arXiv 显示 6 位作者）*BRITS: Bidirectional Recurrent Imputation for Time Series* | 2018, NeurIPS | arXiv:1805.10572 | 双向 RNN 直接在动态系统里学缺失值，不预设数据生成过程 | 空气质量/医疗/定位 | 缺失值建模的方法学祖先；与 RUL 无直接关系 | 摘要 |
 
+延伸（不占名额）：Xiao, L.; Tang, J.; Zhang, X.; Bechhoefer, E.; Ding, S. *Remaining useful life prediction based on intentional noise injection and feature reconstruction*, *Reliab. Eng. Syst. Saf.* 2021, DOI 10.1016/j.ress.2021.107871（摘要+原文页）——把高斯白噪声**注入 LSTM 输出层/目标**（不是输入传感器），在 C-MAPSS 上声称噪声注入不降反升。它与 E2 的「输入噪声」不是同一机制，但说明「有意加噪提升 RUL」这个现象已有先例。
+
 **这条线的结论**：缺失/噪声鲁棒有两条成熟范式——**先补后预测**（D1/D2/D5）与**架构内鲁棒**（D3/D4）。我们的 E1/E2 是第三条：训练期增强 + 显式 availability mask。**D0 已经把 E1 的同款做法在 C-MAPSS 上做掉了**（整通道 SD，FD001 clean −0.740，10 seeds），所以 E1 是复现而不是新现象；旧 study 的 36 格（clean 全负）说明这个效应还高度依赖协议。E2 同理，不承担新颖性。详见 `NOVELTY_VERDICT.md` §8。
 
 ---
