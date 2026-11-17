@@ -2,6 +2,10 @@
  "study_id": "paper_b_sensor_generalization",
  "purpose": "confirmation split for arms that never had one (E2b, E4, E5 four arms)",
  "built_by": "scripts/make_exploratory_manifests.py",
+ "code_fingerprint": "0deffe854fce",
+ "code_fingerprint_legacy7": "5c3c22649541",
+ "git_head": "3cdca532d9e1765ba16f46f4a568a11c6ece92e0",
+ "code_fingerprint_source": "tree state when BATCH2 started 2026-11-17T12:45:57Z (after the split-aware missing_patterns fix); see shared/CODE_FINGERPRINT_LOG.tsv",
  "split_seed_override": 29,
  "shared_noise_stats_split_seed": 29,
  "baseline_policy": {

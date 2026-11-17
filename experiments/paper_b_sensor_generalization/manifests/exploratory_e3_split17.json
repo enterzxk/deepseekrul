@@ -2,6 +2,10 @@
  "study_id": "paper_b_sensor_generalization",
  "purpose": "exploratory: E3 = mask 0.10 + noise 0.25 (was skipped by design)",
  "built_by": "scripts/make_exploratory_manifests.py",
+ "code_fingerprint": "574ac4a06ae7",
+ "code_fingerprint_legacy7": "5c3c22649541",
+ "git_head": "3cdca532d9e1765ba16f46f4a568a11c6ece92e0",
+ "code_fingerprint_source": "observed at launch 2026-11-17T07:44:48Z, before the patterns fix; see shared/CODE_FINGERPRINT_LOG.tsv (recorded by zxk)",
  "baseline_policy": {
   "arm": "E5none",
   "split_seed": 17,
