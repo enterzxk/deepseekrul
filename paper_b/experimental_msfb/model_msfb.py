@@ -93,10 +93,18 @@ class FeatureTypeFusion(nn.Module):
         return self.base_proj(base) + self.fuse(fused)
 
 
+class ZeroFeatureBank(nn.Module):
+    """Capacity control: same parameter count, no new sensor information."""
+
+    def forward(self, x, baseline, mask):
+        return torch.zeros(x.size(0), x.size(1), x.size(2), 8,
+                           device=x.device, dtype=x.dtype)
+
+
 class DSPT_MSFB(DSPT):
-    def __init__(self, **kw):
+    def __init__(self, control=False, **kw):
         super().__init__(**kw)
-        self.feat_bank = SensorFeatureBank()
+        self.feat_bank = ZeroFeatureBank() if control else SensorFeatureBank()
         self.sensor_in = FeatureTypeFusion(self.n_feat, self.d_model)
 
     def _features(self, x, baseline, mask):
@@ -109,14 +117,14 @@ def build_msfb(num_sensors=14, d_model=64, num_layers=2, dropout=0.2,
                max_span=100, instnorm=False, ms_mode='full', sa_mode='off',
                hi_source='none', hi_mono='none', use_pad_mask=True,
                use_cycle=True, cycle_pos=None, n_cond=6,
-               legacy_ms_pad=False, legacy_ema=False):
+               legacy_ms_pad=False, legacy_ema=False, control=False):
     import inspect
     kw = dict(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers,
               dropout=dropout, max_span=max_span, instnorm=instnorm,
               ms_mode=ms_mode, sa_mode=sa_mode, hi_source=hi_source,
               hi_mono=hi_mono, use_pad_mask=use_pad_mask, use_cycle=use_cycle,
               n_cond=n_cond, legacy_ms_pad=legacy_ms_pad,
-              legacy_ema=legacy_ema)
+              legacy_ema=legacy_ema, control=control)
     # The a40/3090 Stage D snapshot predates cycle_pos; the local Paper B
     # version has it. Pass it only when the installed DSPT accepts it.
     if 'cycle_pos' in inspect.signature(DSPT.__init__).parameters:

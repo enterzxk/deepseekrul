@@ -18,7 +18,7 @@ def _build(cfg):
             hi_mono=cfg['hi_mono'], use_pad_mask=cfg['use_pad_mask'],
             use_cycle=cfg['use_cycle'], cycle_pos=cfg['cycle_pos'],
             n_cond=cfg['n_cond'], legacy_ms_pad=cfg['legacy_ms_pad'],
-            legacy_ema=cfg['legacy_ema'])
+            legacy_ema=cfg['legacy_ema'], control=cfg.get('control', False))
     return _ORIG_BUILD(cfg)
 
 
@@ -39,6 +39,8 @@ def main():
     ap.add_argument('--ms-mode', default='full')
     ap.add_argument('--hi-source', default='hf')
     ap.add_argument('--tag', default='msfb')
+    ap.add_argument('--control', action='store_true',
+                    help='capacity control: same params, extra feature channels zeroed')
     a = ap.parse_args()
     cfg = dict(model='msfb', subset=a.subset, seed=a.seed, data_dir=a.data_dir,
                epochs=a.epochs, patience=a.patience, batch=512, lr=1e-3,
@@ -46,7 +48,7 @@ def main():
                mode='dual', ms_mode=a.ms_mode, sa_mode=a.sa_mode,
                hi_source=a.hi_source, hi_mono='none', use_cycle=True,
                cycle_pos=None, fp32=True, use_pad_mask=True, aux_dual=True,
-               instnorm=False, tag=a.tag)
+               instnorm=False, tag=a.tag, control=a.control)
     m = T.train_one(cfg, device=a.device, out_root=a.out_root)
     print('DONE', a.subset, a.seed, m.get('val_engine_mean_rmse'), m.get('params'))
 
