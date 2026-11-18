@@ -141,6 +141,8 @@ def main():
             i += n
         return out
 
+    mid = (y_all >= 25) & (y_all < 50)
+
     def run_p3(fold_assign):
         yhat_cal = yhat_all.copy()
         offs = []
@@ -162,7 +164,6 @@ def main():
     p90_a, rmse_a, mae_a, offsets = run_p3(fold)
     p90_b, p90_b_sub = p90_by_subset(split_by_subset(err_all))
     rmse_b, _ = rmse_by_subset(split_by_subset(err_all))
-    mid = (y_all >= 25) & (y_all < 50)
     mae_b = float(np.mean(np.abs(err_all[mid])))
     d_p90, d_rmse, d_mae = p90_a - p90_b, rmse_a - rmse_b, mae_a - mae_b
     ok = (d_p90 <= -0.5) and (d_mae <= 0.5)

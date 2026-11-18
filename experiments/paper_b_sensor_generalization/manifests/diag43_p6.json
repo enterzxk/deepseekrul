@@ -1,0 +1,26 @@
+{
+ "n_segment": 30,
+ "auroc": 0.5333333333333333,
+ "ci95": [
+  0.3015835042150831,
+  0.7421544117647055
+ ],
+ "n_boot": 2000,
+ "pca_components": 3,
+ "best_univariate": {
+  "index": 53,
+  "auroc": 0.7422222222222222,
+  "null95": 0.8334444444444444,
+  "p_value": 0.593
+ },
+ "segment_sizes": {
+  "[0,25)": 31,
+  "[25,50)": 14,
+  "[50,75)": 17,
+  "[75,100)": 30,
+  "[100,125)": 50
+ },
+ "label": "|e| above segment median",
+ "features": "window mean/std/last/slope per sensor",
+ "passed": false
+}
