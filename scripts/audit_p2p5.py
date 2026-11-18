@@ -36,6 +36,8 @@ from paper_b.training.data import _prepare_split               # noqa: E402
 from paper_b.training.train import _build, predict             # noqa: E402
 
 SEG_EDGES = (0.0, 25.0, 50.0, 75.0, 100.0, 125.0)
+BOOT_SEED = 20261118
+N_FOLD_REPS = 200
 
 
 def auroc(pos, neg):
@@ -77,7 +79,7 @@ def main():
     frozen = json.loads(Path(a.table).read_text())['subsets']
 
     # ---- collect per-engine y / yhat / unit, and per-seed errors (P4) ----------
-    y_by, yhat_by, unit_by, err_seed = {}, {}, {}, {}
+    y_by, yhat_by, unit_by, err_seed, subs = {}, {}, {}, {}, []
     for subset in SUBSETS:
         table = {int(r['unit']): int(r['truncation_cycle']) for r in frozen[subset]['rows']}
         per_seed = []
@@ -99,6 +101,7 @@ def main():
         y_by[subset] = per_seed[0][1]
         yhat_by[subset] = np.mean([p for _, _, p in per_seed], axis=0)
         unit_by[subset] = units
+        subs.append(np.array([subset] * len(units), dtype=object))
         err_seed[subset] = [p - y for _, y, p in per_seed]
 
     y_all = np.concatenate([y_by[s] for s in SUBSETS])
@@ -122,20 +125,13 @@ def main():
 
     # ---- P3 -------------------------------------------------------------------
     seg = np.clip(np.digitize(yhat_all, SEG_EDGES) - 1, 0, len(SEG_EDGES) - 2)
-    uniq, fold_of = np.unique(unit_all, return_inverse=True)
+    # Fold key must be (subset, unit): unit ids collide across subsets, so
+    # np.unique(unit) would put FD001-5 and FD002-5 in the same fold. No leakage
+    # today (one sample per engine) but wrong the moment that changes.
+    S = np.concatenate(subs)
+    key = np.array([f'{s}|{int(x)}' for s, x in zip(S, unit_all)], dtype=object)
+    uniq, fold_of = np.unique(key, return_inverse=True)
     fold = fold_of % 5
-    yhat_cal = yhat_all.copy()
-    offsets = []
-    for f in range(5):
-        tr, te = fold != f, fold == f
-        b = np.zeros(len(SEG_EDGES) - 1)
-        for k in range(len(SEG_EDGES) - 1):
-            m = tr & (seg == k)
-            if m.any():
-                b[k] = float(np.median((y_all - yhat_all)[m]))
-        offsets.append(b.tolist())
-        yhat_cal[te] = yhat_all[te] + b[seg[te]]
-    err_cal = yhat_cal - y_all
 
     def split_by_subset(arr):
         out, i = {}, 0
@@ -145,19 +141,53 @@ def main():
             i += n
         return out
 
+    def run_p3(fold_assign):
+        yhat_cal = yhat_all.copy()
+        offs = []
+        for f in range(5):
+            tr, te = fold_assign != f, fold_assign == f
+            b = np.zeros(len(SEG_EDGES) - 1)
+            for k in range(len(SEG_EDGES) - 1):
+                mk = tr & (seg == k)
+                if mk.any():
+                    b[k] = float(np.median((y_all - yhat_all)[mk]))
+            offs.append(b.tolist())
+            yhat_cal[te] = yhat_all[te] + b[seg[te]]
+        ec = yhat_cal - y_all
+        p90_r, _ = p90_by_subset(split_by_subset(ec))
+        rmse_r, _ = rmse_by_subset(split_by_subset(ec))
+        mae_r = float(np.mean(np.abs(ec[mid])))
+        return p90_r, rmse_r, mae_r, offs
+
+    p90_a, rmse_a, mae_a, offsets = run_p3(fold)
     p90_b, p90_b_sub = p90_by_subset(split_by_subset(err_all))
-    p90_a, p90_a_sub = p90_by_subset(split_by_subset(err_cal))
     rmse_b, _ = rmse_by_subset(split_by_subset(err_all))
-    rmse_a, _ = rmse_by_subset(split_by_subset(err_cal))
     mid = (y_all >= 25) & (y_all < 50)
     mae_b = float(np.mean(np.abs(err_all[mid])))
-    mae_a = float(np.mean(np.abs(err_cal[mid])))
     d_p90, d_rmse, d_mae = p90_a - p90_b, rmse_a - rmse_b, mae_a - mae_b
     ok = (d_p90 <= -0.5) and (d_mae <= 0.5)
+
+    # Fold sensitivity: the guardrail is a threshold on a number that depends on
+    # how engines are dealt into folds. Repeat with other assignments so a
+    # "0.03 over the line" cannot be reported as a settled verdict.
+    rngf = np.random.default_rng(BOOT_SEED + 7)
+    reps = []
+    for _ in range(N_FOLD_REPS):
+        perm = rngf.permutation(len(uniq))
+        fa = np.empty(len(uniq), int)
+        fa[perm] = np.arange(len(uniq)) % 5
+        p90_r, rmse_r, mae_r, _ = run_p3(fa[fold_of])
+        reps.append((p90_r - p90_b, rmse_r - rmse_b, mae_r - mae_b))
+    reps = np.array(reps)
+    pass_rate = float(np.mean((reps[:, 0] <= -0.5) & (reps[:, 2] <= 0.5)))
     print(f'P3  P90 {p90_b:.3f} -> {p90_a:.3f} (d={d_p90:+.3f})  '
           f'RMSE {rmse_b:.3f} -> {rmse_a:.3f} (d={d_rmse:+.3f})  '
           f'MAE(25-50) {mae_b:.3f} -> {mae_a:.3f} (d={d_mae:+.3f})')
     print(f'P3  pass (dP90 <= -0.5 and dMAE(25-50) <= +0.5): {ok}')
+    print(f'P3  fold sensitivity over {N_FOLD_REPS} assignments: '
+          f'dP90 [{reps[:,0].min():+.3f}, {reps[:,0].max():+.3f}]  '
+          f'dMAE(25-50) [{reps[:,2].min():+.3f}, {reps[:,2].max():+.3f}]  '
+          f'pass rate = {pass_rate:.0%}')
 
     # ---- P4 -------------------------------------------------------------------
     p90_seeds = []
