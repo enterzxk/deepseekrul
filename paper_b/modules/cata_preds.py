@@ -72,8 +72,13 @@ def main():
             rows.append(dict(engine=uid, cut=c, y_cap=float(min(n - c, 125)),
                              y_raw=float(n - c), pred_k1=float(preds[0]),
                              pred_all=med, pred_gate=pred_gate,
+                             p_mean=float(aligned.mean()),
+                             p_std=float(aligned.std(ddof=0)),
                              stat=stat, gated=gated, K=len(idxs),
                              regime_dist=regime_dist,
+                             shift=abs(med - float(preds[0])),
+                             cap=float(float(preds[0]) >= 124.5 or med >= 124.5),
+                             cycle_frac=float(c / n), n=n,
                              delta=a.delta, tau=a.tau))
     out = Path(a.out_dir) / ('%s_s%d.csv' % (a.subset, a.seed))
     out.parent.mkdir(parents=True, exist_ok=True)
