@@ -18,7 +18,8 @@ def _build(cfg):
             hi_mono=cfg['hi_mono'], use_pad_mask=cfg['use_pad_mask'],
             use_cycle=cfg['use_cycle'], cycle_pos=cfg['cycle_pos'],
             n_cond=cfg['n_cond'], legacy_ms_pad=cfg['legacy_ms_pad'],
-            legacy_ema=cfg['legacy_ema'], control=cfg.get('control', False))
+            legacy_ema=cfg['legacy_ema'], control=cfg.get('control', False),
+            drop_family=cfg.get('drop_family'))
     return _ORIG_BUILD(cfg)
 
 
@@ -41,14 +42,19 @@ def main():
     ap.add_argument('--tag', default='msfb')
     ap.add_argument('--control', action='store_true',
                     help='capacity control: same params, extra feature channels zeroed')
+    ap.add_argument('--drop-family', default='',
+                    choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff', 'contrast'],
+                    help='leave-one-family-out: zero this family before projection')
     a = ap.parse_args()
+    fam = {'': None, 'dx': 0, 'ddx': 1, 'slope': 2, 'cusum': 3,
+           'ema_diff': 4, 'contrast': 5}[a.drop_family]
     cfg = dict(model='msfb', subset=a.subset, seed=a.seed, data_dir=a.data_dir,
                epochs=a.epochs, patience=a.patience, batch=512, lr=1e-3,
                weight_decay=1e-4, d_model=64, layers=2, dropout=0.2,
                mode='dual', ms_mode=a.ms_mode, sa_mode=a.sa_mode,
                hi_source=a.hi_source, hi_mono='none', use_cycle=True,
                cycle_pos=None, fp32=True, use_pad_mask=True, aux_dual=True,
-               instnorm=False, tag=a.tag, control=a.control)
+               instnorm=False, tag=a.tag, control=a.control, drop_family=fam)
     m = T.train_one(cfg, device=a.device, out_root=a.out_root)
     print('DONE', a.subset, a.seed, m.get('val_engine_mean_rmse'), m.get('params'))
 

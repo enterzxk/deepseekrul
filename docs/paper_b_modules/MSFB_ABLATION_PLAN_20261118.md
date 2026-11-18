@@ -18,12 +18,25 @@ DSPT base。它不是“又加一层 CNN/SA”（DSPT 已有 conv3/5/7 与 senso
 | FD001 | **10.04 ± 0.35**（10.048/9.688/10.389） | 10.60 ± 0.44 | **−0.56** | 正 |
 | FD002 | **11.14 ± 0.36**（11.556/10.885/10.993） | 11.03 ± 0.05 | **+0.11** | 轻微变差 |
 | FD003 | **11.49 ± 0.71**（10.838/11.379/12.240） | 10.68 ± 0.13 | **+0.81** | 明确变差 |
-| FD004 | 11.85（仅 s101；s202/s303 运行中） | 12.38 ± 0.76 | −0.53（1 seed） | 待定 |
+| FD004 | **12.30 ± 0.65**（11.846/13.052/12.006） | 12.38 ± 0.76 | **−0.08** | 中性 |
 
-**结论**：MSFB 目前是**子集相关的候选模块**，不是通用模块。FD001/FD004 有正信号，
-FD002/FD003 变差；在容量对照和逐族消融之前，不能写“MSFB 有效”。如果容量对照追平
-FD001 的增益，它就不是模块，只是容量；如果逐族消融能找到 FD003 的伤害源，才可能修成
-一个条件性模块。
+**结论**：MSFB 目前是**子集相关的候选模块**，不是通用模块。FD001 明确正（−0.56），
+FD004 中性（−0.08），FD002 轻微变差（+0.11），FD003 明确变差（+0.81）。在容量对照和
+逐族消融之前，不能写“MSFB 有效”。如果容量对照追平 FD001 的增益，它就不是模块，
+只是容量；如果逐族消融能找到 FD003 的伤害源，才可能修成一个条件性模块。
+
+### A2 zero-feature capacity control 结果（2026-11-18，s101）
+
+| 子集 | A1 MSFB test | A2 zero-feature test | DSPT-V0 test | 读法 |
+|---|---:|---:|---:|---|
+| FD001 | **10.0482** | 10.5639 | 10.60 | A2≈V0；A1 比 A2 低 **0.516** → FD001 增益是**特征**，不是容量 |
+| FD003 | **10.8375** | 10.6243 | 10.68 | A2≈V0；A1 比 A2 高 **0.213** → FD003 伤害也是**特征**，不是容量 |
+
+**这是目前最关键的一刀**：容量对照没有解释 FD001 的增益，也没有解释 FD003 的伤害。
+所以 MSFB **在 FD001 上是一个真正的特征模块**；但特征库的符号是**子集相关**的：
+FD001 +0.52，FD003 −0.21。下一步不是继续加特征，而是 **A6 leave-one-family-out**
+找 FD003 的伤害族、FD001 的贡献族；如果去掉某族后 FD001 仍正、FD003 回到中性，
+MSFB 才能成为条件性模块。
 
 ## 1. 消融矩阵
 
@@ -38,7 +51,7 @@ FD001 的增益，它就不是模块，只是容量；如果逐族消融能找�
 | A3 | **Base-repeat control** | 额外 8 通道重复 base 特征 | 隔离“新信息” | 若 A3≈A1，增益不是新传感器特征 | 待跑 |
 | A4 | **Uniform attention** | feature-type attention 换成均匀平均 | 注意力是否必要 | 若 A4≈A1，attention 不是贡献 | 待跑 |
 | A5 | **Concat+linear** | 8 族直接 concat + 单层 Linear | 融合方式对照 | 若 A5≥A1，attention 多余 | 待跑 |
-| A6 | **Leave-one-family-out**（8 臂） | 去掉 dx / ddx / slope / cusum / ema-diff / contrast 之一 | 找贡献/伤害源 | 至少一族去掉后 FD001 变差；FD003 的伤害应能定位 | 待跑 |
+| A6 | **Leave-one-family-out**（8 臂） | 去掉 dx / ddx / slope / cusum / ema-diff / contrast 之一 | 找贡献/伤害源 | 至少一族去掉后 FD001 变差；FD003 的伤害应能定位 | 运行中（FD001: slope/ema_diff/cusum；FD003: contrast/cusum/slope） |
 | A7 | **Single-family-only**（6 臂） | 只用一族 | 找最小充分族 | 若单族≈全族，特征库叙事过宽 | 待跑 |
 | A8 | **MSFB w/o MS** | `ms_mode=off` | 与已有 CNN 的交互 | 若 MSFB 增益消失，说明它依赖 CNN | 待跑 |
 | A9 | **MSFB w/o SA** | `sa_mode=off` | 与 sensor attention 的交互 | 若 MSFB 增益消失，说明它依赖 SA | 待跑 |
@@ -72,7 +85,10 @@ FD001 的增益，它就不是模块，只是容量；如果逐族消融能找�
 
 ## 4. 当前运行
 
-- 3090 `experiments/msfb_grid`：FD001/FD002/FD003 各 3 seed + FD004 s101 已完成；
-  FD004 s202/s303 运行中。
-- 3090 `experiments/msfb_ctrl`：A2 zero-feature control，FD001/FD003 s101 运行中（cuda:1）。
-- 完成后：CPU 跑 test（GPU0 已满），汇总 mean/sd/配对差，再决定 A6/A8/A9。
+- 3090 `experiments/msfb_grid`：12/12 完成（FD001–FD004 × 3 seed），test 已用 CPU 一次性评估。
+- 3090 `experiments/msfb_ctrl`：A2 zero-feature control，FD001/FD003 s101 已完成并 test：
+  FD001 10.5639、FD003 10.6243；与 MSFB 10.0482/10.8375 对比见 §A2。
+- 3090 `experiments/msfb_drop_*`：A6 leave-one-family-out 运行中
+  （FD001: slope/ema_diff/cusum；FD003: contrast/cusum/slope）。
+- 完成后：若某族在 FD001 是贡献族、在 FD003 是伤害族，试“去掉该族”的 MSFB 变体；
+  若伤害族不唯一，考虑按 regime/子集门控或把 MSFB 限定为 FD001 条件性模块。

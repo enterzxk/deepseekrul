@@ -66,7 +66,7 @@ class SensorFeatureBank(nn.Module):
 class FeatureTypeFusion(nn.Module):
     """Base DSPT projection + zero-init fused extra-feature path."""
 
-    def __init__(self, n_base, d_model, hidden=16):
+    def __init__(self, n_base, d_model, hidden=16, drop_family=None):
         super().__init__()
         self.n_base = int(n_base)
         self.base_proj = nn.Linear(n_base, d_model)
@@ -77,10 +77,18 @@ class FeatureTypeFusion(nn.Module):
         self.fuse = nn.Linear(d_model, d_model)
         nn.init.zeros_(self.fuse.weight)
         nn.init.zeros_(self.fuse.bias)
+        self.drop_family = drop_family
 
     def forward(self, feats):
         base = feats[..., :self.n_base]
         extra = feats[..., self.n_base:]
+        if self.drop_family is not None:
+            # Same parameters, same capacity; only this family's information is
+            # removed (zeroed before projection). Leave-one-family-out control.
+            slices = [(0, 1), (1, 2), (2, 5), (5, 6), (6, 7), (7, 8)]
+            lo, hi = slices[self.drop_family]
+            extra = extra.clone()
+            extra[..., lo:hi] = 0.0
         hs = []
         start = 0
         for proj, k in zip(self.family_proj, [1, 1, 3, 1, 1, 1]):
@@ -102,10 +110,11 @@ class ZeroFeatureBank(nn.Module):
 
 
 class DSPT_MSFB(DSPT):
-    def __init__(self, control=False, **kw):
+    def __init__(self, control=False, drop_family=None, **kw):
         super().__init__(**kw)
         self.feat_bank = ZeroFeatureBank() if control else SensorFeatureBank()
-        self.sensor_in = FeatureTypeFusion(self.n_feat, self.d_model)
+        self.sensor_in = FeatureTypeFusion(self.n_feat, self.d_model,
+                                           drop_family=drop_family)
 
     def _features(self, x, baseline, mask):
         base = super()._features(x, baseline, mask)
@@ -117,14 +126,15 @@ def build_msfb(num_sensors=14, d_model=64, num_layers=2, dropout=0.2,
                max_span=100, instnorm=False, ms_mode='full', sa_mode='off',
                hi_source='none', hi_mono='none', use_pad_mask=True,
                use_cycle=True, cycle_pos=None, n_cond=6,
-               legacy_ms_pad=False, legacy_ema=False, control=False):
+               legacy_ms_pad=False, legacy_ema=False, control=False,
+               drop_family=None):
     import inspect
     kw = dict(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers,
               dropout=dropout, max_span=max_span, instnorm=instnorm,
               ms_mode=ms_mode, sa_mode=sa_mode, hi_source=hi_source,
               hi_mono=hi_mono, use_pad_mask=use_pad_mask, use_cycle=use_cycle,
               n_cond=n_cond, legacy_ms_pad=legacy_ms_pad,
-              legacy_ema=legacy_ema, control=control)
+              legacy_ema=legacy_ema, control=control, drop_family=drop_family)
     # The a40/3090 Stage D snapshot predates cycle_pos; the local Paper B
     # version has it. Pass it only when the installed DSPT accepts it.
     if 'cycle_pos' in inspect.signature(DSPT.__init__).parameters:
