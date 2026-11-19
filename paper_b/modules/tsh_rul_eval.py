@@ -23,7 +23,7 @@ def main():
     ap.add_argument('--fault', default='drift', choices=['bias', 'drift', 'noise', 'stuck'])
     ap.add_argument('--mag', type=float, default=3.0)
     ap.add_argument('--sensors', default='0,5,10')
-    ap.add_argument('--gamma', type=float, default=1.0)
+    ap.add_argument('--gamma', type=float, default=1.30)
     ap.add_argument('--onset', type=float, default=0.5)
     a = ap.parse_args()
 
@@ -87,14 +87,14 @@ def main():
                     x_tsh[flag] = xr[flag]
                 p3 = predict_at(net, va, i, t, x_tsh)
                 first, last = valid_span(mask)
-                t0 = first + max(1, (last - first) // 2)
+                t0 = first + max(1, int(a.onset * (last - first)))
                 x_lv = x_f.copy()
-                x_lv[t0:last, j] = x[max(0, t0 - 1), j]
+                x_lv[t0:last, j] = x_f[max(0, t0 - 1), j]
                 p4 = predict_at(net, va, i, t, x_lv)
                 x_lvd = x_f.copy()
                 for jj in np.where(flag.any(0))[0]:
                     fb = int(np.argmax(flag[:, jj]))
-                    x_lvd[fb:last, jj] = x[max(0, fb - 1), jj]
+                    x_lvd[fb:last, jj] = x_f[max(0, fb - 1), jj]
                 p5 = predict_at(net, va, i, t, x_lvd)
                 # hybrid: drift uses H-theta only when enough post-detection
                 # cycles remain to estimate theta; otherwise last-value.
@@ -124,10 +124,14 @@ def main():
         print(f'{name} RMSE {float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2))):.4f}')
     base = float(np.sqrt(np.mean((r[:, 4] - r[:, 2]) ** 2)))
     clean = float(np.sqrt(np.mean((r[:, 3] - r[:, 2]) ** 2)))
+    den = base - clean
     for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5'),
                     (9, 'R6_hybrid'), (10, 'R7_filter')]:
         rmse = float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2)))
-        print(f'{name} recovery {(base - rmse) / max(base - clean, 1e-9):.3f}')
+        if den <= 0.05:
+            print(f'{name} recovery n/a (R1-R0={den:+.4f}, no_harm)')
+        else:
+            print(f'{name} recovery {(base - rmse) / den:.3f}')
 
 
 if __name__ == '__main__':

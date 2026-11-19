@@ -63,9 +63,9 @@ def calibrate(tr, sd, rhse, W=12):
             good = mask & ~np.isnan(S3l).any(1)
             if good.any():
                 vals[3].append(S3l[good])
-    q1 = np.percentile(np.concatenate(vals[0], 0), 99.75, axis=0)
-    q2 = np.percentile(np.concatenate(vals[1], 0), 99.75, axis=0)
-    q3h = np.percentile(np.concatenate(vals[2], 0), 99.75, axis=0)
+    q1 = np.maximum(np.percentile(np.concatenate(vals[0], 0), 99.75, axis=0), 1e-6)
+    q2 = np.maximum(np.percentile(np.concatenate(vals[1], 0), 99.75, axis=0), 1e-6)
+    q3h = np.maximum(np.percentile(np.concatenate(vals[2], 0), 99.75, axis=0), 1e-6)
     q3l_raw = np.percentile(np.concatenate(vals[3], 0), 0.25, axis=0)
     quantized = q3l_raw <= 1e-6
     q3l = np.maximum(q3l_raw, 1e-7)
@@ -83,12 +83,12 @@ def detect(r, dy, mask, q, gamma=1.0, W=12, kmax=4):
             continue
         run = np.where(S3l[t] <= q['q3l'][None, :], run + 1, 0)
         stuck[t] = run >= 15
-    u = np.maximum.reduce([
+    u = np.nanmax(np.stack([
         S1 / q['q1'][None, :],
         S2 / q['q2'][None, :],
         S3h / q['q3h'][None, :],
         np.where(stuck, 2.0, 0.0),
-    ])
+    ], 0), axis=0)
     raw = (u > gamma) & mask[:, None]
     flag = np.zeros_like(raw)
     last = []

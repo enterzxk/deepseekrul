@@ -1,0 +1,75 @@
+{
+ "phase": "Phase 1c",
+ "date": "2026-11-19",
+ "supersedes": "results/FREEZE_PHASE1.json",
+ "protocol": {
+  "subsets": [
+   "FD001",
+   "FD003"
+  ],
+  "faults": [
+   "bias",
+   "drift",
+   "stuck",
+   "noise"
+  ],
+  "mags": [
+   2,
+   3,
+   5
+  ],
+  "stuck_mags": [
+   3
+  ],
+  "seeds": [
+   101,
+   202,
+   303
+  ],
+  "sensors": [
+   0,
+   5,
+   10
+  ],
+  "gamma": 1.3,
+  "onset": 0.5,
+  "arms": [
+   "R0",
+   "R1",
+   "R2",
+   "R3",
+   "R4",
+   "R5",
+   "R6_hybrid",
+   "R7_filter"
+  ],
+  "rul_jobs": 60,
+  "eol_jobs": 2,
+  "total_jobs": 62,
+  "stuck_space": "z-score (raw physical space pending)",
+  "test_sealed": true
+ },
+ "gates": {
+  "clean_cost_max": 0.15,
+  "eol_per_sensor_cycle_max": 0.02,
+  "recovery_min": 0.65,
+  "r3_vs_r5": "R3 must exceed R5 by >=0.10 on stuck/drift; report paired by seed",
+  "seed_aggregation": "mean/min/max over 3 checkpoint seeds; seeds share split and injection, so not independent data replicates"
+ },
+ "corrections": [
+  "R5 last-value clean leak fixed: use observed x_f, not clean x.",
+  "recovery is n/a when R1-R0 <= 0.05.",
+  "EOL FPR is reported as per-sensor-cycle, any-sensor-cycle, and any-window at cut=0.95.",
+  "stuck is z-space and mag-invariant; only mag=3 is queued.",
+  "gamma default is 1.30."
+ ],
+ "sha256": {
+  "paper_b/modules/stress_suite.py": "ae2673c8942700848491918fc98a8eeee2e720f59810cbb94ce8208a50aa67de",
+  "paper_b/modules/rhse.py": "c6817f45b4d3fd19595912a5426e489310b233620732482f1600ec176198de38",
+  "paper_b/modules/rhse_rul_eval.py": "5750527ff993919ef3a629a86bb78650297e4940756be41372be8b3552e0d0d7",
+  "paper_b/modules/rhse_tsh.py": "5071875a7ce71c87aacc9fa80503c597f9d52030678ab0dac9d11fa3c67a8bf2",
+  "paper_b/modules/tsh_rul_eval.py": "75ff04bcf63e9af4caf7128d02c348e6d30b7ba7ba65bf4374d9457e91c03748",
+  "paper_b/modules/tsh_eol_fpr.py": "d12c9128cc3e4d4c0ab27d12097a4e5e67518b6fe1909e47a76019338a60efbc",
+  "scripts/queue_phase1c.sh": "f635f88e7100491e384a577b3a96bf2f3e9cc9fc096532880a070cbd43129056"
+ }
+}

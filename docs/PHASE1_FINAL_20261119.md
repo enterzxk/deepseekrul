@@ -84,3 +84,29 @@
 
 **一句话：clean 代价与 EOL FPR 已过门，stuck 也过门；Gate 1 死在 FD002/FD004 的
 drift/noise 和 FD003 stuck；RHSE 只能写单工况条件性，Phase 2 暂缓。**
+
+---
+
+## 8. Post-audit correction（2026-11-19 23:50，必须读）
+
+Phase 1c 预审计发现 **R5（last-value）用了 clean 反事实值**：`tsh_rul_eval.py:97` 的
+`x[max(0, fb-1), jj]` 取的是 clean 输入，而不是故障输入 `x_f`。这使 R5 成为 oracle，
+并抬高了 R6（晚漂移走 R5）。修复后重跑 FD001 s101 mag=3：
+
+| 场景 | R3 Hθ | R5 last-value（修复后） | R6 hybrid |
+|---|---:|---:|---:|
+| FD001 bias | 0.862 | **0.059** | 0.862 |
+| FD001 drift | **0.861** | **0.313** | 0.311 |
+| FD001 stuck | **0.895** | **−0.012** | 0.895 |
+
+- **撤回**“drift 上 last-value 更好”的结论：修复后 R3 0.861 远高于 R5 0.313。
+  §4/§5 中所有 R5、R6 的数字均为修复前 oracle 泄漏版本，**不得再引用**；R3 数字不变。
+- clean 代价变为 **−0.0063**（修复后 EOL 规则/NaN 处理也变了）。
+- EOL（cut=0.95，sensors 0/5/10）：FD001 per-sensor-cycle **0.24%**、any-window **5.0%**；
+  FD003 **0.00%**、any-window **0.00%**。
+- **Gate 1 的 drift 条件现在通过**（R3 0.861 vs R5 0.313，+0.548）；但 FD002/FD004 的
+  noise/drift 仍可能拉低平均 recovery，Phase 2 仍暂缓，等 Phase 1c 3-seed 结果。
+- 其他修复：recovery 在 `R1−R0≤0.05` 时输出 `n/a`；`--gamma` 默认 1.30；
+  q 加 floor；`u` 用 `nanmax`；R4 的 hold 起点用真实 onset。
+- 代码哈希已变，`results/FREEZE_PHASE1.json` 的旧哈希作废；Phase 1c 使用
+  `results/FREEZE_PHASE1C.json`。
