@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "git_sha": "WORKTREE_PHASE2",
+ "baseline_version": "v13",
+ "source": "WORKTREE_PHASE2",
+ "generated_utc": "2026-11-20T01:25:00Z",
+ "definition": "md5 of `git cat-file blob <ref>:<path>` bytes",
+ "code_md5": {
+  "paper_b/models/dspt.py": "fb7011023b284a5f571cba4d4abb6927",
+  "paper_b/training/data.py": "c2ee079f6e60a8b0d0eb608676ff871a",
+  "paper_b/training/train.py": "13ec2fbb75ed09a389e4e979a82e11e6",
+  "paper_b/training/metrics.py": "39202682865d14dc6be5d332ac7a1c16",
+  "paper_b/configs/protocol.json": "c55720ffe09deff3a9b59c218a180114",
+  "paper_b/hc/config_hc.py": "4faaba4788bcbfbfd2d489191fb30b18",
+  "paper_b/hc/data_hc.py": "3ad7c111cf0268409bb40d79f7271cee",
+  "paper_b/hc/model_hc.py": "c55eb2b430e2d356a809a0ccbbb3f3f0",
+  "paper_b/hc/cycle_encoder.py": "f0ddc9115ba49627d4804fa6d5752e6d",
+  "paper_b/hc/train_hc.py": "a24ab6170f6ee826508913773538e899",
+  "paper_b/hc/run_hc.py": "18f82c82ed00d134ee70fc40fc875b4a",
+  "paper_b/hc/verify_loop.py": "2c15fcb4293e226102e368c717ef3f3a",
+  "paper_b/hc/snapshot_val.py": "be21a3cdc6f7022f3871faaf9d33a69b",
+  "paper_b/hc/compare_val_snapshot.py": "daff09811d4dbe6fa74c8bcb6190b2a6",
+  "paper_b/hc/code_lock.py": "055063219a55876bceaaf30c83c725da",
+  "paper_b/hc/scale_align.py": "9c1d4f53655728eb1f74518ceaa96898",
+  "paper_b/hc/arrival.py": "0e48b051d448c5ae66396ca31609fa9b",
+  "paper_b/hc/hi_d.py": "2264116a5add8b5b9f222806b85224db",
+  "paper_b/hc/data_d.py": "b18c4d99afede4b1c274d88bb0966f2b",
+  "paper_b/hc/train_d.py": "2a721c11e48a9c627e1cf516eeacf1f2"
+ }
+}
