@@ -43,6 +43,24 @@
 - **seed spread 是 checkpoint 驱动**：s303 的 clean R0 12.887（s101 12.647、
   s202 12.424），单 seed R3 最低 0.605–0.702；不得事后剔除，论文报 mean/min/max。
 
+## 2b. Per-seed clean cost（关键）
+
+clean cost 与 fault/mag 无关，只随 (subset, seed) 变。逐 seed：
+
+| subset | seed | R0 | R3c | cost | Gate ≤0.15 |
+|---|---:|---:|---:|---:|---|
+| FD001 | 101 | 12.647 | 12.641 | −0.006 | PASS |
+| FD001 | 202 | 12.424 | 12.394 | −0.030 | PASS |
+| FD001 | 303 | 12.887 | 12.894 | +0.007 | PASS |
+| FD003 | 101 | 14.299 | 14.448 | +0.149 | PASS（贴边） |
+| FD003 | 202 | 14.507 | 14.466 | −0.041 | PASS |
+| FD003 | 303 | 13.110 | 13.364 | **+0.254** | **FAIL** |
+
+**FD003 s303 的 clean cost 0.254 > 0.15，Gate 1 的 clean 门不通过。**  
+这不是某个 fault/mag 的问题：clean cost 在注入前计算，对所有 FD003 cell 相同。  
+s303 的 clean R0 更低（13.110），但 TSH 误判/重构把它抬到 13.364；同一 gamma=1.30 下
+FD001 三 seed 都过，FD003 s303 不过。**不能事后剔除 s303，也不能按子集调 gamma 来救。**
+
 ## 3. 待完成
 
 - FD003 bias/drift/stuck/noise（全部 3 seeds；队列进行中）。
@@ -50,10 +68,10 @@
 
 ## 4. 当前判定
 
-- FD001 bias/drift/stuck：**全部 PASS**。
-- FD001 noise：**mixed / separate**，不计入 recovery Gate。
-- 完整 Gate 1：**INCOMPLETE**（FD003 未收齐）。
+- FD001 bias/drift/stuck：**全部 PASS**；FD001 noise mixed/separate。
+- FD003 bias m2：R3 0.798（0.686–0.923），R5 0.277；但 **clean cost s303=0.254 失败**。
+- **Gate 1 clean 门：FAIL（FD003 s303）**；完整 Gate 1 仍 INCOMPLETE，但 clean 失败已确定。
 - Phase 2：不启动；路线取舍 PENDING-L2；test 封存。
 
-**一句话：FD001 非 noise 全部 PASS（bias 0.78–0.83、drift 0.70–0.81、stuck 0.872），
-noise 是 2 no_harm + 1 damaging、R7 12.16–12.25；等 FD003 收尾出终版 Gate 1。**
+**一句话：FD001 非 noise 全 PASS；FD003 bias m2 R3 0.798 但 s303 clean cost 0.254 >0.15，
+Gate 1 的 clean 门已经失败；不能剔除 s303 或按子集调 gamma，Phase 2 暂缓。**

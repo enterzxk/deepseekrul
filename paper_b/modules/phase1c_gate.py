@@ -19,6 +19,7 @@ def main():
     a = ap.parse_args()
     root = Path(a.log_dir)
     cells = defaultdict(lambda: defaultdict(list))
+    clean_by_seed = defaultdict(list)
     eol = []
     for p in sorted(root.glob('*.log')):
         text = p.read_text(errors='replace')
@@ -32,6 +33,8 @@ def main():
         if not m:
             continue
         d = parse_rul(text)
+        if 'cost' in d:
+            clean_by_seed[(m.group(1), int(m.group(4)))].append(d['cost'])
         key = (m.group(1), m.group(2), int(m.group(3)))
         if d.get('no_harm'):
             cells[key]['no_harm'].append(1)
@@ -44,9 +47,9 @@ def main():
             cells[key]['cost'].append(d['cost'])
 
     print('# Phase 1c Gate 1', '')
-    clean_max = max((np.mean(v['cost']) for v in cells.values() if v['cost']), default=float('nan'))
+    clean_max = max((np.mean(v) for v in clean_by_seed.values()), default=float('nan'))
     eol_max = max(eol, default=float('nan'))
-    print(f'- clean cost max: {clean_max:.4f} (gate <=0.15)')
+    print(f'- clean cost max (per subset, seed): {clean_max:.4f} (gate <=0.15)')
     print(f'- EOL per-sensor-cycle max: {eol_max:.4f} (gate <=0.02)')
     print('')
     print('| subset | fault | mag | n | R3 mean | R5 mean | R3-R5 | R3>=0.65 |')
