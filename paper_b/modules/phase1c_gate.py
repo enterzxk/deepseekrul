@@ -33,6 +33,9 @@ def main():
             continue
         d = parse_rul(text)
         key = (m.group(1), m.group(2), int(m.group(3)))
+        if d.get('no_harm'):
+            cells[key]['no_harm'].append(1)
+            continue
         for arm in ['R3', 'R5', 'R6_hybrid']:
             v = d.get(arm + '_rec')
             if v is not None:
@@ -53,6 +56,9 @@ def main():
         s, f, m = key
         r3 = np.asarray(cells[key].get('R3', []), float)
         r5 = np.asarray(cells[key].get('R5', []), float)
+        if cells[key].get('no_harm') and len(r3) == 0:
+            print(f'| {s} | {f} | {m} | n/a | n/a | n/a | n/a | PASS(no_harm) |')
+            continue
         r3m = r3.mean() if len(r3) else float('nan')
         r5m = r5.mean() if len(r5) else float('nan')
         gap = r3m - r5m

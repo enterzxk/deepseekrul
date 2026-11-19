@@ -28,7 +28,11 @@ def parse_rul(text):
     for arm in ['R2', 'R3', 'R4', 'R5', 'R6_hybrid', 'R7_filter']:
         m = re.search(rf'^{arm} recovery (n/a|[\-\d.]+)', b, re.M)
         if m:
-            out[arm + '_rec'] = None if m.group(1) == 'n/a' else float(m.group(1))
+            if m.group(1) == 'n/a':
+                out[arm + '_rec'] = None
+                out['no_harm'] = True
+            else:
+                out[arm + '_rec'] = float(m.group(1))
     return out
 
 
@@ -57,6 +61,11 @@ def main():
         if 'R3_rec' not in d:
             continue
         key = (subset, fault, mag)
+        if d.get('no_harm'):
+            groups[key]['no_harm'].append(1)
+            if 'cost' in d:
+                groups[key]['cost'].append(d['cost'])
+            continue
         for arm in ['R3', 'R5', 'R6_hybrid', 'R7_filter']:
             v = d.get(arm + '_rec')
             if v is not None:
@@ -64,8 +73,8 @@ def main():
         if 'cost' in d:
             groups[key]['cost'].append(d['cost'])
     lines = ['# Phase 1c summary', '',
-             '| subset | fault | mag | n | R3 mean (min–max) | R5 mean (min–max) | R6 mean | R7 mean | clean cost |',
-             '|---|---|---:|---:|---|---|---|---|---|']
+             '| subset | fault | mag | n | R3 mean (min–max) | R5 mean (min–max) | R6 mean | R7 mean | clean cost | note |',
+             '|---|---|---:|---:|---|---|---|---|---|---|']
     for key in sorted(groups):
         s, f, m = key
         g = groups[key]
@@ -74,9 +83,10 @@ def main():
             if len(v) == 0:
                 return '—'
             return f'{v.mean():.3f} ({v.min():.3f}–{v.max():.3f})'
+        note = 'no_harm' if g.get('no_harm') else ''
         lines.append(f'| {s} | {f} | {m} | {len(g.get("R3", []))} | '
                      f'{stat("R3")} | {stat("R5")} | {stat("R6_hybrid")} | '
-                     f'{stat("R7_filter")} | {stat("cost")} |')
+                     f'{stat("R7_filter")} | {stat("cost")} | {note} |')
     lines += ['', '## EOL FPR', '', '| subset | per-cycle | any-window |', '|---|---:|---:|']
     for k in sorted(eol):
         lines.append(f'| {k} | {eol[k][0]:.4f} | {eol[k][1]:.4f} |')
