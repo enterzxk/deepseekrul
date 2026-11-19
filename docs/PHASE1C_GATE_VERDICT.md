@@ -43,13 +43,19 @@
 |---:|---|---:|
 | 2 | 0.798 (0.686–0.923) | 0.277 |
 | 3 | 0.876 (0.780–0.967) | 0.153 |
+| 5 | 0.952 (0.914–0.997) | 0.015 |
+
+### FD003 drift mag2（s101，partial）
+
+R3 **0.583** <0.65，R2 0.980，R5 0.327。小幅度 drift 即使 oracle 重构很好，
+部署式 R3 仍低于门；3-seed 待补。这是 **clean 失败之外的第二个 FD003 边界**。
 
 ## 3. 结论
 
 1. **FD001 单工况条件性成立**：bias/drift/stuck 全部 R3≥0.65，R3 显著优于 R5，
    clean 三 seed 全过，EOL per-cycle 0.24%。
-2. **FD003 不能写成成立**：recovery 过门，但 s303 clean cost 0.254 >0.15；同一 gamma=1.30，
-   不剔除 seed、不按子集调参。
+2. **FD003 不能写成成立**：bias recovery 过门，但 drift mag2 s101 R3 0.583 <0.65；
+   且 s303 clean cost 0.254 >0.15。两个独立失败（recovery + clean），不能靠剔除 seed 或调 gamma 解决。
 3. **noise 不是 recovery 目标**：FD001 多数 seed no_harm；R7 滤波绝对 RMSE 12.16–12.25，
    作为探索性观察，不写成主贡献。
 4. **Phase 2 不启动**：Gate 1 clean 门失败；端到端不会修复 clean cost。
