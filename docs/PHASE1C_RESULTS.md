@@ -71,21 +71,38 @@ FD001 三 seed 都过，FD003 s303 不过。**不能事后剔除 s303，也不�
 | drift | 2 | 3 | **0.640** (0.583–0.739) | 0.319 | s303 0.254 **FAIL** |
 | drift | 3 | 3 | **0.772** (0.736–0.840) | 0.494 | s303 0.254 **FAIL** |
 | drift | 5 | 3 | **0.841** (0.777–0.919) | 0.493 | s303 0.254 **FAIL** |
+| noise | 2 | 3 | **0.413** (0.025–0.796) | −2.618 | s303 0.254 **FAIL** |
+| noise | 3 | 3 | 0.653 (0.513–0.801) | −2.260 | s303 0.254 **FAIL** |
+| noise | 5 | 3 | 0.633 (0.573–0.723) | −1.837 | s303 0.254 **FAIL** |
+| stuck | 3 | 3 | **0.570** (0.338–0.932) | −0.244 | s303 0.254 **FAIL** |
 
-- recovery 本身过 0.65，但 **clean 失败适用于所有 FD003 cell**（clean cost 在注入前算，与 fault/mag 无关）。
-- FD003 的 drift/stuck/noise 仍在跑；无论 recovery 多好，clean 门已 FAIL。
+- FD003 noise 与 FD001 不同：R1>R0（噪声伤害 B0），R3 0.41–0.65，R5 为负；
+  noise 在 FD003 是 damaging，但仍低于 0.65（mag3 0.653 贴边）。
+- FD003 stuck 0.570（0.338–0.932），15 步 run-length 的延迟 + 短窗口导致高方差、均值 <0.65。
+- **clean 失败适用于所有 FD003 cell**（clean cost 在注入前算，与 fault/mag 无关）。
 
-## 3. 待完成
+## 3. 最终 Gate 1（62/62，0 failed）
 
-- FD003 bias/drift/stuck/noise（全部 3 seeds；队列进行中）。
-- 完整 Gate 1：`python -m paper_b.modules.phase1c_gate`。
+| 条件 | 结果 |
+|---|---|
+| clean cost ≤0.15 | **FAIL：FD003 s303 0.254** |
+| EOL per-cycle ≤2% | PASS（FD001 0.24%、FD003 0%） |
+| FD001 bias/drift/stuck | **全部 PASS** |
+| FD003 bias | PASS（0.798 / 0.876 / 0.952） |
+| FD003 drift mag3/5 | PASS（0.772 / 0.841） |
+| FD003 drift mag2 | **FAIL（0.640）** |
+| FD003 stuck | **FAIL（0.570）** |
+| FD003 noise | damaging，0.413–0.653，未过 0.65 |
+| noise | FD001 no_harm/mixed；FD003 damaging |
+
+**Gate 1：FAIL**，三个独立原因：clean s303、FD003 drift mag2、FD003 stuck。
 
 ## 4. 当前判定
 
-- FD001 bias/drift/stuck：**全部 PASS**；FD001 noise mixed/separate。
-- FD003 bias m2：R3 0.798（0.686–0.923），R5 0.277；但 **clean cost s303=0.254 失败**。
-- **Gate 1 clean 门：FAIL（FD003 s303）**；完整 Gate 1 仍 INCOMPLETE，但 clean 失败已确定。
-- Phase 2：不启动；路线取舍 PENDING-L2；test 封存。
+- **FD001 单工况条件性成立**：bias/drift/stuck 全部 PASS，clean 三 seed 全过，EOL 0.24%。
+- **FD003 是幅度/故障类型/seed 边界**：bias 与大漂移可用；小漂移、stuck、clean s303 失败；
+  noise 在 FD003 是 damaging，R3 0.41–0.65。
+- **Phase 2 不启动**；路线取舍 PENDING-L2；test 封存。
 
-**一句话：FD001 非 noise 全 PASS；FD003 bias m2 R3 0.798 但 s303 clean cost 0.254 >0.15，
-Gate 1 的 clean 门已经失败；不能剔除 s303 或按子集调 gamma，Phase 2 暂缓。**
+**一句话：62/62、0 failed；Gate 1 FAIL 于 FD003 s303 clean 0.254、drift mag2 0.640、stuck 0.570；
+FD001 单工况条件性成立，FD003 只能写幅度/类型/seed 边界，Phase 2 暂缓。**
