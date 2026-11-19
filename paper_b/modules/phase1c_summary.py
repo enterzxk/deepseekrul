@@ -65,6 +65,9 @@ def main():
             groups[key]['no_harm'].append(1)
             if 'cost' in d:
                 groups[key]['cost'].append(d['cost'])
+            groups[key]['rmse'].append((
+                d.get('R0', np.nan), d.get('R1', np.nan), d.get('R3', np.nan),
+                d.get('R5', np.nan), d.get('R7_filter', np.nan)))
             continue
         for arm in ['R3', 'R5', 'R6_hybrid', 'R7_filter']:
             v = d.get(arm + '_rec')
@@ -90,6 +93,17 @@ def main():
     lines += ['', '## EOL FPR', '', '| subset | per-cycle | any-window |', '|---|---:|---:|']
     for k in sorted(eol):
         lines.append(f'| {k} | {eol[k][0]:.4f} | {eol[k][1]:.4f} |')
+    lines += ['', '## no_harm cells (absolute RMSE)', '',
+              '| subset | fault | mag | n | R0 | R1 | R3 | R5 | R7 |',
+              '|---|---|---:|---:|---:|---:|---:|---:|---:|']
+    for key in sorted(groups):
+        g = groups[key]
+        if not g.get('rmse'):
+            continue
+        arr = np.asarray(g['rmse'], float)
+        vals = [np.nanmean(arr[:, i]) for i in range(arr.shape[1])]
+        lines.append(f'| {key[0]} | {key[1]} | {key[2]} | {len(arr)} | '
+                     + ' | '.join(f'{v:.3f}' for v in vals) + ' |')
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text('\n'.join(lines) + '\n')
     print('\n'.join(lines))
