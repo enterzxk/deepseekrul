@@ -29,6 +29,10 @@ def _ema(x, valid, alpha):
 class SensorFeatureBank(nn.Module):
     """8 extra causal channels per sensor."""
 
+    def __init__(self, cusum_mode='raw'):
+        super().__init__()
+        self.cusum_mode = cusum_mode
+
     def forward(self, x, baseline, mask):
         B, L, N = x.shape
         valid = mask.bool()
@@ -51,8 +55,29 @@ class SensorFeatureBank(nn.Module):
 
         s5, s10, s20 = slope(5), slope(10), slope(20)
 
-        cs = torch.cumsum(dev * m, dim=1)
         t = torch.arange(1, L + 1, device=x.device, dtype=x.dtype).view(1, L, 1)
+        if self.cusum_mode == 'mad':
+            # scale-invariant CUSUM: divide each sensor by its window MAD
+            den = m.sum(dim=1, keepdim=True).clamp_min(1.0)
+            med = (x * m).sum(dim=1, keepdim=True) / den
+            mad = ((x - med).abs() * m).sum(dim=1, keepdim=True) / den
+            cs = torch.cumsum(dev / mad.clamp_min(1e-3) * m, dim=1)
+        elif self.cusum_mode == 'detrend':
+            # remove the engine's own early linear trend before CUSUM
+            first = valid.float().argmax(dim=1)                    # (B,)
+            ar = torch.arange(B, device=x.device)
+            k = 20
+            last = (first + k - 1).clamp_max(L - 1)
+            x0 = x[ar, first]                                      # (B,N)
+            xk = x[ar, last]                                       # (B,N)
+            span = (last - first).clamp_min(1).float().view(B, 1)
+            slope0 = (xk - x0) / span
+            rel = (torch.arange(L, device=x.device).view(1, L)
+                   - first.view(B, 1)).clamp_min(0).to(x.dtype)
+            trend = x0.unsqueeze(1) + slope0.unsqueeze(1) * rel.unsqueeze(-1)
+            cs = torch.cumsum((x - trend) * m, dim=1)
+        else:
+            cs = torch.cumsum(dev * m, dim=1)
         cs = cs / t.sqrt().clamp_min(1.0)
 
         ediff = (_ema(x, valid, 0.5) - _ema(x, valid, 0.1)) * m
@@ -117,9 +142,11 @@ class ZeroFeatureBank(nn.Module):
 
 
 class DSPT_MSFB(DSPT):
-    def __init__(self, control=False, drop_family=None, only_family=None, **kw):
+    def __init__(self, control=False, drop_family=None, only_family=None,
+                 cusum_mode='raw', **kw):
         super().__init__(**kw)
-        self.feat_bank = ZeroFeatureBank() if control else SensorFeatureBank()
+        self.feat_bank = (ZeroFeatureBank() if control
+                          else SensorFeatureBank(cusum_mode))
         self.sensor_in = FeatureTypeFusion(self.n_feat, self.d_model,
                                            drop_family=drop_family,
                                            only_family=only_family)
@@ -135,7 +162,7 @@ def build_msfb(num_sensors=14, d_model=64, num_layers=2, dropout=0.2,
                hi_source='none', hi_mono='none', use_pad_mask=True,
                use_cycle=True, cycle_pos=None, n_cond=6,
                legacy_ms_pad=False, legacy_ema=False, control=False,
-               drop_family=None, only_family=None):
+               drop_family=None, only_family=None, cusum_mode='raw'):
     import inspect
     kw = dict(num_sensors=num_sensors, d_model=d_model, num_layers=num_layers,
               dropout=dropout, max_span=max_span, instnorm=instnorm,
@@ -143,7 +170,7 @@ def build_msfb(num_sensors=14, d_model=64, num_layers=2, dropout=0.2,
               hi_mono=hi_mono, use_pad_mask=use_pad_mask, use_cycle=use_cycle,
               n_cond=n_cond, legacy_ms_pad=legacy_ms_pad,
               legacy_ema=legacy_ema, control=control, drop_family=drop_family,
-              only_family=only_family)
+              only_family=only_family, cusum_mode=cusum_mode)
     # The a40/3090 Stage D snapshot predates cycle_pos; the local Paper B
     # version has it. Pass it only when the installed DSPT accepts it.
     if 'cycle_pos' in inspect.signature(DSPT.__init__).parameters:

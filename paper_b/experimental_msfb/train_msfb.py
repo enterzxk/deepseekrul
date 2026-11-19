@@ -20,7 +20,8 @@ def _build(cfg):
             n_cond=cfg['n_cond'], legacy_ms_pad=cfg['legacy_ms_pad'],
             legacy_ema=cfg['legacy_ema'], control=cfg.get('control', False),
             drop_family=cfg.get('drop_family'),
-            only_family=cfg.get('only_family'))
+            only_family=cfg.get('only_family'),
+            cusum_mode=cfg.get('cusum_mode', 'raw'))
     return _ORIG_BUILD(cfg)
 
 
@@ -49,6 +50,9 @@ def main():
     ap.add_argument('--only-family', default='',
                     choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff', 'contrast'],
                     help='single-family-only: zero all other families')
+    ap.add_argument('--cusum-mode', default='raw',
+                    choices=['raw', 'mad', 'detrend'],
+                    help='CUSUM feature variant: raw / scale-invariant MAD / early detrend')
     a = ap.parse_args()
     fam = {'': None, 'dx': 0, 'ddx': 1, 'slope': 2, 'cusum': 3,
            'ema_diff': 4, 'contrast': 5}
@@ -61,7 +65,7 @@ def main():
                hi_source=a.hi_source, hi_mono='none', use_cycle=True,
                cycle_pos=None, fp32=True, use_pad_mask=True, aux_dual=True,
                instnorm=False, tag=a.tag, control=a.control,
-               drop_family=drop, only_family=only)
+               drop_family=drop, only_family=only, cusum_mode=a.cusum_mode)
     m = T.train_one(cfg, device=a.device, out_root=a.out_root)
     print('DONE', a.subset, a.seed, m.get('val_engine_mean_rmse'), m.get('params'))
 
