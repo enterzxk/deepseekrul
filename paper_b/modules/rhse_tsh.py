@@ -66,18 +66,28 @@ def calibrate(tr, sd, rhse, W=12):
     q1 = np.percentile(np.concatenate(vals[0], 0), 99.75, axis=0)
     q2 = np.percentile(np.concatenate(vals[1], 0), 99.75, axis=0)
     q3h = np.percentile(np.concatenate(vals[2], 0), 99.75, axis=0)
-    q3l = np.percentile(np.concatenate(vals[3], 0), 0.25, axis=0)
-    q3l = np.maximum(q3l, 1e-7)
-    return dict(q1=q1, q2=q2, q3h=q3h, q3l=q3l)
+    q3l_raw = np.percentile(np.concatenate(vals[3], 0), 0.25, axis=0)
+    quantized = q3l_raw <= 1e-6
+    q3l = np.maximum(q3l_raw, 1e-7)
+    return dict(q1=q1, q2=q2, q3h=q3h, q3l=q3l, quantized=quantized)
 
 
 def detect(r, dy, mask, q, gamma=1.0, W=12, kmax=4):
     S1, S2, S3h, S3l = stats(r, dy, mask, W=W)
+    # Stuck: require a run of 15 consecutive low-activity valid steps. A single
+    # low-activity cycle is common on clean data; a real stuck sensor persists.
+    stuck = np.zeros_like(S3l, dtype=bool)
+    run = np.zeros(S3l.shape[1], np.int32)
+    for t in range(len(mask)):
+        if not mask[t]:
+            continue
+        run = np.where(S3l[t] <= q['q3l'][None, :], run + 1, 0)
+        stuck[t] = run >= 15
     u = np.maximum.reduce([
         S1 / q['q1'][None, :],
         S2 / q['q2'][None, :],
         S3h / q['q3h'][None, :],
-        np.where(S3l <= q['q3l'][None, :], 2.0, 0.0),
+        np.where(stuck, 2.0, 0.0),
     ])
     raw = (u > gamma) & mask[:, None]
     flag = np.zeros_like(raw)

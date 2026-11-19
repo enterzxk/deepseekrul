@@ -133,3 +133,50 @@ R2/R3/R5；同时检查 fault 是否真的伤害 R0（若否，提高 mag 或换
 3. 若 FD002/FD004 的 stuck/noise 仍 <0.65，Gate 1 正式失败，按计划退回
    “单工况条件性 + 多工况限制”或转 Phase 2 路线 B；
 4. test 仍封存。
+
+---
+
+## 6. EOL FPR 修复：stuck 改为 15 步 run-length
+
+首版 TSH 的 EOL 虚警很高：FD001–FD004 的 per-sensor-cycle flag rate 3.6–5.3%，
+any-sensor-window FPR 40–50%。诊断显示主因是 **S3l（窗口活动度）单步触发 + 2-of-3 锁存**，
+不是 S1/S2/S3h；q3l 的 0.25% 分位在 clean 上本来就会产生零星低活动周期。
+
+修复：stuck 不再用“单步 S3l <= q3l”，改为**连续 15 个有效周期**都低活动才触发。
+这既保留真 stuck（持续多周期），又消除 clean 的零星触发。
+
+| 子集 | 修复前 cycle flag rate | 修复后 cycle flag rate | 修复后 any-window FPR |
+|---|---:|---:|---:|
+| FD001 | 3.65% | **0.32%** | 4.43% |
+| FD002 | 4.19% | **1.04%** | 13.02% |
+| FD003 | 5.33% | **1.31%** | 9.71% |
+| FD004 | 4.99% | **1.17%** | 12.39% |
+
+- 若 Gate 1 的 EOL FPR 按**per-sensor-cycle**（与首轮 simple RHSE 的 1.8% 同口径）：
+  **全部 ≤2%，通过**。
+- 若按“任一传感器在 EOL 任一周期触发”的 any-window 口径：仍 4–13%，不通过。
+  计划书未定义口径；建议在论文中明确写 per-sensor-cycle，并同时报告 any-window。
+
+**代价**：stuck 检测延迟 15 周期，恢复率略降：
+
+| 子集 | R3 stuck（run-length 前） | R3 stuck（run-length 后） | R5 |
+|---|---:|---:|---:|
+| FD001 | 0.927 | **0.895** | 0.294 |
+| FD004 | 0.964 | **0.702** | −0.758 |
+
+- FD001 0.895、FD004 0.702，仍 ≥0.65；R3 仍显著优于 last-value。
+- 15 步延迟对晚 onset 的 stuck 更不利；这是 EOL FPR 与恢复率的明确 trade-off。
+
+**Gate 1 更新**：
+
+| 条件 | 结果 |
+|---|---|
+| clean 代价 ≤0.15 | FD001 +0.024 通过；FD002/FD004 待补 |
+| EOL FPR ≤2%（per-sensor-cycle） | **通过**（0.32–1.31%） |
+| 平均 recovery ≥0.65（≥3/4 子集） | 仍不通过：FD002/FD004 的 drift/noise 拉低 |
+| R4 在 stuck 上领先 R5 ≥0.10 | **通过**（FD001 +0.60、FD004 +1.46） |
+| R4 在 drift 上领先 R5 ≥0.10 | 混合；FD001 晚漂移 R5 更好 |
+
+**结论**：EOL FPR 硬门在 per-sensor-cycle 口径下已过；stuck 也过。
+Gate 1 仍卡在 **FD002/FD004 的 drift/noise**，不是检测阈值或 EOL FPR。
+Phase 2 继续暂停；下一步是单工况证据整理 + 多工况边界，路线取舍 PENDING-L2。
