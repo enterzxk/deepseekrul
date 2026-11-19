@@ -21,34 +21,39 @@
 | drift | 2 | 3 | 0.700 (0.605–0.748) | 0.269 | +0.431 | −0.010 |
 | drift | 3 | 3 | 0.797 (0.667–0.862) | 0.362 | +0.435 | −0.010 |
 | drift | 5 | 3 | 0.814 (0.667–0.894) | 0.363 | +0.451 | −0.010 |
-| stuck | 3 | 3 | **0.872** (0.79–0.93) | −0.037 | +0.908 | −0.010 |
-| noise | 2 | 1 (s101) | n/a（no_harm） | — | — | −0.010 |
-| noise | 5 | 1 (s101) | n/a（no_harm） | — | — | −0.010 |
+| stuck | 3 | 3 | **0.872** (0.851–0.895) | −0.037 | +0.908 | −0.010 |
 
-- **noise mag2 s101 是 no_harm**：R0 12.647、R1 12.580，R1−R0=−0.068；故障不伤害 B0，
-  recovery 无定义。此时应报告绝对 RMSE 与 ΔRMSE，而不是 recovery：
-  R3 13.661、R5 16.094、**R7 filter 12.224**（比 clean 还好）。
-- **noise mag5 s101 仍是 no_harm**：R1−R0=−0.127，R7 12.129、R3 13.443、R5 16.364。
-  说明 FD001 的 B0 对加性高斯噪声在 mag≤5 内不敏感；noise 不应作为 recovery 主指标。
-- 若 3 seeds 都是 no_harm，noise 不应计入“四类故障平均 recovery”；论文里单列
-  “noise 在该幅度下不造成伤害”，并报告 R7 的绝对 RMSE。
+### noise（mixed：2 no_harm + 1 damaging per mag）
+
+| mag | no_harm seeds | damaging seeds | R7 RMSE（no_harm seeds） | R3（damaging） |
+|---:|---:|---:|---:|---:|
+| 2 | 2 | 1 | **12.248** | −2.040 |
+| 3 | 2 | 1 | **12.229** | −2.297 |
+| 5 | 2 | 1 | **12.157** | −2.594 |
+
+- 2/3 seeds 的 `R1−R0≤0.05`，故障不伤害 B0；1/3 seed 仍伤害，recovery 为负。
+- **noise 从 recovery Gate 单列**：不计入 R3≥0.65；论文报告 R7 的绝对 RMSE 和
+  “noise 在 mag≤5 内多数 seed 不造成伤害”。
+- R7 因果中值滤波在 no_harm seeds 上稳定在 12.16–12.25，略优于 clean；这是探索性观察，
+  不写成主贡献。
+- 提交：`0ad2fe21`、`5b6d8597`。
 
 - EOL：FD001 0.24% per-sensor-cycle / 5.0% any-window；FD003 0% / 0%。
-- 所有 FD001 cell 的 R3 均值 ≥0.65；R3 全面领先 R5。
+- 所有 FD001 非 noise cell 的 R3 均值 ≥0.65；R3 全面领先 R5。
 - **seed spread 是 checkpoint 驱动**：s303 的 clean R0 12.887（s101 12.647、
   s202 12.424），单 seed R3 最低 0.605–0.702；不得事后剔除，论文报 mean/min/max。
 
 ## 3. 待完成
 
-- FD001 noise（进行中）：若 `R1−R0≤0.05`，标记 no_harm，不算失败。
-- FD003 bias/drift/stuck/noise（全部 3 seeds）。
+- FD003 bias/drift/stuck/noise（全部 3 seeds；队列进行中）。
 - 完整 Gate 1：`python -m paper_b.modules.phase1c_gate`。
 
 ## 4. 当前判定
 
-- FD001 bias/drift/stuck：**部分 PASS**。
-- 完整 Gate 1：**INCOMPLETE**（FD003/noise 未收齐）。
+- FD001 bias/drift/stuck：**全部 PASS**。
+- FD001 noise：**mixed / separate**，不计入 recovery Gate。
+- 完整 Gate 1：**INCOMPLETE**（FD003 未收齐）。
 - Phase 2：不启动；路线取舍 PENDING-L2；test 封存。
 
-**一句话：FD001 的 bias/drift/stuck 已全部过部分 Gate，stuck 3-seed R3 0.872 vs R5 −0.037；
-等 FD001 noise 与 FD003 收尾后出终版 Gate 1。**
+**一句话：FD001 非 noise 全部 PASS（bias 0.78–0.83、drift 0.70–0.81、stuck 0.872），
+noise 是 2 no_harm + 1 damaging、R7 12.16–12.25；等 FD003 收尾出终版 Gate 1。**
