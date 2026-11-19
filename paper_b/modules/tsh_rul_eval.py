@@ -104,7 +104,15 @@ def main():
                     p6 = p3 if onset_est < 0.35 else p5
                 else:
                     p6 = p3
-                rows.append((i, j, y, p0, p1, p2, p3, p4, p5, p6))
+                # causal median filter on detected sensors (noise-friendly)
+                x_filt = x_f.copy()
+                for jj in np.where(flag.any(0))[0]:
+                    fb = int(np.argmax(flag[:, jj]))
+                    for tt in range(fb, last):
+                        lo = max(0, tt - 4)
+                        x_filt[tt, jj] = np.median(x_f[lo:tt + 1, jj])
+                p7 = predict_at(net, va, i, t, x_filt)
+                rows.append((i, j, y, p0, p1, p2, p3, p4, p5, p6, p7))
 
     c = np.asarray(clean_rows, float)
     r0c = float(np.sqrt(np.mean((c[:, 1] - c[:, 0]) ** 2)))
@@ -112,11 +120,12 @@ def main():
     print(f'clean R0 {r0c:.4f} R3c {r3c:.4f} cost {r3c - r0c:+.4f}')
     r = np.asarray(rows, float)
     for k, name in [(3, 'R0'), (4, 'R1'), (5, 'R2'), (6, 'R3'),
-                    (7, 'R4'), (8, 'R5'), (9, 'R6_hybrid')]:
+                    (7, 'R4'), (8, 'R5'), (9, 'R6_hybrid'), (10, 'R7_filter')]:
         print(f'{name} RMSE {float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2))):.4f}')
     base = float(np.sqrt(np.mean((r[:, 4] - r[:, 2]) ** 2)))
     clean = float(np.sqrt(np.mean((r[:, 3] - r[:, 2]) ** 2)))
-    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5'), (9, 'R6_hybrid')]:
+    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5'),
+                    (9, 'R6_hybrid'), (10, 'R7_filter')]:
         rmse = float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2)))
         print(f'{name} recovery {(base - rmse) / max(base - clean, 1e-9):.3f}')
 
