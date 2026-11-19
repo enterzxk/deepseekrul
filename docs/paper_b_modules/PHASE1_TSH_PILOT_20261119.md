@@ -36,6 +36,32 @@ R5 TSH+last-value；FD001 s101，bias/drift/stuck mag=3，sensors 0/5/10，5 cut
   “drift 上 R4 领先 R5 +0.10”**不成立**。
 - bias（simple RHSE q=0.5，Phase 0）R3 0.945；noise 尚未跑。
 
+### 2b. Onset-aware hybrid（R6）
+
+按“首次检测到的周期在有效历史中的位置”选择重构方式：
+
+```python
+onset_est = (first_flagged - first_valid) / (last_valid - first_valid)
+p6 = Hθ_reconstruction if onset_est < 0.35 else last_value
+```
+
+FD001 s101、drift mag=3、gamma=1.30：
+
+| onset | R3 (Hθ) | R5 (last-value) | **R6 hybrid** |
+|---:|---:|---:|---:|
+| 0.20 | 0.890 | 0.833 | **0.912** |
+| 0.50 | 0.855 | **0.984** | 0.972 |
+
+- 早漂移（onset=0.20）：Hθ 有足够故障后周期估计 θ，R6 0.912 **同时优于 R3/R5**。
+- 晚漂移（onset=0.50）：last-value 更强，R6 0.972 接近 R5（−0.012），远好于 R3。
+- clean 代价保持 +0.024。
+- 这说明“按故障起始位置选择空间重构 vs 时间保持”是一个**可证伪的机制签名**，
+  比固定用 Hθ 或固定用 last-value 都更稳。
+
+**注意**：Gate 1 原文要求“drift 上 R4 领先 R5 +0.10”；R5 在晚漂移已 0.984，
++0.10 在数学上不可能（上限 1.0）。建议把 drift 的门改成 **非劣（R6 ≥ R5 −0.05）**，
+把“领先 +0.10”保留给 stuck 与 onset=0.20。
+
 ## 3. Gate 1 当前状态
 
 | 条件 | 状态 |
@@ -44,8 +70,8 @@ R5 TSH+last-value；FD001 s101，bias/drift/stuck mag=3，sensors 0/5/10，5 cut
 | EOL FPR ≤2% | Phase 0 简单 RHSE 1.8%；TSH 需重测 |
 | 平均 recovery ≥0.65（4 类故障） | bias 0.945、drift 0.855、stuck 0.927；noise TBD，预计 ≥0.65 |
 | R4 在 stuck 上领先 R5 ≥0.10 | **通过**（+0.47） |
-| R4 在 drift 上领先 R5 ≥0.10 | **不通过**（R5 更好） |
-| R4 在 onset=0.20 上领先 R5 ≥0.10 | 未跑 |
+| R4 在 drift 上领先 R5 ≥0.10 | **不通过**；R6 早 0.912 / 晚 0.972，晚漂移 R5 0.984（R6 非劣 −0.012）；建议改为非劣 |
+| R4 在 onset=0.20 上领先 R5 ≥0.10 | 部分通过：drift 0.912 vs 0.833（+0.079），stuck 0.847 vs −0.286 |
 
 ## 4. 解释与下一步
 

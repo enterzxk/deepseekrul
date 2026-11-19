@@ -14,17 +14,16 @@ def valid_span(mask):
     return int(idx[0]), int(idx[-1] + 1)
 
 
-def inject(dy, mask, sensor, fault, mag, rng=None):
+def inject(dy, mask, sensor, fault, mag, rng=None, onset=0.5):
     """Return (faulted_dy, positive_mask) for one window.
 
-    dy: (L,N) standardized; mask: (L,) bool.
-    positive_mask marks cycles whose injected magnitude is >= 1 sigma (used for
-    amplitude-stratified AUC; for drift the ramp is below 1 sigma near t0).
+    dy: (L,N) standardized; mask: (L,) bool; onset in (0,1) is the fraction of
+    the valid history at which the fault starts.
     """
     dy = np.asarray(dy, dtype=np.float64)
     out = dy.copy()
     first, last = valid_span(mask)
-    t0 = first + max(1, (last - first) // 2)
+    t0 = first + max(1, int(onset * (last - first)))
     pos = np.zeros(len(dy), dtype=bool)
     if fault == 'bias':
         out[t0:last, sensor] += mag

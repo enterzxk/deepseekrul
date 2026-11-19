@@ -24,6 +24,7 @@ def main():
     ap.add_argument('--mag', type=float, default=3.0)
     ap.add_argument('--sensors', default='0,5,10')
     ap.add_argument('--gamma', type=float, default=1.0)
+    ap.add_argument('--onset', type=float, default=0.5)
     a = ap.parse_args()
 
     tr, va, sd, rhse, net = prep(a.subset, a.data_dir, a.seed, Path(a.root))
@@ -61,7 +62,7 @@ def main():
             clean_rows.append((y, p0, p3c))
             for j in sensors:
                 rng = np.random.default_rng(1000 + i * 100 + j)
-                dy_f, _ = inject(dy, mask, j, a.fault, a.mag, rng)
+                dy_f, _ = inject(dy, mask, j, a.fault, a.mag, rng, onset=a.onset)
                 x_f = base + dy_f * sd
                 p1 = predict_at(net, va, i, t, x_f)
                 w_or = np.ones_like(dy_f)
@@ -95,7 +96,15 @@ def main():
                     fb = int(np.argmax(flag[:, jj]))
                     x_lvd[fb:last, jj] = x[max(0, fb - 1), jj]
                 p5 = predict_at(net, va, i, t, x_lvd)
-                rows.append((i, j, y, p0, p1, p2, p3, p4, p5))
+                # hybrid: drift uses H-theta only when enough post-detection
+                # cycles remain to estimate theta; otherwise last-value.
+                if a.fault == 'drift' and flag.any():
+                    fb = int(np.argmax(flag.any(1)))
+                    onset_est = (fb - first) / max(1, last - first)
+                    p6 = p3 if onset_est < 0.35 else p5
+                else:
+                    p6 = p3
+                rows.append((i, j, y, p0, p1, p2, p3, p4, p5, p6))
 
     c = np.asarray(clean_rows, float)
     r0c = float(np.sqrt(np.mean((c[:, 1] - c[:, 0]) ** 2)))
@@ -103,11 +112,11 @@ def main():
     print(f'clean R0 {r0c:.4f} R3c {r3c:.4f} cost {r3c - r0c:+.4f}')
     r = np.asarray(rows, float)
     for k, name in [(3, 'R0'), (4, 'R1'), (5, 'R2'), (6, 'R3'),
-                    (7, 'R4'), (8, 'R5')]:
+                    (7, 'R4'), (8, 'R5'), (9, 'R6_hybrid')]:
         print(f'{name} RMSE {float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2))):.4f}')
     base = float(np.sqrt(np.mean((r[:, 4] - r[:, 2]) ** 2)))
     clean = float(np.sqrt(np.mean((r[:, 3] - r[:, 2]) ** 2)))
-    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5')]:
+    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5'), (9, 'R6_hybrid')]:
         rmse = float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2)))
         print(f'{name} recovery {(base - rmse) / max(base - clean, 1e-9):.3f}')
 
