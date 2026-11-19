@@ -25,6 +25,16 @@
 
 判定由 `python -m paper_b.modules.phase1c_gate` 输出 PASS/FAIL/INCOMPLETE。
 
+### 1b. 已观察到的 seed spread（2026-11-20，部分结果）
+
+- 三个 seed 的 clean R0 不同：s101 **12.647**、s202 **12.424**、s303 **12.887**；
+  注入 RNG 相同，所以差异来自 checkpoint，不是注入。
+- s303 系统性偏弱：FD001 bias mag2 R3 0.655（s101 0.813 / s202 0.884）、
+  mag5 0.625；drift mag2 0.605。均值门可过，但单 seed 会低于 0.65。
+- **不得事后剔除 s303**；报告 mean/min/max 和 per-seed 表
+  （`paper_b.modules.phase1c_seed_table`），并在论文中写明 3 seeds 是
+  checkpoint 重复、不是独立数据重复。
+
 ## 3. 分支 A：Gate 1 通过
 
 若 20/20 cells 通过（noise 的 `n/a` 单独处理）：
