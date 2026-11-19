@@ -127,3 +127,33 @@ RMSE 10.560733872511083 | SCORE 157.12120783959784
 3. 若要做公平比较：把 ST-KDFormer 的模型接到我们的数据管线（split_seed=7、14 传感器、
    condition-wise z-score、40 epoch），重训 4 子集 × 3 seed；不能直接拿论文数字对表。
 4. 作者的 validation 归一化泄漏要在复现时修掉；否则 FD001 10.56 的 validation 选择不可比。
+
+## 7. 前向重建尝试（2026-11-19，失败）
+
+在作者只能提供上述 zip 的前提下，我们从 checkpoint 的 115 个 state key + 论文
+Fig. 2/Algorithm 1–2 反推了 `model_util.py` 和 `transformer_model2.py`：
+
+- `LSTMKoopmanEncoder`（2 层双向 LSTM，hidden 128，projection 256→128→64）
+- `LSTMDecoder`（2 层 LSTM，hidden 128，output 128→14/19）
+- `KoopmanDynamics`（64×64 spectral norm）
+- `Koopman_Test0`（temporal KAE）/ `Koopman_Test1`（spatial stacked-AE，Linear 30→128→256→512→64）
+- `Encoder`（2 层、4 head、`Norm(alpha,bias)`、位置编码 1×5000×64）
+- `OutConvNet_spatiotemperal`（Conv1d 64→64→128 k3 padding 1，maxpool 2，fc 128×22→128→1）
+
+**结果：能加载全部权重并跑通前向，但 FD001 test RMSE ≈ 79.8（论文 10.56）**。  
+我们试过：
+
+- temporal latent 用整段 LSTM 输出 vs 最后 hidden state；
+- encoder 分支共享 vs 拼接；
+- pre-norm vs post-norm；
+- `O_temporal/O_spatial` 的拼接顺序、是否做 top-level LayerNorm、是否乘 scale；
+- spatial AE 用 Linear（与 state key 一致）而不是 Conv1d。
+
+RMSE 始终在 68–82 之间，预测几乎常数（约 5–15 cycles），说明**缺失的 `model_util.py` /
+`transformer_model2.py` 里有作者特定的 forward 细节**（Norm/attention 的具体形式、
+temporal token 的构造、RUL head 的输入与池化方式等），仅凭 checkpoint 和论文无法唯一反推。
+
+**结论：不做“已复现”声明。** 当前只能：
+- 用论文 Table IV 的 reported numbers，并标注“作者协议、非本机复现”；
+- 或从论文重新实现 ST-KDFormer（这是方法复现，不是跑作者代码），在 matched protocol 下重训；
+- 或继续向作者要 `model_util.py` + `transformer_model2.py`（唯一能精确复现的路径）。
