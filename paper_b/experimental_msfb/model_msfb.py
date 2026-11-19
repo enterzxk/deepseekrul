@@ -55,15 +55,13 @@ class SensorFeatureBank(nn.Module):
 
         s5, s10, s20 = slope(5), slope(10), slope(20)
 
+        ediff = (_ema(x, valid, 0.5) - _ema(x, valid, 0.1)) * m
+        med = x.median(dim=2, keepdim=True).values
+        contrast = (x - med) * m
+
         t = torch.arange(1, L + 1, device=x.device, dtype=x.dtype).view(1, L, 1)
-        if self.cusum_mode == 'mad':
-            # scale-invariant CUSUM: divide each sensor by its window MAD
-            den = m.sum(dim=1, keepdim=True).clamp_min(1.0)
-            med = (x * m).sum(dim=1, keepdim=True) / den
-            mad = ((x - med).abs() * m).sum(dim=1, keepdim=True) / den
-            cs = torch.cumsum(dev / mad.clamp_min(1e-3) * m, dim=1)
-        elif self.cusum_mode == 'detrend':
-            # remove the engine's own early linear trend before CUSUM
+
+        def detrend_cusum():
             first = valid.float().argmax(dim=1)                    # (B,)
             ar = torch.arange(B, device=x.device)
             k = 20
@@ -75,17 +73,28 @@ class SensorFeatureBank(nn.Module):
             rel = (torch.arange(L, device=x.device).view(1, L)
                    - first.view(B, 1)).clamp_min(0).to(x.dtype)
             trend = x0.unsqueeze(1) + slope0.unsqueeze(1) * rel.unsqueeze(-1)
-            cs = torch.cumsum((x - trend) * m, dim=1)
+            return torch.cumsum((x - trend) * m, dim=1) / t.sqrt().clamp_min(1.0)
+
+        if self.cusum_mode == 'mad':
+            # scale-invariant CUSUM: divide each sensor by its window MAD
+            den = m.sum(dim=1, keepdim=True).clamp_min(1.0)
+            med = (x * m).sum(dim=1, keepdim=True) / den
+            mad = ((x - med).abs() * m).sum(dim=1, keepdim=True) / den
+            cs = torch.cumsum(dev / mad.clamp_min(1e-3) * m, dim=1)
+            cs = cs / t.sqrt().clamp_min(1.0)
+            channels = [dx, ddx, s5, s10, s20, cs, ediff, contrast]
+        elif self.cusum_mode == 'detrend':
+            cs = detrend_cusum()
+            channels = [dx, ddx, s5, s10, s20, cs, ediff, contrast]
+        elif self.cusum_mode == 'both':
+            cs_raw = torch.cumsum(dev * m, dim=1) / t.sqrt().clamp_min(1.0)
+            cs_det = detrend_cusum()
+            channels = [dx, ddx, s5, s10, s20, cs_raw, ediff, contrast, cs_det]
         else:
-            cs = torch.cumsum(dev * m, dim=1)
-        cs = cs / t.sqrt().clamp_min(1.0)
+            cs = torch.cumsum(dev * m, dim=1) / t.sqrt().clamp_min(1.0)
+            channels = [dx, ddx, s5, s10, s20, cs, ediff, contrast]
 
-        ediff = (_ema(x, valid, 0.5) - _ema(x, valid, 0.1)) * m
-
-        med = x.median(dim=2, keepdim=True).values
-        contrast = (x - med) * m
-
-        return torch.stack([dx, ddx, s5, s10, s20, cs, ediff, contrast], dim=-1)
+        return torch.stack(channels, dim=-1)
 
 
 class FeatureTypeFusion(nn.Module):
@@ -96,7 +105,7 @@ class FeatureTypeFusion(nn.Module):
         super().__init__()
         self.n_base = int(n_base)
         self.base_proj = nn.Linear(n_base, d_model)
-        dims = [1, 1, 3, 1, 1, 1]
+        dims = [1, 1, 3, 1, 1, 1, 1]
         self.family_proj = nn.ModuleList([nn.Linear(k, d_model) for k in dims])
         self.gate = nn.Sequential(nn.Linear(d_model, hidden), nn.GELU(),
                                   nn.Linear(hidden, 1))
@@ -109,7 +118,7 @@ class FeatureTypeFusion(nn.Module):
     def forward(self, feats):
         base = feats[..., :self.n_base]
         extra = feats[..., self.n_base:]
-        slices = [(0, 1), (1, 2), (2, 5), (5, 6), (6, 7), (7, 8)]
+        slices = [(0, 1), (1, 2), (2, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
         if self.only_family is not None:
             extra = extra.clone()
             for f, (lo, hi) in enumerate(slices):
@@ -123,7 +132,7 @@ class FeatureTypeFusion(nn.Module):
             extra[..., lo:hi] = 0.0
         hs = []
         start = 0
-        for proj, k in zip(self.family_proj, [1, 1, 3, 1, 1, 1]):
+        for proj, k in zip(self.family_proj, [1, 1, 3, 1, 1, 1, 1]):
             hs.append(proj(extra[..., start:start + k]))
             start += k
         h_fam = torch.stack(hs, dim=3)              # (B,L,N,F,D)
@@ -137,7 +146,7 @@ class ZeroFeatureBank(nn.Module):
     """Capacity control: same parameter count, no new sensor information."""
 
     def forward(self, x, baseline, mask):
-        return torch.zeros(x.size(0), x.size(1), x.size(2), 8,
+        return torch.zeros(x.size(0), x.size(1), x.size(2), 9,
                            device=x.device, dtype=x.dtype)
 
 

@@ -45,17 +45,19 @@ def main():
     ap.add_argument('--control', action='store_true',
                     help='capacity control: same params, extra feature channels zeroed')
     ap.add_argument('--drop-family', default='',
-                    choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff', 'contrast'],
+                    choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff',
+                             'contrast', 'cusum_detrend'],
                     help='leave-one-family-out: zero this family before projection')
     ap.add_argument('--only-family', default='',
-                    choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff', 'contrast'],
+                    choices=['', 'dx', 'ddx', 'slope', 'cusum', 'ema_diff',
+                             'contrast', 'cusum_detrend'],
                     help='single-family-only: zero all other families')
     ap.add_argument('--cusum-mode', default='raw',
-                    choices=['raw', 'mad', 'detrend'],
-                    help='CUSUM feature variant: raw / scale-invariant MAD / early detrend')
+                    choices=['raw', 'mad', 'detrend', 'both'],
+                    help='CUSUM feature variant: raw / MAD / detrend / both')
     a = ap.parse_args()
     fam = {'': None, 'dx': 0, 'ddx': 1, 'slope': 2, 'cusum': 3,
-           'ema_diff': 4, 'contrast': 5}
+           'ema_diff': 4, 'contrast': 5, 'cusum_detrend': 6}
     drop = fam[a.drop_family]
     only = fam[a.only_family]
     cfg = dict(model='msfb', subset=a.subset, seed=a.seed, data_dir=a.data_dir,
