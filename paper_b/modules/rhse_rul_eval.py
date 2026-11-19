@@ -78,11 +78,34 @@ def main():
     ap.add_argument('--mag', type=float, default=3.0)
     ap.add_argument('--sensors', default='0,5,10')
     ap.add_argument('--cut-frac', type=float, default=0.95)
+    ap.add_argument('--q-scale', type=float, default=1.0,
+                    help='multiply the clean 1%% weight threshold; <1 is stricter')
     a = ap.parse_args()
 
     tr, va, sd, rhse, net = prep(a.subset, a.data_dir, a.seed, __import__('pathlib').Path(a.root))
     sensors = [int(s) for s in a.sensors.split(',')]
+
+    # calibrate the per-sensor low-weight threshold on clean training windows
+    clean_w = []
+    for i in range(len(tr['lengths'])):
+        n = int(tr['lengths'][i])
+        for f in (0.7, 0.85, 0.95):
+            t = int(round(f * n)) - 1
+            mask = tr['mask'][i, t].astype(bool)
+            if mask.sum() < 10:
+                continue
+            dy = (tr['x'][i, t] - tr['baseline'][i, t]) / sd
+            with torch.no_grad():
+                _, w, _ = rhse(torch.tensor(dy[None], dtype=torch.float32),
+                               torch.tensor(mask[None], dtype=torch.float32))
+            clean_w.append(w[0].numpy()[mask])
+    clean_w = np.concatenate(clean_w, 0)
+    q01 = np.percentile(clean_w, 1, axis=0)
+    qthr = q01 * a.q_scale
+    print('q01', np.round(q01, 3), 'q-scale', a.q_scale)
+
     rows = []
+    clean_rows = []
     for i in range(len(va['lengths'])):
         for cut in va['cut_t'][i]:
             if cut <= 0:
@@ -96,6 +119,21 @@ def main():
             dy = (x - base) / sd
             y = float(va['y'][i, t])
             p0 = predict_at(net, va, i, t, x)
+            # clean-input R3: false-alarm cost
+            with torch.no_grad():
+                _, wc, _ = rhse(torch.tensor(dy[None], dtype=torch.float32),
+                                torch.tensor(mask[None], dtype=torch.float32))
+            wc = wc[0].numpy()
+            badc = np.maximum.accumulate(wc < qthr[None, :], axis=0).any(0)
+            x_rhc = x.copy()
+            if badc.any():
+                w2c = wc.copy()
+                w2c[:, badc] = 0.0
+                thc, Hsc = theta_solve(rhse, dy, mask, w2c)
+                dyhatc = thc @ Hsc.T
+                x_rhc[:, badc] = base[badc] + dyhatc[:, badc] * sd[badc]
+            p3c = predict_at(net, va, i, t, x_rhc)
+            clean_rows.append((y, p0, p3c))
             for j in sensors:
                 rng = np.random.default_rng(1000 + i * 100 + j)
                 dy_f, pos = inject(dy, mask, j, a.fault, a.mag, rng)
@@ -114,27 +152,43 @@ def main():
                     _, w, _ = rhse(torch.tensor(dy_f[None], dtype=torch.float32),
                                    torch.tensor(mask[None], dtype=torch.float32))
                 w = w[0].numpy()
-                bad = w[-1] < 0.5
+                bad_cycle = w < qthr[None, :]
+                bad_latch = np.maximum.accumulate(bad_cycle, axis=0)
+                bad = bad_latch.any(0)
+                first, last = valid_span(mask)
                 x_rh = x_f.copy()
                 if bad.any():
-                    th_rh, Hs = theta_solve(rhse, dy_f, mask, w)
+                    w2 = w.copy()
+                    w2[:, bad] = 0.0
+                    th_rh, Hs = theta_solve(rhse, dy_f, mask, w2)
                     dy_hat_rh = th_rh @ Hs.T
                     x_rh[:, bad] = base[bad] + dy_hat_rh[:, bad] * sd[bad]
                 p3 = predict_at(net, va, i, t, x_rh)
-                # last healthy value interpolation
-                first, last = valid_span(mask)
+                # oracle last-value (known faulty sensor)
                 t0 = first + max(1, (last - first) // 2)
                 x_lv = x_f.copy()
                 x_lv[t0:last, j] = x[max(0, t0 - 1), j]
                 p4 = predict_at(net, va, i, t, x_lv)
-                rows.append((i, j, y, p0, p1, p2, p3, p4))
+                # deployable last-value: same detection, first detected cycle
+                x_lv_det = x_f.copy()
+                for jj in np.where(bad)[0]:
+                    fb = int(np.argmax(bad_latch[:, jj]))
+                    x_lv_det[fb:last, jj] = x[max(0, fb - 1), jj]
+                p5 = predict_at(net, va, i, t, x_lv_det)
+                rows.append((i, j, y, p0, p1, p2, p3, p4, p5))
+    c = np.asarray(clean_rows, dtype=float)
+    r0c = float(np.sqrt(np.mean((c[:, 1] - c[:, 0]) ** 2)))
+    r3c = float(np.sqrt(np.mean((c[:, 2] - c[:, 0]) ** 2)))
+    print(f'clean R0 {r0c:.4f} R3c {r3c:.4f} cost {r3c - r0c:+.4f}')
+
     r = np.asarray(rows, dtype=float)
-    for k, name in [(3, 'R0'), (4, 'R1'), (5, 'R2'), (6, 'R3'), (7, 'R4')]:
+    for k, name in [(3, 'R0'), (4, 'R1'), (5, 'R2'), (6, 'R3'),
+                    (7, 'R4'), (8, 'R5')]:
         rmse = float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2)))
         print(f'{name} RMSE {rmse:.4f}')
     base = float(np.sqrt(np.mean((r[:, 4] - r[:, 2]) ** 2)))
     clean = float(np.sqrt(np.mean((r[:, 3] - r[:, 2]) ** 2)))
-    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4')]:
+    for k, name in [(5, 'R2'), (6, 'R3'), (7, 'R4'), (8, 'R5')]:
         rmse = float(np.sqrt(np.mean((r[:, k] - r[:, 2]) ** 2)))
         rec = (base - rmse) / max(base - clean, 1e-9)
         print(f'{name} recovery {rec:.3f}')
