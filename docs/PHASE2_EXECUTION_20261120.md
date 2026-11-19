@@ -67,7 +67,17 @@
 3. **M_smhi / M_ols / M_no_attn / M_no_theta**：机制消融；
 4. 5 seeds × 4 subsets 配对；Gate 2 用 engine-level paired bootstrap。
 
-## 7. 当前不做
+## 7. M1/M2 已实现并排队
+
+- `paper_b/modules/model_rhse_dspt.py`：可微 H/log_s、3 步加权 LS、soft gate、
+  `f_hi=[theta_last, slope10, slope30, energy, entropy]` 零初始化头。
+- `paper_b/modules/phase2_train.py`：M1 clean / M2 +静态增强；RUL + α_meas·测量残差 +
+  α_mono·θ 单调损失；5 seeds × 4 subsets。
+- Smoke：M1 FD001 s101 1 epoch val 61.9（非证据），11.9 s/epoch。
+- 队列：`scripts/queue_phase2_m1m2.sh`，40 runs，GPU1，运行中。
+- 偏差：当前 M1 只实现“输入净化 + θ 残差头”，尚未实现注意力偏置（M_no_attn 对照后续补）。
+
+## 8. 当前不做
 
 - 不打开 test；
 - 不因 Gate 1 失败停工；
