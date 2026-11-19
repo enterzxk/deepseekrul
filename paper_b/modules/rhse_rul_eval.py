@@ -124,7 +124,10 @@ def main():
                 _, wc, _ = rhse(torch.tensor(dy[None], dtype=torch.float32),
                                 torch.tensor(mask[None], dtype=torch.float32))
             wc = wc[0].numpy()
-            badc = np.maximum.accumulate(wc < qthr[None, :], axis=0).any(0)
+            # IMPORTANT: padding positions have w=0; never let them enter the
+            # threshold or the causal latch. Only valid cycles may be flagged.
+            badc_cycle = (wc < qthr[None, :]) & mask[:, None]
+            badc = np.maximum.accumulate(badc_cycle, axis=0).any(0)
             x_rhc = x.copy()
             if badc.any():
                 w2c = wc.copy()
@@ -152,7 +155,7 @@ def main():
                     _, w, _ = rhse(torch.tensor(dy_f[None], dtype=torch.float32),
                                    torch.tensor(mask[None], dtype=torch.float32))
                 w = w[0].numpy()
-                bad_cycle = w < qthr[None, :]
+                bad_cycle = (w < qthr[None, :]) & mask[:, None]
                 bad_latch = np.maximum.accumulate(bad_cycle, axis=0)
                 bad = bad_latch.any(0)
                 first, last = valid_span(mask)
