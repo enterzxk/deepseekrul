@@ -13,6 +13,7 @@ import torch
 
 from paper_b.hc import config_hc as C
 from paper_b.hc.data_d import engine_batch
+from paper_b.modules.cap_align import align_cap_aware
 from paper_b.modules.temporal_agg import build_model, predict_windows
 from paper_b.training.data import _prepare_split
 
@@ -25,6 +26,10 @@ def main():
     ap.add_argument('--data-dir', default=str(Path.home() / 'rulb/data/CMAPSS'))
     ap.add_argument('--out-dir', default=str(Path.home() / 'sprint24/experiments/hc/temporal_agg/preds'))
     ap.add_argument('--tau', type=float, default=0.05)
+    ap.add_argument('--cap-align', action='store_true',
+                    help='cap-aware age alignment (soft plateau gate)')
+    ap.add_argument('--cap-tau', type=float, default=3.0)
+    ap.add_argument('--cap-margin', type=float, default=3.0)
     ap.add_argument('--delta', type=int, default=5)
     ap.add_argument('--K', type=int, default=3)
     ap.add_argument('--device', default='cuda:0')
@@ -60,7 +65,10 @@ def main():
             idxs = [t for t in idxs if t >= 0]
             preds = predict_windows(net, eb, i, idxs, dev)
             sel_idx = np.asarray(idxs, np.int64)
-            aligned = preds - (c - (sel_idx + 1))
+            age = c - (sel_idx + 1)
+            aligned = (align_cap_aware(preds, age, tau=a.cap_tau,
+                                       margin=a.cap_margin)
+                       if a.cap_align else preds - age)
             med = float(np.median(aligned))
             mad = float(np.median(np.abs(aligned - med)))
             stat = mad / max(abs(med), 1.0)
