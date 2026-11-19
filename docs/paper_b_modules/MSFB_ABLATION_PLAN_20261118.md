@@ -119,6 +119,36 @@ raw → FD001，detrend → FD002；两者都在 FD003 伤害。s101 的 detrend
 让注意力在每个传感器/周期上选择 raw 或 detrend，希望同时拿到 FD001 的 raw 增益和
 FD002 的 detrend 增益，并在 FD003 抑制两者。3-seed × 4 子集网格运行中。
 
+### combined raw+detrend CUSUM 3-seed（官方 test）
+
+| 子集 | combined 3-seed | DSPT-V0 | Δ | 判定 |
+|---|---:|---:|---:|---|
+| FD001 | 10.824 ± 0.775（11.502/9.966/11.004） | 10.60 | **+0.22** | 比 raw/full 差 |
+| FD002 | 11.098 ± 0.300（11.399/10.799/11.094） | 11.03 | **+0.07** | 比 detrend 差 |
+| FD003 | 11.722 ± 0.464（12.245/11.342/11.580） | 10.68 | **+1.04** | 最差 |
+| FD004 | 12.390 ± 0.150（12.390/12.240/12.540） | 12.38 | **+0.01** | 中性 |
+
+**combined 失败**：它没有同时拿到 raw 的 FD001 增益和 detrend 的 FD002 增益，
+反而在 FD003 更差。feature-type attention 在 7 族上无法按 regime 选择；两个 CUSUM
+变体放在同一个注意力里互相干扰/过拟合。
+
+### MSFB 线的总账
+
+| 变体 | FD001 | FD002 | FD003 | FD004 |
+|---|---:|---:|---:|---:|
+| DSPT-V0 | 10.60 | 11.03 | 10.68 | 12.38 |
+| full MSFB（8 族） | **10.04** | 11.14 | 11.49 | 12.30 |
+| raw CUSUM-only（s101） | **10.09** | — | 11.16 | — |
+| detrend CUSUM（3-seed） | 10.60 | **10.68** | 11.15 | 12.22 |
+| combined raw+detrend（3-seed） | 10.82 | 11.10 | 11.72 | 12.39 |
+
+**没有任何一个变体在 FD003 上不伤害**；最好的子集结果分别是 full/raw（FD001）、
+detrend（FD002），但都不能通用。MSFB 只能写成**子集条件性模块/边界结果**，除非加
+fault-mode/regime 门控。
+
+**决策**：停止继续堆 CUSUM 变体。若还要救 MSFB，只剩“用可观测 fault-mode/regime
+特征做门控，在 FD003 关闭 CUSUM 路径”这一条；否则关闭 MSFB 主线，保留 LTAG 为已验证模块。
+
 ## 1. 消融矩阵
 
 所有臂使用**同一协议**、同一 data split、同一 seed 集；test 只做一次性描述性比较，
@@ -164,12 +194,15 @@ FD002 的 detrend 增益，并在 FD003 抑制两者。3-seed × 4 子集网格�
 如果 A8/A9 显示 MSFB 依赖 CNN/SA，论文应写成“传感器特征 + CNN/SA 的联合模块”，不能
 单独声称特征库的独立贡献。
 
-## 4. 当前运行
+## 4. 当前状态
 
-- 3090 `experiments/msfb_grid`：12/12 完成（FD001–FD004 × 3 seed），test 已用 CPU 一次性评估。
-- 3090 `experiments/msfb_ctrl`：A2 zero-feature control，FD001/FD003 s101 已完成并 test：
-  FD001 10.5639、FD003 10.6243；与 MSFB 10.0482/10.8375 对比见 §A2。
-- 3090 `experiments/msfb_drop_*`：A6 leave-one-family-out 运行中
-  （FD001: slope/ema_diff/cusum；FD003: contrast/cusum/slope）。
-- 完成后：若某族在 FD001 是贡献族、在 FD003 是伤害族，试“去掉该族”的 MSFB 变体；
-  若伤害族不唯一，考虑按 regime/子集门控或把 MSFB 限定为 FD001 条件性模块。
+- 3090 `experiments/msfb_grid`：full MSFB 12/12 完成，test 已评估。
+- 3090 `experiments/msfb_ctrl`：A2 zero-feature control FD001/FD003 完成。
+- 3090 `experiments/msfb_drop_*`：A6 leave-one-family-out 完成。
+- 3090 `experiments/msfb_only_cusum`：raw CUSUM-only 完成。
+- 3090 `experiments/msfb_detrend_grid`：detrend CUSUM 12/12 完成，test 已评估。
+- 3090 `experiments/msfb_both_grid`：combined raw+detrend 12/12 完成，test 已评估。
+- **结论：combined 失败；没有通用 CUSUM 变体；MSFB 只能写子集条件性/边界。**
+- 下一步只剩两条：  
+  1) 用可观测 fault-mode/regime 特征做门控，在 FD003 关闭 CUSUM 路径（新的 gate 模块，需独立验证）；  
+  2) 关闭 MSFB 主线，保留 LTAG 为唯一 test 级验证模块。
