@@ -61,6 +61,16 @@ clean cost 与 fault/mag 无关，只随 (subset, seed) 变。逐 seed：
 s303 的 clean R0 更低（13.110），但 TSH 误判/重构把它抬到 13.364；同一 gamma=1.30 下
 FD001 三 seed 都过，FD003 s303 不过。**不能事后剔除 s303，也不能按子集调 gamma 来救。**
 
+### FD003 bias（partial, 3-seed）
+
+| fault | mag | n | R3 mean (min–max) | R5 mean | clean cost |
+|---|---:|---:|---|---:|---|
+| bias | 2 | 3 | 0.798 (0.686–0.923) | 0.277 | s303 0.254 **FAIL** |
+| bias | 3 | 3 | **0.876** (0.780–0.967) | 0.153 | s303 0.254 **FAIL** |
+
+- recovery 本身过 0.65，但 **clean 失败适用于所有 FD003 cell**（clean cost 在注入前算，与 fault/mag 无关）。
+- FD003 的 drift/stuck/noise 仍在跑；无论 recovery 多好，clean 门已 FAIL。
+
 ## 3. 待完成
 
 - FD003 bias/drift/stuck/noise（全部 3 seeds；队列进行中）。
