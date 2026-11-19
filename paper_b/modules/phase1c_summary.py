@@ -86,7 +86,7 @@ def main():
             if len(v) == 0:
                 return '—'
             return f'{v.mean():.3f} ({v.min():.3f}–{v.max():.3f})'
-        note = 'no_harm' if g.get('no_harm') else ''
+        note = 'no_harm %d' % len(g['no_harm']) if g.get('no_harm') else ''
         lines.append(f'| {s} | {f} | {m} | {len(g.get("R3", []))} | '
                      f'{stat("R3")} | {stat("R5")} | {stat("R6_hybrid")} | '
                      f'{stat("R7_filter")} | {stat("cost")} | {note} |')

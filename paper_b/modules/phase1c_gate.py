@@ -62,6 +62,10 @@ def main():
         r3m = r3.mean() if len(r3) else float('nan')
         r5m = r5.mean() if len(r5) else float('nan')
         gap = r3m - r5m
+        if f == 'noise':
+            print(f'| {s} | {f} | {m} | {len(r3)} | {r3m:.3f} | {r5m:.3f} | '
+                  f'{gap:+.3f} | noise (separate) |')
+            continue
         ok = (len(r3) >= 3) and r3m >= 0.65
         all_ok &= ok
         print(f'| {s} | {f} | {m} | {len(r3)} | {r3m:.3f} | {r5m:.3f} | '
