@@ -2,6 +2,16 @@
 
 **Date:** 2026-11-19 · **Scope:** LTAG + RHSE-TSH · **Status:** claim freeze before drafting
 
+> **2026-11-20 correction — read before using any R5/R6 number.**
+> The pre-fix `tsh_rul_eval.py` built the last-value arm from the **clean** counterfactual
+> `x[fb-1]` instead of the observed `x_f[fb-1]`. Every R5/R6 number in this file is therefore
+> **oracle-leaked and invalid**; the sentence “hold wins late drift” is **withdrawn**.
+> Post-fix FD001 s101: bias R3 0.862 / R5 0.059; drift R3 0.861 / R5 0.313; stuck R3 0.895 /
+> R5 −0.012. The Phase 1c queue (60 RUL + 2 EOL, 3 seeds) is producing the corrected R5 table;
+> until it lands, cite **R3 only** and mark R5 as pending. R3 numbers are unaffected by the leak.
+> The Gate-1 “drift R4 ≥ R5 + 0.10” condition must be re-evaluated with corrected R5, not with
+> the 0.984 figure in §1.4/§5.
+
 > This file records what the current evidence can and cannot support. It runs no experiments and
 > introduces no measurements: every number is quoted from `PHASE1_FINAL_20261119.md`,
 > `PHASE1B_HC_NEGATIVE_20261119.md`, `PHASE1_TSH_PILOT_20261119.md`, `LTAG_TEST_20261118.md` or
