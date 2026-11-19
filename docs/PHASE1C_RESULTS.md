@@ -23,10 +23,13 @@
 | drift | 5 | 3 | 0.814 (0.667–0.894) | 0.363 | +0.451 | −0.010 |
 | stuck | 3 | 3 | **0.872** (0.79–0.93) | −0.037 | +0.908 | −0.010 |
 | noise | 2 | 1 (s101) | n/a（no_harm） | — | — | −0.010 |
+| noise | 5 | 1 (s101) | n/a（no_harm） | — | — | −0.010 |
 
 - **noise mag2 s101 是 no_harm**：R0 12.647、R1 12.580，R1−R0=−0.068；故障不伤害 B0，
   recovery 无定义。此时应报告绝对 RMSE 与 ΔRMSE，而不是 recovery：
   R3 13.661、R5 16.094、**R7 filter 12.224**（比 clean 还好）。
+- **noise mag5 s101 仍是 no_harm**：R1−R0=−0.127，R7 12.129、R3 13.443、R5 16.364。
+  说明 FD001 的 B0 对加性高斯噪声在 mag≤5 内不敏感；noise 不应作为 recovery 主指标。
 - 若 3 seeds 都是 no_harm，noise 不应计入“四类故障平均 recovery”；论文里单列
   “noise 在该幅度下不造成伤害”，并报告 R7 的绝对 RMSE。
 
