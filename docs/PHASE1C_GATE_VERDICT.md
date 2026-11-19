@@ -45,21 +45,24 @@
 | 3 | 0.876 (0.780–0.967) | 0.153 |
 | 5 | 0.952 (0.914–0.997) | 0.015 |
 
-### FD003 drift mag2（3-seed）
+### FD003 drift（3-seed）
 
-| n | R3 mean (min–max) | R5 mean | R2 (s101) |
+| mag | R3 mean (min–max) | R5 mean | R2 (s101) |
 |---:|---|---:|---:|
-| 3 | **0.640** (0.583–0.739) | 0.319 | 0.980 |
+| 2 | **0.640** (0.583–0.739) | 0.319 | 0.980 |
+| 3 | **0.772** (0.736–0.840) | 0.494 | 0.987 |
 
-R3 均值 **0.640 <0.65**，是 recovery 失败（不只是 s101）。R2 0.980 说明 oracle 重构很好，
-瓶颈在检测/选择；小幅度 drift 是 FD003 最弱 cell。这是 **clean 失败之外的第二个 FD003 边界**。
+- mag2 3-seed mean **0.640 <0.65**，是 recovery 失败。
+- mag3 3-seed mean 0.772，过门；drift 的失败是 **幅度依赖**，不是“drift 全失败”。
+- R2 0.98+，瓶颈在检测/选择；小幅度 drift 是 FD003 最弱 cell。
 
 ## 3. 结论
 
 1. **FD001 单工况条件性成立**：bias/drift/stuck 全部 R3≥0.65，R3 显著优于 R5，
    clean 三 seed 全过，EOL per-cycle 0.24%。
-2. **FD003 不能写成成立**：bias recovery 过门，但 drift mag2 3-seed R3 **0.640 <0.65**；
-   且 s303 clean cost 0.254 >0.15。两个独立失败（recovery + clean），不能靠剔除 seed 或调 gamma 解决。
+2. **FD003 不能写成成立**：bias recovery 过门；drift mag2 3-seed R3 **0.640 <0.65**，
+   但 mag3 0.772 过门——是**幅度依赖**的边界；且 s303 clean cost 0.254 >0.15。
+   recovery（小漂移）+ clean 两个独立失败，不能靠剔除 seed 或调 gamma 解决。
 3. **noise 不是 recovery 目标**：FD001 多数 seed no_harm；R7 滤波绝对 RMSE 12.16–12.25，
    作为探索性观察，不写成主贡献。
 4. **Phase 2 不启动**：Gate 1 clean 门失败；端到端不会修复 clean cost。
