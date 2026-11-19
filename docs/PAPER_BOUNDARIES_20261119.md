@@ -11,6 +11,10 @@
 > until it lands, cite **R3 only** and mark R5 as pending. R3 numbers are unaffected by the leak.
 > The Gate-1 “drift R4 ≥ R5 + 0.10” condition must be re-evaluated with corrected R5, not with
 > the 0.984 figure in §1.4/§5.
+>
+> **R6 is also withdrawn.** The onset-aware hybrid routed late drift to the (pre-fix) strong
+> last-value. With corrected R5, R6 is harmful: FD001 drift mag2 3-seed R6 0.281 vs R3 0.700.
+> Do not use R6 in the paper; R3 (TSH+Hθ) is the method, R5 is the weak deployable baseline.
 
 > This file records what the current evidence can and cannot support. It runs no experiments and
 > introduces no measurements: every number is quoted from `PHASE1_FINAL_20261119.md`,

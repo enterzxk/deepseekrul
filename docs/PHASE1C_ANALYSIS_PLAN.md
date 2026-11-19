@@ -9,6 +9,9 @@
 - 每个 cell 3 seeds（101/202/303），seed 是 checkpoint 重复，不是独立数据重复。
 - 报告：R3/R5/R6/R7 的 **mean / min / max**；clean cost 的 max；EOL per-cycle 与 any-window。
 - 主指标：R3 recovery（TSH+Hθ）；R5 是 deployable last-value 对照；R4 是 oracle 上界。
+- **R6（onset-aware hybrid）已撤回**：它是在 R5 还是 oracle 泄漏时设计的；修复后 R6 把晚漂移
+  路由到弱 last-value，FD001 drift mag2 3-seed R6 0.281 vs R3 0.700。Phase 1c 只分析
+  R3/R5/R7，**不使用 R6**。
 
 ## 2. Gate 1（预注册）
 
