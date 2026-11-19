@@ -1,0 +1,42 @@
+{
+ "phase": "Phase 1",
+ "date": "2026-11-19",
+ "protocol": {
+  "faults": [
+   "bias",
+   "drift",
+   "noise",
+   "stuck"
+  ],
+  "mag": 3.0,
+  "sensors": [
+   0,
+   5,
+   10
+  ],
+  "gamma": 1.3,
+  "onset": [
+   0.2,
+   0.5
+  ],
+  "arms": [
+   "R0",
+   "R1",
+   "R2",
+   "R3",
+   "R4",
+   "R5",
+   "R6_hybrid",
+   "R7_filter"
+  ],
+  "stuck_space": "z-score (raw physical space pending)",
+  "test_sealed": true
+ },
+ "sha256": {
+  "paper_b/modules/stress_suite.py": "ae2673c8942700848491918fc98a8eeee2e720f59810cbb94ce8208a50aa67de",
+  "paper_b/modules/rhse.py": "c6817f45b4d3fd19595912a5426e489310b233620732482f1600ec176198de38",
+  "paper_b/modules/rhse_rul_eval.py": "5750527ff993919ef3a629a86bb78650297e4940756be41372be8b3552e0d0d7",
+  "paper_b/modules/rhse_tsh.py": "4e05277b7ebb7367c672be9406056de9445de443d0a83198009e1a859adeac4d",
+  "paper_b/modules/tsh_rul_eval.py": "c64cb02f381c4dc3b40ca798345f7108bfcabaffdc15b7bba674d8e9fe14e909"
+ }
+}
