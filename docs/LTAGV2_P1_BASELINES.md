@@ -78,13 +78,15 @@
    仍胜，但幅度变小（FD001 10.150）。
 4. 按计划 §3 分支：**G1.1 失败 → 暂停 Phase 2；叙事改为“推理期后校准”，
    重新评估期刊。**
-5. 原始 B0 LTAG test +0.398 需要重新核对：它是否也用了不可观测特征；
-   若用了，必须撤回或重算。
+5. 原始 B0 LTAG test +0.398 **不因本次泄漏失效**：`learned_gate_global` 使用
+   `FEATS_G`（不含 `cycle_frac`），`cata_test_features` 也把 `cycle_frac` 置 1；
+   test 特征是可观测的。但 Phase 1 表明 LTAG 不是最佳聚合器——test 只验证了
+   “LTAG 相对 K1 有增益”，没有验证“LTAG 优于后校准/线性 stack”。
 
 ## 5. 下一步（不改门槛）
 
-- 核对原始 LTAG test 的特征列表，确认是否包含 `cycle_frac`/`n` 等不可观测量。
 - 以 **K1-Calib / Linear-Stack** 为新的候选主方法，做与 LTAG 同样的 test 冻结/一次性评估
   （Phase 5 只做一次；test 仍封存）。
+- 核对原始 LTAG test 的特征列表（已核对：无可观测性泄漏），但不要把它当成“最优聚合器”的证据。
 - 补 `Ens3` 仅为完成 G1.3，不改变 G1.1/G1.2/G1.4 的 FAIL。
 - **Phase 2 不启动**；test 封存。
