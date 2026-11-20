@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering
+\caption{Fair naive baselines for RHSE-TSH (3-seed mean recovery). R5b: backtracked
+hold; R5m: backtracked median. R3 only passes the $\geq$0.10 gate on stuck.}
+\label{tab:rhse}
+\small
+\begin{tabular}{llcccccc}
+\toprule
+Subset & Fault & Onset & R3 & R5b & R5m & R3$-$max \\
+\midrule
+FD001 & bias & 0.2 & 0.799 & 0.793 & 0.821 & -0.022 \\
+FD001 & bias & 0.5 & 0.826 & 0.865 & 0.906 & -0.080 \\
+FD001 & drift & 0.2 & 0.856 & 0.868 & 0.925 & -0.069 \\
+FD001 & drift & 0.5 & 0.797 & 0.903 & 0.934 & -0.137 \\
+FD001 & stuck & 0.2 & 0.737 & -0.695 & -0.202 & +0.940 \\
+FD001 & stuck & 0.5 & 0.872 & 0.257 & 0.403 & +0.468 \\
+FD003 & bias & 0.2 & 0.908 & 0.927 & 0.939 & -0.032 \\
+FD003 & bias & 0.5 & 0.876 & 0.890 & 0.910 & -0.034 \\
+FD003 & drift & 0.2 & 0.916 & 0.853 & 0.921 & -0.005 \\
+FD003 & drift & 0.5 & 0.772 & 0.760 & 0.797 & -0.025 \\
+FD003 & stuck & 0.2 & 0.605 & -0.179 & -0.288 & +0.783 \\
+FD003 & stuck & 0.5 & 0.570 & -0.124 & -0.077 & +0.647 \\
+\bottomrule
+\end{tabular}
+\end{table*}

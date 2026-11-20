@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Gate summary. Gate 1 fails because simple calibration beats LTAG on
+validation; RHSE-TSH is removed after fair temporal baselines match it on
+bias/drift.}
+\label{tab:gates}
+\begin{tabular}{ll}
+\toprule
+Item & Result \\
+\midrule
+Gate 1 (LTAG vs controls) & FAIL \\
+\quad G1.1 vs K1-Calib & 0/4, mean $-0.393$ \\
+\quad G1.2 vs Linear-Stack & 0/4 \\
+\quad G1.3 Ens3-LTAG vs Ens3-K1 & PASS (4/4) \\
+\quad G1.4 noMW worse & 2/4 (FAIL) \\
+Gate 2 (cross-backbone) & not started \\
+RHSE-TSH & removed \\
+Test & sealed; not rerun \\
+\bottomrule
+\end{tabular}
+\end{table}

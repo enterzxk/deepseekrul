@@ -1,0 +1,18 @@
+\begin{table*}[t]
+\centering
+\caption{Frozen B0 official test RMSE (one window per engine; lower is better).
+LTAG improves over K1 on every subset and every seed (15/15).}
+\label{tab:test}
+\begin{tabular}{lcccccc}
+\toprule
+Subset & Seeds & K1 & LTAG & Median & $\Delta$(K1$-$LTAG) & LTAG wins \\
+\midrule
+FD001 & 6 & 13.421 & \textbf{12.995} & 13.364 & +0.426 & 6/6\\
+FD002 & 3 & 11.514 & \textbf{11.352} & 11.803 & +0.162 & 3/3\\
+FD003 & 3 & 12.979 & \textbf{12.323} & 13.002 & +0.656 & 3/3\\
+FD004 & 3 & 13.031 & \textbf{12.710} & 13.601 & +0.321 & 3/3 \\
+\midrule
+Mean & -- & -- & -- & -- & +0.391 & 15/15 \\
+\bottomrule
+\end{tabular}
+\end{table*}

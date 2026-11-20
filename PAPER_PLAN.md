@@ -138,3 +138,14 @@ Conclusion ≈ 9 pages, references ≈ 2, appendix ≈ 1.
 - [ ] `/paper-figure` for Fig. 1–3.
 - [ ] `/paper-claim-audit` against `docs/LTAGV2_TABLES.md`.
 - [ ] Do **not** submit without L3 authorization.
+
+## Generated Assets (2026-11-21)
+
+- Figures: `figures/fig1_cutwise.pdf`, `figures/fig2_test.pdf`,
+  `figures/fig3_winrate.pdf`; LaTeX includes in `figures/latex_includes.tex`.
+- Tables: `tables/tab1_test.tex`, `tab2_validation.tex`, `tab3_cutwise.tex`,
+  `tab4_rhse.tex`, `tab5_gates.tex`.
+- Reproducible scripts: `paper_b/eval/make_figures.py`,
+  `paper_b/eval/make_tables.py`, `paper_b/eval/export_table_data.py`.
+- Data: `results/ltagv2_p1_*.json`, `results/ltagv2_p1_*.preds.csv`,
+  `results/cutwise.json`, `results/phase4.json`, `results/SHARED_R0.json`.
