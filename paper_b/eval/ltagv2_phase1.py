@@ -166,10 +166,15 @@ def main():
         out.append(metrics(va, np.mean(preds, 0), name))
 
     boot = paired_engine_bootstrap(pred_ltag, pred_calib, va['y_cap'], va['engine'])
+    boot_ls = paired_engine_bootstrap(pred_ls, pred_ltag, va['y_cap'], va['engine'])
     res = dict(subset=a.subset, n_train=int(len(tr)), n_val=int(len(va)),
-               best_g=float(best), ltag_vs_calib=boot, table=out)
+               best_g=float(best), ltag_vs_calib=boot, ls_vs_ltag=boot_ls, table=out)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(res, indent=1))
+    pd.DataFrame(dict(engine=va['engine'], cut=va['cut'], y=va['y_cap'],
+                      p_k1=p_k1_va, p_med=p_med_va, pred_ltag=pred_ltag,
+                      pred_calib=pred_calib, pred_ls=pred_ls)).to_csv(
+        str(Path(a.out).with_suffix('.preds.csv')), index=False)
     print(json.dumps(res, indent=1))
 
 

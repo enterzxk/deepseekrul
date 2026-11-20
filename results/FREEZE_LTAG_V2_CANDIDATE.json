@@ -1,0 +1,52 @@
+{
+ "status": "CANDIDATE \u2014 NOT FROZEN, TEST NOT RUN",
+ "date": "2026-11-21",
+ "candidate": "LS-ctx",
+ "model": "Ridge(alpha=1.0)",
+ "features": [
+  "p_k1",
+  "p_med",
+  "regime_dist",
+  "cap",
+  "cut_norm",
+  "hist_norm"
+ ],
+ "train_data": "cata_gate/train (FD001-FD004, seeds 101/202/303)",
+ "val_data": "cata_gate/preds",
+ "test_run": false,
+ "hypothesis": "LS-ctx reduces validation engine_mean RMSE vs LTAG and K1 on >=3/4 subsets; one-shot test only after FREEZE and L2 approval.",
+ "validation": {
+  "FD001": {
+   "engine_mean_rmse": 10.150258518922072,
+   "pooled_rmse": 10.47787136681657,
+   "mae": 7.82017058797334,
+   "bias": -1.5337095589777807,
+   "nasa_mean": 1.6069744416649892
+  },
+  "FD002": {
+   "engine_mean_rmse": 10.604283546505275,
+   "pooled_rmse": 11.572837504137498,
+   "mae": 8.198684381568343,
+   "bias": -0.6378437020432726,
+   "nasa_mean": 2.179835022340335
+  },
+  "FD003": {
+   "engine_mean_rmse": 12.032559771531334,
+   "pooled_rmse": 12.81031984220942,
+   "mae": 9.46096289668258,
+   "bias": 2.807468155988607,
+   "nasa_mean": 2.9605353068206806
+  },
+  "FD004": {
+   "engine_mean_rmse": 13.0803945342039,
+   "pooled_rmse": 17.630957741591658,
+   "mae": 10.0713865130334,
+   "bias": 0.05100540572444739,
+   "nasa_mean": 47.6535273264684
+  }
+ },
+ "code_sha256": {
+  "paper_b/eval/ltagv2_phase1.py": "4ff8e8a76712e6bce00a8528078447043898870ffbeed0ca4842288be9eea787",
+  "paper_b/eval/metrics_v2.py": "dbbbabad84fa86a89671e3c16221014623bfde0121f4598566dd874311686a55"
+ }
+}
