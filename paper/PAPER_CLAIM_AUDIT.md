@@ -57,6 +57,11 @@ an independent cross-model audit.
 4. **LS-ctx validation numbers** come from per-seed rows (Phase 3) while the
    table/§5 uses the seed-ensemble/per-seed table; the paper consistently uses
    the `ltagv2_p1` numbers for Table 2 and does not mix 9.735 with 9.256. OK.
+5. **Revision after audit (2026-11-21):** §5.3 was clarified so the parenthetical
+   LS-ctx numbers are not read as Ens3-LTAG; §6.2 was corrected from "tied for
+   best on three of four" to "best on FD002/FD004, second on FD001/FD003, within
+   0.28 of the best." Numbers are unchanged; both fixes narrow the prose to the
+   evidence.
 
 ## Verdict
 
