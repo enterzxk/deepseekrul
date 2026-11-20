@@ -24,6 +24,7 @@ Figures are resolved via `\graphicspath{{../figures/}}`; tables are included fro
 - Title: *Cut-Dependent Inference-Time Aggregation for C-MAPSS Remaining Useful
   Life: When Learned Gating Helps and When It Does Not*.
 - 8 sections; IEEE journal style; no author information.
+- Appendix A: gate summary, frozen configuration, reproducibility paths.
 - Claims C1--C6 from `PAPER_PLAN.md`.
 - Test: 15/15, mean +0.391 (frozen B0).
 - Validation: K1-Calib/LS-ctx beat LTAG on the all-cut average; cut-wise analysis

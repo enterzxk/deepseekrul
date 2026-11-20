@@ -1,0 +1,41 @@
+\section{Gate Summary and Frozen Protocol}
+\label{app:gates}
+
+Table~\ref{tab:gates} summarizes the pre-registered gates. Gate~1 compares LTAG
+with the strong controls on validation. It fails: K1-Calib and LS-ctx beat LTAG
+on all four subsets, and LTAG-noMW is not consistently worse. Gate~2
+(cross-backbone) was not started because Gate~1 failed. The sensor-reconstruction
+module is removed after the fair-baseline comparison in
+Section~\ref{sec:rhse}. The official test was not rerun; the test numbers in
+Table~\ref{tab:test} are the frozen B0 result.
+
+\input{../tables/tab5_gates}
+
+\subsection{Frozen configuration}
+
+\begin{itemize}
+\item Backbone: B0 (DSPT-style, two layers, width 64, dropout 0.2, FP32).
+\item Training: 40 epochs, patience 12, batch 512, learning rate $10^{-3}$,
+weight decay $10^{-4}$.
+\item Validation cuts: 0.40, 0.55, 0.70, 0.85, 0.95.
+\item Seeds: FD001 101/202/303/404/505/606; FD002--FD004 101/202/303.
+\item Estimators: engine-mean RMSE and pooled RMSE, reported separately.
+\item Test: sealed until the frozen configuration was fixed; one window per
+engine; no test-time tuning.
+\end{itemize}
+
+\subsection{Reproducibility}
+
+The analysis code is in \texttt{paper\_b/eval/}: \texttt{metrics\_v2.py} for the
+estimators and paired bootstrap, \texttt{ltagv2\_phase1.py} for the strong
+controls, \texttt{ltagv2\_phase3.py} for the tail analysis,
+\texttt{ltagv2\_cutwise.py} for the cut-wise table, and
+\texttt{make\_figures.py}/\texttt{make\_tables.py} for the figures and tables.
+The frozen test metrics are in \texttt{tmp/claude\_pkg/results/LTAG\_test\_eval.json};
+the validation predictions are in \texttt{results/ltagv2\_p1\_*.preds.csv}.
+
+The broader project used a worktree code lock for the Phase~2 experiments rather
+than the original commit. The lock file and the worktree hashes are retained in
+the repository. This paper's LTAG results use the frozen B0 checkpoint and the
+feature table described in Section~\ref{sec:method}; no Phase~2 end-to-end model
+is used.
