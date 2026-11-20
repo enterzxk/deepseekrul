@@ -15,6 +15,16 @@
 > **R6 is also withdrawn.** The onset-aware hybrid routed late drift to the (pre-fix) strong
 > last-value. With corrected R5, R6 is harmful: FD001 drift mag2 3-seed R6 0.281 vs R3 0.700.
 > Do not use R6 in the paper; R3 (TSH+Hθ) is the method, R5 is the weak deployable baseline.
+>
+> **2026-11-21 Phase 4 correction — RHSE-TSH is withdrawn entirely.** Fair backtracked
+> hold/median baselines (`R5b`/`R5m`, observed `x_f` only) match or beat R3 on bias and drift:
+> FD001 bias R3 0.799/0.826 vs R5m 0.821/0.906; FD001 drift 0.856/0.797 vs R5m 0.925/0.934;
+> FD003 bias 0.908/0.876 vs R5m 0.939/0.910; FD003 drift 0.916/0.772 vs R5m 0.921/0.797.
+> Only **stuck** passes the R3−max(R5b,R5m) ≥0.10 gate. Therefore RHSE-TSH is **not** a
+> contribution; do not include the RHSE appendix or the “conditional front-end” claim.
+> Keep one Limitations sentence: fair temporal hold/median matches reconstruction on
+> bias/drift; reconstruction only helps on stuck. All earlier RHSE claims in this file are
+> superseded by this correction.
 
 > This file records what the current evidence can and cannot support. It runs no experiments and
 > introduces no measurements: every number is quoted from `PHASE1_FINAL_20261119.md`,
