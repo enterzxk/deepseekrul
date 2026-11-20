@@ -42,3 +42,10 @@ Only entries present in `paper/references.bib` are cited: `saxena2008`,
 - No external review (Codex unavailable, `WinError 2`).
 - No page-count check (no local LaTeX toolchain).
 - No submission (L3 authorization required).
+
+## Audits
+
+- `PAPER_CLAIM_AUDIT.md` / `.json`: local numerical reconciliation of 15 claim
+  groups passes; verdict WARN because the independent cross-model reviewer is
+  unavailable. Do not treat as a submission-ready audit.
+

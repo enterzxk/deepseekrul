@@ -1,0 +1,47 @@
+{
+ "audit_skill": "paper-claim-audit",
+ "verdict": "WARN",
+ "reason_code": "external_reviewer_unavailable_local_audit",
+ "summary": "Local reconciliation of 15 claim groups passes; independent cross-model audit unavailable (Codex WinError 2).",
+ "audited_input_hashes": {
+  "main.tex": "sha256:2b35497e5f4c2927db27ae116602711872c6cfa934f2d0054103e9653ab183d4",
+  "sections\\0_abstract.tex": "sha256:05e380bf501134d361f54065098f1a910b275d28f7b77a8d5b4e4a37be96f444",
+  "sections\\1_introduction.tex": "sha256:679763b0c9142cf48f5287e1d16b22155b96ba52ec56cd2cc8386ae34be5e4a0",
+  "sections\\2_related.tex": "sha256:b679faf14e47b75839d115f28bbe9f302d6cc9a3a11a6dacaeb58a66cfebeee9",
+  "sections\\3_setup.tex": "sha256:6c71e3a9090e82f0c7c93f4e2446cebde2f65de3006c97573e6b779808b77c78",
+  "sections\\4_method.tex": "sha256:f8ec014f36430ea4c01232f03f29f415ba4c7ae3f95c86480a51f6d9a79a5216",
+  "sections\\5_experiments.tex": "sha256:5dfb5c635d6b372ce7a72f837d8ddbc0adbcf4573c8d535c5bd4ced3a5140134",
+  "sections\\6_cutwise.tex": "sha256:4bf553b8b84fd559f1681595f1e03f514623ea252589e580c77b1b99205be853",
+  "sections\\7_rhse.tex": "sha256:69ccc955fc0b9f9294fa2ed5b7c623ac42300456fe73b8f26fd78a85f4ae5726",
+  "sections\\8_conclusion.tex": "sha256:01e6b5e1a7b1c51f8226e59b116e3d547cc98767d60ad381dec41c9dd8538152",
+  "sections\\A_appendix.tex": "sha256:205521ce100d41f22ffe09f6c9f38c79f22542fb5d86fa5dfe60c692cbe6e214",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tables\\tab1_test.tex": "sha256:11bb330fa39f00273dce7027203bb48d7ffa663ca9a1734d346c3306d36cdac5",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tables\\tab2_validation.tex": "sha256:161975b9f03a148d5390055ec13ba9ac27861e49137ea068760670774ba560d2",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tables\\tab3_cutwise.tex": "sha256:66089d8cfdd86add710bdb8bb003bc9656efee4a6073ba1c2c40cdbac811570c",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tables\\tab4_rhse.tex": "sha256:07280b86be814404f782698f60510fc1ce0735e7933439481bb3e7d515b631d5",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tables\\tab5_gates.tex": "sha256:fd68ef34623fa15f8c64a98ce04d46ac5a77fdb790e5fe4c7882c13661902b72",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\tmp\\claude_pkg\\results\\LTAG_test_eval.json": "sha256:8473f3b36589cf2dae2a3dceffa27e9a2db97a73c1e6f5dcf108cebc5c3df628",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1_FD001.json": "sha256:be6e7797348c85d032fbd97848c1303306873a55a22744c5e70bdabc9cb73858",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1_FD002.json": "sha256:5225ec9b7b690b24384c067382a71a1b3b16b88ff16c84dc026de98abda4d4a1",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1_FD003.json": "sha256:50db333a2c4b8144b62469907ec99e6cbd1b985a1547233f381ca2c5f8310d48",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1_FD004.json": "sha256:f850c227e7b9b541fffcc48bcfe3d6fffe5fa515f1eb1c2e9ff82d0e41b0328e",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1b_FD001.json": "sha256:0e66930e7001b4cc2a4fc8bbddfcd6003461ff795350abc6cd1acccd25b43ead",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1b_FD002.json": "sha256:4fcb8ad6c1c5fc80009aac12f21268a77950db9f6ad6418e3dc777c7e28444ee",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1b_FD003.json": "sha256:3867856cfd7002432e3ab763522554d481ceef805316c1787c3db1b6102edf7e",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\ltagv2_p1b_FD004.json": "sha256:2d71f2176304960592add9f712f980808b6b8972ce21180305b9e68e4f653812",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\cutwise.json": "sha256:59bc02497d0502c9f3f331f5f65ec5e84be292a89425e32e4f4f4f1744c6bb75",
+  "C:\\Users\\20562\\Desktop\\deepseek-rul\\results\\phase4.json": "sha256:2920348edf191f277a9b97e2b8e6cbb57bdfa5c24df3d6de168bcd31c95ae638"
+ },
+ "reviewer_model": "none (local scripted audit)",
+ "reviewer_reasoning": "n/a",
+ "generated_at": "2026-11-21T00:00:00Z",
+ "details": {
+  "total_claims": 15,
+  "mismatches": [],
+  "result_files": [
+   "tmp/claude_pkg/results/LTAG_test_eval.json",
+   "results/cutwise.json",
+   "results/phase4.json"
+  ]
+ }
+}
