@@ -413,3 +413,50 @@ conditional, validation-only front-end claim (RHSE-TSH, single-condition FD001/F
 clean cost +0.024/+0.149, EOL FPR 0.32–1.31% per sensor-cycle). Everything multi-condition,
 everything test-level for RHSE-TSH, and every "universal module" statement is outside the
 evidence. The negative results are the boundary that makes the two positive claims credible.
+
+---
+
+## 6. Phase 2 Gate 2（2026-11-20）：端到端 RHSE-DSPT 负结果
+
+> 这一节覆盖任何“端到端 RHSE-DSPT 有效”的暗示；Phase 2 没有产生可写的主贡献。
+
+### 6.1 Clean validation（engine-mean，5 seeds）
+
+| arm | FD001 | FD002 | FD003 | FD004 |
+|---|---:|---:|---:|---:|
+| M0 | 9.957 | 10.863 | 10.486 | 11.783 |
+| M0+Aug | 10.011 | 10.624 | 10.683 | 11.323 |
+| M1 | **9.802** | 10.694 | 10.892 | 11.728 |
+| M2 | 9.885 | **10.329** | 10.688 | 11.442 |
+
+M1/M2 在 clean 上有局部优势，但 FD003/FD004 不如 M0+Aug；不是全面占优。
+
+### 6.2 故障恢复（M0 的 R1/R0 作分母，5 seeds mean）
+
+| subset | fault | M0+Aug | M1 | M2 |
+|---|---|---|---:|---:|
+| FD001 | bias | −0.111 | 0.099 | −0.317 |
+| FD001 | drift | −0.178 | 0.104 | −0.284 |
+| FD001 | stuck | −0.270 | 0.197 | −0.397 |
+| FD002 | bias | 0.188 | 0.006 | 0.158 |
+| FD002 | drift | 0.094 | −0.099 | 0.023 |
+| FD003 | bias | 0.570 | 0.367 | 0.154 |
+| FD003 | drift | 0.503 | 0.409 | 0.102 |
+| FD004 | bias | 0.199 | −0.330 | −0.380 |
+| FD004 | drift | 0.122 | −0.217 | −0.189 |
+| FD004 | stuck | 0.478 | −0.232 | 0.531 |
+
+- M1 最高 0.409，远低于 0.65；M2 在 FD001 bias/drift/stuck、FD004 bias/drift 为负。
+- M0+Aug 在 FD003/FD004 多数 cell 更好；**Gate 2 FAIL**。
+
+### 6.3 不可写 / 可写
+
+| 不可写 | 可写 |
+|---|---|
+| “RHSE-DSPT 打败 M0+Aug” | “M1 在 FD001 clean 上 9.802 vs 9.957；但故障恢复仅 0.099–0.197” |
+| “端到端把 clean 收益转成鲁棒性” | “端到端 Gate 2 失败；M0+Aug 是更强鲁棒基线” |
+| “M2 增强提升鲁棒性” | “M2 在 FD004 bias/drift 为负；增强放大了故障敏感性” |
+| “RHSE 是通用模块” | “RHSE-TSH 只在 B0 单工况 FD001/FD003 有 0.765–0.895 的条件性证据” |
+
+**结论**：Phase 2 的负结果进一步收窄论文：**LTAG 是唯一主贡献；RHSE-TSH 只能作为
+B0 单工况条件性前端/附录；端到端 RHSE-DSPT 不写。**
