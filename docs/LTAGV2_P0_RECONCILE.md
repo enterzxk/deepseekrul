@@ -45,10 +45,14 @@
 ## 3. T0.3 预测缓存（进行中）
 
 - 已确定缓存 schema：`engine, cut, t_end, pred, y_cap, y_raw, cond, cycle, valid_len`。
-- 先做 **B0 FD001 s101 的 cuts-only 缓存**与 parity A0.1（K=1，缓存 pred vs `preds.csv` <1e-4）；
-  Δ∈{5,10,20,30} 的窗口扫描在 Phase 1 前补齐。
-- 缓存目录：`cache/preds/{backbone}/{subset}_s{seed}.parquet`。
-- **A0.1 未通过前，Phase 1 不得启动。**
+- **A0.1（B0 FD001 s101）已 PASS**：cuts-only 缓存 `pred` 与 `cata_gate/preds` 的
+  `pred_k1` 最大误差 **7.63e-6**（<1e-4）。注意：必须逐 cut 单窗口预测；
+  批量预测会因 bf16 batch 组合产生 1.5e-4 的偏差，不能用于 parity。
+- 缓存：`cache/preds/B0/FD001_s101.parquet`，1991 行（5 cuts + Δ∈{5,10,20,30}×j<5）。
+- 全 B0 缓存（FD001 6 seeds；FD002–FD004 各 3 seeds）正在跑：
+  `scripts/build_b0_cache.sh`。
+- V0/M0 的缓存需要 cycle-aware 预测路径；Phase 2 前补齐。
+- **A0.1 未全量通过前，Phase 1 不得启动。**
 
 ## 4. Phase 0 验收
 
@@ -58,7 +62,7 @@
 | seed 集合对齐 | **PASS**（FD001 6 seeds；其余 3 seeds） |
 | 6 项不一致有裁决 | **PASS** |
 | `metrics_v2.py` | **已写**：engine_mean/pooled/MAE/bias/NASA/NASA split/paired bootstrap/sign_count |
-| 预测缓存 + parity A0.1 | **进行中** |
+| 预测缓存 + parity A0.1 | **PASS（B0 FD001 s101 7.63e-6）**；全量 B0 缓存进行中 |
 | test 封存 | **PASS**（未读 test） |
 
-**Phase 0 尚未完全关闭**：缓存 parity 未跑完前，不进入 Phase 1。
+**Phase 0 尚未完全关闭**：全量 B0 缓存与 parity 未跑完前，不进入 Phase 1。
