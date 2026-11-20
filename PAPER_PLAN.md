@@ -142,7 +142,8 @@ Conclusion ≈ 9 pages, references ≈ 2, appendix ≈ 1.
 ## Generated Assets (2026-11-21)
 
 - Draft: `paper/main.tex` + `paper/sections/0_abstract.tex` … `8_conclusion.tex`;
-  `paper/references.bib` (5 verified keys); `paper/README.md`.
+  `paper/references.bib` (5 verified keys); `paper/README.md`;
+  compiled `paper/main.pdf` (7 pages, Tectonic 0.17.0).
 - Figures: `figures/fig1_cutwise.pdf`, `figures/fig2_test.pdf`,
   `figures/fig3_winrate.pdf`; LaTeX includes in `figures/latex_includes.tex`.
 - Tables: `tables/tab1_test.tex`, `tab2_validation.tex`, `tab3_cutwise.tex`,

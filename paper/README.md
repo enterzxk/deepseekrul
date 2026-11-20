@@ -6,7 +6,8 @@ frozen `LTAG_test_eval.json`. Validation numbers are from
 
 ## Compile
 
-Requires `IEEEtran.cls` and `IEEEtran.bst`.
+`main.pdf` is prebuilt with Tectonic 0.17.0 (7 pages). To rebuild with a
+standard TeX distribution, `IEEEtran.cls` and `IEEEtran.bst` are required:
 
 ```bash
 cd paper

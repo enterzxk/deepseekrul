@@ -20,13 +20,12 @@
 - [x] `\ref`/`\label` static check: no missing labels.
 - [x] LaTeX environment balance check: `ENV_OK`.
 - [x] Local claim audit (`paper/PAPER_CLAIM_AUDIT.md`, verdict WARN).
+- [x] **PDF compile.** Built with Tectonic 0.17.0 on lab3090; `paper/main.pdf`
+  is 7 pages including references and appendix.
+- [x] **Page count.** 7 pages, within the 12-page IEEE journal budget.
 
 ## Not done
 
-- [ ] **PDF compile.** No `pdflatex`/`latexmk` on this machine. Need a TeX
-  installation with `IEEEtran.cls`/`IEEEtran.bst`.
-- [ ] **Page count.** IEEE journal limit; references count. Not measurable
-  without a compile.
 - [ ] **Independent claim audit.** `mcp__codex__codex` returns `[WinError 2]`;
   no cross-model reviewer. Marked `PENDING-L2`.
 - [ ] **External scientific review.** Same blocker.
