@@ -8,6 +8,14 @@ OUT="$HOME/sprint24/cache/preds"
 LOGS="$HOME/sprint24/cache/logs"
 mkdir -p "$LOGS"
 
+root_for() {
+  case "$1" in
+    FD002) echo "$HOME/sprint24/experiments/hc/d" ;;
+    FD003) echo "$HOME/sprint24/experiments/hc/d80" ;;
+    *) echo "$HOME/sprint24/experiments/hc/_gate" ;;
+  esac
+}
+
 build() {
   local subset="$1" seed="$2"
   local par="$OUT/B0/${subset}_s${seed}.parquet"
@@ -17,7 +25,7 @@ build() {
   fi
   echo "=== $subset s$seed ==="
   "$P" -m paper_b.eval.build_pred_cache --subset "$subset" --seed "$seed" \
-    --out "$OUT" > "$LOGS/${subset}_s${seed}.log" 2>&1
+    --root "$(root_for "$subset")" --out "$OUT" > "$LOGS/${subset}_s${seed}.log" 2>&1
   tail -6 "$LOGS/${subset}_s${seed}.log"
 }
 

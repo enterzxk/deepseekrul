@@ -50,20 +50,20 @@ def main():
             if c <= 0:
                 continue
             idxs.append(c - 1)
-            meta.append((c, c - 1, 0))
+            meta.append((c, c - 1, 0, 0))
             for d in deltas:
                 for j in range(a.max_j):
                     t = c - 1 - j * d
                     if t < 0 or eb['mask'][i, t].sum() < 10:
                         continue
                     idxs.append(t)
-                    meta.append((c, t, j))
+                    meta.append((c, t, j, d))
         if not idxs:
             continue
-        for (c, t, j) in meta:
+        for (c, t, j, d) in meta:
             p = float(predict_windows(net, eb, i, [t], dev)[0])
             rows.append(dict(engine=int(eb['engine_id'][i]), cut=c, t_end=t, j=j,
-                             pred=p, y_cap=float(eb['y'][i, t]),
+                             delta=d, pred=p, y_cap=float(eb['y'][i, t]),
                              y_raw=float(eb['r'][i, t]), cond=int(eb['cond'][i, t]),
                              cycle=float(eb['cycle_raw'][i, t]),
                              valid_len=int(eb['mask'][i, t].sum())))
