@@ -65,6 +65,9 @@ an independent cross-model audit.
 6. **Related-work expansion (2026-11-21):** four verified calibration references
    (`yang2026`, `busico2026`, `barber2023`, `frizzo2026`) were added to §2;
    `paper/references.bib` now has 9 keys, all cited. No numerical claim changed.
+7. **Figure revision (2026-11-21):** Figure 1 (test) is now a two-panel
+   full-width figure: absolute RMSE on the left and per-subset
+   $\Delta$RMSE (K1$-$LTAG) on the right. Numbers are unchanged.
 
 ## Verdict
 

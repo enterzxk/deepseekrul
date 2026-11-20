@@ -12,15 +12,16 @@
 \end{figure*}
 
 % === Fig 2: frozen B0 test RMSE ===
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=0.48\textwidth]{figures/fig2_test.pdf}
-    \caption{Frozen B0 test RMSE (one window per engine). Bars are subset means;
-    dots are individual seeds (FD001: 6 seeds; FD002--FD004: 3 seeds). LTAG is
-    lower than K1 on all four subsets (15/15 seed-subset wins; mean improvement
-    +0.391).}
+    \includegraphics[width=0.95\textwidth]{figures/fig2_test.pdf}
+    \caption{Frozen B0 test RMSE (one window per engine). Left: subset means for
+    K1, LTAG, and Median; dots are individual seeds (FD001: 6 seeds;
+    FD002--FD004: 3 seeds). Right: per-subset $\Delta$RMSE (K1$-$LTAG); positive
+    means LTAG is better. LTAG is lower than K1 on all four subsets (15/15
+    seed-subset wins; mean improvement +0.391).}
     \label{fig:test}
-\end{figure}
+\end{figure*}
 
 % === Fig 3: per-engine delta RMSE ===
 \begin{figure}[t]

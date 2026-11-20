@@ -65,7 +65,8 @@ def fig2():
     for k, v in d.items():
         g[k.split('_')[0]].append(v)
     x = np.arange(len(SUBSETS)); w = 0.26
-    fig, ax = plt.subplots(figsize=(7.0, 3.0))
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.0))
+    ax = axes[0]
     for j, (arm, lab, c) in enumerate([('k1', 'K1', C[0]), ('learned', 'LTAG', C[1]),
                                        ('median', 'Median', C[2])]):
         means = [np.mean([r[arm]['rmse'] for r in g[s]]) for s in SUBSETS]
@@ -76,7 +77,19 @@ def fig2():
                        color='k', alpha=0.5, zorder=3)
     ax.set_xticks(x); ax.set_xticklabels(SUBSETS)
     ax.set_ylabel('Test RMSE (one window/engine)')
-    ax.legend(frameon=False, ncol=3)
+    ax.legend(frameon=False, ncol=3, loc='upper left')
+    ax.grid(axis='y', alpha=0.25, lw=0.4)
+
+    ax = axes[1]
+    for i, s in enumerate(SUBSETS):
+        deltas = [r['k1']['rmse'] - r['learned']['rmse'] for r in g[s]]
+        ax.bar(i, np.mean(deltas), 0.55, color=C[1], alpha=0.8)
+        ax.scatter(np.full(len(deltas), i), deltas, s=8, color='k', alpha=0.6, zorder=3)
+        ax.text(i, np.mean(deltas) + 0.02, f'{len(deltas)}/{len(deltas)}',
+                ha='center', fontsize=7)
+    ax.axhline(0, color='k', lw=0.8, ls='--')
+    ax.set_xticks(x); ax.set_xticklabels(SUBSETS)
+    ax.set_ylabel(r'$\Delta$RMSE (K1 $-$ LTAG)')
     ax.grid(axis='y', alpha=0.25, lw=0.4)
     fig.tight_layout()
     fig.savefig(FIG / 'fig2_test.pdf')

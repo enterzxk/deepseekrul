@@ -8,7 +8,8 @@ window. LTAG lowers RMSE on all four subsets and on every seed: 6/6 on FD001 and
 3/3 on each of FD002--FD004, for 15/15 seed-subset wins. The mean improvement is
 0.391 cycles, from 13.421 to 12.995 on FD001, 11.514 to 11.352 on FD002, 12.979
 to 12.323 on FD003, and 13.031 to 12.710 on FD004. Figure~\ref{fig:test} shows
-the per-subset bars and the individual seed points.
+the per-subset bars, the individual seed points, and the per-subset
+$\Delta$RMSE (K1$-$LTAG).
 
 \input{../tables/tab1_test}
 
@@ -29,13 +30,15 @@ section shows that the average hides a change in ranking across the engine life.
 
 \input{../tables/tab2_validation}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.48\textwidth]{fig2_test.pdf}
-\caption{Frozen B0 test RMSE (one window per engine). Bars are subset means; dots
-are individual seeds. LTAG is lower than K1 on all four subsets (15/15).}
+\includegraphics[width=0.95\textwidth]{fig2_test.pdf}
+\caption{Frozen B0 test RMSE (one window per engine). Left: subset means for K1,
+LTAG, and Median; dots are individual seeds. Right: per-subset $\Delta$RMSE
+(K1$-$LTAG); positive means LTAG is better. LTAG is lower than K1 on all four
+subsets (15/15).}
 \label{fig:test}
-\end{figure}
+\end{figure*}
 
 \subsection{Ensemble control}
 
