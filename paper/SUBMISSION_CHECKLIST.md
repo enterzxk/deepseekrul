@@ -15,7 +15,7 @@
 - [x] Validation numbers audited against `results/ltagv2_p1_*.json`.
 - [x] Cut-wise numbers audited against `results/cutwise.json`.
 - [x] RHSE numbers audited against `results/phase4.json`.
-- [x] Citation keys checked against `paper/references.bib` (5 keys, no
+- [x] Citation keys checked against `paper/references.bib` (9 keys, no
   missing/uncited).
 - [x] `\ref`/`\label` static check: no missing labels.
 - [x] LaTeX environment balance check: `ENV_OK`.

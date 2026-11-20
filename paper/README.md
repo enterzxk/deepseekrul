@@ -35,7 +35,8 @@ Figures are resolved via `\graphicspath{{../figures/}}`; tables are included fro
 ## Citations
 
 Only entries present in `paper/references.bib` are cited: `saxena2008`,
-`hou2025`, `frizzo2025`, `barry2026`, `srinivasan2026`. All were copied from
+`hou2025`, `frizzo2025`, `barry2026`, `srinivasan2026`, `yang2026`,
+`busico2026`, `barber2023`, `frizzo2026`. All were copied from
 `docs/manuscripts/references.bib`; no BibTeX was generated from memory.
 
 ## Not done

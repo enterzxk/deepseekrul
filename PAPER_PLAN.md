@@ -114,7 +114,9 @@ Conclusion ≈ 9 pages, references ≈ 2, appendix ≈ 1.
   Li et al. 2018, and recent transformer/CNN RUL papers — **verify each in
   `docs/manuscripts/references.bib` before use; do not generate BibTeX from memory.**
 - §2 aggregation/calibration: stacking (Breiman 1996), isotonic regression
-  (Barlow et al.), conformal/quantile calibration — **verify**.
+  (Barlow et al.), conformal/quantile calibration — **verify**; the draft
+  currently cites the verified entries `yang2026`, `busico2026`,
+  `barber2023`, `frizzo2026`.
 - §2 sensor-fault reconstruction: measurement-model / PCA reconstruction papers —
   **verify**.
 - §4 LTAG: cite only the frozen protocol and the baseline backbone; no invented

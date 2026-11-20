@@ -25,6 +25,11 @@ post-hoc calibration suffice?
 Fixed rules (mean, median, last value) and learned gates are common ways to
 combine overlapping predictions. Post-hoc calibration (a linear or residual map
 from predictions and context to the target) is equally common in deployment.
+Calibration and reliability diagnostics have also been studied for RUL under
+operating-regime shift \cite{yang2026}, as have conformal and similarity-based
+interval methods \cite{busico2026,barber2023} and business-aware uncertainty
+estimates \cite{frizzo2026}. These lines calibrate intervals or reliability;
+they do not compare point-aggregation rankings across cuts.
 The two families are rarely compared under the same cut protocol. We compare
 them on the same frozen features, with the same engine-disjoint folds, and
 report where each family wins. The result is a cut-dependent ranking rather than

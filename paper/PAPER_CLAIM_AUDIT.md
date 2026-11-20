@@ -62,6 +62,9 @@ an independent cross-model audit.
    best on three of four" to "best on FD002/FD004, second on FD001/FD003, within
    0.28 of the best." Numbers are unchanged; both fixes narrow the prose to the
    evidence.
+6. **Related-work expansion (2026-11-21):** four verified calibration references
+   (`yang2026`, `busico2026`, `barber2023`, `frizzo2026`) were added to §2;
+   `paper/references.bib` now has 9 keys, all cited. No numerical claim changed.
 
 ## Verdict
 
