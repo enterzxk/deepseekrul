@@ -21,9 +21,12 @@ from paper_b.hc.train_d import rul_loss
 from paper_b.modules.learned_gate import FEATS, canon, train_gate
 
 MW = ['p_med', 'p_mean', 'p_std', 'stat', 'shift', 'p_med_minus_k1', 'p_mean_minus_k1']
-CTX = ['regime_dist', 'cap', 'cycle_frac']
+CTX = ['regime_dist', 'cap', 'cut_norm', 'hist_norm']
 NO_MW = ['p_k1'] + CTX
-NO_CTX = [f for f in FEATS if f not in CTX]
+# cycle_frac = cut / true lifetime is NOT observable at test time. Replace it
+# with current-cut features; cap is model-output based and observable.
+FEATS_OBS = [f for f in FEATS if f != 'cycle_frac'] + ['cut_norm', 'hist_norm']
+NO_CTX = [f for f in FEATS_OBS if f not in CTX]
 
 
 def load_train(root):
@@ -98,6 +101,9 @@ def main():
     a = ap.parse_args()
     tr = canon(load_train(a.root))
     va = canon(load_val(a.root, a.subset))
+    for df in (tr, va):
+        df['cut_norm'] = df['cut'].to_numpy(float) / 250.0
+        df['hist_norm'] = np.minimum(df['cut'].to_numpy(float), 70.0) / 70.0
     groups = (tr['subset'] + '_' + tr['engine'].astype(str)).to_numpy()
     gkf = GroupKFold(n_splits=5)
 
@@ -113,7 +119,7 @@ def main():
     y_tr = tr['y_cap'].to_numpy(float)
 
     # LTAG: 5-fold, average fold gates on val
-    Xtr, Xva = prep(FEATS)
+    Xtr, Xva = prep(FEATS_OBS)
     gv = []
     for fold, (ti, vi) in enumerate(gkf.split(Xtr, groups=groups)):
         m = fit_gate(Xtr[ti], p_med_tr[ti], p_k1_tr[ti], y_tr[ti], seed=7 + fold)
@@ -135,8 +141,8 @@ def main():
     pred_gg = best * p_med_va + (1 - best) * p_k1_va
 
     # Linear stack
-    Ztr = np.column_stack([p_k1_tr, p_med_tr, tr[FEATS].to_numpy(float)])
-    Zva = np.column_stack([p_k1_va, p_med_va, va[FEATS].to_numpy(float)])
+    Ztr = np.column_stack([p_k1_tr, p_med_tr, tr[FEATS_OBS].to_numpy(float)])
+    Zva = np.column_stack([p_k1_va, p_med_va, va[FEATS_OBS].to_numpy(float)])
     ridge = Ridge(alpha=1.0).fit(Ztr, y_tr)
     pred_ls = ridge.predict(Zva)
 
