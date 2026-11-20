@@ -1,0 +1,40 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{C-MAPSS and RUL backbones.}
+The C-MAPSS turbofan benchmark \cite{saxena2008} provides run-to-failure
+trajectories for four subsets with different operating conditions and fault
+modes. Most recent work trains a sequence model on the sensor trajectories and
+predicts a capped RUL target. Reported gains are usually measured on a single
+test window per engine, and the aggregation of multiple overlapping windows is
+often treated as an implementation detail. Our protocol keeps the backbone frozen
+and varies only the inference-time aggregation, so the comparison is not
+confounded by backbone training.
+
+\paragraph{RUL with uncertainty and domain shift.}
+Evidential and domain-adaptation approaches model uncertainty or incomplete
+degradation \cite{hou2025}; quantile and state-space approaches produce
+distributional RUL estimates \cite{frizzo2025}; scientific machine learning
+combines physics and data for engine health management \cite{barry2026}; and
+survival-based aging models link degradation to RUL \cite{srinivasan2026}. These
+lines improve the predictor itself. Our question is complementary: given a fixed
+predictor, when does multi-window aggregation help, and when does a simple
+post-hoc calibration suffice?
+
+\paragraph{Aggregation and calibration.}
+Fixed rules (mean, median, last value) and learned gates are common ways to
+combine overlapping predictions. Post-hoc calibration (a linear or residual map
+from predictions and context to the target) is equally common in deployment.
+The two families are rarely compared under the same cut protocol. We compare
+them on the same frozen features, with the same engine-disjoint folds, and
+report where each family wins. The result is a cut-dependent ranking rather than
+a single winner.
+
+\paragraph{Sensor-fault reconstruction.}
+Measurement-model reconstruction uses a low-rank model of healthy sensor
+correlations to replace a flagged sensor. It is attractive because it is
+interpretable and can run online. The risk is that a temporal hold or median
+baseline can recover the same signal without a model. We therefore compare the
+reconstruction against fair backtracked baselines that use only observed data,
+not against a weak last-value baseline. This is the comparison that removes the
+apparent advantage on bias and drift.

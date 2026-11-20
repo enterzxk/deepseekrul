@@ -1,0 +1,53 @@
+\section{Protocol and Setup}
+\label{sec:setup}
+
+\subsection{Data and splits}
+
+We use the four C-MAPSS subsets \cite{saxena2008}: FD001 (one condition, one
+fault mode), FD002 (six conditions, one fault mode), FD003 (one condition, two
+fault modes), and FD004 (six conditions, two fault modes). The RUL target is
+capped at 125 cycles. Engines are split into training and validation engines;
+validation engines are never used for fitting, early stopping, or model
+selection. The official test engines are sealed until the frozen configuration
+is fixed; we do not use test labels for any choice in this paper.
+
+For validation we evaluate five cut fractions of each engine's life:
+0.40, 0.55, 0.70, 0.85, and 0.95. Each cut produces one prediction per engine.
+The official test provides one window per engine near end-of-life, so the 0.95
+cut is the closest validation analogue. This distinction is central to the
+analysis in Section~\ref{sec:cutwise}.
+
+\subsection{Backbone and baselines}
+
+The backbone is a frozen DSPT-style model (B0) trained under a fixed protocol:
+two layers, model width 64, dropout 0.2, FP32, 40 epochs, patience 12, batch
+size 512, learning rate $10^{-3}$, and weight decay $10^{-4}$. We do not retrain
+the backbone for any experiment in this paper. The single-window prediction from
+this backbone is denoted K1. The median of age-aligned windows is denoted Median.
+
+\subsection{Estimators}
+
+Two estimators are reported and never mixed:
+\begin{itemize}
+\item \emph{Engine-mean RMSE}: compute RMSE per engine, then average over
+engines. This gives every engine equal weight.
+\item \emph{Pooled RMSE}: pool all windows and compute one RMSE. This weights
+engines by their number of windows.
+\end{itemize}
+The identity $\mathrm{pooled}^2-\mathrm{engine\_mean}^2=\mathrm{Var}_e(\mathrm{RMSE}_e)$
+holds when every engine has the same number of windows; we use it as a
+consistency check. The official test has one window per engine, so the two
+estimators coincide there.
+
+For paired comparisons we resample engines with replacement (10{,}000 draws) and
+report the mean difference, its 95\% confidence interval, and a one-sided
+$p$-value. When multiple seeds are available, predictions are averaged within an
+engine before resampling, so the unit of replication is the engine, not the seed.
+
+\subsection{Reproducibility note}
+
+The Phase~2 experiments in the broader project used a worktree code lock rather
+than the original commit; the lock file and the current worktree hashes are
+retained in the repository. The LTAG experiments in this paper use the frozen
+B0 checkpoint and the feature table described in Section~\ref{sec:method}; no
+test-time tuning is performed.

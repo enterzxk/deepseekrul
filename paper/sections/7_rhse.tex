@@ -1,0 +1,46 @@
+\section{Negative Result: Sensor Reconstruction}
+\label{sec:rhse}
+
+\subsection{Motivation and baselines}
+
+A measurement-model front-end replaces a flagged sensor with a reconstruction
+from the correlations among healthy sensors. The natural baseline is a
+last-value hold: keep the last observed value before the flag. That baseline is
+weak on drift because it freezes the drifted value. A stronger, still fair
+baseline is a backtracked hold or median that uses only observed data:
+\begin{itemize}
+\item R5b: hold the observed value from $t_{\mathrm{flag}}-16$;
+\item R5m: take the median of the observed values in
+$[t_{\mathrm{flag}}-25,t_{\mathrm{flag}}-16]$;
+\end{itemize}
+and replace the sensor from the flag onward. Neither baseline uses a clean
+counterfactual.
+
+We compare the reconstruction (R3, TSH plus H$\theta$) with R5b and R5m on
+FD001 and FD003, for bias, drift, and stuck faults, at magnitudes 3 and onsets
+0.2/0.5, over three seeds.
+
+\input{../tables/tab4_rhse}
+
+\subsection{Result}
+
+The reconstruction only wins on stuck sensors. On bias, R5m is better than R3
+on every cell: FD001 0.821/0.906 vs 0.799/0.826, and FD003 0.939/0.910 vs
+0.908/0.876. On drift, R5m is also better or tied: FD001 0.925/0.934 vs
+0.856/0.797, and FD003 0.921/0.797 vs 0.916/0.772. On stuck, R3 is much better
+than both baselines (FD001 $+0.940/+0.468$, FD003 $+0.783/+0.647$), because a
+temporal hold cannot recover a frozen sensor.
+
+The pre-registered gate required a margin of at least 0.10 over the best fair
+baseline on two of three faults, on both subsets. Only one fault (stuck) passes.
+We therefore remove the reconstruction from the method. The result is a
+boundary, not a failure of the implementation: the earlier positive result came
+from comparing against a last-value baseline that is not fair on bias and drift.
+
+\subsection{Implication}
+
+Measurement-model reconstruction is useful when the fault is stuck, where
+temporal information is uninformative. It is not a general front-end for sensor
+faults. A paper that reports only a last-value baseline will overstate the
+benefit. We keep this as a limitation and do not include the module in the main
+results.

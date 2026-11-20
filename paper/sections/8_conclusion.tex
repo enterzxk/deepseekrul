@@ -1,0 +1,39 @@
+\section{Limitations and Conclusion}
+\label{sec:conclusion}
+
+\subsection{Limitations}
+
+The test result is a one-shot confirmatory evaluation on a backbone that was
+frozen before the analysis; it is not a pristine blind test, because the B0 test
+set had been observed in earlier project phases. The claim is therefore about a
+frozen configuration, not about a new unseen benchmark.
+
+The cut-dependent result is established on C-MAPSS with one backbone family.
+Whether the crossover at 0.85--0.95 transfers to other datasets, backbones, or
+degradation regimes is open. We do not claim cross-backbone generality.
+
+The calibration baselines are deliberately simple. A stronger calibrator, or a
+calibrator trained with a different objective, could change the ranking at the
+late cuts. The paper's claim is about the two families we tested, not about all
+possible calibrators.
+
+The sensor-reconstruction result is limited to FD001 and FD003, three faults,
+and the fixed fault-injection protocol. It is enough to remove the module from
+the main method, but it is not a complete study of sensor-fault handling.
+
+\subsection{Conclusion}
+
+Multi-window aggregation for RUL is cut-dependent. On a frozen C-MAPSS backbone,
+LTAG improves end-of-life test RMSE over a single-window baseline on all four
+subsets (15/15, mean 0.391 cycles). A context-aware calibration and a linear
+stack are stronger on an all-cut validation average, but their advantage is
+concentrated at early cuts; at 0.85--0.95 LTAG is competitive with or better than
+both. The validation mean is therefore not a reliable proxy for the end-of-life
+test. A fair comparison also removes the apparent advantage of measurement-model
+sensor reconstruction on bias and drift, leaving it useful only for stuck
+sensors.
+
+The practical recommendation is to report a cut-wise table alongside the
+average, and to compare a learned gate against a simple calibrator before
+claiming that the gate is necessary. The learned gate can still be the right
+choice at the point where the maintenance decision is made.

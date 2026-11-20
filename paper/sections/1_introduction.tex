@@ -1,0 +1,65 @@
+\section{Introduction}
+\label{sec:intro}
+
+Remaining useful life (RUL) models are usually judged by their accuracy near the
+end of an engine's life, because that is when a maintenance decision is made.
+Yet many models produce a sequence of predictions from overlapping windows and
+aggregate them with a fixed rule or a learned gate. The aggregation step is often
+evaluated on a mixture of early and late cuts, and a single average can hide a
+change in ranking across the engine life.
+
+This paper asks a narrow question: \emph{does the benefit of multi-window
+aggregation depend on where in the engine life the prediction is made?} We study
+the question on the C-MAPSS benchmark \cite{saxena2008} with a frozen backbone and
+a fixed evaluation protocol. The protocol separates five cut fractions
+(0.40, 0.55, 0.70, 0.85, 0.95), keeps validation and test engines disjoint, and
+reports engine-mean and pooled RMSE separately.
+
+Our first result is positive for a learned gate. LTAG aligns the predictions of
+several windows to the current cut and learns a gate that mixes the age-aligned
+median with the single-window prediction. On the frozen B0 backbone, LTAG lowers
+official test RMSE on all four subsets, with 15/15 seed-subset wins and a mean
+improvement of 0.391 cycles (Table~\ref{tab:test}).
+
+Our second result is a boundary. On a validation average over all five cuts, two
+simple alternatives are stronger: a context-aware residual calibration
+(K1-Calib) and a linear stack (LS-ctx). This is not a small effect: K1-Calib and
+LS-ctx beat LTAG on all four subsets (Table~\ref{tab:validation}). A naive reading
+would reject LTAG. A cut-wise decomposition shows why the two results are
+compatible. The calibration methods are much stronger at early cuts, where the
+error is large and the validation mean is dominated by those cuts. At 0.85--0.95,
+LTAG is competitive with or better than the calibration methods
+(Table~\ref{tab:cutwise}, Figure~\ref{fig:cutwise}). The official test uses one
+window per engine near end-of-life, so it is closer to the late cuts than to the
+validation mean.
+
+Our third result is negative for a measurement-model front-end. An earlier
+sensor-reconstruction module (RHSE-TSH) looked effective against a last-value
+baseline. With fair backtracked hold and median baselines that use only observed
+data, the reconstruction matches or loses on bias and drift and only helps on
+stuck sensors (Table~\ref{tab:rhse}). We therefore remove it from the method and
+keep the finding as a boundary.
+
+The contributions are:
+\begin{enumerate}
+\item A cut-controlled evaluation protocol for multi-window RUL aggregation that
+reports engine-mean and pooled RMSE separately and never mixes estimators.
+\item A positive test result for LTAG on a frozen backbone: 15/15 seed-subset
+wins, mean test RMSE improvement 0.391 cycles (Section~\ref{sec:exp}).
+\item A cut-wise diagnosis showing that calibration wins early cuts while LTAG
+is competitive or better near end-of-life; the validation mean is not a proxy
+for the end-of-life test (Section~\ref{sec:cutwise}).
+\item A negative result for measurement-model sensor reconstruction under fair
+temporal baselines; the module is retained only as a limitation
+(Section~\ref{sec:rhse}).
+\end{enumerate}
+
+We do not claim a new state of the art. The paper's value is the cut-controlled
+evidence and the boundary: a learned gate can be the right choice at end-of-life
+even when a simple calibration wins the all-cut average.
+
+The rest of the paper describes the protocol (Section~\ref{sec:setup}), the LTAG
+method (Section~\ref{sec:method}), the test and validation results
+(Section~\ref{sec:exp}), the cut-wise analysis (Section~\ref{sec:cutwise}), the
+negative sensor-reconstruction result (Section~\ref{sec:rhse}), and the
+limitations (Section~\ref{sec:conclusion}).

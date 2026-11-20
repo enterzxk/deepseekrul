@@ -1,0 +1,46 @@
+\section{Experiments}
+\label{sec:exp}
+
+\subsection{Official test}
+
+Table~\ref{tab:test} reports the frozen B0 test RMSE. Each test engine has one
+window. LTAG lowers RMSE on all four subsets and on every seed: 6/6 on FD001 and
+3/3 on each of FD002--FD004, for 15/15 seed-subset wins. The mean improvement is
+0.391 cycles, from 13.421 to 12.995 on FD001, 11.514 to 11.352 on FD002, 12.979
+to 12.323 on FD003, and 13.031 to 12.710 on FD004. Figure~\ref{fig:test} shows
+the per-subset bars and the individual seed points.
+
+\input{../tables/tab1_test}
+
+\subsection{Validation controls}
+
+Table~\ref{tab:validation} reports the five-cut validation average. The
+single-window baseline K1 is 12.094/11.527/12.793/13.608 on FD001--FD004.
+Median is better on FD001 (11.429) but worse on the other three subsets. LTAG is
+11.334/11.210/12.372/13.522, an improvement over K1 on all four subsets.
+
+The calibration baselines are stronger on this average. K1-Calib reaches
+10.931/10.970/12.129/12.839, and LS-ctx reaches 10.150/10.604/12.033/13.080.
+Both beat LTAG on all four subsets. A gate that mixes two existing predictions is
+therefore not the best aggregator when all cuts are weighted equally.
+
+This is the point at which a single-number comparison would reject LTAG. The next
+section shows that the average hides a change in ranking across the engine life.
+
+\input{../tables/tab2_validation}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\textwidth]{fig2_test.pdf}
+\caption{Frozen B0 test RMSE (one window per engine). Bars are subset means; dots
+are individual seeds. LTAG is lower than K1 on all four subsets (15/15).}
+\label{fig:test}
+\end{figure}
+
+\subsection{Ensemble control}
+
+Averaging three seeds (101/202/303) gives Ens3-K1 11.005/11.231/11.828/13.342 and
+Ens3-LTAG 10.292/10.937/11.410/13.228. The gate still helps on top of the
+ensemble (4/4), but the ensemble itself closes much of the gap. Ens3-LTAG remains
+below LS-ctx on all four subsets (9.256/10.483/11.026/12.903), so the ensemble
+control does not rescue the gate as a universal aggregator.

@@ -1,0 +1,17 @@
+Multi-window aggregation is a common inference-time step for remaining useful
+life (RUL) prediction, yet its benefit is usually reported as a single average
+over the engine life. We ask whether that benefit is uniform, and we find that it
+is not. On a frozen C-MAPSS backbone, a learned gate (LTAG) improves official
+test RMSE over a single-window baseline on all four subsets (15/15 seed-subset
+wins; mean improvement 0.391 cycles). The same gate is not the best aggregator on
+a five-cut validation average: a context-aware residual calibration and a linear
+stack are stronger there. A cut-wise analysis resolves the apparent conflict.
+Calibration methods are stronger at early cuts (0.40--0.55), where errors are
+large; near end-of-life (0.85--0.95), LTAG is competitive with or better than the
+calibration baselines. The validation mean is therefore dominated by early cuts
+and is not a reliable proxy for the end-of-life test. We also revisit a
+measurement-model sensor-reconstruction front-end: with fair backtracked hold and
+median baselines, it only helps on stuck sensors and is not a general component.
+The paper's contribution is a cut-controlled evaluation protocol and the
+empirical finding that learned gating and post-hoc calibration win different
+parts of the engine life.

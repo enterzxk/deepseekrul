@@ -1,0 +1,66 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{Age-aligned windows}
+
+For an engine at cut $c$, let $t_0=c-1$ be the index of the most recent cycle.
+For a window lag $\Delta$ and offset $j$, the window ends at $t_j=t_0-j\Delta$.
+The backbone prediction for that window is $p_j$. Because the window is older
+than the cut, its prediction refers to an earlier cycle. We align it to the cut:
+\begin{equation}
+a_j = p_j + j\Delta .
+\label{eq:align}
+\end{equation}
+The aligned predictions $\{a_j\}_{j=0}^{K-1}$ are the inputs to the aggregator.
+For $K=1$, $a_0=p_0=K1$; for $K=3$ and $\Delta=5$ we use offsets $j=0,1,2$.
+
+\subsection{Features}
+
+The aggregator uses eleven features: the single-window prediction $p_0$, the
+aligned median $p_{\mathrm{med}}$, the aligned mean $p_{\mathrm{mean}}$, the
+aligned standard deviation $p_{\mathrm{std}}$, the median absolute deviation
+(MAD), the shift $p_{\mathrm{med}}-p_0$, the regime distance, the cap indicator,
+the current cut normalized by 250, and the observed history length normalized by
+70. The lifetime fraction $c/n$ is deliberately excluded: the true lifetime $n$
+is not observable at test time. The cap indicator is computed from the model
+outputs ($p_0\ge 124.5$ or $p_{\mathrm{med}}\ge 124.5$), not from the true RUL.
+
+\subsection{Learned gate}
+
+LTAG is a two-layer MLP with GELU activation and a sigmoid output:
+\begin{equation}
+g(x)=\sigma\!\left(W_2\,\mathrm{GELU}(W_1 x+b_1)+b_2\right),
+\end{equation}
+with the last layer initialized to zero, so the gate starts at $g=0.5$. The
+prediction is
+\begin{equation}
+\hat y = g\,p_{\mathrm{med}} + (1-g)\,p_0 .
+\label{eq:gate}
+\end{equation}
+The gate is trained with a censored hinge loss on the capped target,
+\begin{equation}
+\ell(\hat y,y)=
+\begin{cases}
+\max(0,\hat y-y), & y<125,\\
+\max(0,\hat y-125), & y=125,
+\end{cases}
+\end{equation}
+which avoids penalizing a prediction above the cap when the true RUL is capped.
+Training uses AdamW, learning rate $10^{-3}$, weight decay $10^{-3}$, 300 epochs,
+and five engine-disjoint folds (GroupKFold by subset and engine). Validation
+engines are not used in any fold.
+
+\subsection{Calibration baselines}
+
+We compare two post-hoc calibrators on the same features. K1-Calib is a residual
+MLP that predicts $\hat y=p_0+r(x)$, where $r$ is a two-layer MLP with zero-init
+last layer and the input contains only $p_0$ and context (regime distance, cap,
+cut, history). LS-ctx is a ridge regression on
+$[p_0,p_{\mathrm{med}},\text{context}]$. Both are trained on the training engines
+and applied to validation engines; neither sees test labels.
+
+The distinction between LTAG and the calibrators is deliberate. LTAG learns a
+\emph{gate} between two existing predictions; K1-Calib learns an additive
+correction to $p_0$; LS-ctx learns a linear map. If a calibrator matches LTAG,
+the gate is not necessary. Section~\ref{sec:cutwise} shows that the answer
+depends on the cut.
