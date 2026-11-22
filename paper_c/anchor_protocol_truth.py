@@ -117,6 +117,9 @@ def main() -> int:
                     cfg = json.loads((d / "config.json").read_text(encoding="utf-8"))
                     hist = json.loads((d / "history.json").read_text(encoding="utf-8"))
                     freeze = json.loads((d / "FREEZE.json").read_text(encoding="utf-8"))
+                    vmet = json.loads(
+                        (d / "validation_metrics.json").read_text(encoding="utf-8")
+                    )
                 except FileNotFoundError as exc:
                     problems.append(f"{tag}: {exc}")
                     continue
@@ -126,6 +129,24 @@ def main() -> int:
                 health = numeric_health(hist, int(cfg["epochs"]), best)
                 if health:
                     problems.append(f"{tag}: " + "; ".join(health))
+
+                # The judge takes the anchor argmin from the curve minimum, so
+                # that equality is a precondition, not a convention. Two cells
+                # were reported with the wrong epoch earlier precisely because
+                # this was assumed rather than asserted; verify it here so the
+                # assumption is recorded rather than trusted.
+                curve_vals = [float(r["val_engine_mean_rmse"]) for r in hist]
+                curve_min = min(curve_vals)
+                argmin_epoch = curve_vals.index(curve_min) + 1
+                recorded = float(vmet["val_engine_mean_rmse"])
+                selection_ok = (
+                    abs(recorded - curve_min) < 1e-9 and argmin_epoch == best
+                )
+                if not selection_ok:
+                    problems.append(
+                        f"{tag}: recorded selection {recorded:.6f} vs curve min "
+                        f"{curve_min:.6f} (argmin epoch {argmin_epoch} vs best {best})"
+                    )
 
                 cells.append(
                     {
@@ -141,6 +162,10 @@ def main() -> int:
                         "best_epoch": best,
                         "budget_truncated": epochs_run == int(cfg["epochs"]),
                         "curve_len": len(hist),
+                        "recorded_selection": recorded,
+                        "curve_min": curve_min,
+                        "argmin_epoch": argmin_epoch,
+                        "selection_is_curve_min": selection_ok,
                         "numeric_health": "ok" if not health else "; ".join(health),
                     }
                 )
@@ -162,6 +187,12 @@ def main() -> int:
         "cells": cells,
         "budget_truncated_cells": truncated,
         "epochs_run_by_method": per_method_epochs,
+        "selection_is_curve_min_all": all(c["selection_is_curve_min"] for c in cells),
+        "selection_mismatches": [
+            f"{c['method']}/{c['subset']}/s{c['seed']}"
+            for c in cells
+            if not c["selection_is_curve_min"]
+        ],
     }
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
