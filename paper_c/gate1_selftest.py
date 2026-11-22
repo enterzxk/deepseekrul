@@ -165,6 +165,61 @@ def stamp_runtime(root):
                 p.write_text(json.dumps(meta))
 
 
+ANCHOR_FILES = ('config.json', 'environment.json', 'FREEZE.json', 'history.json',
+                'split.json', 'training_metrics.json', 'validation_metrics.json',
+                'validation_predictions.csv', 'pretraining_metrics.json')
+
+
+def extract_anchor(root):
+    """Materialise ONLY the files the judge reads, straight from the blob.
+
+    The fixture used to `git archive` the whole subtree and then delete the sealed
+    files -- the one place in the pipeline that put 30 checkpoint.pt (43 MB) and
+    six classes of TEST output on disk. The allowlist is the judge's own input
+    list, so nothing the judge never reads is ever created.
+
+    Returns (n_written, error). Byte-exact: blobs are written with write_bytes, so
+    no line-ending translation can creep in.
+    """
+    tree = subprocess.run(['git', 'ls-tree', '-r', '--name-only', FROZEN, '--', FROZEN_SUB],
+                          capture_output=True, text=True)
+    if tree.returncode != 0:
+        return 0, f'ls-tree failed: {tree.stderr.strip()}'
+    seeds = {f's{x}' for x in SEEDS}
+    keep = []
+    for line in tree.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line[len(FROZEN_SUB):].lstrip('/').split('/')
+        if len(parts) != 4:      # <model>/<subset>/s<seed>/<file>
+            continue
+        m, sub, sd = parts[0], parts[1], parts[2]
+        if m in METHODS and sub in SUBSETS and sd in seeds and Path(line).name in ANCHOR_FILES:
+            keep.append((f'{FROZEN}:{line}', line[len(FROZEN_SUB):].lstrip('/')))
+    if not keep:
+        return 0, 'allowlist matched no file'
+    proc = subprocess.run(['git', 'cat-file', '--batch'],
+                          input=('\n'.join(k for k, _ in keep) + '\n').encode(),
+                          capture_output=True)
+    if proc.returncode != 0:
+        return 0, f'cat-file failed: {proc.stderr.decode(errors="replace").strip()}'
+    data, pos, n = proc.stdout, 0, 0
+    for spec, rel in keep:
+        nl_at = data.index(b'\n', pos)
+        head = data[pos:nl_at].split()
+        if len(head) != 3:
+            return 0, f'bad batch header for {spec}: {head}'
+        size = int(head[2])
+        start = nl_at + 1
+        dest = root / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data[start:start + size])
+        n += 1
+        pos = start + size + 1
+    return n, ''
+
+
 def prune_sealed(root):
     """Drop the sealed TEST outputs and checkpoints the committed tree carries.
 
@@ -586,17 +641,17 @@ def main():
         else:
             real = td / 'real'
             real.mkdir()
-            tar = real / 'f.tar'
-            a = subprocess.run(['git', 'archive', '--format=tar', '--output', str(tar),
-                                FROZEN, FROZEN_SUB], capture_output=True, text=True)
-            if a.returncode != 0:
-                record('real frozen fixed40', False, f'git archive failed: {a.stderr.strip()}')
+            root = real / FROZEN_SUB
+            written, why = extract_anchor(root)
+            if written == 0:
+                record('real frozen fixed40', False, f'extract failed: {why}')
             else:
-                subprocess.run(['tar', '-xf', str(tar), '-C', str(real)], check=True)
-                root = real / FROZEN_SUB
+                # tripwire: the extractor must never have created a sealed file
                 pruned = prune_sealed(root)
-                record('fixture prunes sealed TEST/checkpoint files', pruned > 0,
-                       f'removed {pruned} file(s)')
+                sealed_left = sum(1 for _ in root.rglob('checkpoint.pt'))
+                record('fixture writes the allowlist only (no sealed file on disk)',
+                       pruned == 0 and sealed_left == 0,
+                       f'{written} file(s), pruned={pruned}, checkpoint.pt={sealed_left}')
                 # PURE anchor bytes first: no synthetic file anywhere. The committed
                 # anchor DOES carry training_metrics.json (the 7-file copy in the
                 # working tree is a pruned checkout), so item 5 fires 3x per cell --
