@@ -277,6 +277,22 @@ def main():
                 record('real fragile set = 5', bool(frag) and 'cells: 5' in frag[0],
                        frag[0] if frag else 'no fragile line')
 
+                # the ledger attributes the verdict to a commit, so a record must
+                # never be written while the working tree differs from HEAD
+                rec = td / 'rec.json'
+                rc, log, err = run_recon(root, root, td, 'rec',
+                                         extra=('--record', str(rec)))
+                dirty = subprocess.run(['git', 'diff', '--quiet', '--', 'paper_c/gate1.py'],
+                                       capture_output=True).returncode != 0
+                if dirty:
+                    ok = rc == 2 and 'commit the judging script' in log
+                    record('record refuses a dirty tree', ok, f'rc={rc} dirty=True')
+                else:
+                    ok = rc == 0 and rec.exists()
+                    detail = json.loads(rec.read_text()) if rec.exists() else {}
+                    record('record written on clean tree', ok,
+                           f'rc={rc} keys={sorted(detail)[:5]}')
+
                 victim = ('aidgn', 'FD001', 101)
                 trim = td / 'real_trim'
                 shutil.copytree(root, trim)

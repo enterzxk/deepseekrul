@@ -95,6 +95,7 @@ import argparse
 import csv
 import hashlib
 import json
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -440,7 +441,55 @@ def a_segment_engine_rmse(root: Path):
     die(f'reconcile: no such path {root}')
 
 
-def reconcile(a_seg: Path, frozen: Path, tol: float, no_meta: bool = False) -> int:
+def write_record(path: Path, a_seg: Path, frozen: Path, curves, fragile, tol, batch):
+    """Write the pass record the run ledger reads, after proving its own provenance.
+
+    The ledger opens segment B by checking that `git show <git_sha>:paper_c/gate1.py`
+    hashes to `gate1_sha256`. So the record must not be written unless the script
+    on disk IS the committed one -- otherwise it names a commit that does not
+    contain the code that produced the verdict, and the check would pass on a lie.
+    """
+    here = Path(__file__).resolve()
+    repo = here.parent.parent
+    rel = f'{here.parent.name}/{here.name}'
+    disk = hashlib.sha256(here.read_bytes()).hexdigest()
+    r = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, cwd=repo)
+    if r.returncode != 0:
+        die('record: cannot resolve git HEAD -- the ledger attributes the verdict to a '
+            'commit, so an unattributed record is worse than none')
+    sha = r.stdout.strip()
+    blob = subprocess.run(['git', 'show', f'{sha}:{rel}'], capture_output=True, cwd=repo)
+    if blob.returncode != 0:
+        die(f'record: {sha}:{rel} is not readable -- the judging script is not committed '
+            f'at HEAD, so the record would cite a commit that lacks it')
+    blob_sha = hashlib.sha256(blob.stdout).hexdigest()
+    if blob_sha != disk:
+        die(f'record: working-tree {rel} sha256 {disk[:12]} != HEAD blob {blob_sha[:12]} -- '
+            f'commit the judging script before recording a verdict')
+
+    lv = np.array([c['level'] for c in curves.values()])
+    rh = np.array([c['rho'] for c in curves.values()])
+    ag = np.array([c['argmin_gap'] for c in curves.values()])
+    rec = dict(
+        batch=batch, verdict='pass', cells=N_CELLS,
+        gate1_path=rel, git_sha=sha, gate1_sha256=disk,
+        gates=dict(protocol_fields='identical', epoch_tol=EPOCH_TOL,
+                   level_tol=tol, rank_min=RANK_MIN,
+                   level_statistic='mean of the selection metric over common epochs'),
+        level=dict(mean=float(lv.mean()), min=float(lv.min()), max=float(lv.max())),
+        rank=dict(mean=float(rh.mean()), min=float(rh.min())),
+        argmin_gap=dict(mean=float(ag.mean()), sd=float(ag.std(ddof=1)),
+                        max_abs=float(np.abs(ag).max()), role='diagnostic, not a gate'),
+        fragile_cells=sorted(f'{m}/{s}/s{d}' for m, s, d in fragile),
+        segment_a=str(a_seg), frozen=str(frozen),
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rec, indent=1), encoding='utf-8')
+    print(f'wrote {path}  (verdict=pass, git_sha={sha[:8]}, gate1_sha256={disk[:12]})')
+
+
+def reconcile(a_seg: Path, frozen: Path, tol: float, no_meta: bool = False,
+              record: Path | None = None, batch: str = 'P2/W1/segment-A') -> int:
     print('RECONCILE  segment A (V0) vs frozen d7bd9c17  -- VALIDATION ONLY, TEST stays sealed')
     print(f'gates: protocol identical | stopping epoch within {EPOCH_TOL} | curve level '
           f'within +/-{tol:.2f} | per-engine rank >= {RANK_MIN}')
@@ -476,6 +525,11 @@ def reconcile(a_seg: Path, frozen: Path, tol: float, no_meta: bool = False) -> i
         print(f'rank (rho)    mean {rh.mean():.4f}   min {rh.min():.4f}')
         print(f'argmin gap    mean {ag.mean():+.4f}  sd {ag.std(ddof=1):.4f}  '
               f'max|.| {np.abs(ag).max():.4f}   (diagnostic, not a gate)')
+    if record is not None:
+        if not curves:
+            die('record: a --no-meta reconcile cannot certify provenance -- no curve or '
+                'rank gate ran, so "pass" would only mean the RMSE table loaded')
+        write_record(Path(record), Path(a_seg), Path(frozen), curves, fragile, tol, batch)
     print('RECONCILE: OK -- segment B may proceed')
     return EXIT_OK
 
@@ -492,6 +546,10 @@ def main():
     ap.add_argument('--tol', type=float, default=RECON_TOL)
     ap.add_argument('--no-meta', action='store_true',
                     help='skip the protocol/epoch/curve/rank gates (RMSE-only reconcile)')
+    ap.add_argument('--record', default=None, metavar='PATH',
+                    help='write the pass record the run ledger reads (requires a committed '
+                         'gate1.py and the full gate set)')
+    ap.add_argument('--batch', default='P2/W1/segment-A')
     a = ap.parse_args()
 
     if a.reconcile_a or a.reconcile_frozen:
@@ -502,7 +560,8 @@ def main():
         if Path(a.reconcile_a).is_file() and not a.no_meta:
             die('a JSON of rows carries no history/epochs; pass --no-meta to reconcile it, '
                 'or point --reconcile-a at the run directory instead')
-        return reconcile(Path(a.reconcile_a), Path(a.reconcile_frozen), a.tol, a.no_meta)
+        return reconcile(Path(a.reconcile_a), Path(a.reconcile_frozen), a.tol, a.no_meta,
+                         a.record, a.batch)
     if not (a.baseline and a.module):
         die('need --baseline and --module (or --reconcile-a/--reconcile-frozen)')
 
