@@ -355,8 +355,9 @@ def check_cells(a_root: Path, f_root: Path, no_meta: bool):
     """Gates 1-5 over the 30 cells. Dies (exit 2) on the first failing gate."""
     if no_meta:
         print('cell checks: SKIPPED (--no-meta) -- RMSE-only, no epoch/curve/rank gate\n')
-        return set(), {}
+        return [], set(), {}
     bad, fragile, curves = [], set(), {}
+    counts = defaultdict(int)
     n_cmp = 0
     srcs = defaultdict(int)
     for m in METHODS:
@@ -373,10 +374,12 @@ def check_cells(a_root: Path, f_root: Path, no_meta: bool):
                     if f in fm['cfg'] and f in am['cfg']:
                         n_cmp += 1
                         if not _same(fm['cfg'][f], am['cfg'][f]):
+                            counts['protocol'] += 1
                             bad.append(f'{key}: config.{f} {am["cfg"][f]!r} != {fm["cfg"][f]!r}')
 
                 if (abs(am['epochs_run'] - fm['epochs_run']) > EPOCH_TOL
                         or abs(am['best_epoch'] - fm['best_epoch']) > EPOCH_TOL):
+                    counts['stopping epoch'] += 1
                     bad.append(f'{key}: stopping epoch drifted (epochs_run '
                                f'{am["epochs_run"]} vs {fm["epochs_run"]}, best '
                                f'{am["best_epoch"]} vs {fm["best_epoch"]}, tol {EPOCH_TOL})')
@@ -410,19 +413,25 @@ def check_cells(a_root: Path, f_root: Path, no_meta: bool):
                 curves[key] = dict(level=dlev, rho=rho, n_common=len(common),
                                    argmin_gap=arg_a - arg_f, selected_delta=d_sel)
                 if abs(dlev) > RECON_TOL:
+                    counts['curve level'] += 1
                     bad.append(f'{key}: curve level {dlev:+.4f} outside +/-{RECON_TOL}')
                 if not (rho >= RANK_MIN):
+                    counts['rank'] += 1
                     bad.append(f'{key}: per-engine rank correlation {rho:.3f} < {RANK_MIN}')
 
-    print(f'protocol: {n_cmp} config-field comparisons, {len(bad)} violation(s) so far')
+    print(f'protocol: {n_cmp} config-field comparisons')
     print(f'epoch sources (frozen|segment A): {dict(srcs)}')
     print(f'budget-truncated (fragile) cells: {len(fragile)} '
           f'{sorted(f"{m}/{s}/s{d}" for m, s, d in fragile)}')
+    # Per-gate counts: a cumulative total under a single gate's label reads as
+    # "the protocol changed" even when only the level drifted.
+    print(f'gate violations: {dict(counts) if counts else "none"} (total {len(bad)})')
     if bad:
         print('\n'.join('  ' + b for b in bad), file=sys.stderr)
-        die(f'RECONCILE: ABORT -- {len(bad)} gate violation(s); segment A does not '
-            f'reproduce the anchor, so segment B would measure the environment')
-    return fragile, curves
+        print(f'RECONCILE: ABORT -- {len(bad)} gate violation(s); segment A does not '
+              f'reproduce the anchor, so segment B would measure the environment',
+              file=sys.stderr)
+    return bad, fragile, curves
 
 
 def a_segment_engine_rmse(root: Path):
@@ -439,6 +448,28 @@ def a_segment_engine_rmse(root: Path):
         rows = load(root)
         return {k: cell_metrics(c)[0] for k, c in by_cell(rows).items()}
     die(f'reconcile: no such path {root}')
+
+
+def write_abort_record(path: Path, batch, violations):
+    """Record a failed reconcile so "ran and failed" stays distinct from "not run".
+
+    Deliberately NOT provenance-verified: an abort record must never be able to
+    open segment B, and the ledger gates on verdict == 'pass' alone.
+    """
+    here = Path(__file__).resolve()
+    repo = here.parent.parent
+    rel = f'{here.parent.name}/{here.name}'
+    r = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, cwd=repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(
+        batch=batch, verdict='abort', cells=N_CELLS,
+        gate1_path=rel,
+        git_sha=r.stdout.strip() if r.returncode == 0 else None,
+        gate1_sha256=hashlib.sha256(here.read_bytes()).hexdigest(),
+        provenance_verified=False,
+        violations=list(violations),
+    ), indent=1), encoding='utf-8')
+    print(f'wrote {path}  (verdict=abort, {len(violations)} violation(s) -- segment B stays closed)')
 
 
 def write_record(path: Path, a_seg: Path, frozen: Path, curves, fragile, tol, batch):
@@ -497,7 +528,13 @@ def reconcile(a_seg: Path, frozen: Path, tol: float, no_meta: bool = False,
           'not a gate (argmin of a curve with sd ~1 is unstable)\n')
 
     got_all = a_segment_engine_rmse(Path(a_seg))
-    fragile, curves = check_cells(Path(a_seg), Path(frozen), no_meta)
+    bad, fragile, curves = check_cells(Path(a_seg), Path(frozen), no_meta)
+    if bad:
+        # An abort record keeps "ran and failed" distinguishable from "not run".
+        # It can never open segment B: the ledger gates on verdict == 'pass'.
+        if record is not None:
+            write_abort_record(Path(record), batch, bad)
+        return EXIT_ABORT
 
     print(f'\n{"cell":22} {"lvl":>7} {"rho":>6} {"argmin":>7} {"sel":>7} {"eng":>4}  note')
     for m in METHODS:

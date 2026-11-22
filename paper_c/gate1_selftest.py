@@ -214,11 +214,22 @@ def main():
             rc, log, err = run_recon(root, frozen, td, slug)
             ok = rc == expect_rc and needle in log
             record(name, ok, f'rc={rc} needle={needle!r} found={needle in log}')
+            return root
 
-        variant('level shift +0.5 -> ABORT', 2, 'curve level', level=0.5)
+        lvl_root = variant('level shift +0.5 -> ABORT', 2, 'curve level', level=0.5)
         variant('rank scramble -> ABORT', 2, 'rank correlation', rank_flip=True)
         variant('epoch drift -> ABORT', 2, 'stopping epoch', epochs_run=33)
         variant('protocol lr -> ABORT', 2, 'config.lr', lr=5e-3)
+
+        # an abort must still leave a record: otherwise the ledger cannot tell
+        # "segment A ran and failed" from "segment A never ran"
+        arec = td / 'abort.json'
+        rc, log, err = run_recon(lvl_root, frozen, td, 'abortrec',
+                                 extra=('--record', str(arec)))
+        ok = (rc == 2 and arec.exists()
+              and json.loads(arec.read_text())['verdict'] == 'abort')
+        record('abort writes verdict=abort', ok,
+               f'rc={rc} exists={arec.exists()}')
 
         # an artifact whose metrics no longer correspond to its own curve
         tam = td / 'tampered'
