@@ -191,11 +191,54 @@ def selftest() -> int:
         f"verdict={rec['verdict']} exit={rec['exit_code']}",
     )
 
+    # 6. the official ledger path belongs to gate1.py --record; this wrapper
+    #    must not be able to become a second writer of it.
+    official = Path("results/paper_c/recon_A.json")
+    existed = official.exists()
+    rc = subprocess.run(
+        [
+            sys.executable,
+            __file__,
+            "--segment-a",
+            ".",
+            "--frozen",
+            ".",
+            "--out",
+            str(official),
+        ],
+        capture_output=True,
+        check=False,
+    ).returncode
+    check(
+        "refuses to write the official ledger path",
+        rc == 2 and official.exists() == existed,
+        f"rc={rc} existed_before={existed} exists_after={official.exists()}",
+    )
+
+    # 7. --verify must catch a record whose verdict disagrees with the run.
+    bad = Path(tempfile.gettempdir()) / "recon_record_bad_verdict.json"
+    bad.write_text(json.dumps({"verdict": "pass"}), encoding="utf-8")
+    rc = subprocess.run(
+        [
+            sys.executable,
+            __file__,
+            "--segment-a",
+            "/nonexistent/a",
+            "--frozen",
+            "/nonexistent/b",
+            "--verify",
+            str(bad),
+        ],
+        capture_output=True,
+        check=False,
+    ).returncode
+    check("verify catches a disagreeing record", rc == 1, f"rc={rc} (want 1)")
+
     print()
     if failures:
         print(f"RECON_RECORD SELFTEST FAILED ({len(failures)}): {failures}")
         return 1
-    print("RECON_RECORD SELFTEST PASSED (5/5)")
+    print("RECON_RECORD SELFTEST PASSED (7/7)")
     return 0
 
 
@@ -207,13 +250,54 @@ def main() -> int:
     ap.add_argument("--out")
     ap.add_argument("--tol", type=float, default=None)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument(
+        "--verify",
+        metavar="RECORD",
+        help="compare an existing record's verdict against a fresh run; writes nothing",
+    )
     a = ap.parse_args()
 
     if a.selftest:
         return selftest()
 
+    OFFICIAL = "results/paper_c/recon_A.json"
+
+    if a.verify:
+        if not (a.segment_a and a.frozen):
+            print("--verify needs --segment-a and --frozen", file=sys.stderr)
+            return 2
+        recorded = json.loads(Path(a.verify).read_text(encoding="utf-8"))
+        fresh = build_record(a.segment_a, a.frozen, a.git_sha, a.tol)
+        agree = fresh["verdict"] == recorded.get("verdict")
+        print(
+            f"record {a.verify}: verdict={recorded.get('verdict')!r}\n"
+            f"fresh run:          exit={fresh['exit_code']} -> verdict={fresh['verdict']!r}"
+        )
+        if not agree:
+            print(
+                "MISMATCH: the stored record and this run's exit code disagree -- "
+                "the record does not describe this tree",
+                file=sys.stderr,
+            )
+            return 1
+        print("VERIFY OK: record and exit code agree")
+        return 0
+
     if not (a.segment_a and a.frozen and a.out):
-        print("need --segment-a --frozen --out (or --selftest)", file=sys.stderr)
+        print("need --segment-a --frozen --out (or --selftest / --verify)", file=sys.stderr)
+        return 2
+
+    # The ledger pins gate1.py --record as the single writer of this path. A
+    # second writer here would be the same failure family as two implementations
+    # of the 0.2: the file would depend on which tool ran last. This wrapper
+    # exists to CHECK that record, so it must not be able to replace it.
+    if Path(a.out).as_posix().endswith(OFFICIAL):
+        print(
+            f"REFUSING to write {OFFICIAL}: that path belongs to gate1.py --record, "
+            f"which the ledger pins. Use --verify {OFFICIAL} to compare verdicts, "
+            f"or write this record somewhere else.",
+            file=sys.stderr,
+        )
         return 2
 
     if not working_tree_matches_blob(a.git_sha):
