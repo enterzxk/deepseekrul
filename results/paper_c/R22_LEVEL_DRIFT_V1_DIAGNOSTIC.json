@@ -91,5 +91,9 @@
   ],
   "rest_sum": 0.6921631820185681,
   "rest_n": 18
- }
+ },
+ "status": "SUPERSEDED -- DO NOT CITE",
+ "superseded_reason": "computed from v1 products that used open_source/data.py (points = range(length, n+1)), which drops 80*(window-1) training windows per cell: aidgn/FD001/s101 trained on 12842 windows instead of the anchor 16762 (-23%). With the matched data.py the same cell moves from val 10.7021 to 11.1240 against the anchor 11.1004, i.e. |d| 0.398 -> 0.024. So every number in this file mixes machine difference with a 23% smaller training set and cannot be read as environment drift.",
+ "superseded_by": "recon_A.json produced by gate1.py --record on out_v8 (matched.data.prepare)",
+ "what_still_holds": "The set-membership point survives: the 9-cell exclusion list removes two_phase/FD004 but leaves two_phase/FD001 inside, so an exclusion list built from unreproducible cells does not coincide with the set that carries the offset. The magnitudes do not survive."
 }
