@@ -96,11 +96,16 @@ R1 早就定了「不用历史锚、60 格全在本机重训」，B 段的基线
 | **A 段** | 30 格 **V0**（`k0p`） | ①**协议保真硬检查**（不过则该骨干 B 段不开）②**漂移测量**（只报数，不设 RMSE 门） |
 | **B 段** | 30 格 **+CADF** | 协议保真检查通过后开跑；**基线 = 本地 A 段 `v5` 对应格**，不是 A40 锚点 |
 
-**A 段基线一律用 `v5`**（`pc_v0_run_v5.py`：`min_delta` 生效、TF32 关、冻结列名、逐轮 SSE；
-数值路径与 v3 相同），`v1` 只作对照列。**`v3` / `v4` 的产物不合契约、不得作基线**——`v4` 只改了
+**A 段基线一律用 `v5`**（`pc_v0_run_v5.py`：`min_delta` 生效、TF32 关、冻结列名、逐轮 SSE），
+`v1` 只作对照列。**`v3` / `v4` 的产物不合契约、不得作基线**——`v4` 只改了
 CSV 列名、`history.json` **没有** `engine_squared_errors`，pin 到它会直接死在
 `epoch record missing engine_squared_errors`。B 段 runner 直接基于 `v5`，**两臂同协议**。
-`v5` vs `v1` 的逐格对照是强制产物：任一格 `|Δarg| > 0.2`，该格的 `v1` 数作废、以 `v5` 为准。
+
+**`v1` 的 12 格作废，与阈值无关（v6.5.4 更正）**：`v1` 在 `aidgn` / `fcstgnn` 上 TF32 是**开着**的，
+而锚点自己的 `runtime_flags` 写着 `cudnn_tf32: false`——所以那 12 格违反的不是本轮新规，是
+**锚点产物里写明的原始协议**。逐格 `|Δarg|`（v5 − v1）最大 **+0.2486**（`fcstgnn/FD004/s303`），
+就是这条违规的数值后果。**这 12 格一律以 `v5` 为准，不再按「>0.2 才作废」判**；其余 18 格
+（`two_phase` / `dual_mixer` / `ffve`）v1 与 v5 **逐位相同**，可作对照列。
 
 **对账口径（写死）**：只用**验证集**——`validation_metrics.json` 的 engine-level RMSE ＋
 `validation_predictions.csv` 的逐机预测；**不是 TEST，TEST 全程封存**。
@@ -116,12 +121,16 @@ CSV 列名、`history.json` **没有** `engine_squared_errors`，pin 到它会�
    3 格**全部 < 30**，判「早停未生效」→ ABORT 并查代码。**不用容差，用的是形态**——正是
    `fcstgnn` 那 6 格（早停被代码排除）的形态。
 4. **数值健全**：曲线长度 = `epochs_run`、无 NaN/Inf、`best_epoch ∈ [1, epochs_run]`。
-5. **运行时开关必须在产物里自证（不是配置比对）**：`config.json` 里写着 `min_delta` / `tf32=false`
+5. **运行时开关要与锚点对照，不是自证**：`config.json` 里写着 `min_delta` / `tf32=false`
    **不等于 runner 真的用了它们**。zxk 实测：v1 的 `FREEZE.json` 照抄了 `min_delta: 0.0001` 却没
    实现（`if eng_mean < best` 而非 `score < best - min_delta`），且 3090 上 `cudnn.allow_tf32`
-   默认 **True**、两个 runner 都没关。所以要求：
-   - 逐格 `training_metrics.json` 必须带 **`min_delta` / `tf32_matmul=False` /
-     `tf32_cudnn=False`** 三个字段并断言为预期值；
+   默认 **True**、两个 runner 都没关。**锚点侧有对照物（v6.5.4 更正）**：`d7bd9c17` 每格有
+   **23 个文件**，含 `training_metrics.json`，其 `runtime_flags` 为
+   `{matmul_tf32: false, cudnn_tf32: false, cudnn_deterministic: true, cudnn_benchmark: false}`
+   （抽 5 骨干 × 2 子集，**10/10 一致**；全树 96 份）。**工作树里那份 7 文件副本是裁剪过的**，
+   不得据它断言「锚点没有 `training_metrics.json`」。所以：
+   - 本地侧逐格 `training_metrics.json` 的 TF32 字段必须**与锚点 `runtime_flags` 相等**；
+   - `min_delta` 锚点文件里没有，仍与 `config.json` 比；
    - runner 在训练开始前对 `torch.backends.*.allow_tf32` 做硬断言（锚点 runner 就是这种形态）；
    - `history.json` 必须含 `epoch / train_loss / val_engine_mean_rmse`、行数 = `epochs_run`，
      **由 runner 自己写、不得回填**。
@@ -489,10 +498,12 @@ Stage 2 的一处待定（不阻塞本阶段）：计划书写 DS01–DS04，而
 ## 9. 判据脚本的适用范围（`gate1.py`）
 
 `gate1.py`**只适用于 `checkpoint_selection=val_engine_mean_rmse` 的批次**（A 段正式判定必须用
-**复核入库后**的 blob；`48f9b485…` 是 v6.2、`f229c3f7…` 是 v6.6）。它内部断言
-「`validation_metrics.val_engine_mean_rmse` ≤ 该格曲线全局最小值 + **`max(min_delta, 1e-6)`**」——
-**边界不是 0**：启用 `min_delta` 后，被选中的轮次可以合法地比后面略低的一轮高出最多 `min_delta`
-（v6.6 修掉了原来 `1e-6` 的误杀）；真正取错轮次会差约 `1e-2`，仍抓得住。
+**复核入库后**的 blob；`48f9b485…` 是 v6.2、`f229c3f7…` 是 v6.6、`60d29b26…` 是 v6.7）。
+它内部**重放选轮**：`_replay_best(history, min_delta)` 按 `accepted = score < best − min_delta`
+逐轮复算，与 `validation_metrics` 记的轮次比对，**对不上即 die**；`min_delta=0` 时退化为 argmin。
+（v6.5.3 曾写成「`≤ 曲线最小值 + max(min_delta, 1e-6)`」的边界，v6.7 换成重放——重放检验的是
+**规则本身**，边界只检验一个不等式，后者会放过「选错轮但值恰好落在界内」。重放当场抓出过一个
+夹具错误：合成格声明 `min_delta=1e-4` 却按纯 argmin 选轮，曲线上有 1.6e-5 的近邻。）
 30 格锚点全部满足**严格相等**（30/30，`argmin == FREEZE.best_epoch`）——那是**实测**结果，
 不是逻辑保证。**这条断言把选轮口径写死了**：Terminal 那批若换用别的选轮量，脚本会 `die` 而不是
 算错——方向是对的，但**不能拿这一版去判选轮口径不同的批次**，必须另立版本并重新复核。
