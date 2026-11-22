@@ -112,3 +112,48 @@ git show d7bd9c17:paper_b/experiments/open_source_matched_20261112/physical_runs
 git show d7bd9c17:.../validation_metrics.json
 git cat-file -e d7bd9c17:.../validation_predictions.csv
 ```
+
+---
+
+## 6. 冻结曲线：`argmin` 与「水平」是两个统计量，不能互相替代
+
+逐 epoch 曲线在 `FIXED40_CURVES.csv`（772 行，30 格 × 1..`epochs_run`，列
+`model,subset,seed,epoch,val_engine_mean_rmse`），从 `history.json` 直接取。
+
+**索引已核**：`history[best_epoch - 1]["val_engine_mean_rmse"]` 与
+`validation_metrics.json::val_engine_mean_rmse` **30/30 逐位相等**（差 0）。`epoch` 字段 1-based。
+
+### 6.1 两个统计量差多少（`均值 − argmin`，恒为正）
+
+| 方法 | 自身全程均值 − argmin | 1..16 均值 − argmin |
+|---|---|---|
+| aidgn | +0.50 … +0.92 | +0.61 … +1.34 |
+| dual_mixer | +1.19 … +2.07 | +1.02 … +2.83 |
+| fcstgnn | +0.41 … +2.06 | +0.41 … +2.34 |
+| ffve | +0.63 … +1.41 | +0.95 … +2.05 |
+| **two_phase** | **+12.74 … +29.16** | **+19.49 … +46.27** |
+
+**所以：拿 A 段的曲线均值去比冻结的 `validation_engine_mean_rmse`，每格都会凭空多出这段差。**
+对 aidgn 是 +0.5~0.9（已经 2.5~4.6 倍于 0.2 的阈值），对 `two_phase` 是 +13~+29——30 格会全判
+ABORT，而且看起来像环境炸了。**这不是边缘误差，是比错了统计量。**
+
+### 6.2 窗口必须两边一样长
+
+`two_phase/FD004` 的曲线仍在陡降（`best_epoch=40=末轮`），所以「均值」对窗口长度极敏感：
+
+| 格 | 1..39 均值 | 1..40 均值 | 差一个 epoch 的位移 |
+|---|---:|---:|---:|
+| two_phase/FD004/s101 | 53.375 | 52.637 | **+0.737** |
+| two_phase/FD004/s202 | 54.060 | 53.312 | **+0.748** |
+| aidgn/FD004/s303 | 13.463 | 13.453 | +0.010 |
+
+**+0.74 是 0.2 阈值的 3.7 倍。** 所以「水平」只能定义在**两边公共的 epoch 窗口**上
+（A 段与锚点各自跑到第 n 轮，就都取 1..min(n, n_anchor)）；用「各自全程均值」互比，
+`two_phase` 会因为轮数差 1 就判 ABORT。
+
+### 6.3 谁用这张表
+
+- **`paper_c/gate1.py`**：A 段对账的第 4 条（水平 `|Δ| ≤ 0.2`）与第 5 条（逐机秩）用公共窗口。
+- **台账**：只存 `validation_engine_mean_rmse`（argmin），**不对它设门**；B 段闸门是
+  `gate1.py` 的 `verdict` + 判据脚本哈希（`SCHEMA.md` §6 第 11 项）。
+- 任何人要手算水平，从这里取锚点曲线，**不要**用 `FIXED40_ANCHORS.csv` 的 `val_engine` 当水平。
