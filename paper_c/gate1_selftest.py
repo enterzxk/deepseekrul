@@ -123,7 +123,8 @@ def write_metrics(cell_dir, rec):
 def write_meta(cell_dir, epochs_run, best_epoch, epochs=40, window=30, lr=1e-3):
     (cell_dir / 'config.json').write_text(json.dumps(dict(
         epochs=epochs, patience=12, min_delta=1e-4, window=window, batch=128,
-        lr=lr, weight_decay=0.0, val_frac=0.2, split_seed=7, rul_cap=125)))
+        lr=lr, weight_decay=0.0, val_frac=0.2, split_seed=7, rul_cap=125,
+        training_data_sha256={'synthetic': '00000000'})))
     tm = cell_dir / 'training_metrics.json'
     meta = json.loads(tm.read_text()) if tm.exists() else {}
     meta.update(epochs_run=epochs_run, best_epoch=best_epoch)
@@ -140,8 +141,10 @@ def build_cell(d, idx, epochs_run=27, epochs=40, best_epoch=None, level=0.0, ran
     for u in engs:
         scale = (1.0 + (N_ENG - u) / N_ENG * 3.0) if rank_flip else 1.0
         for c in CUTS:
-            base[(u, c)] = rng.normal(0.0, 5.0) * scale
-    drift = {e: rng.normal(0.0, 1.0) + level for e in range(1, epochs_run + 1)}
+            # a multiplicative shift changes the RMSE; adding a constant to the
+            # noise mean barely moves it (mean error is ~0)
+            base[(u, c)] = rng.normal(0.0, 5.0) * scale * (1.0 + level)
+    drift = {e: rng.normal(0.0, 1.0) for e in range(1, epochs_run + 1)}
     hist = []
     for e in range(1, epochs_run + 1):
         ese, per = [], {}
@@ -216,20 +219,99 @@ def main():
             record(name, ok, f'rc={rc} needle={needle!r} found={needle in log}')
             return root
 
-        lvl_root = variant('level shift +0.5 -> ABORT', 2, 'curve level', level=0.5)
-        variant('rank scramble -> ABORT', 2, 'rank correlation', rank_flip=True)
-        variant('epoch drift -> ABORT', 2, 'stopping epoch', epochs_run=33)
+        lvl_root = variant('level shift -> ABORT', 2, 'curve level', level=0.05)
         variant('protocol lr -> ABORT', 2, 'config.lr', lr=5e-3)
+
+        # v6: epochs_run and rank are REPORTED, not blocking. Only protocol
+        # fidelity (R2.1) and systematic level drift (R2.2) stop segment B.
+        epi = td / 'epoch_drift'
+        write_tree(epi, epochs_run=33)
+        rc, log, err = run_recon(epi, frozen, td, 'epoch_drift')
+        ok = rc == 0 and 'epoch drift' in log
+        record('epoch drift is reported, not blocking', ok, f'rc={rc}')
+
+        # the decision function, tested directly: one row per case, no plumbing
+        sys.path.insert(0, str(GATE.parent))
+        import gate1 as G
+
+        def urow(**kw):
+            base = dict(model='aidgn', subset='FD001', seed=101,
+                        dlev=0.0, dargmin=0.0, rho=0.99)
+            base.update(kw)
+            return base
+
+        ub = {k: dict(band=0.2) for k in
+              ((m, s, d) for m in METHODS for s in SUBSETS for d in SEEDS)}
+
+        def urows(**kw):
+            out = []
+            for m in METHODS:
+                for s in SUBSETS:
+                    for d in SEEDS:
+                        row = urow(**kw)
+                        row.update(model=m, subset=s, seed=d)
+                        out.append(row)
+            return out
+
+        r = G.evaluate_cells([urow(rho=0.40)], ub)
+        record('unit: low rank is reported', any('per-engine rank' in v for v in r['violations']),
+               f'{r["violations"]}')
+
+        wide = {k: dict(band=0.5) for k in ub}
+        rows1 = urows()
+        rows1[0]['dlev'] = 0.30
+        r = G.evaluate_cells(rows1, wide)
+        ok = (not r['pass_strict']) and not any('outside band' in v for v in r['violations'])
+        record('unit: inside band but outside strict_0.2', ok,
+               f'band_pass={not any("outside band" in v for v in r["violations"])} '
+               f'strict_pass={r["pass_strict"]}')
+
+        r = G.evaluate_cells([urow(dargmin=0.45)], ub)
+        record('unit: argmin 0.45 is a gross error',
+               any('argmin gap' in v for v in r['violations']), f'{r["violations"]}')
+
+        r = G.evaluate_cells(urows(dlev=0.30), wide)
+        ok = (not any('outside band' in v for v in r['violations'])
+              and any('aggregate: mean|dlev|' in v for v in r['violations']))
+        record('unit: all inside band, aggregate over line', ok,
+               f'mean|dlev|={r["mean_abs_dlev"]:.3f}')
+
+        # excluded cells must be listed, not just counted away
+        r = G.evaluate_cells(urows(dlev=0.30), wide,
+                             exclude_agg=[('aidgn', 'FD001', 101)])
+        ok = r['agg_n'] == 29 and r['agg_excluded'] == ['aidgn/FD001/s101']
+        record('unit: aggregate exclusions are listed', ok,
+               f'n={r["agg_n"]} excluded={r["agg_excluded"]}')
+
+        # a missing band is an INPUT ERROR: exit 2 and no record, never "passed"
+        short = td / 'bands_short.csv'
+        lines = ['model,subset,seed,band']
+        for i, k in enumerate(ub):
+            if i == 0:
+                continue
+            lines.append(f'{k[0]},{k[1]},{k[2]},0.2')
+        short.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+        rc, log, err = run_recon(frozen, frozen, td, 'bands_short',
+                                 extra=('--bands', str(short)))
+        ok = rc == 2 and 'no band for 1 cell' in log
+        record('missing band -> input error', ok, f'rc={rc} {err}')
 
         # an abort must still leave a record: otherwise the ledger cannot tell
         # "segment A ran and failed" from "segment A never ran"
         arec = td / 'abort.json'
         rc, log, err = run_recon(lvl_root, frozen, td, 'abortrec',
                                  extra=('--record', str(arec)))
-        ok = (rc == 2 and arec.exists()
-              and json.loads(arec.read_text())['verdict'] == 'abort')
-        record('abort writes verdict=abort', ok,
-               f'rc={rc} exists={arec.exists()}')
+        dirty0 = subprocess.run(['git', 'diff', '--quiet', '--', 'paper_c/gate1.py'],
+                                capture_output=True).returncode != 0
+        if dirty0:
+            # provenance is verified on the abort path too, so a dirty tree
+            # yields no record at all -- and exit 2, which is the input-error code
+            ok = rc == 2 and not arec.exists()
+            record('abort: dirty tree writes nothing', ok, f'rc={rc} exists={arec.exists()}')
+        else:
+            ok = (rc == 2 and arec.exists()
+                  and json.loads(arec.read_text(encoding='utf-8'))['verdict'] == 'abort')
+            record('abort writes verdict=abort', ok, f'rc={rc} exists={arec.exists()}')
 
         # an artifact whose metrics no longer correspond to its own curve
         tam = td / 'tampered'
