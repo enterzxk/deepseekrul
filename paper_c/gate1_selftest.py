@@ -221,20 +221,22 @@ def extract_anchor(root):
 
 
 def prune_sealed(root):
-    """Drop the sealed TEST outputs and checkpoints the committed tree carries.
+    """TRIPWIRE, not a cleanup step: it must now find nothing.
 
-    `git archive d7bd9c17 fixed40` restores 22 files per cell (~56.5 MB/run),
-    including test_predictions.csv, TEST_*.json and checkpoint.pt. gate1 never
-    reads them, and the pruned 7-file working-tree copy is the intended state, so
-    they are removed right after extraction -- this fixture was otherwise the one
-    place in the pipeline that materialised sealed TEST artifacts on disk.
+    `extract_anchor` builds the tree from the allowlist, so no sealed artifact is
+    ever written. This still walks the tree for the names a full `git archive`
+    unpack used to produce, and the suite asserts it removes ZERO files -- if it
+    ever removes one, the extractor started writing sealed bytes again. It is a
+    name-based backstop; the primary check is that no file outside ANCHOR_FILES
+    exists at all.
     """
     removed = 0
     for p in sorted(root.rglob('*')):
         if not p.is_file():
             continue
         if (p.name.startswith(('test_', 'TEST_'))
-                or p.name in ('ACTUAL_TEST_INPUTS.json', 'checkpoint.pt')):
+                or p.name in ('ACTUAL_TEST_INPUTS.json', 'checkpoint.pt',
+                              'pretrain_checkpoint.pt')):
             p.unlink()
             removed += 1
     return removed
@@ -648,10 +650,11 @@ def main():
             else:
                 # tripwire: the extractor must never have created a sealed file
                 pruned = prune_sealed(root)
-                sealed_left = sum(1 for _ in root.rglob('checkpoint.pt'))
+                stray = sorted({q.name for q in root.rglob('*')
+                                if q.is_file() and q.name not in ANCHOR_FILES})
                 record('fixture writes the allowlist only (no sealed file on disk)',
-                       pruned == 0 and sealed_left == 0,
-                       f'{written} file(s), pruned={pruned}, checkpoint.pt={sealed_left}')
+                       pruned == 0 and not stray,
+                       f'{written} file(s), pruned={pruned}, outside-allowlist={stray[:3]}')
                 # PURE anchor bytes first: no synthetic file anywhere. The committed
                 # anchor DOES carry training_metrics.json (the 7-file copy in the
                 # working tree is a pruned checkout), so item 5 fires 3x per cell --
