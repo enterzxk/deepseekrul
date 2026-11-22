@@ -1,6 +1,6 @@
 # P2 跨架构即插即用预注册（Paper C · Gate 1）
 
-**状态**：v6.5.2。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
+**状态**：v6.5.3。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
 闸门」降级为「协议保真硬检查 + 漂移测量」**（经理 2026-11-23 裁定，理由见 R2），B 段基线改用
 **本地 A 段那一格**；**v6.1 补三处**：B 段的收敛混淆判读规则（§4.3）、R2.2 的漂移剔除规则、
 §9 判据脚本的适用范围；**v6.2 补 B 段的两条判读规则**：基线臂斜率门（§4.3）与
@@ -13,7 +13,11 @@ train loss 全 46.04、锚点 33.11）、A 段基线改 `v3`（`v1` 只作对照
 （全在 `two_phase`，剔除后 −43% 但未翻判定）记进 R2.2——**只记录，不改门槛**。**v6.5.1 只加注记**：剔除集与偏移来源不重合（剔 9 格仍含 `two_phase/FD001`
 3 格）。精确值：剔 9 格后的 `+0.5761` 里 **94%** 来自 `two_phase/FD001` 三格
 （+3.4682/+3.6565/+4.2814），clean-18 只有 **+0.0385**；唯一干净读数 24 格 +0.0560。R2.2 读数须
-按骨干分层报。门槛未动。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
+按骨干分层报。门槛未动。**v6.5.3 补三处**：§9 的选轮断言边界改为 `max(min_delta, 1e-6)`
+（启用 `min_delta` 后严格相等只是实测、不是逻辑保证）；留痕要求写明记录字段全路径
+（`drift.level` / `drift.level_unfiltered` / `drift.per_backbone`，与台账顶层 `per_backbone` 不同义）；
+新增第 5 条——**abort 记录也必须带 `detail`/`drift`/`level`/`per_backbone`**（`role: computed, not
+decisive`），否则 `fcstgnn` 6 格的形态违规会让 A 段漂移证据整段消失。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
 **冻结后判据、格数、口径一律不得再改**。
 
 **来源**：用户计划书（2026-11-22 附件）＋ 经理裁定（80/20 与 60 格、各自协议内比较、A 段定位、
@@ -246,10 +250,18 @@ CI / 同号），池化值可给但必须注明「全来自 `two_phase` 一家�
    A 段重跑期间不得再调。
 3. **逐格明细为强制产物**：30 行 `epochs_run / best_epoch / curve_mean / band / dlev / argmin /
    dargmin / within_band / within_strict`。这样「哪一格是靠宽 band 过的」一眼可见，
-   已知协议 bug 的格子不可能被宽 band 悄悄吸收。
+   已知协议 bug 的格子不可能被宽 band 悄悄吸收。**记录里的确切字段**：`drift.level`（过滤后，
+   判定用）、`drift.level_unfiltered`（全格）、`drift.per_backbone`（按骨干分层的漂移统计
+   `{model: {n, mean, ci, same_sign}}`）。**注意台账 `check_registry.py` 顶层那个 `per_backbone`
+   是协议门 `{method: pass|fail}`，与本字段同名不同义**——引用时必须写全路径 `drift.per_backbone`。
 4. **单写者 + 独立复核**：官方记录只由 `gate1.py --record` 写；`recon_record.py`
    （`33950b66…`，`b6eed584`）**不作写者**，只做独立复核——比对 `verdict` 是否一致，
    不一致即报错、不落盘。台账 pin 的对象是 `gate1.py` 的 blob。
+5. **abort 记录不得丢证据**：判据违规触发的 abort（例如 `fcstgnn` 6 格的早停形态）走的是
+   `write_abort_record`；如果它只写 `violations`，那么 A 段最该交付的漂移证据会在正式记录里
+   **整段消失**，用 6 条字符串代替 30 行明细。**要求：判据违规路径也必须写 `detail` / `drift` /
+   `level` / `per_backbone`，并标 `role: computed, not decisive`**——判定不变，只是留痕。
+   输入错误（文件缺失 / 格式坏）那条路径仍不写记录，保持 `pending`。
 
 **退出码（三档，不复用）**：`0` = PASS，`1` = FAIL（判据没过），`2` = ABORT（前置不满足 / 输入非法）。
 A 段协议保真检查不过走 `2`，该骨干 B 段不开；判据没过走 `1`。
@@ -476,11 +488,14 @@ Stage 2 的一处待定（不阻塞本阶段）：计划书写 DS01–DS04，而
 
 ## 9. 判据脚本的适用范围（`gate1.py`）
 
-`gate1.py`（冻结在 **`48f9b485…`**，`a8fe564b`）**只适用于 `checkpoint_selection=val_engine_mean_rmse`
-的批次**。它内部断言「`validation_metrics.val_engine_mean_rmse` == 该格曲线全局最小值」，
-30 格锚点全部满足（30/30，`argmin == FREEZE.best_epoch`）。**这条断言把选轮口径写死了**：
-Terminal 那批若换用别的选轮量，脚本会 `die` 而不是算错——方向是对的，但**不能拿这一版去判
-选轮口径不同的批次**，必须另立版本并重新复核。
+`gate1.py`**只适用于 `checkpoint_selection=val_engine_mean_rmse` 的批次**（A 段正式判定必须用
+**复核入库后**的 blob；`48f9b485…` 是 v6.2、`f229c3f7…` 是 v6.6）。它内部断言
+「`validation_metrics.val_engine_mean_rmse` ≤ 该格曲线全局最小值 + **`max(min_delta, 1e-6)`**」——
+**边界不是 0**：启用 `min_delta` 后，被选中的轮次可以合法地比后面略低的一轮高出最多 `min_delta`
+（v6.6 修掉了原来 `1e-6` 的误杀）；真正取错轮次会差约 `1e-2`，仍抓得住。
+30 格锚点全部满足**严格相等**（30/30，`argmin == FREEZE.best_epoch`）——那是**实测**结果，
+不是逻辑保证。**这条断言把选轮口径写死了**：Terminal 那批若换用别的选轮量，脚本会 `die` 而不是
+算错——方向是对的，但**不能拿这一版去判选轮口径不同的批次**，必须另立版本并重新复核。
 
 同理，`recon_record.py`（`c86165d9…`，`a0c77197`）只做独立复核：`--out` 指到
 `results/paper_c/recon_A.json` 直接拒绝，`--verify RECORD` 只比退出码与 `verdict`、不写任何文件。
