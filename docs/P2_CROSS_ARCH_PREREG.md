@@ -1,6 +1,6 @@
 # P2 跨架构即插即用预注册（Paper C · Gate 1）
 
-**状态**：v6.5.4。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
+**状态**：v6.5.5。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
 闸门」降级为「协议保真硬检查 + 漂移测量」**（经理 2026-11-23 裁定，理由见 R2），B 段基线改用
 **本地 A 段那一格**；**v6.1 补三处**：B 段的收敛混淆判读规则（§4.3）、R2.2 的漂移剔除规则、
 §9 判据脚本的适用范围；**v6.2 补 B 段的两条判读规则**：基线臂斜率门（§4.3）与
@@ -21,7 +21,11 @@ decisive`），否则 `fcstgnn` 6 格的形态违规会让 A 段漂移证据整�
 （`d7bd9c17` 每格 23 文件、96 份，`runtime_flags` 记着 `cudnn_tf32: false`），工作树那份 7 文件
 副本是裁剪的——所以第 5 条从「自证」升级成**与锚点对照**；`v1` 在 `aidgn`/`fcstgnn` 的 **12 格**
 因 TF32 开着而**违反锚点自己记录的协议**，一律作废（不按 `>0.2` 阈值判）；§9 的选轮断言改成
-**重放** `_replay_best(history, min_delta)`。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
+**重放** `_replay_best(history, min_delta)`。**v6.5.5 补三处**：R2.1(3) 明确是
+**骨干级形态**、逐格 epoch 差归 R2.2 读数（实现若算进 `proto` 就改实现），那 3 格同时是
+**值门超线格**（0.42/0.75/0.76）且形态判别要允许双向；锚点文件数改准（84 格/84 份、每格 22–26、
+matched 94、另有 12 份 `pretraining_metrics.json`）；新增 R2.1(6) **预训练机检**（`two_phase` 的
+20/100 轮与配对窗数，锚点 12/12 已验）。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
 **冻结后判据、格数、口径一律不得再改**。
 
 **来源**：用户计划书（2026-11-22 附件）＋ 经理裁定（80/20 与 60 格、各自协议内比较、A 段定位、
@@ -120,26 +124,56 @@ CSV 列名、`history.json` **没有** `engine_squared_errors`，pin 到它会�
    rul_cap / split_seed / val_frac / precision / tf32 / 训练窗` 与锚点 `config.json` **逐字段相等**
    （不是容差）。任一项不等 → ABORT（这是配错，不是漂移）。
 2. **数据指纹相等**：`training_data_sha256` 与锚点相等；`two_phase` 的配对预训练子集也要对
-   （FD001 含 FD003 `2abbe996…`、FD004 含 FD002 `dac6c4db…`）。
-3. **早停生效的形态检查**：若某方法 3 个 seed 的 `epochs_run` **全部等于 40 上限**，而锚点该方法
-   3 格**全部 < 30**，判「早停未生效」→ ABORT 并查代码。**不用容差，用的是形态**——正是
-   `fcstgnn` 那 6 格（早停被代码排除）的形态。
+   （FD001 含 FD003 `2abbe996…`、FD004 含 FD002 `dac6c4db…`）。**这个字段必须落在 `config.json`
+   里**——v5 的 `config.json` 根本没写，而产物里任何地方都没有数据指纹
+   （`data_access_audit.json` 只有 `official_test_reads/unlocked/violations`），干跑直接出
+   **30 条 `training_data_sha256 present on one side only`**；重跑时必须补进 `config.json`。
+   另：`FREEZE.config_sha256` 必须是 **config 自哈希**，checkpoint 的哈希另放 `checkpoint_sha256`
+   ——锚点这两个字段分开且都对（`4e557047…` / `1370499…`，30/30 可复现），而 **v5 把
+   `digest(checkpoint.pt)` 写进了 `config_sha256`**（runner 第 144 行），同名不同义，必须改。
+3. **早停生效的形态检查（骨干级，不是逐格）**：若某骨干 3 个 seed 的 `epochs_run` **全部等于 40
+   上限**，而锚点该骨干 3 格**全部 < 30**，判「早停未生效」→ ABORT 并查代码。**不用容差，用的是
+   形态**——正是 `fcstgnn` 那 6 格的形态（早停被代码排除）。
+   **逐格 `epochs_run` / `best_epoch` 的差不是 R2.1 违规**（v6.5.5 澄清）：早停本来就停在 argmin
+   边界上，跨机差 1–2 轮就会翻转 `best_epoch`；若 best 贴着上限，`epochs_run` 能差十几轮。它属于
+   **R2.2 的漂移读数**，按 R2.2 报，**不挡 B 段**。已知属于这一类的 3 格：
+   `aidgn/FD004/s101`（锚点 32 早停 vs 本地 40 打满）、`aidgn/FD004/s303`（锚点 40 vs 本地 21）、
+   `dual_mixer/FD001/s101`（锚点 40 vs 本地 31）。**若实现把逐格 epoch 差算进 `proto`，那是实现比
+   预注册严，必须改实现，不是改预注册。**
+   **这 3 格同时是「值门超线格」，不只是形态问题**：`|Δarg|` 分别是 **0.4226 / 0.7514 / 0.7585**，
+   全部超过 0.40 的粗差门。所以必须同时写两件事——①形态不符按 R2.2 读数处理、不挡 B 段；
+   ②它们的**值**也超线，进漂移统计时要标「形态不符 **且** 值超线」，不得只写前者，否则读者会
+   以为值是对得上的。**形态判别要允许双向**：`fcstgnn` 是「本地全打满 40、锚点全早停」，
+   `aidgn/FD004/s303` 是反向（锚点打满 40、本地 21 早停）——后者不是「跑不够」，是轨迹本身不同。
 4. **数值健全**：曲线长度 = `epochs_run`、无 NaN/Inf、`best_epoch ∈ [1, epochs_run]`。
 5. **运行时开关要与锚点对照，不是自证**：`config.json` 里写着 `min_delta` / `tf32=false`
    **不等于 runner 真的用了它们**。zxk 实测：v1 的 `FREEZE.json` 照抄了 `min_delta: 0.0001` 却没
    实现（`if eng_mean < best` 而非 `score < best - min_delta`），且 3090 上 `cudnn.allow_tf32`
    默认 **True**、两个 runner 都没关。**锚点侧有对照物（v6.5.4 更正）**：`d7bd9c17` 每格有
-   **23 个文件**，含 `training_metrics.json`，其 `runtime_flags` 为
+   **84 格全部带 `training_metrics.json`**（每格一份、无嵌套；每格共 **22–26** 个文件；
+   `open_source_matched_20261112` 全树 **94 份**；另有 **12 份 `pretraining_metrics.json`** 是
+   `two_phase` 预训练，**不是** `training_metrics.json`，后缀撞车别数混）。其 `runtime_flags` 为
    `{matmul_tf32: false, cudnn_tf32: false, cudnn_deterministic: true, cudnn_benchmark: false}`
-   （抽 5 骨干 × 2 子集，**10/10 一致**；全树 96 份）。**工作树里那份 7 文件副本是裁剪过的**，
+   （抽 5 骨干 × 2 子集，**10/10 一致**）。**工作树里那份 7 文件副本是裁剪过的**，
    不得据它断言「锚点没有 `training_metrics.json`」。所以：
    - 本地侧逐格 `training_metrics.json` 的 TF32 字段必须**与锚点 `runtime_flags` 相等**；
    - `min_delta` 锚点文件里没有，仍与 `config.json` 比；
    - runner 在训练开始前对 `torch.backends.*.allow_tf32` 做硬断言（锚点 runner 就是这种形态）；
    - `history.json` 必须含 `epoch / train_loss / val_engine_mean_rmse`、行数 = `epochs_run`，
      **由 runner 自己写、不得回填**。
+6. **`two_phase` 的预训练必须验（v6.5.5 新增）**：`two_phase` 占 6/30 格，其协议核心是「配对子集
+   预训练 + 冻结编码器」，而 `gate1.py` 里 `pretrain` 出现 **0 次**——这一环此前**零验证**。
+   要求逐格 `pretraining_metrics.json` 两条机检：
+   - `epochs` 等于 `config` 里的预训练轮数（FD001/FD003 **20**、FD002/FD004 **100**）；
+   - `n_paired_train_windows` 等于**配对子集**的训练窗数（FD001↔FD003 双向 **20486 / 16762**；
+     FD002↔FD004 双向 **48691 / 43251**）。
+   锚点侧已先验：**12/12 全对**。另：锚点里 `encoder_before_finetune_sha256 ==
+   encoder_after_finetune_sha256` **不是 bug**——`two_phase` 的编码器在 finetune 阶段是**冻结**的
+   （`trainable_params = 1649` vs `params = 12969` / `24289`；对照 `aidgn` 是 30070/30070 全可训），
+   12 个编码器哈希**互不相同**，说明按 seed/subset 真算过。所以这对字段只能当**预训练指纹**，
+   **不能当「微调后状态」**。
 
-**为什么这五条必须留着**：把 A 段整体降级成「测量」，会让一个真实的协议 bug 被当成环境噪声吞掉。
+**为什么这六条必须留着**：把 A 段整体降级成「测量」，会让一个真实的协议 bug 被当成环境噪声吞掉。
 `fcstgnn` 那 6 格就是活例子——它们的 `epochs_run` 形态与锚点完全不同，那不是漂移能产生的。
 
 **逐骨干判**：某骨干 6 格全过 → 该骨干可开 B 段；未过的骨干修好重跑后再开，其余照跑
