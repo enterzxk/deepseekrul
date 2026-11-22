@@ -74,11 +74,13 @@ class CADF(nn.Module):
     [x, delta, ema] back to the input space.
     """
 
-    def __init__(self, dim=14, K0=15, static=False):
+    def __init__(self, dim=14, K0=15, static=False, alpha_init=0.5):
         super().__init__()
         self.K0 = K0
         self.static = static
-        self.alpha_logit = nn.Parameter(torch.zeros(dim))
+        import math
+        a0 = math.log(alpha_init / (1.0 - alpha_init))
+        self.alpha_logit = nn.Parameter(torch.full((dim,), a0))
         self.proj = nn.Linear(3 * dim, dim)
         self.gate = nn.Linear(3 * dim, dim)
         nn.init.zeros_(self.proj.weight); nn.init.zeros_(self.proj.bias)
@@ -110,9 +112,9 @@ class CADF(nn.Module):
 
 
 class M1Model(nn.Module):
-    def __init__(self, static=False, **kw):
+    def __init__(self, static=False, K0=15, alpha_init=0.5, **kw):
         super().__init__()
-        self.front = CADF(static=static)
+        self.front = CADF(static=static, K0=K0, alpha_init=alpha_init)
         self.back = GRUModel(**kw)
 
     def forward(self, x, mask):
@@ -130,6 +132,12 @@ def build(name: str, **kw):
         return M1Model(static=False, **kw)
     if name == 'm1_static':
         return M1Model(static=True, **kw)
+    if name == 'm1_k5':
+        return M1Model(static=False, K0=5, **kw)
+    if name == 'm1_k10':
+        return M1Model(static=False, K0=10, **kw)
+    if name == 'm1_a8':
+        return M1Model(static=False, alpha_init=0.8, **kw)
     raise ValueError(name)
 
 
