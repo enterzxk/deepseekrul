@@ -1,24 +1,101 @@
 {
-  "_note": "Paper C Stage 1 cross-architecture grid. One cell = (variant_tag, base_model, subset, seed). Change variant_tags to add or drop a CADF variant; the queue and the checker both read this file.",
+  "_note": "Paper C Stage 1 grid. One cell = (arm, variant_tag, base_model, subset, seed). The arm decides the segment and which baseline the cell pairs against; the segment decides which run_id pattern applies. Edit arms/variant_tags here and regenerate - never hand-edit run_queue.csv.",
   "experiment": "p2_cross_arch_cadf",
   "stage": "P2",
   "wave": "W1",
-  "variant_tags": ["k0a"],
+  "arms": [
+    {
+      "arm": "v0",
+      "segment": "A",
+      "cadf_variant": "none",
+      "baseline_source": "frozen_ledger",
+      "run_id_pattern": "pc-v0-<base_model>-<subset>-s<seed>-W1",
+      "purpose": "reproduce the 30 frozen fixed40 cells on lab3090; the delta is a reconciliation signal, not a module effect"
+    },
+    {
+      "arm": "cadf",
+      "segment": "B",
+      "cadf_variant": "k0p",
+      "baseline_source": "local_v0",
+      "run_id_pattern": "pc-cadf-<variant_tag>-<base_model>-<subset>-s<seed>-W1",
+      "purpose": "the module cells; each pairs against its own segment-A cell from this same batch, never against the cross-machine ledger"
+    }
+  ],
+  "variant_tags": [
+    "k0p"
+  ],
   "variant_tag_meaning": {
-    "k0a": "CADF v1.2, absolute K0=15 cycles from the first valid (mask==1) cycle",
-    "k0p": "CADF v1.2, proportional K0=ceil(0.2*L)",
+    "k0p": "CADF v1.2, proportional K0=ceil(0.2*window) - the main arm (L=30->6, 45->9, 50->10)",
+    "k0a": "CADF v1.2, absolute K0=15 cycles (B_min only, already run as v1.2; NOT part of this 60-cell batch)",
     "eng": "CADF v1.2, engineering mode only (no window baseline)"
   },
-  "methods": ["aidgn", "two_phase", "dual_mixer", "ffve", "fcstgnn"],
-  "subsets": ["FD001", "FD004"],
-  "seeds": [101, 202, 303],
-  "span": 50,
+  "k0_mode_by_variant": {
+    "k0p": "prop",
+    "k0a": "abs",
+    "eng": "none"
+  },
+  "k0_prop_fraction": 0.2,
+  "k0_abs_value": 15,
+  "methods": [
+    "aidgn",
+    "two_phase",
+    "dual_mixer",
+    "ffve",
+    "fcstgnn"
+  ],
+  "subsets": [
+    "FD001",
+    "FD004"
+  ],
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "windows": {
+    "aidgn": {
+      "FD001": 50,
+      "FD004": 50
+    },
+    "two_phase": {
+      "FD001": 45,
+      "FD004": 45
+    },
+    "dual_mixer": {
+      "FD001": 30,
+      "FD004": 30
+    },
+    "ffve": {
+      "FD001": 30,
+      "FD004": 30
+    },
+    "fcstgnn": {
+      "FD001": 30,
+      "FD004": 50
+    }
+  },
   "split_protocol": "80/20 engine-level, split_seed=7",
   "split_seed": 7,
+  "epochs": 40,
+  "patience": 12,
+  "min_delta": 0.0001,
+  "precision": "float32",
   "baseline_version": "open_source_matched_20261112@d7bd9c17",
   "baseline_source_condition": "fixed40",
   "baseline_ledger": "paper_b/experiments/open_source_matched_20261112/physical_runs.csv",
   "baseline_commit": "d7bd9c17",
-  "run_id_pattern": "pc-cadf-<variant_tag>-<base_model>-<subset>-s<seed>-W1",
-  "delta_sign": "delta_val_rmse = baseline_val_engine_mean_rmse - cadf_val_engine_mean_rmse; positive means CADF is better (lower RMSE)"
+  "anchor_manifest": "docs/paper_c/registry/FIXED40_ANCHORS.csv",
+  "recon_tolerance": 0.2,
+  "gate_trace": {
+    "gate_open_threshold": 0.01,
+    "meaning": "gate_open_epoch = first epoch with mean(gate) > threshold, or 'none' if the gate never opened"
+  },
+  "prereg": {
+    "path": "docs/P2_CROSS_ARCH_PREREG.md",
+    "commit": "5255b1b6"
+  },
+  "freeze_commit": "68551059",
+  "freeze_hashes": "docs/paper_c/registry/FREEZE_20261122.json",
+  "a_segment_reconciled": false,
+  "delta_sign": "delta_val_rmse = baseline_val_engine_mean_rmse - val_engine_mean_rmse; positive means the cell is better (lower RMSE). Segment A: baseline = frozen ledger (reconciliation). Segment B: baseline = this batch's segment-A cell (module effect)."
 }

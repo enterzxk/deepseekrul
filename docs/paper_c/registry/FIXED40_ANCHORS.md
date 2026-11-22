@@ -18,15 +18,29 @@
 | `training_windows` | `all_cycle_left_padded` | |
 | `validation_predictions.csv` | **30/30 在盘上** | 逐机对账的参照物 |
 
-逐模型不同的量（必须从 `config.json` 抄，不能从 `configuration()` 默认值猜）：
+逐格不同的量（必须从 `config.json` 抄，不能从 `configuration()` 默认值猜）。
+**按 `(模型, 子集)` 分组，不能按模型分组**——`lr` 有两条按子集变：
 
-| 模型 | `window` | `batch` | `lr` | `weight_decay` |
-|---|---:|---:|---:|---:|
-| aidgn | 50 | 128 | 0.001 | 0.0 |
-| two_phase | 45 | 128 | 0.001 | 0.0 |
-| dual_mixer | 30 | 256 | 0.005 | 0.0 |
-| ffve | 30 | 100 | 0.001 | 0.0 |
-| fcstgnn | 30 (FD004: 50) | 204 | 0.0001 | 0.01 |
+| 模型 | 子集 | `window` | `batch` | `lr` | `weight_decay` |
+|---|---|---:|---:|---:|---:|
+| aidgn | FD001 | 50 | 128 | 0.001 | 0.0 |
+| aidgn | FD004 | 50 | 128 | 0.001 | 0.0 |
+| two_phase | FD001 | 45 | 256 | 0.001 | 0.0 |
+| two_phase | FD004 | 45 | 256 | **0.0001** | 0.0 |
+| dual_mixer | FD001 | 30 | 204 | 0.001 | 0.0 |
+| dual_mixer | FD004 | 30 | 204 | 0.001 | 0.0 |
+| ffve | FD001 | 30 | 128 | **0.005** | **0.01** |
+| ffve | FD004 | 30 | 128 | **0.001** | **0.01** |
+| fcstgnn | FD001 | 30 | 100 | 0.001 | 0.0 |
+| fcstgnn | FD004 | **50** | 100 | 0.001 | 0.0 |
+
+`tf32=false` 30/30。
+
+> **v1 勘误（2026-11-22，zxk 报、本管理员复核）**：本文第一版按模型汇总，写成了
+> `two_phase lr=0.001 / ffve lr=0.001 / fcstgnn wd=0.01`，三处全错——`two_phase` FD004 的 `lr`
+> 是 0.0001（差 10 倍）、`ffve` FD001 是 0.005（差 5 倍）、`wd=0.01` 属于 **ffve** 不是 fcstgnn。
+> 错因是我把 30 格的聚合计数按顺序派给了模型，没有做分组明细——正是「裸聚合」。
+> 逐格值见 `FIXED40_ANCHORS.csv` 的 `batch`/`lr`/`weight_decay` 三列。
 
 ## 2. 逐格 `epochs_run` / `best_epoch`
 

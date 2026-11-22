@@ -1,0 +1,25 @@
+{
+  "frozen_utc": "2026-11-22",
+  "why": "P2_CROSS_ARCH_PREREG 8 order step 3: record the three sha256 before segment A starts",
+  "artifacts": {
+    "prereg": {
+      "path": "docs/P2_CROSS_ARCH_PREREG.md",
+      "commit": "5255b1b6",
+      "sha256": "1f4be02274db7118a2b621808f03bef900b2a6e99f4322fc0a263801a30e770a",
+      "bytes": 12643
+    },
+    "wrapper": {
+      "path": "paper_c/wrapper.py",
+      "commit": "68551059",
+      "sha256": "d3e4dbbcec7587d60cf9ba61d27ae6e0dd63997f7abc33623b053ea48721e3de",
+      "bytes": 8000
+    },
+    "manifest": {
+      "path": "docs/paper_c/registry/frozen_v0_fixed40.json",
+      "commit": "68551059",
+      "sha256": "d5e175cf72d50d77e24f4aad3fb5f2ee682b344ca848171948bd07057e165fc2",
+      "bytes": 9688
+    }
+  },
+  "note": "Hashes are computed from committed blobs, never from the working tree. Any later change to one of these paths at its recorded commit makes check_registry.py exit 2 until this file is re-recorded and the change is explained. 'manifest' is taken to be the frozen V0 evidence export frozen_v0_fixed40.json; if the prereg means the execution manifest instead, say so and this entry moves."
+}
