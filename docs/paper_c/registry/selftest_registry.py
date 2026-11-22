@@ -147,8 +147,17 @@ def main():
     rec_path = os.path.join(tmp, 'recon_A.json')
     rec_fail = os.path.join(tmp, 'recon_A_fail.json')
     rec_bad = os.path.join(tmp, 'recon_A_badhash.json')
+    # an abort record that blames a backbone OUTSIDE segment B (fcstgnn), and one
+    # that blames the backbone segment B is actually advancing (aidgn)
+    rec_abort = os.path.join(tmp, 'recon_A_abort.json')
+    rec_abort_mis = os.path.join(tmp, 'recon_A_abort_mis.json')
+    abort_out = dict(rec, verdict='abort',
+                     violations=['fcstgnn/FD001/s101: early-stop shape differs'])
+    abort_mis = dict(rec, verdict='abort',
+                     violations=['aidgn/FD001/s101: config.lr 0.001 != 0.0001'])
     for p, obj in ((rec_path, rec), (rec_fail, dict(rec, verdict='fail')),
-                   (rec_bad, dict(rec, gate1_sha256='0' * 64))):
+                   (rec_bad, dict(rec, gate1_sha256='0' * 64)),
+                   (rec_abort, abort_out), (rec_abort_mis, abort_mis)):
         io.open(p, 'w', encoding='utf-8', newline='\n').write(json.dumps(obj))
 
     def grid_with(**kw):
@@ -171,6 +180,12 @@ def main():
     grid_pb_other_failed = grid_with(verdict='pass', record=rec_path, per_backbone=pb)
     grid_pb_self_failed = grid_with(verdict='pass', record=rec_path,
                                     per_backbone=dict(pb, aidgn='protocol_failed'))
+    # an abort record is legitimate when the blamed backbones are exactly the ones
+    # the grid marks as failed; segment B here advances aidgn only, so blaming
+    # fcstgnn must not stop it, while blaming aidgn must
+    grid_pb_abort_ok = grid_with(verdict='pass', record=rec_abort, per_backbone=pb)
+    grid_pb_abort_bad = grid_with(verdict='pass', record=rec_abort_mis, per_backbone=pb)
+    grid_abort_no_pb = grid_with(verdict='pass', record=rec_abort)
 
     cases = []
 
@@ -213,6 +228,16 @@ def main():
          a_ok + [b_ok], 0, grid_path=grid_pb_other_failed)
     case('B ok for the backbone that failed its own protocol gate',
          a_ok + [b_ok], 2, grid_path=grid_pb_self_failed)
+    # an abort record is not automatically fatal: it is fatal only when the cells it
+    # blames are not the ones the grid already marks as failed. Segment B advances
+    # aidgn, so a record aborting over fcstgnn must stay clean while one aborting
+    # over aidgn must not.
+    case('abort record blaming a backbone outside segment B',
+         a_ok + [b_ok], 0, grid_path=grid_pb_abort_ok)
+    case('abort record blaming the backbone segment B advances',
+         a_ok + [b_ok], 2, grid_path=grid_pb_abort_bad)
+    case('abort record with no per_backbone map stays fatal',
+         a_ok + [b_ok], 2, grid_path=grid_abort_no_pb)
     case('B with a judging-script hash mismatch', a_ok + [b_ok], 2, grid_path=grid_bad)
 
     x = dict(b_ok); x['baseline_source'] = 'frozen_ledger'

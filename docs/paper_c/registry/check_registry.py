@@ -323,9 +323,28 @@ def main(argv=None):
                 aborts.append('11 reconciliation record %s is missing' % recon_cfg['record'])
             else:
                 rec = json.load(io.open(rec_path, encoding='utf-8'))
-                if rec.get('verdict') != 'pass':
+                # R2.1 is judged per backbone, so an abort record is acceptable
+                # when its violations attribute exactly to the backbones the grid
+                # marks as failed. A blanket "the verdict must be pass" would undo
+                # the per-backbone rule above: one cell that genuinely violates
+                # its protocol would close all five methods, which is the failure
+                # the rule exists to prevent.
+                rv = rec.get('verdict')
+                if rv == 'pass':
+                    pass
+                elif per_backbone:
+                    viol = [str(v) for v in (rec.get('violations') or [])]
+                    blamed = sorted(m for m in want
+                                    if any(v.startswith(m + '/') for v in viol))
+                    marked = sorted(m for m in want if per_backbone.get(m) != 'pass')
+                    if blamed != marked:
+                        aborts.append(
+                            '11 record %s says verdict=%r and its violations blame %r, '
+                            'but the grid marks %r as failed'
+                            % (recon_cfg['record'], rv, blamed, marked))
+                else:
                     aborts.append('11 record %s says verdict=%r, grid says pass'
-                                  % (recon_cfg['record'], rec.get('verdict')))
+                                  % (recon_cfg['record'], rv))
                 blob = git_show(rec.get('git_sha', ''), rec.get('gate1_path', ''))
                 if blob is None:
                     aborts.append('11 cannot read %s@%s to verify the judging script'
