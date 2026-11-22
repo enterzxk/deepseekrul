@@ -169,13 +169,14 @@ def build_cell(d, idx, epochs_run=27, epochs=40, best_epoch=None, level=0.0, ran
     return hist
 
 
-def write_tree(root, **kw):
+def write_tree(root, levels=None, level=0.0, **kw):
     idx = 0
     for m in METHODS:
         for s in SUBSETS:
             for sd in SEEDS:
                 idx += 1
-                build_cell(root / m / s / f's{sd}', idx, **kw)
+                build_cell(root / m / s / f's{sd}', idx,
+                           level=(levels or {}).get((m, s, sd), level), **kw)
 
 
 def run_recon(a_seg, frozen, td, tag, extra=()):
@@ -221,6 +222,34 @@ def main():
 
         lvl_root = variant('level shift -> ABORT', 2, 'curve level', level=0.05)
         variant('protocol lr -> ABORT', 2, 'config.lr', lr=5e-3)
+
+        # v6.2: the exclusion must reach R2.2, the statistic that decides the
+        # verdict -- not just the per-engine reading. 9 shifted cells (the real
+        # exclusion set's shape: fcstgnn x6 + two_phase/FD004 x3) stop segment B
+        # when counted and must not when excluded.
+        hot = ([('two_phase', 'FD004', d) for d in SEEDS]
+               + [('fcstgnn', s, d) for s in SUBSETS for d in SEEDS])
+        drift_root = td / 'r22_drift'
+        write_tree(drift_root, levels={k: 0.30 for k in hot})
+        rc, log, err = run_recon(drift_root, frozen, td, 'r22_drift')
+        stops_when_counted = rc == 2 and 'STOPS segment B' in log
+        excl9 = td / 'excl9.json'
+        excl9.write_text(json.dumps([f'{m}/{s}/s{d}' for m, s, d in hot]))
+        rc2, log2, err2 = run_recon(drift_root, frozen, td, 'r22_excl',
+                                    extra=('--exclude', str(excl9)))
+        ok = (stops_when_counted and rc2 == 0 and 'RECONCILE: OK' in log2
+              and 'n=600 -> n=420' in log2)
+        record('exclude flips R2.2 STOP -> OK', ok,
+               f'counted rc={rc} excluded rc={rc2} '
+               f'dropped={"n=600 -> n=420" in log2}')
+
+        # a typo must be refused, not silently no-op (that was the v6.1 failure)
+        bad_excl = td / 'excl_bad.json'
+        bad_excl.write_text(json.dumps(['aidgn/FD001/s999']))
+        rc, log, err = run_recon(frozen, frozen, td, 'excl_bad',
+                                 extra=('--exclude', str(bad_excl)))
+        ok = rc == 2 and 'not in this batch' in log and 's999' in log
+        record('unknown exclusion -> ABORT', ok, f'rc={rc} {err}')
 
         # v6: epochs_run and rank are REPORTED, not blocking. Only protocol
         # fidelity (R2.1) and systematic level drift (R2.2) stop segment B.
@@ -282,6 +311,57 @@ def main():
         ok = r['agg_n'] == 29 and r['agg_excluded'] == ['aidgn/FD001/s101']
         record('unit: aggregate exclusions are listed', ok,
                f'n={r["agg_n"]} excluded={r["agg_excluded"]}')
+
+        # the unit-level counterpart: R2.2 must honour the same ids
+        rows9 = urows()
+        hot9 = ([('two_phase', 'FD004', d) for d in SEEDS]
+                + [('fcstgnn', s, d) for s in SUBSETS for d in SEEDS])
+        for row in rows9:
+            if (row['model'], row['subset'], row['seed']) in hot9:
+                row['dlev'] = 0.30
+        ld_all = G.level_drift_summary(rows9)
+        ld_ex = G.level_drift_summary(
+            rows9, exclude={f'{m}/{s}/s{d}' for m, s, d in hot9})
+        ok = ld_all['stops'] and not ld_ex['stops'] and ld_ex['n_cells'] == 21
+        record('unit: exclusion reaches R2.2', ok,
+               f"all stops={ld_all['stops']} n_cells={ld_all['n_cells']}; "
+               f"excluded stops={ld_ex['stops']} n_cells={ld_ex['n_cells']}")
+
+        # the frozen schema is the contract: a runner schema must be refused with
+        # a message that says where the fix belongs, and a history without
+        # per-epoch engine_squared_errors must be refused too (v0/v3 wrote only
+        # epoch aggregates, and that silently removes the per-engine gates)
+        def csv_probe(name, header, row):
+            p = td / f'{name}.csv'
+            with p.open('w', newline='') as fh:
+                w = csv.writer(fh)
+                w.writerow(header)
+                w.writerow(row)
+            return p
+
+        seg = csv_probe('segmentA', ['unit', 'cut', 'y', 'pred'], [1, 90, 1.0, 3.0])
+        try:
+            G.engine_rmse_from_csv(seg)
+            refused, hint = False, False
+        except SystemExit as exc:
+            refused, hint = (exc.code == 2), True
+        record('unit: runner CSV schema refused', refused and hint,
+               'unit,cut,y,pred -> exit 2 with the §5 hint')
+
+        thin = td / 'thin_history'
+        build_cell(thin / 'aidgn' / 'FD001' / 's101', 1)
+        hp = thin / 'aidgn' / 'FD001' / 's101' / 'history.json'
+        h = json.loads(hp.read_text())
+        for rec in h:
+            rec.pop('engine_squared_errors', None)
+        hp.write_text(json.dumps(h))
+        try:
+            G.cell_curves(thin / 'aidgn' / 'FD001' / 's101', 'thin')
+            thin_refused = False
+        except SystemExit as exc:
+            thin_refused = (exc.code == 2)
+        record('unit: history without per-epoch SSE refused', thin_refused,
+               f'refused={thin_refused}')
 
         # a missing band is an INPUT ERROR: exit 2 and no record, never "passed"
         short = td / 'bands_short.csv'
@@ -366,6 +446,20 @@ def main():
                 root = real / FROZEN_SUB
                 rc, log, err = run_recon(root, root, td, 'real_self')
                 record('real self-match', rc == 0 and 'RECONCILE: OK' in log, f'rc={rc} {err}')
+
+                # the number the prereg's exclusion list must produce on the real
+                # tree: 9 cells = 210 (fcstgnn FD001+FD004) + 150 (two_phase FD004)
+                # engine readings, so 1050 -> 690 and R2.2 sees 21 cells.
+                nine = ([f'fcstgnn/{s}/s{d}' for s in SUBSETS for d in SEEDS]
+                        + [f'two_phase/FD004/s{d}' for d in SEEDS])
+                ex9 = td / 'real_excl9.json'
+                ex9.write_text(json.dumps(nine))
+                rc, log, err = run_recon(root, root, td, 'real_excl9',
+                                         extra=('--exclude', str(ex9)))
+                line = next((ln for ln in log.splitlines() if 'n=1050' in ln), '')
+                ok = rc == 0 and 'n=1050 -> n=690' in log and 'deciding: 21 cells' in log
+                record('real 9-cell exclusion: 1050 -> 690', ok,
+                       f'rc={rc} {line[:80] or err}')
                 frag = [ln for ln in log.splitlines() if 'budget-truncated' in ln]
                 record('real fragile set = 5', bool(frag) and 'cells: 5' in frag[0],
                        frag[0] if frag else 'no fragile line')

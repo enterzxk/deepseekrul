@@ -63,6 +63,23 @@ The record stores BOTH verdicts the prereg asks for: `band` (the gate) and
 `strict_0.2` (every cell within +/-0.2, reported for the original guardrail).
 `provenance_verified` is checked on every written record, abort included: the
 record names a commit, and the ledger re-hashes `<commit>:paper_c/gate1.py`.
+
+`--exclude` (a JSON list of "model/subset/sNNN") removes cells from the DRIFT
+statistics only -- both the per-engine drift reading AND R2.2's level drift,
+the one that can stop segment B. A cell that is known to be un-reproducible on
+this machine, or whose early stop never fired, is not evidence about the
+environment, and letting it into R2.2 turns "this cell cannot be reproduced
+here" into "the machine drifted". band and strict_0.2 always use all 30 cells,
+and the record lists every excluded cell plus the unfiltered level drift. An
+exclusion that matches no cell is refused (exit 2, no record): a typo must not
+silently no-op, which is exactly how v6.1's exclusion failed.
+
+validation_predictions.csv must carry the frozen schema
+`unit,y_true,y_pred,signed_error,cut` (prereg §5) and history.json must carry
+`engine_squared_errors` in every epoch record. The segment-A runner wrote
+`unit,cut,y,pred` and epoch aggregates only; the judge refuses both and names
+the missing piece, because a judge that accepts either cannot enforce §5. The
+fix belongs in the runner.
 """
 
 from __future__ import annotations
@@ -232,7 +249,14 @@ def load_bands(path: Path):
 
 
 def engine_rmse_from_csv(path: Path):
-    """{unit: RMSE over that engine's cuts}, from validation_predictions.csv."""
+    """{unit: RMSE over that engine's cuts}, from validation_predictions.csv.
+
+    The frozen schema is the contract (prereg §5): `unit,y_true,y_pred,...`. The
+    segment-A runner wrote `unit,cut,y,pred`, so the error names that schema and
+    says where the fix belongs -- a judge that accepted both could not enforce
+    the contract, and "the runner records it but never executes it" is the exact
+    failure mode that produced the min_delta bug.
+    """
     if not path.exists():
         die(f'reconcile: missing {path}')
     per = defaultdict(list)
@@ -242,7 +266,12 @@ def engine_rmse_from_csv(path: Path):
             die(f'{path}: empty file')
         miss = [c for c in ('unit', 'y_true', 'y_pred') if c not in rd.fieldnames]
         if miss:
-            die(f'{path}: missing columns {miss} (have {rd.fieldnames})')
+            hint = ''
+            if {'y', 'pred'} <= set(rd.fieldnames):
+                hint = (' -- this is the segment-A runner schema (unit,cut,y,pred); prereg §5 '
+                        'requires the frozen schema unit,y_true,y_pred,signed_error,cut, so the '
+                        'fix belongs in the runner, not in the judge')
+            die(f'{path}: missing columns {miss} (have {rd.fieldnames}){hint}')
         for i, r in enumerate(rd):
             try:
                 u = int(float(r['unit']))
@@ -514,23 +543,36 @@ def check_cells(a_root: Path, f_root: Path, bands, no_meta: bool):
     return rows, proto, fragile, curves, eng, shape_bad
 
 
-def level_drift_summary(rows, seed=BOOT_SEED):
+def level_drift_summary(rows, seed=BOOT_SEED, exclude=()):
     """R2.2: the only drift reading that can stop segment B.
 
     A systematic machine shift moves every cell the same way, so the mean of the
     signed per-cell level deltas has a CI away from zero AND the signs agree. If
     the CI covers zero the offset is training noise, which is the case the
     pre-registration says to continue through.
+
+    `exclude` holds canonical "model/subset/sNNN" ids. Filtering happens HERE,
+    not only in the per-engine reading: a cell that is known un-reproducible on
+    this machine must not be able to stop segment B. The caller records both the
+    filtered and the unfiltered numbers, so the removal is never silent.
     """
-    d = np.array([r['dlev'] for r in rows], dtype=float)
+    keep = [r for r in rows
+            if f"{r['model']}/{r['subset']}/s{r['seed']}" not in set(exclude)]
+    if not keep:
+        die('R2.2: every cell was excluded -- no drift statistic exists. '
+            'Refusing to report a verdict computed from zero cells.')
+    d = np.array([r['dlev'] for r in keep], dtype=float)
     rng = np.random.default_rng(seed)
     draws = np.array([d[rng.integers(0, len(d), len(d))].mean() for _ in range(BOOT)])
     lo, hi = float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))
     pos, neg = int((d > 0).sum()), int((d < 0).sum())
     frac = max(pos, neg) / (pos + neg) if pos + neg else float('nan')
-    return dict(n=int(d.size), mean=float(d.mean()), ci=[lo, hi],
+    return dict(n=int(d.size), n_cells=len(keep), mean=float(d.mean()), ci=[lo, hi],
                 same_sign_frac=float(frac),
+                excluded_cells=sorted(f"{r['model']}/{r['subset']}/s{r['seed']}"
+                                      for r in rows if r not in keep),
                 stops=bool((lo > 0 or hi < 0) and frac >= 0.80))
+
 
 
 def drift_summary(deltas):
@@ -627,7 +669,8 @@ def write_abort_record(path: Path, batch, violations, bands_path):
 
 
 def write_record(path: Path, batch, res, proto, rows, curves, fragile, bands_path,
-                 a_seg, frozen, drift=None, drift_ex=None, excluded=None, level_drift=None):
+                 a_seg, frozen, drift=None, drift_ex=None, excluded=None, level_drift=None,
+                 level_all=None):
     rel, sha, blob_sha = provenance()
     lv = np.array([c['level'] for c in curves.values()])
     rh = np.array([c['rho'] for c in curves.values()])
@@ -639,9 +682,10 @@ def write_record(path: Path, batch, res, proto, rows, curves, fragile, bands_pat
         # verdict answers "is there a systematic offset?"; these two answer
         # "does it reproduce to 0.2 / within band?" and are reported in full.
         drift=dict(all_cells=drift, excluded_cells=drift_ex, exclusion_list=excluded or [],
-                   level=level_drift,
+                   level=level_drift, level_unfiltered=level_all,
                    rule='R2.2 stop iff signed dlev CI excludes 0 AND same-sign >= 80%; '
-                        'per-engine median rule reported alongside'),
+                        'per-engine median rule reported alongside. `level` is computed '
+                        'after exclusion_list; `level_unfiltered` keeps the all-cell number'),
         band={'pass': res['pass_band'], 'violations': res['violations']},
         strict_0_2={'pass': res['pass_strict'], 'violations': res['strict_violations']},
         protocol={'pass': not proto, 'violations': proto},
@@ -740,21 +784,46 @@ def reconcile(a_seg: Path, frozen: Path, bands_path: Path, tol: float,
     # is whether 3090 shows a SYSTEMATIC offset, so `verdict` answers that --
     # while band and strict_0.2 keep reporting the reproducibility gates in full,
     # so a wide band can never hide a known-bad cell.
+    # Canonical cell ids: the engine list is keyed "model/subset/sNNN", so the
+    # exclusion set must use that same string. v6.1 built tuples here and the
+    # membership test could never match -- "excluding 9 declared cell(s)" printed
+    # n=1050 while nothing was dropped, and R2.2 never saw the exclusion at all.
+    excl = {str(x) for x in (exclude or [])}
+    known = {k for k, _, _ in eng}
+    unknown = sorted(excl - known)
+    if unknown:
+        die(f'--exclude names {len(unknown)} cell(s) that are not in this batch: '
+            f'{unknown}. An exclusion that matches nothing is a silent no-op, so it is '
+            f'refused; valid ids look like "aidgn/FD001/s101".')
     drift = drift_summary(d for _, _, d in eng)
-    excl = {tuple(x) for x in (exclude or [])}
     drift_ex = drift_summary(d for k, _, d in eng if k not in excl) if excl else None
     print(f'drift (per-engine, all cells): n={drift["n"]} median {drift["median"]:+.4f} '
           f'mean {drift["mean"]:+.4f} same-sign {drift["same_sign_frac"]:.1%} '
           f'p10/p90 {drift["p10"]:+.3f}/{drift["p90"]:+.3f}')
     if drift_ex is not None:
-        print(f'drift (excluding {len(excl)} declared cell(s)): n={drift_ex["n"]} '
-              f'median {drift_ex["median"]:+.4f} same-sign {drift_ex["same_sign_frac"]:.1%}')
-    systematic = drift['systematic']
-    level_drift = level_drift_summary(rows)
+        print(f'drift (per-engine, excluding {len(excl)} declared cell(s)): '
+              f'n={drift["n"]} -> n={drift_ex["n"]} '
+              f'({drift["n"] - drift_ex["n"]} engine readings dropped) '
+              f'median {drift_ex["median"]:+.4f} '
+              f'same-sign {drift_ex["same_sign_frac"]:.1%}')
+    # Reported diagnostics follow the same eligible set as R2.2, so the printed
+    # "systematic offset" cannot be produced by the cells we just declared bad.
+    systematic = (drift_ex or drift)['systematic']
+    level_all = level_drift_summary(rows)
+    level_drift = level_drift_summary(rows, exclude=excl) if excl else level_all
     rank_bad = [r for r in rows if not (r['rho'] >= RANK_MIN)]
-    print(f'systematic offset (per-engine, median rule): '
+    print(f'systematic offset (per-engine, median rule, '
+          f'{"after exclusions" if excl else "all cells"}): '
           f'{"YES" if systematic else "no"}   (reported)')
-    print(f'drift (per-cell level, R2.2): mean {level_drift["mean"]:+.4f} '
+    if excl:
+        print(f'drift (per-cell level, R2.2, all {level_all["n_cells"]} cells, '
+              f'reported only): mean {level_all["mean"]:+.4f} '
+              f'CI [{level_all["ci"][0]:+.4f},{level_all["ci"][1]:+.4f}] '
+              f'same-sign {level_all["same_sign_frac"]:.0%} -> '
+              f'{"STOPS" if level_all["stops"] else "no stop"}')
+    excl_note = f', {len(excl)} excluded' if excl else ''
+    print(f'drift (per-cell level, R2.2, deciding: {level_drift["n_cells"]} cells'
+          f'{excl_note}): mean {level_drift["mean"]:+.4f} '
           f'CI [{level_drift["ci"][0]:+.4f},{level_drift["ci"][1]:+.4f}] '
           f'same-sign {level_drift["same_sign_frac"]:.0%} -> '
           f'{"STOPS segment B" if level_drift["stops"] else "training noise, continue"}')
@@ -783,7 +852,8 @@ def reconcile(a_seg: Path, frozen: Path, bands_path: Path, tol: float,
     if record is not None:
         if verdict_ok:
             write_record(Path(record), batch, res, proto, rows, curves, fragile, bands_path,
-                         Path(a_seg), Path(frozen), drift, drift_ex, sorted(excl), level_drift)
+                         Path(a_seg), Path(frozen), drift, drift_ex, sorted(excl), level_drift,
+                         level_all)
         else:
             why = proto + res['violations']
             if systematic:
@@ -825,13 +895,21 @@ def main():
     exclude = None
     if a.exclude:
         raw = _read_json(Path(a.exclude))
+        if not isinstance(raw, list):
+            die('--exclude: expected a JSON list of "model/subset/seed" cell ids')
         exclude = []
         for x in raw:
             if isinstance(x, str):
-                m, s, d = x.split('/')
-                exclude.append((m, s, int(d.lstrip('s'))))
+                parts = x.split('/')
+            elif isinstance(x, (list, tuple)):
+                parts = list(x)
             else:
-                exclude.append((x[0], x[1], int(x[2])))
+                parts = None
+            if parts is None or len(parts) != 3 or not str(parts[2]).lstrip('s').isdigit():
+                die(f'--exclude: cannot parse cell id {x!r}; expected "model/subset/seed"')
+            m, s, d = str(parts[0]), str(parts[1]), int(str(parts[2]).lstrip('s'))
+            # canonical form, so the id is comparable with the engine list's keys
+            exclude.append(f'{m}/{s}/s{d}')
 
     if a.reconcile_a or a.reconcile_frozen:
         if not (a.reconcile_a and a.reconcile_frozen):
