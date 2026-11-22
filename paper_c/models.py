@@ -1,4 +1,4 @@
-"""Paper C backbones: minimal GRU and causal TCN (no cycle input)."""
+"""Paper C backbones and M1 CADF (causal adaptive degradation front-end)."""
 from __future__ import annotations
 
 import torch
@@ -15,12 +15,18 @@ class GRUModel(nn.Module):
         self.ln = nn.LayerNorm(hidden)
         self.head = nn.Linear(hidden, 1)
 
-    def forward(self, x, mask):
+    def seq_features(self, x, mask):
         h, _ = self.gru(self.inp(x))
+        return h
+
+    def features(self, x, mask):
+        h = self.seq_features(x, mask)
         lengths = mask.sum(1).long().clamp(min=1)
         idx = (lengths - 1).view(-1, 1, 1).expand(-1, 1, h.size(-1))
-        last = h.gather(1, idx).squeeze(1)
-        return self.head(self.ln(last)).squeeze(-1)
+        return h.gather(1, idx).squeeze(1)
+
+    def forward(self, x, mask):
+        return self.head(self.ln(self.features(x, mask))).squeeze(-1)
 
 
 class CausalBlock(nn.Module):
@@ -60,11 +66,70 @@ class TCNModel(nn.Module):
         return self.head(last).squeeze(-1)
 
 
+class CADF(nn.Module):
+    """Causal adaptive degradation front-end.
+
+    b_t is the mean of the first min(t+1, K0) valid cycles; delta = x - b;
+    a learnable per-sensor EMA smooths delta; a zero-init residual gate fuses
+    [x, delta, ema] back to the input space.
+    """
+
+    def __init__(self, dim=14, K0=15, static=False):
+        super().__init__()
+        self.K0 = K0
+        self.static = static
+        self.alpha_logit = nn.Parameter(torch.zeros(dim))
+        self.proj = nn.Linear(3 * dim, dim)
+        self.gate = nn.Linear(3 * dim, dim)
+        nn.init.zeros_(self.proj.weight); nn.init.zeros_(self.proj.bias)
+        nn.init.zeros_(self.gate.weight); nn.init.zeros_(self.gate.bias)
+
+    def forward(self, x, mask):
+        B, L, D = x.shape
+        xm = x * mask.unsqueeze(-1)
+        cs = torch.cumsum(xm, 1)
+        idx = torch.arange(L, device=x.device)
+        gidx = torch.minimum(idx, torch.tensor(self.K0 - 1, device=x.device))
+        gidx = gidx.view(1, L, 1).expand(B, L, D)
+        denom = torch.minimum(idx + 1, torch.tensor(self.K0, device=x.device)).float()
+        b = cs.gather(1, gidx) / denom.view(1, L, 1)
+        delta = x - b
+        if self.static:
+            z = torch.cat([x, delta, torch.zeros_like(delta)], -1)
+            return x + self.proj(z)
+        alpha = torch.sigmoid(self.alpha_logit).view(1, D)
+        es = []
+        prev = torch.zeros_like(delta[:, 0])
+        for t in range(L):
+            prev = alpha * prev + (1.0 - alpha) * delta[:, t]
+            es.append(prev)
+        e = torch.stack(es, 1)
+        z = torch.cat([x, delta, e], -1)
+        g = torch.sigmoid(self.gate(z))
+        return x + g * self.proj(z)
+
+
+class M1Model(nn.Module):
+    def __init__(self, static=False, **kw):
+        super().__init__()
+        self.front = CADF(static=static)
+        self.back = GRUModel(**kw)
+
+    def forward(self, x, mask):
+        return self.back(self.front(x, mask), mask)
+
+
 def build(name: str, **kw):
     if name == 'gru':
         return GRUModel(**kw)
+    if name == 'gru_cap':
+        return GRUModel(hidden=64, layers=3, **kw)
     if name == 'tcn':
         return TCNModel(**kw)
+    if name == 'm1':
+        return M1Model(static=False, **kw)
+    if name == 'm1_static':
+        return M1Model(static=True, **kw)
     raise ValueError(name)
 
 

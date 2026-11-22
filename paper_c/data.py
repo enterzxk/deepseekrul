@@ -106,26 +106,32 @@ def _window(arr, end, L):
     return x, mask
 
 
-def make_train_windows(df, units, scaler, L):
+def make_train_windows(df, units, scaler, L, return_op=False):
     df = scaler.transform(df)
-    xs, ms, ys = [], [], []
+    xs, ms, ys, ops = [], [], [], []
     for u in sorted(units):
         g = df[df.unit == u]
         arr = g[SENSOR_COLS].to_numpy(float)
+        op = g[['op1', 'op2', 'op3']].to_numpy(float)
         n = len(g)
         for t in range(n):
             x, m = _window(arr, t, L)
             xs.append(x); ms.append(m); ys.append(min(n - (t + 1), CAP))
-    return (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
-            np.asarray(ys, np.float32))
+            if return_op:
+                start = max(0, t - L + 1)
+                ops.append(op[start:t + 1].mean(0))
+    out = (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
+           np.asarray(ys, np.float32))
+    return out + (np.stack(ops).astype(np.float32),) if return_op else out
 
 
-def make_val_windows(df, units, scaler, L, cuts=CUTS):
+def make_val_windows(df, units, scaler, L, cuts=CUTS, return_op=False):
     df = scaler.transform(df)
-    xs, ms, ys, eng, cutv = [], [], [], [], []
+    xs, ms, ys, eng, cutv, ops = [], [], [], [], [], []
     for u in sorted(units):
         g = df[df.unit == u]
         arr = g[SENSOR_COLS].to_numpy(float)
+        op = g[['op1', 'op2', 'op3']].to_numpy(float)
         n = len(g)
         for frac in cuts:
             t = int(round(frac * (n - 1)))
@@ -134,5 +140,9 @@ def make_val_windows(df, units, scaler, L, cuts=CUTS):
             xs.append(x); ms.append(m)
             ys.append(min(n - (t + 1), CAP))
             eng.append(u); cutv.append(frac)
-    return (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
-            np.asarray(ys, np.float32), np.asarray(eng), np.asarray(cutv))
+            if return_op:
+                start = max(0, t - L + 1)
+                ops.append(op[start:t + 1].mean(0))
+    out = (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
+           np.asarray(ys, np.float32), np.asarray(eng), np.asarray(cutv))
+    return out + (np.stack(ops).astype(np.float32),) if return_op else out
