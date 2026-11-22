@@ -47,6 +47,12 @@ def record(name, ok, detail):
 
 # --------------------------------------------------------------- suite 1
 
+# R2.1(7): the per-subset counts the committed anchor records. The synthetic
+# fixture must carry them on BOTH sides, otherwise every case aborts on (7).
+N_WINDOWS = {'FD001': 16762, 'FD004': 48691}
+N_CUTS = {'FD001': 100, 'FD004': 250}
+
+
 def build_gate(kind):
     """Return (baseline_rows, module_rows) for one synthetic scenario."""
     rng = np.random.default_rng(20261122)
@@ -127,8 +133,70 @@ def write_meta(cell_dir, epochs_run, best_epoch, epochs=40, window=30, lr=1e-3):
         training_data_sha256={'synthetic': '00000000'})))
     tm = cell_dir / 'training_metrics.json'
     meta = json.loads(tm.read_text()) if tm.exists() else {}
-    meta.update(epochs_run=epochs_run, best_epoch=best_epoch)
+    sub = cell_dir.parent.name
+    meta.update(epochs_run=epochs_run, best_epoch=best_epoch,
+                min_delta=1e-4, tf32_matmul=False, tf32_cudnn=False,
+                n_train_windows=N_WINDOWS[sub], n_validation_cuts=N_CUTS[sub])
     tm.write_text(json.dumps(meta))
+
+
+def stamp_runtime(root):
+    """ADD the attestation fields a conforming segment-A run writes.
+
+    The committed anchor already carries training_metrics.json (with
+    runtime_flags, but without min_delta/tf32_matmul/tf32_cudnn). This fixture
+    ADDS only the missing fields so the rc=0 path can be exercised on real data;
+    everything the anchor recorded is preserved, and the case name says the
+    attestation fields are synthesized.
+    """
+    for m in METHODS:
+        for s in SUBSETS:
+            for sd in SEEDS:
+                d = root / m / s / f's{sd}'
+                fr = json.loads((d / 'FREEZE.json').read_text(encoding='utf-8-sig'))
+                cfg = json.loads((d / 'config.json').read_text(encoding='utf-8-sig'))
+                hist = json.loads((d / 'history.json').read_text(encoding='utf-8-sig'))
+                p = d / 'training_metrics.json'
+                meta = json.loads(p.read_text(encoding='utf-8-sig')) if p.exists() else {}
+                meta.setdefault('epochs_run', fr.get('epochs_run') or len(hist))
+                meta.setdefault('best_epoch', fr.get('best_epoch'))
+                meta.update(min_delta=cfg.get('min_delta'),
+                            tf32_matmul=False, tf32_cudnn=False)
+                p.write_text(json.dumps(meta))
+
+
+def prune_sealed(root):
+    """Drop the sealed TEST outputs and checkpoints the committed tree carries.
+
+    `git archive d7bd9c17 fixed40` restores 22 files per cell (~56.5 MB/run),
+    including test_predictions.csv, TEST_*.json and checkpoint.pt. gate1 never
+    reads them, and the pruned 7-file working-tree copy is the intended state, so
+    they are removed right after extraction -- this fixture was otherwise the one
+    place in the pipeline that materialised sealed TEST artifacts on disk.
+    """
+    removed = 0
+    for p in sorted(root.rglob('*')):
+        if not p.is_file():
+            continue
+        if (p.name.startswith(('test_', 'TEST_'))
+                or p.name in ('ACTUAL_TEST_INPUTS.json', 'checkpoint.pt')):
+            p.unlink()
+            removed += 1
+    return removed
+
+
+def replay_best(hist, min_delta):
+    """The acceptance rule the config declares: accepted iff score < best - min_delta.
+
+    The fixture must select by the SAME rule gate1 replays, otherwise it declares
+    min_delta=1e-4 in config while selecting by plain argmin -- and gate1's replay
+    check correctly flags the fixture as inconsistent.
+    """
+    best = hist[0]
+    for rec in hist[1:]:
+        if rec['val_engine_mean_rmse'] < best['val_engine_mean_rmse'] - min_delta:
+            best = rec
+    return best
 
 
 def build_cell(d, idx, epochs_run=27, epochs=40, best_epoch=None, level=0.0, rank_flip=False,
@@ -155,7 +223,7 @@ def build_cell(d, idx, epochs_run=27, epochs=40, best_epoch=None, level=0.0, ran
         hist.append(dict(epoch=e, val_engine_mean_rmse=float(np.mean(list(per.values()))),
                          engine_squared_errors=ese))
     if best_epoch is None:
-        best_epoch = min(hist, key=lambda r: r['val_engine_mean_rmse'])['epoch']
+        best_epoch = replay_best(hist, 1e-4)['epoch']
     rows = []
     for u in engs:
         life = 180 + 4 * u
@@ -166,6 +234,20 @@ def build_cell(d, idx, epochs_run=27, epochs=40, best_epoch=None, level=0.0, ran
     write_history(d, hist)
     write_metrics(d, [r for r in hist if r['epoch'] == best_epoch][0])
     write_meta(d, epochs_run=epochs_run, best_epoch=best_epoch, epochs=epochs, lr=lr)
+    model = d.parent.parent.name
+    if model == 'two_phase':
+        # R2.1(6): the backbone pretrains on its paired subset, so the fixture must
+        # carry the same pretraining record the anchor does
+        cfgp = d / 'config.json'
+        cfg = json.loads(cfgp.read_text())
+        cfg['pretraining_epochs'] = 20
+        cfgp.write_text(json.dumps(cfg))
+        sub = d.parent.name
+        (d / 'pretraining_metrics.json').write_text(json.dumps(dict(
+            epochs=20, n_target_train_windows=N_WINDOWS[sub],
+            n_paired_train_windows=N_WINDOWS[sub] + 3700,
+            encoder_before_finetune_sha256='a' * 64,
+            encoder_after_finetune_sha256='a' * 64)))
     return hist
 
 
@@ -222,6 +304,44 @@ def main():
 
         lvl_root = variant('level shift -> ABORT', 2, 'curve level', level=0.05)
         variant('protocol lr -> ABORT', 2, 'config.lr', lr=5e-3)
+
+        # R2.1(7): the dropped-window data module. Both prepare() variants label the
+        # training set 'all_cycle_left_padded' and agree on every config field; only
+        # the window count separates them (-23% on FD001). This is the case that
+        # would have caught the real v5/v6 batch.
+        wc = td / 'window_wrong'
+        write_tree(wc)
+        wp = wc / 'aidgn' / 'FD001' / 's101' / 'training_metrics.json'
+        wj = json.loads(wp.read_text())
+        wj['n_train_windows'] = 12842
+        wp.write_text(json.dumps(wj))
+        rc, log, err = run_recon(wc, frozen, td, 'window_wrong')
+        ok = (rc == 2 and 'R2.1(7)' in log and '12842' in log and '-3920 windows' in log)
+        record('wrong data module -> ABORT', ok, f'rc={rc} {err}')
+
+        # ... and the field being absent is not neutral either: the wrong module wrote
+        # the same 9 fields, so "no n_train_windows" is a violation, not a skip.
+        wm = td / 'window_missing'
+        write_tree(wm)
+        wmp = wm / 'aidgn' / 'FD001' / 's101' / 'training_metrics.json'
+        wmj = json.loads(wmp.read_text())
+        wmj.pop('n_train_windows')
+        wmp.write_text(json.dumps(wmj))
+        rc, log, err = run_recon(wm, frozen, td, 'window_missing')
+        ok = rc == 2 and 'R2.1(7)' in log and 'no n_train_windows' in log
+        record('window count missing -> ABORT', ok, f'rc={rc} {err}')
+
+        # R2.1(6): two_phase pretraining is a protocol, so a mismatched paired-window
+        # count must abort (before v6.5.5 the judge never looked at it)
+        pt = td / 'pretrain_break'
+        write_tree(pt)
+        pj = pt / 'two_phase' / 'FD001' / 's101' / 'pretraining_metrics.json'
+        jj = json.loads(pj.read_text())
+        jj['n_paired_train_windows'] = 999
+        pj.write_text(json.dumps(jj))
+        rc, log, err = run_recon(pt, frozen, td, 'pretrain_break')
+        ok = rc == 2 and 'R2.1(6)' in log
+        record('pretraining mismatch -> ABORT', ok, f'rc={rc} {err}')
 
         # v6.2: the exclusion must reach R2.2, the statistic that decides the
         # verdict -- not just the per-engine reading. 9 shifted cells (the real
@@ -327,6 +447,32 @@ def main():
                f"all stops={ld_all['stops']} n_cells={ld_all['n_cells']}; "
                f"excluded stops={ld_ex['stops']} n_cells={ld_ex['n_cells']}")
 
+        # v6.6: a one-backbone offset must be visible per backbone even when the
+        # pooled same-sign rule cannot fire on it -- that is the segment-A shape
+        rows_pb = urows()
+        for i, row in enumerate(rows_pb):
+            if row['model'] == 'two_phase':
+                row['dlev'] = 0.30
+            else:
+                row['dlev'] = 0.10 if i % 2 == 0 else -0.10
+        pooled = G.level_drift_summary(rows_pb)
+        pb = G.level_drift_by_backbone(rows_pb)
+        ok = ((not pooled['stops']) and pb['two_phase']['stops']
+              and abs(pb['two_phase']['mean'] - 0.30) < 1e-12
+              and abs(pb['aidgn']['mean']) < 1e-12)
+        record('unit: per-backbone exposes one-backbone offset', ok,
+               f"pooled stops={pooled['stops']} same-sign={pooled['same_sign_frac']:.0%}; "
+               f"two_phase {pb['two_phase']['mean']:+.2f} stops={pb['two_phase']['stops']}")
+
+        # min_delta replay: an improvement smaller than min_delta must NOT be
+        # accepted, so the earlier epoch stays the selection -- and with
+        # min_delta=0 the same curve picks the later one
+        curve = {1: (10.0, {}), 2: (9.99999, {}), 3: (10.5, {})}
+        e0, _ = G._replay_best(curve, 0.0)
+        e1, _ = G._replay_best(curve, 1e-4)
+        record('unit: min_delta replay picks the right epoch', e0 == 2 and e1 == 1,
+               f'md=0 -> ep{e0}, md=1e-4 -> ep{e1}')
+
         # the frozen schema is the contract: a runner schema must be refused with
         # a message that says where the fix belongs, and a history without
         # per-epoch engine_squared_errors must be refused too (v0/v3 wrote only
@@ -389,9 +535,13 @@ def main():
             ok = rc == 2 and not arec.exists()
             record('abort: dirty tree writes nothing', ok, f'rc={rc} exists={arec.exists()}')
         else:
-            ok = (rc == 2 and arec.exists()
-                  and json.loads(arec.read_text(encoding='utf-8'))['verdict'] == 'abort')
-            record('abort writes verdict=abort', ok, f'rc={rc} exists={arec.exists()}')
+            recj = json.loads(arec.read_text(encoding='utf-8')) if arec.exists() else {}
+            ev = recj.get('computed_evidence', {})
+            ok = (rc == 2 and recj.get('verdict') == 'abort'
+                  and isinstance(ev.get('drift', {}).get('level'), dict)
+                  and len(ev.get('detail', [])) == 30)
+            record('abort writes verdict=abort + evidence', ok,
+                   f'rc={rc} exists={arec.exists()} detail={len(ev.get("detail", []))}')
 
         # an artifact whose metrics no longer correspond to its own curve
         tam = td / 'tampered'
@@ -444,8 +594,25 @@ def main():
             else:
                 subprocess.run(['tar', '-xf', str(tar), '-C', str(real)], check=True)
                 root = real / FROZEN_SUB
+                pruned = prune_sealed(root)
+                record('fixture prunes sealed TEST/checkpoint files', pruned > 0,
+                       f'removed {pruned} file(s)')
+                # PURE anchor bytes first: no synthetic file anywhere. The committed
+                # anchor DOES carry training_metrics.json (the 7-file copy in the
+                # working tree is a pruned checkout), so item 5 fires 3x per cell --
+                # min_delta absent, and both TF32 fields absent against the anchor's
+                # recorded runtime_flags -- and nothing else may fire.
+                rc, log, err = run_recon(root, root, td, 'real_pure')
+                ok = (rc == 2 and 'protocol fidelity R2.1 (90)' in log
+                      and log.count('R2.1(5)') == 90 and 'runtime_flags' in log
+                      and 'config.' not in log and 'early-stop shape differs' not in log)
+                record('pure frozen tree: only item 5 fires (3/cell)', ok,
+                       f'rc={rc} item5={log.count("R2.1(5)")}')
+
+                stamp_runtime(root)
                 rc, log, err = run_recon(root, root, td, 'real_self')
-                record('real self-match', rc == 0 and 'RECONCILE: OK' in log, f'rc={rc} {err}')
+                record('real self-match (stamped attestation)', rc == 0 and 'RECONCILE: OK' in log,
+                       f'rc={rc} {err}')
 
                 # the number the prereg's exclusion list must produce on the real
                 # tree: 9 cells = 210 (fcstgnn FD001+FD004) + 150 (two_phase FD004)
@@ -480,15 +647,42 @@ def main():
                     record('record written on clean tree', ok,
                            f'rc={rc} keys={sorted(detail)[:5]}')
 
+                # R2.1(5): the runtime switches must be attested, and a missing
+                # file or a True TF32 flag is a protocol violation, not a warning
                 victim = ('aidgn', 'FD001', 101)
+                bad_rt = td / 'real_runtime'
+                shutil.copytree(root, bad_rt)
+                p = bad_rt / victim[0] / victim[1] / f's{victim[2]}' / 'training_metrics.json'
+                tmj = json.loads(p.read_text())
+                tmj['tf32_matmul'] = True
+                p.write_text(json.dumps(tmj))
+                rc, log, err = run_recon(bad_rt, root, td, 'real_runtime')
+                ok = rc == 2 and 'R2.1(5)' in log and 'tf32_matmul' in log
+                record('tf32 on -> ABORT', ok, f'rc={rc} {err}')
+
+                miss_rt = td / 'real_runtime_missing'
+                shutil.copytree(root, miss_rt)
+                (miss_rt / victim[0] / victim[1] / f's{victim[2]}'
+                 / 'training_metrics.json').unlink()
+                rc, log, err = run_recon(miss_rt, root, td, 'real_runtime_missing')
+                ok = rc == 2 and 'no training_metrics.json' in log
+                record('runtime attestation missing -> ABORT', ok, f'rc={rc} {err}')
+
+                # the epoch-source fallback is exercised on the ANCHOR side: removing
+                # training_metrics.json from segment A is now an R2.1(5) violation
                 trim = td / 'real_trim'
                 shutil.copytree(root, trim)
                 (trim / victim[0] / victim[1] / f's{victim[2]}'
                  / 'training_metrics.json').unlink()
-                rc, log, err = run_recon(trim, root, td, 'real_trim')
+                # R2.1(7) makes the pruned anchor fail CLOSED: the epoch fallback still
+                # works (the log shows history+FREEZE), but without the anchor's
+                # n_train_windows the window count cannot be verified, so the run aborts.
+                # A working-tree 7-file copy is therefore not a usable anchor.
+                rc, log, err = run_recon(root, trim, td, 'real_trim')
                 src = [ln for ln in log.splitlines() if 'epoch sources' in ln]
-                ok = rc == 0 and any('training_metrics|history+FREEZE' in ln for ln in src)
-                record('trim fallback (history+FREEZE)', ok, f'rc={rc} {src or err}')
+                ok = (rc == 2 and any('history+FREEZE|training_metrics' in ln for ln in src)
+                      and 'R2.1(7)' in log and 'no n_train_windows' in log)
+                record('anchor-side trim fallback (history+FREEZE)', ok, f'rc={rc} {src or err}')
 
                 bad = td / 'real_bad'
                 shutil.copytree(root, bad)

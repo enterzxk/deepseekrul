@@ -52,6 +52,13 @@ Those are properties of argmin, not of the environment. Gates, per prereg v5.1:
  5. argmin gross  |argmin delta| > 0.40 is a gross error and aborts
  6. rank          Spearman of per-engine curve means >= 0.90: the same engines
                   must still be the hard ones
+ 7. runtime       R2.1(5): segment A's training_metrics.json must attest the TF32
+                  flags and min_delta. The committed anchor carries that file with
+                  runtime_flags {matmul_tf32, cudnn_tf32, ...}, so the TF32 half is
+                  a comparison against the anchor; min_delta has no anchor field and
+                  is checked against the config. What it cannot prove: that the
+                  training loop USED min_delta (pinned by the runner source hash,
+                  reviewed once, not per cell).
 
 Diagnostics, NOT gates: argmin delta per cell, epochs_run/best_epoch drift, and
 the tail-window level (last 25% of the common epochs). The tail is reported
@@ -117,6 +124,22 @@ BANDS_REL = 'docs/paper_c/registry/RECON_BANDS.csv'
 
 META_FIELDS = ('epochs', 'patience', 'min_delta', 'window', 'batch', 'lr', 'weight_decay',
                'val_frac', 'split_seed', 'rul_cap')
+
+# R2.1(7) training-window count. This is the ONLY check that can catch a
+# wrong data module: both prepare() variants label the training set
+# 'all_cycle_left_padded' and agree on every config field, but the variant
+# that drops the first window-1 windows per engine trains on 80*(window-1)
+# fewer windows (-23% on FD001). The anchor records n_train_windows per cell,
+# so the expected value comes from the anchor AND is cross-checked against
+# this pre-registered table -- neither side is trusted alone.
+# n_train_windows is read from training_metrics.json and n_target_train_windows
+# from pretraining_metrics.json; never cross them. On FD002/FD004 the target
+# count and the paired count are each other's values (43251 / 48691), so a
+# cross-wired read is silent rather than loud.
+EXPECTED_WINDOWS = {'FD001': 16762, 'FD002': 43251, 'FD003': 20486, 'FD004': 48691}
+# n_validation_cuts is NOT constant across subsets (the anchor records 100 on
+# FD001 and 250 on FD004), so it is compared cell-by-cell against the anchor
+# rather than against a table here.
 
 
 def die(msg):
@@ -342,7 +365,25 @@ def cell_curves(cell_dir: Path, label: str):
     return out
 
 
-def check_consistency(cell_dir: Path, label: str, hist):
+def _replay_best(hist, min_delta):
+    """Replay the acceptance rule: accepted iff score < best - min_delta.
+
+    With min_delta = 0 this degenerates to the plain argmin (first minimum wins),
+    which is the assertion the reconcile has always relied on. With min_delta > 0
+    it is the only form that both (a) admits a legitimate last-accepted epoch that
+    is not the curve minimum and (b) still rejects a genuinely wrong epoch: a
+    relaxed ">= curve minimum" bound would let a wrong epoch through.
+    """
+    order = sorted(hist)
+    best_e, best_v = order[0], hist[order[0]][0]
+    for e in order[1:]:
+        v = hist[e][0]
+        if v < best_v - min_delta:
+            best_e, best_v = e, v
+    return best_e, best_v
+
+
+def check_consistency(cell_dir: Path, label: str, hist, best_epoch=None):
     """metrics.json must equal history at the selected epoch, and the CSV must
     equal engine_squared_errors. A predictions file that does not correspond to
     the reported selection is how a stale artifact passes for a good run."""
@@ -359,25 +400,37 @@ def check_consistency(cell_dir: Path, label: str, hist):
             f'epoch in history.json -- the reported selection and the recorded curve '
             f'come from different runs')
     # The reconcile takes the anchor's argmin from the curve, so the recorded
-    # selection must BE that curve minimum. Two reported cells elsewhere picked a
-    # non-minimum epoch; this assertion makes that class impossible here.
-    curve_min = min(hist[e][0] for e in hist)
-    if abs(curve_min - claimed) > 1e-6:
-        worst = min(hist, key=lambda e: hist[e][0])
-        die(f'{label}: recorded selection {claimed:.6f} is not the curve minimum '
-            f'{curve_min:.6f} (epoch {worst}) -- the anchor argmin cannot be taken from '
-            f'the curve for this cell')
+    # selection must be reproducible from the curve under the acceptance rule the
+    # config declares. A relaxed "recorded value >= curve minimum" bound would
+    # lose the ability to catch a wrong epoch, which is the reason this check
+    # exists; replaying the rule keeps both properties.
+    cf = cell_dir / 'config.json'
+    md = float((_read_json(cf).get('min_delta') or 0.0)) if cf.exists() else 0.0
+    r_epoch, r_val = _replay_best(hist, md)
+    if abs(r_val - claimed) > 1e-9:
+        die(f'{label}: recorded selection {claimed:.6f} != min_delta replay {r_val:.6f} '
+            f'(epoch {r_epoch}, min_delta={md:g}) -- the curve and the recorded selection '
+            f'do not come from the same acceptance rule')
+    if best_epoch is not None and int(best_epoch) != r_epoch:
+        die(f'{label}: recorded best_epoch {best_epoch} != min_delta replay {r_epoch} '
+            f'(min_delta={md:g}) -- the selection rule that produced this cell is not the '
+            f'one its config declares')
     ref = {int(x['unit']): float(np.sqrt(float(x['sum_squared_error']) / float(x['n'])))
            for x in meta['engine_squared_errors']}
     per = engine_rmse_from_csv(cell_dir / 'validation_predictions.csv')
     if set(per) != set(ref):
         die(f'{label}: engine sets differ (csv={len(per)} metrics={len(ref)})')
     worst = max(abs(per[u] - ref[u]) for u in per)
-    if worst > 1e-6:
+    # The CSV stores y_pred at printed precision, so an engine RMSE recomputed
+    # from it differs from the full-precision metric by ~1e-6 (measured 1.7e-6 on
+    # v5 aidgn/FD001/s101). This check exists to catch a stale or truncated file,
+    # which differs by orders of magnitude (the tampered fixture is +0.5), so the
+    # tolerance is 1e-4: far below any real staleness, above printing rounding.
+    if worst > 1e-4:
         die(f'{label}: predictions disagree with engine_squared_errors '
             f'(max |diff| = {worst:.3e}) -- stale or truncated CSV')
     mine = float(np.mean(list(per.values())))
-    if abs(mine - claimed) > 1e-6:
+    if abs(mine - claimed) > 1e-4:
         die(f'{label}: val_engine_mean_rmse={claimed:.6f} but recomputed {mine:.6f}')
     return per, ref
 
@@ -431,10 +484,14 @@ def check_cells(a_root: Path, f_root: Path, bands, no_meta: bool):
     """Read the 30 cells and build the per-cell rows the gates and record need."""
     if no_meta:
         print('cell checks: SKIPPED (--no-meta) -- RMSE-only, no gates\n')
-        return [], [], set(), {}, [], set()
+        return [], [], set(), {}, [], set(), [], [], []
     rows, proto, fragile, curves = [], [], set(), {}
     shape_bad = set()
+    ceil_stats = {}
     eng = []
+    runtime = []
+    pretraining = []
+    windows = []
     n_cmp = 0
     srcs = defaultdict(int)
     for m in METHODS:
@@ -464,29 +521,174 @@ def check_cells(a_root: Path, f_root: Path, bands, no_meta: bool):
                     proto.append(f'{key}: training_data_sha256 differs '
                                  f'(anchor {sorted(fa)} vs segment A {sorted(aa)})')
 
-                # R2.1(3) early-stop shape: an early stop on one side and a
-                # ceiling hit on the other is a protocol difference, not drift.
-                # This is the shape that exposed the fcstgnn bug.
+                # R2.1(5) runtime switches. The committed anchor DOES carry
+                # training_metrics.json -- the 7-file copy in the working tree is a
+                # pruned checkout -- and that file records
+                # runtime_flags {matmul_tf32, cudnn_tf32, cudnn_deterministic,
+                # cudnn_benchmark}. So the TF32 half is a COMPARISON against the
+                # anchor, not a self-attestation; only min_delta has no anchor field
+                # and is checked against the config. What none of this proves: that
+                # the training loop USED min_delta -- that is pinned by the runner
+                # source hash and reviewed once, not per cell.
+                tm_path = ad / 'training_metrics.json'
+                anchor_tm = fd / 'training_metrics.json'
+                a_tm = _read_json(anchor_tm) if anchor_tm.exists() else {}
+                a_flags = a_tm.get('runtime_flags') or {}
+                tm = _read_json(tm_path) if tm_path.exists() else None
+                if tm is None:
+                    runtime.append(dict(model=m, subset=s, seed=seed, attested=False,
+                                        why='no training_metrics.json',
+                                        anchor_runtime_flags=a_flags or None))
+                    proto.append(f'{key}: R2.1(5) segment A has no training_metrics.json -- '
+                                 f'min_delta/tf32_matmul/tf32_cudnn cannot be attested')
+                else:
+                    md_local = tm.get('min_delta')
+                    md_cfg = am['cfg'].get('min_delta')
+                    bad = []
+                    if md_cfg is not None and not _same(md_local, md_cfg):
+                        bad.append(f'min_delta {md_local!r} != config {md_cfg!r}')
+                    if md_cfg is None and md_local is None:
+                        bad.append('min_delta absent on both sides')
+                    for lk, ak in (('tf32_matmul', 'matmul_tf32'),
+                                   ('tf32_cudnn', 'cudnn_tf32')):
+                        lv = tm.get(lk)
+                        if ak in a_flags:
+                            if lv is None or bool(lv) is not bool(a_flags[ak]):
+                                bad.append(f'{lk}={lv!r} but anchor '
+                                           f'runtime_flags.{ak}={a_flags[ak]!r}')
+                        elif lv is not False:
+                            bad.append(f'{lk}={lv!r} != False (anchor recorded no runtime_flags)')
+                    runtime.append(dict(model=m, subset=s, seed=seed, attested=not bad,
+                                        min_delta=md_local,
+                                        tf32_matmul=tm.get('tf32_matmul'),
+                                        tf32_cudnn=tm.get('tf32_cudnn'),
+                                        anchor_runtime_flags=a_flags or None,
+                                        mode='comparison' if a_flags else 'self_attestation'))
+                    for b in bad:
+                        proto.append(f'{key}: R2.1(5) training_metrics {b}')
+
+                # R2.1(7) training-window count (prereg v6.5.6). Which windows
+                # were trained on is not in config -- the two data modules are
+                # field-for-field identical there -- so it is read from
+                # training_metrics.json, where the anchor records it per cell.
+                exp_n = EXPECTED_WINDOWS.get(s)
+                an = a_tm.get('n_train_windows')
+                if exp_n is None:
+                    proto.append(f'{key}: R2.1(7) no pre-registered window count for {s}')
+                elif an is None:
+                    proto.append(f'{key}: R2.1(7) anchor training_metrics.json has no '
+                                 f'n_train_windows -- which windows were trained on is '
+                                 f'unverifiable')
+                elif not _same(an, exp_n):
+                    proto.append(f'{key}: R2.1(7) anchor n_train_windows {an!r} != '
+                                 f'pre-registered {exp_n!r} for {s} (anchor and table '
+                                 f'disagree -- one of them is wrong)')
+                if tm is not None:
+                    ln = tm.get('n_train_windows')
+                    lv = tm.get('n_validation_cuts')
+                    if ln is None:
+                        proto.append(f'{key}: R2.1(7) segment A training_metrics.json has '
+                                     f'no n_train_windows -- which windows were trained on '
+                                     f'is unverifiable (the wrong data module wrote the same '
+                                     f'9 fields, so absence is not neutral)')
+                    elif exp_n is not None and not _same(ln, exp_n):
+                        try:
+                            d = f'{int(ln) - int(exp_n):+d} windows'
+                        except (TypeError, ValueError):
+                            d = 'delta unknown'
+                        proto.append(f'{key}: R2.1(7) n_train_windows {ln!r} != '
+                                     f'pre-registered {exp_n!r} for {s} ({d}) -- the '
+                                     f'training set was built by a different data module')
+                    av = a_tm.get('n_validation_cuts')
+                    if lv is None:
+                        proto.append(f'{key}: R2.1(7) segment A training_metrics.json has '
+                                     f'no n_validation_cuts')
+                    elif av is None:
+                        proto.append(f'{key}: R2.1(7) anchor training_metrics.json has no '
+                                     f'n_validation_cuts -- the cut count cannot be '
+                                     f'compared')
+                    elif not _same(lv, av):
+                        proto.append(f'{key}: R2.1(7) n_validation_cuts {lv!r} != '
+                                     f'anchor {av!r}')
+                    windows.append(dict(model=m, subset=s, seed=seed,
+                                        n_train_windows=ln, n_validation_cuts=lv,
+                                        anchor_n_train_windows=an,
+                                        anchor_n_validation_cuts=av,
+                                        expected=exp_n))
+
+                # R2.1(6) two_phase pretraining. The backbone's protocol is
+                # "pretrain on the paired subset, then freeze the encoder", and
+                # until v6.5.5 the judge never looked at it. Both sides write
+                # pretraining_metrics.json, so the protocol fields are COMPARED
+                # rather than hardcoded.
+                if m == 'two_phase':
+                    pa = ad / 'pretraining_metrics.json'
+                    pf = fd / 'pretraining_metrics.json'
+                    if not pf.exists():
+                        proto.append(f'{key}: R2.1(6) anchor has no pretraining_metrics.json '
+                                     f'-- paired pretraining cannot be checked')
+                    elif not pa.exists():
+                        proto.append(f'{key}: R2.1(6) segment A has no pretraining_metrics.json '
+                                     f'-- paired pretraining cannot be checked')
+                    else:
+                        ja, jf = _read_json(pa), _read_json(pf)
+                        for fld in ('epochs', 'n_paired_train_windows',
+                                    'n_target_train_windows'):
+                            if fld not in ja or fld not in jf:
+                                proto.append(f'{key}: R2.1(6) pretraining_metrics.{fld} missing '
+                                             f'(A={fld in ja}, anchor={fld in jf})')
+                            elif not _same(ja[fld], jf[fld]):
+                                proto.append(f'{key}: R2.1(6) pretraining {fld} '
+                                             f'{ja[fld]!r} != anchor {jf[fld]!r}')
+                        pe = am['cfg'].get('pretraining_epochs')
+                        if pe is not None and not _same(ja.get('epochs'), pe):
+                            proto.append(f'{key}: R2.1(6) pretraining epochs '
+                                         f'{ja.get("epochs")!r} != config.pretraining_epochs '
+                                         f'{pe!r}')
+                        # The target set IS the fine-tuning set, so these two
+                        # counts must agree; if they do not, one of them was
+                        # read from the wrong file (see EXPECTED_WINDOWS).
+                        nt = ja.get('n_target_train_windows')
+                        ntr = tm.get('n_train_windows') if tm else None
+                        if nt is not None and ntr is not None and not _same(nt, ntr):
+                            proto.append(f'{key}: R2.1(6) pretraining '
+                                         f'n_target_train_windows {nt!r} != training '
+                                         f'n_train_windows {ntr!r} -- one of the two counts '
+                                         f'came from the wrong file')
+                        pretraining.append(dict(
+                            model=m, subset=s, seed=seed, epochs=ja.get('epochs'),
+                            n_paired=ja.get('n_paired_train_windows'),
+                            n_target=ja.get('n_target_train_windows'),
+                            encoder_frozen=ja.get('encoder_before_finetune_sha256')
+                            == ja.get('encoder_after_finetune_sha256')))
+
+                # R2.1(3) early-stop shape. Per prereg v6.5.5 this is a GROUP
+                # check on (backbone, subset) x 3 seeds -- "all three local cells
+                # hit the ceiling while the anchor's did not" -- not a per-cell
+                # epoch tolerance. Per-cell epochs_run/best_epoch differences are
+                # drift readings (R2.2) and never enter `proto`; they only mark the
+                # cell shape_bad for the aggregate reading.
                 try:
                     f_ceil = fm['epochs_run'] >= int(fm['cfg']['epochs'])
                     a_ceil = am['epochs_run'] >= int(am['cfg']['epochs'])
                 except (TypeError, ValueError):
                     f_ceil = a_ceil = None
-                if f_ceil is not None and f_ceil != a_ceil:
-                    shape_bad.add((m, s, seed))
-                    proto.append(f'{key}: early-stop shape differs (anchor '
-                                 f'{"ceiling" if f_ceil else "early stop"} at '
-                                 f'{fm["epochs_run"]}/{fm["cfg"]["epochs"]}, segment A '
-                                 f'{"ceiling" if a_ceil else "early stop"} at '
-                                 f'{am["epochs_run"]}/{am["cfg"]["epochs"]})')
+                if f_ceil is not None:
+                    st = ceil_stats.setdefault((m, s), dict(n=0, a=0, f=0, cells=[]))
+                    st['n'] += 1
+                    st['a'] += int(bool(a_ceil))
+                    st['f'] += int(bool(f_ceil))
+                    st['cells'].append((seed, fm['epochs_run'], am['epochs_run']))
+                    if bool(f_ceil) != bool(a_ceil):
+                        shape_bad.add((m, s, seed))
 
                 ceiling = fm['cfg'].get('epochs')
                 if isinstance(ceiling, (int, float)) and fm['epochs_run'] >= float(ceiling):
                     fragile.add((m, s, seed))
 
                 fc, ac = cell_curves(fd, f'frozen {key}'), cell_curves(ad, f'segment A {key}')
-                check_consistency(fd, f'frozen {key}', fc)
-                per_a, _ = check_consistency(ad, f'segment A {key}', ac)
+                check_consistency(fd, f'frozen {key}', fc, fm['best_epoch'])
+                per_a, _ = check_consistency(ad, f'segment A {key}', ac, am['best_epoch'])
 
                 # R2.1(4) numerical sanity
                 for side, cv, mm in (('anchor', fc, fm), ('segment A', ac, am)):
@@ -538,9 +740,18 @@ def check_cells(a_root: Path, f_root: Path, bands, no_meta: bool):
     print(f'epoch sources (frozen|segment A): {dict(srcs)}')
     print(f'budget-truncated (fragile) cells: {len(fragile)} '
           f'{sorted(f"{m}/{s}/s{d}" for m, s, d in fragile)}')
-    print(f'early-stop shape violations: {len(shape_bad)} '
+    print('early-stop shape, per (backbone, subset) -- R2.1(3) fires only when ALL '
+          'local cells hit the ceiling and the anchor did not:')
+    for (m, s), st in sorted(ceil_stats.items()):
+        print(f'  {m:11} {s}  local {st["f"]}/{st["n"]} ceiling   '
+              f'anchor {st["a"]}/{st["n"]}')
+        if st['f'] == st['n'] and st['a'] < st['n']:
+            proto.append(f'{m}/{s}: R2.1(3) all {st["n"]} segment-A cells hit the epoch '
+                         f'ceiling while the anchor had {st["a"]}/{st["n"]} -- early stop '
+                         f'never fired')
+    print(f'shape-divergent cells (diagnostic, not protocol): {len(shape_bad)} '
           f'{sorted(f"{m}/{s}/s{d}" for m, s, d in shape_bad)}')
-    return rows, proto, fragile, curves, eng, shape_bad
+    return rows, proto, fragile, curves, eng, shape_bad, runtime, pretraining, windows
 
 
 def level_drift_summary(rows, seed=BOOT_SEED, exclude=()):
@@ -573,6 +784,31 @@ def level_drift_summary(rows, seed=BOOT_SEED, exclude=()):
                                       for r in rows if r not in keep),
                 stops=bool((lo > 0 or hi < 0) and frac >= 0.80))
 
+
+
+def level_drift_by_backbone(rows, exclude=()):
+    """The R2.2 statistic computed per backbone. Descriptive, never a gate.
+
+    The pooled rule fires only on a machine-WIDE shift: one backbone moving by
+    several RMSE cannot reach 80% same-sign across 30 cells, because the healthy
+    backbones' signs are close to a coin flip. Measured on segment A: pooled
+    +1.0109 at 70% same-sign (continue) while two_phase alone is +4.8305 and the
+    other four are +0.0560. Reporting the same statistic per backbone keeps a
+    one-backbone offset from reading as "the machine drifted" -- it changes no
+    threshold, no verdict and no exit code.
+    """
+    drop = set(exclude)
+    out = {}
+    for m in METHODS:
+        sub = [r for r in rows if r['model'] == m
+               and f"{r['model']}/{r['subset']}/s{r['seed']}" not in drop]
+        if not sub:
+            out[m] = dict(n=0)
+            continue
+        pb = level_drift_summary(sub)
+        out[m] = dict(n=pb['n_cells'], mean=pb['mean'], ci=pb['ci'],
+                      same_sign_frac=pb['same_sign_frac'], stops=pb['stops'])
+    return out
 
 
 def drift_summary(deltas):
@@ -657,20 +893,55 @@ def _record_common(batch, rel, sha, blob_sha, bands_path):
                 **_bands_provenance(bands_path))
 
 
-def write_abort_record(path: Path, batch, violations, bands_path):
+def _drift_block(drift, drift_ex, excluded, level_drift, level_all, by_backbone):
+    """One definition of the drift evidence, used by BOTH record paths.
+
+    The abort path used to write only `violations`, so an abort forced by a
+    protocol violation (fcstgnn's early-stop shape is the live case) threw away
+    the 30-row drift evidence at exactly the moment it mattered. Same dict here,
+    with a role marker on the abort side.
+    """
+    return dict(
+        all_cells=drift, excluded_cells=drift_ex, exclusion_list=sorted(excluded or []),
+        level=level_drift, level_unfiltered=level_all,
+        per_backbone=by_backbone,
+        per_backbone_path='drift.per_backbone -- NOT the ledger top-level per_backbone, '
+                          'which is the R2.1 protocol gate {method: pass|fail}',
+        level_drift_role='descriptive only: same R2.2 statistic per backbone, so a '
+                         'method-specific offset cannot hide inside the pooled '
+                         'same-sign rule; drives no threshold and no exit code',
+        rule='R2.2 stop iff signed dlev CI excludes 0 AND same-sign >= 80%; '
+             'per-engine median rule reported alongside. `level` is computed '
+             'after exclusion_list; `level_unfiltered` keeps the all-cell number')
+
+
+def write_abort_record(path: Path, batch, violations, bands_path, evidence=None):
     """An abort record keeps "ran and failed" distinguishable from "not run".
-    Provenance is verified here too: the record names a commit either way."""
+    Provenance is verified here too: the record names a commit either way.
+
+    `evidence` carries the computed blocks (drift, detail, band, protocol,
+    runtime) so a protocol abort does not erase what the run measured. It is
+    marked `computed, not decisive`: the verdict stays abort on `violations`.
+    """
     rel, sha, blob_sha = provenance()
     rec = _record_common(batch, rel, sha, blob_sha, bands_path)
     rec.update(verdict='abort', violations=list(violations))
+    if evidence:
+        rec['computed_evidence'] = dict(
+            evidence,
+            role='computed, not decisive: the verdict is abort on the violations above; '
+                 'these blocks are recorded so the drift evidence is not lost when a '
+                 'protocol violation forces the abort path')
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(rec, indent=1), encoding='utf-8')
-    print(f'wrote {path}  (verdict=abort, {len(violations)} violation(s) -- segment B stays closed)')
+    print(f'wrote {path}  (verdict=abort, {len(violations)} violation(s) -- segment B stays closed'
+          f'{", computed evidence kept" if evidence else ""})')
 
 
 def write_record(path: Path, batch, res, proto, rows, curves, fragile, bands_path,
                  a_seg, frozen, drift=None, drift_ex=None, excluded=None, level_drift=None,
-                 level_all=None):
+                 level_all=None, per_backbone=None, runtime=None, pretraining=None,
+                 windows=None):
     rel, sha, blob_sha = provenance()
     lv = np.array([c['level'] for c in curves.values()])
     rh = np.array([c['rho'] for c in curves.values()])
@@ -681,14 +952,35 @@ def write_record(path: Path, batch, res, proto, rows, curves, fragile, bands_pat
         verdict='pass',
         # verdict answers "is there a systematic offset?"; these two answer
         # "does it reproduce to 0.2 / within band?" and are reported in full.
-        drift=dict(all_cells=drift, excluded_cells=drift_ex, exclusion_list=excluded or [],
-                   level=level_drift, level_unfiltered=level_all,
-                   rule='R2.2 stop iff signed dlev CI excludes 0 AND same-sign >= 80%; '
-                        'per-engine median rule reported alongside. `level` is computed '
-                        'after exclusion_list; `level_unfiltered` keeps the all-cell number'),
+        drift=_drift_block(drift, drift_ex, excluded, level_drift, level_all, per_backbone),
         band={'pass': res['pass_band'], 'violations': res['violations']},
         strict_0_2={'pass': res['pass_strict'], 'violations': res['strict_violations']},
         protocol={'pass': not proto, 'violations': proto},
+        runtime_switches=dict(
+            cells=runtime or [],
+            anchor_has_training_metrics=any(r.get('anchor_runtime_flags')
+                                            for r in (runtime or [])),
+            mode='TF32 flags: comparison against the anchor runtime_flags; min_delta: '
+                 'checked against the config (the anchor file has no min_delta field)',
+            proves='the recorded TF32 flags equal the anchor\'s and min_delta equals the config',
+            cannot_prove='that the training loop USED min_delta; that is pinned by the runner '
+                         'source hash and reviewed once, not per cell'),
+        pretraining=dict(
+            cells=pretraining or [],
+            rule='R2.1(6), two_phase only: pretraining epochs and the paired/target window '
+                 'counts must equal the anchor, and epochs must equal '
+                 'config.pretraining_epochs; encoder_frozen is reported, not gated'),
+        window_counts=dict(
+            cells=windows or [],
+            expected=EXPECTED_WINDOWS,
+            rule='R2.1(7): n_train_windows must equal the anchor AND the pre-registered '
+                 'per-subset count; n_validation_cuts must equal the anchor\'s (it is '
+                 'per-subset: 100 on FD001, 250 on FD004)',
+            proves='the number of training windows was the anchor\'s, so a prepare() that '
+                   'drops the first window-1 windows per engine cannot pass silently',
+            cannot_prove='that they were the same windows in the same order -- count plus '
+                         'the data fingerprint plus the split file cover identity, order '
+                         'is pinned by the runner source hash'),
         aggregate=dict(mean_abs_dlev=res['mean_abs_dlev'],
                        mean_abs_dargmin=res['mean_abs_dargmin'],
                        n_cells=res['agg_n'],
@@ -736,7 +1028,8 @@ def reconcile(a_seg: Path, frozen: Path, bands_path: Path, tol: float,
 
     bands = load_bands(bands_path)
     got_all = a_segment_engine_rmse(Path(a_seg))
-    rows, proto, fragile, curves, eng, shape_bad = check_cells(Path(a_seg), Path(frozen), bands, no_meta)
+    rows, proto, fragile, curves, eng, shape_bad, runtime, pretraining, windows = check_cells(
+        Path(a_seg), Path(frozen), bands, no_meta)
 
     if no_meta:
         if record is not None:
@@ -827,6 +1120,26 @@ def reconcile(a_seg: Path, frozen: Path, bands_path: Path, tol: float,
           f'CI [{level_drift["ci"][0]:+.4f},{level_drift["ci"][1]:+.4f}] '
           f'same-sign {level_drift["same_sign_frac"]:.0%} -> '
           f'{"STOPS segment B" if level_drift["stops"] else "training noise, continue"}')
+
+    # The pooled rule only fires on a machine-WIDE shift: a single backbone that
+    # moves by several RMSE cannot reach 80% same-sign across 30 cells, because
+    # the healthy backbones' signs are a coin flip. Measured on segment A: the
+    # pooled mean is +1.0109 with 70% same-sign (continue) while two_phase alone
+    # is +4.8305 and the other four are +0.0560. So the same statistic is
+    # reported per backbone -- descriptive only: it changes no threshold, no
+    # verdict and no exit code, it just stops a one-backbone offset from reading
+    # as "the machine drifted".
+    by_backbone = level_drift_by_backbone(rows, excl)
+    print('\nper-backbone level drift (same R2.2 statistic, descriptive only):')
+    print(f'  {"backbone":11} {"n":>2} {"mean":>9} {"CI":>21} {"same-sign":>10}')
+    for m in METHODS:
+        pb = by_backbone[m]
+        if not pb.get('n'):
+            print(f'  {m:11}  0   (all cells excluded)')
+            continue
+        print(f"  {m:11} {pb['n']:2d} {pb['mean']:+9.4f} "
+              f"[{pb['ci'][0]:+9.4f},{pb['ci'][1]:+9.4f}] "
+              f"{pb['same_sign_frac']:9.0%}")
     print(f'rank: {len(rank_bad)}/{len(rows)} cell(s) below {RANK_MIN} (reported, not blocking)')
 
     print('\nper-backbone protocol fidelity (6 cells each):')
@@ -853,13 +1166,27 @@ def reconcile(a_seg: Path, frozen: Path, bands_path: Path, tol: float,
         if verdict_ok:
             write_record(Path(record), batch, res, proto, rows, curves, fragile, bands_path,
                          Path(a_seg), Path(frozen), drift, drift_ex, sorted(excl), level_drift,
-                         level_all)
+                         level_all, by_backbone, runtime, pretraining, windows)
         else:
             why = proto + res['violations']
             if systematic:
                 why = why + [f'systematic per-engine offset: median {drift["median"]:+.4f}, '
                              f'same-sign {drift["same_sign_frac"]:.1%}']
-            write_abort_record(Path(record), batch, why, bands_path)
+            evidence = dict(
+                drift=_drift_block(drift, drift_ex, excl, level_drift, level_all, by_backbone),
+                detail=rows,
+                band={'pass': res['pass_band'], 'violations': res['violations']},
+                strict_0_2={'pass': res['pass_strict'],
+                            'violations': res['strict_violations']},
+                protocol={'pass': not proto, 'violations': proto},
+                aggregate=dict(mean_abs_dlev=res['mean_abs_dlev'],
+                               mean_abs_dargmin=res['mean_abs_dargmin'],
+                               n_cells=res['agg_n'], excluded=res['agg_excluded']),
+                runtime_switches=dict(cells=runtime),
+                pretraining=dict(cells=pretraining),
+                window_counts=dict(cells=windows),
+            )
+            write_abort_record(Path(record), batch, why, bands_path, evidence)
     if not verdict_ok:
         print(f'RECONCILE: ABORT -- {", ".join(blocking)}', file=sys.stderr)
         return EXIT_ABORT
