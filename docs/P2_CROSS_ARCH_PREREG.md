@@ -1,12 +1,14 @@
 # P2 跨架构即插即用预注册（Paper C · Gate 1）
 
-**状态**：v6.3。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
+**状态**：v6.4。v5 拆开聚合门与逐格门；v5.1 补经理三条护栏的留痕要求；**v6 把 A 段从「RMSE 停机
 闸门」降级为「协议保真硬检查 + 漂移测量」**（经理 2026-11-23 裁定，理由见 R2），B 段基线改用
 **本地 A 段那一格**；**v6.1 补三处**：B 段的收敛混淆判读规则（§4.3）、R2.2 的漂移剔除规则、
 §9 判据脚本的适用范围；**v6.2 补 B 段的两条判读规则**：基线臂斜率门（§4.3）与
-分辨力检查（`√2·σ_rerun/√3` 对 0.40）。**v6.3 定稿三处**：剔除第 2 类成立（`two_phase/FD004`，3090 上三种实现
+分辨力检查（`√2·σ_rerun/√3` 对 0.40）。**v6.3 定稿四处**：剔除第 2 类成立（`two_phase/FD004`，3090 上三种实现
 train loss 全 46.04、锚点 33.11）、A 段基线改 `v3`（`v1` 只作对照）、R2.1 第 5 条「运行时开关在
-产物里自证」与 §5 的逐机预测 CSV 列名。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
+产物里自证」与 §5 的逐机预测 CSV 列名。**v6.4 更正 §5 的 `cut` 语义**：冻结件里 `cut` 是
+绝对周期（75/103/132），不是分数——v6.3 写错，照那样写会让 join 一行都对不上；同时把三份产物的
+契约（CSV 列名、`history.json` 逐轮 `engine_squared_errors`、`validation_metrics.json`）照冻结件写死。**尚未冻结**；提交本文件、`manifest`、`wrapper` 的 sha256 之后才生效，
 **冻结后判据、格数、口径一律不得再改**。
 
 **来源**：用户计划书（2026-11-22 附件）＋ 经理裁定（80/20 与 60 格、各自协议内比较、A 段定位、
@@ -24,7 +26,7 @@ train loss 全 46.04、锚点 33.11）、A 段基线改 `v3`（`v1` 只作对照
 | Phase 1 v1.1 | M1 K0=5，FD004 **+0.208**，仍 < 0.40 | `p1_m1_v11.json`；`0862182c` |
 | Phase 1 v1.2 | 见下表 | `results/paper_c/p1_v12.json`（50 行，5-fold） |
 | wrapper smoke | 四项恒等断言全过；CADF **+1218 参数（2.33%）** | `paper_c/wrapper.py` `d3e4dbbc…`、`smoke_wrapper.py` `4b641dcb…` |
-| A 段 30 格 | 30/30 跑完（72 分钟）；`fcstgnn` 6 格早停被代码排除、`two_phase` 水平异常 | 见 R2；待协议修正后重跑 |
+| A 段 30 格 | **v1 30/30 跑完，但产物不合判据契约**（CSV 列名、`history.json` 缺 `engine_squared_errors`）→ **gate1 从未判过 A 段**；v3 重跑中（2/30，与 v1 逐位相同）；`fcstgnn` 6 格早停被代码排除 | 见 R2；**基线用 `v4`**（= v3 数值路径 + 冻结列名 + 逐轮 SSE） |
 
 **v1.2 实测（5-fold 均值；Δ = baseline − arm，正 = 更好）**
 
@@ -362,9 +364,18 @@ OLS 值差 0.02–0.07、个别符号相反。**结论不受影响**（两种算
 **`history.json`**（逐 epoch 曲线，漂移统计量的唯一来源）、**`epochs_run` / `best_epoch`**、
 **`k0_resolved`**、**`gate/alpha` 逐 epoch 范数轨迹**（见 §6.4）。
 
-**逐机预测 CSV 的列名必须与冻结件一致**：`unit,y_true,y_pred,signed_error,cut`（`cut` 是分数、
-不是绝对周期）。A 段实测出过 `unit,cut,y,pred` 的列名，判据会直接拒读——**runner 按冻结件写，
-不改判据去迁就**。
+**三份产物的契约照抄冻结件（v6.4 更正）**：
+
+| 产物 | 契约 |
+|---|---|
+| `validation_predictions.csv` | 列名 `unit,y_true,y_pred,signed_error,cut`；**`cut` 是绝对周期数**（`round(f·life)`，冻结件里是 54/70/75/92/103/132 这种值），**不是分数** |
+| `history.json` 每轮 | 必须含 `epoch`、`train_loss`、`val_engine_mean_rmse`、`val_pooled_rmse`、**`engine_squared_errors`**（`[{unit, n, sum_squared_error}]`）——gate1 的逐发动机曲线、rank、per-engine drift 全要它 |
+| `validation_metrics.json` | 选中轮；**已含 `engine_squared_errors`**，不必改 |
+
+**v6.3 把 `cut` 写成「分数」是错的**：冻结 CSV 实测是绝对周期（`75,103,132`），照分数写会让按
+`cut` 对齐的 join 一行都对不上。「分数」口径只出现在 `--baseline/--module` 的 JSON 输入里
+（`EOL(0.95)` 在那里定义）。A 段实测出过 `unit,cut,y,pred` 的列名——**runner 按冻结件写，
+不改判据去迁就**（判据曾加列名别名兼容 A 段，按本条撤回：修在 runner，不在判据）。
 
 ---
 
