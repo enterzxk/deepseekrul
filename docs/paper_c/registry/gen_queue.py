@@ -8,8 +8,9 @@ segment A = 30 V0 reproductions, segment B = 30 +CADF.
 
 `launch_allowed` is computed, never hand-written:
   segment A opens when the prereg and the frozen tree are both committed
-  segment B additionally needs a_segment_reconciled=true, which is a data change
-  in grid.json (auditable in git), not an edit of the queue.
+  segment B additionally needs the segment-A reconciliation verdict to be
+  "pass" in grid.json (auditable in git), not an edit of the queue. The verdict
+  is copied from paper_c/gate1.py output; this ledger never re-judges it.
 
 If runs.csv has no data rows this script also (re)writes its header from
 schema_cols.COLS. A populated ledger is never touched.
@@ -51,6 +52,9 @@ def main():
         gates.append('prereg_commit')
     if not g.get('freeze_commit'):
         gates.append('freeze_commit')
+    # segment B opens on the recorded verdict of paper_c/gate1.py, not on a
+    # tolerance this file would have to re-implement
+    recon_ok = g.get('a_segment_reconciliation', {}).get('verdict') == 'pass'
 
     rows = []
     for arm in g['arms']:
@@ -76,8 +80,8 @@ def main():
                                 .replace('<seed>', str(seed))
                             note = 'segment B: pairs against this batch\'s segment-A cell %s' % ref
                         seg_gates = list(gates)
-                        if arm['segment'] == 'B' and not g.get('a_segment_reconciled'):
-                            seg_gates.append('a_segment_reconciled')
+                        if arm['segment'] == 'B' and not recon_ok:
+                            seg_gates.append('a_segment_reconciliation')
                         rows.append(dict(
                             run_id=run_id, segment=arm['segment'], arm=arm['arm'],
                             wave=g['wave'], variant_tag=variant, base_model=model,

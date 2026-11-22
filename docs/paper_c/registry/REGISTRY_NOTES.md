@@ -13,7 +13,7 @@
 | 版本 | 日期 | 改了什么 | 为什么 |
 |---|---|---|---|
 | **v1** | 2026-11-22 | 建目录：45 列 schema、`grid.json` + `gen_queue.py` 生成 30 格队列、空 `runs.csv`、`check_registry.py` 九项断言。基线钉在 `fixed40`（30 格），`author_limit` 10 行明确不得配对。 | 见 §1–§4 |
-| **v2** | 2026-11-22 | **60 格两 arm**（A 段 30 V0 + B 段 30 +CADF），52 列；`segment`/`arm` 分列，两条 `run_id` 格式；主臂 `k0a`→**`k0p`**；B 段基线改成**本批 A 段那一格**；`gate/alpha` 轨迹三列 + 开闸 epoch 为 B 段必填；**去重键补 `base_model`**（v1 的键是错的）；检查器 12 项、退出码三档；新增 `schema_cols.py`、`selftest_registry.py`（21 用例）、`FIXED40_ANCHORS.csv/.md`、`FREEZE_20261122.json`。 | 经理裁定 60 格（跨机器漂移）+ 预注册 v3 `k0p` |
+| **v2** | 2026-11-22 | **60 格两 arm**（A 段 30 V0 + B 段 30 +CADF），52 列；`segment`/`arm` 分列，两条 `run_id` 格式；主臂 `k0a`→**`k0p`**；B 段基线改成**本批 A 段那一格**；`gate/alpha` 轨迹三列 + 开闸 epoch 为 B 段必填；**去重键补 `base_model`**（v1 的键是错的）；检查器 12 项、退出码三档；新增 `schema_cols.py`、`selftest_registry.py`（23 用例；同日把 B 段闸门从「台账里重算 `|Δ| ≤ 0.2`」改成「记录 `gate1.py` 的 verdict + 判据脚本哈希」，因为 0.2 打在 argmin 上会假 ABORT）、`FIXED40_ANCHORS.csv/.md`、`FREEZE_20261122.json`。 | 经理裁定 60 格（跨机器漂移）+ 预注册 v3 `k0p` |
 
 ---
 
@@ -55,7 +55,8 @@ A 段不是「顺手复现」，它是一道**闸门**：A 段对不上锚点，
 ### 2.2 预注册 → 已落地 `5255b1b6`
 
 `docs/P2_CROSS_ARCH_PREREG.md` @ `5255b1b6`（215 行，sha256 `1f4be02274db…`）。
-A 段 `launch_allowed` 因此转 `true`；B 段仍封，闸门是 `grid.json::a_segment_reconciled`。
+A 段 `launch_allowed` 因此转 `true`；B 段仍封，闸门是 `grid.json::a_segment_reconciliation.verdict`
+（`pending` → `pass` 只能由 `gate1.py` 的输出改写，台账不自己判）。
 
 **冻结第 ③ 步由本目录完成**：`FREEZE_20261122.json` 记录预注册 / `paper_c/wrapper.py` /
 `frozen_v0_fixed40.json` 的 sha256，**全部从已提交 blob 算**，不从工作树算。
@@ -75,9 +76,11 @@ v1 的九项断言是用 9 个**临时脚本**验的，没进库——所以「�
 ```
 30 segment-A cells, no B yet                        exit=0 want=0 OK
 30 A + 1 B                                          exit=0 want=0 OK
-A cell out of tolerance + a B result                exit=2 want=2 OK
+argmin delta 0.5 does not block (verdict is the gate) exit=0 want=0 OK
 A missing one cell + a B result                     exit=2 want=2 OK
-only a budget-truncated A cell out of tolerance + B exit=0 want=0 OK
+B with the reconciliation still pending             exit=2 want=2 OK
+B with a record that says fail                      exit=2 want=2 OK
+B with a judging-script hash mismatch               exit=2 want=2 OK
 B paired against the cross-machine ledger           exit=1 want=1 OK
 B delta sign reversed                               exit=1 want=1 OK
 B with TEST filled while sealed                     exit=1 want=1 OK
@@ -94,8 +97,14 @@ k0p resolved to 15 instead of 10                    exit=1 want=1 OK
 epochs_run above the fixed40 ceiling                exit=1 want=1 OK
 prereg commit no longer holds the prereg            exit=2 want=2 OK
 header lost a column                                exit=2 want=2 OK
-21/21 cases behaved as expected
+23/23 cases behaved as expected
 ```
+
+> **第 3 条是「必须不拦」**：argmin 差 0.5 时台账放行。军师指出 0.2 不能打在 argmin 上——
+> 曲线上 sd≈0.94，argmin 漂 0.4 是必然（zxk 首格实测：argmin −0.398、曲线水平 −0.125）。
+> 把 0.2 打在 argmin 上，A 段跑完那一刻会给出一个**假的 ABORT**，而假的原因会被记成
+> 「环境不一致」。现在 0.2 只在 `gate1.py` 的曲线水平与逐机秩上；台账只核
+> 「30 格齐 + verdict=pass + 判据脚本哈希」。第 11 项因此不再需要那 5 格预算截断例外。
 
 ### 3.1 v1 里一个**会真的炸**的 bug（在它炸之前抓到了）
 
@@ -108,7 +117,7 @@ v1 的去重键是 `(baseline_version, cadf_variant, subset, seed)`——**漏�
 
 ### 3.2 三个用例本身写错过（也是自测抓的）
 
-1. B 段的用例全在 `a_segment_reconciled=false` 的 grid 上跑，于是每个都先被第 11 项拦成
+1. B 段的用例全在「对账还没记录」的 grid 上跑，于是每个都先被第 11 项拦成
    exit 2，测的根本不是它要测的东西 → 加了 `grid_open.json` 夹具。
 2. 「epochs_run 超上限」的用例用 `dict(a_ok[0])` 追加，先撞「重复格」→ 改成**替换**那一格。
 3. 「预注册哈希漂移」用例改的是 `grid.json::prereg.commit`，而第 12 项当时只读 FREEZE 里的

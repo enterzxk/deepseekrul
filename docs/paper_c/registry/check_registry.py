@@ -25,8 +25,9 @@ Checks, in order:
   8  TEST stays sealed while stage != Terminal
   9  every ok row is in the queue and its queue row says launch_allowed=true
  10  span/epochs/best_epoch/k0 agree with grid.json
- 11  segment B gate: no cadf ok row unless all 30 segment-A cells are ok and
-     every |delta| there is within recon_tolerance                       [ABORT]
+ 11  segment B gate: no cadf ok row unless all 30 segment-A cells are ok and the
+     segment-A reconciliation is recorded as pass by the judging script whose
+     hash is recorded alongside the verdict                       [ABORT]
  12  the frozen artifacts (prereg, manifest, wrapper) still hash to the values
      recorded at freeze time                                            [ABORT]
 """
@@ -271,45 +272,49 @@ def main(argv=None):
             errs.append('9 line %d ok row was never authorized (queue launch_allowed=%r, '
                         'gate=%r)' % (i, qq['launch_allowed'], qq['launch_gate']))
 
-    # 11 segment B gate
+    # 11 segment B gate.
+    # Coverage of the 30 segment-A cells is a ledger fact and is checked here.
+    # PASS is NOT re-judged here: the tolerance lives on the selection curve
+    # (level) and on the per-engine rank, which is paper_c/gate1.py's job. This
+    # ledger stores the argmin value, and argmin jitter on a curve with sd ~0.9
+    # moves by ~0.4 on its own (zxk's first cell: argmin -0.398, level -0.125),
+    # so a 0.2 gate on it would abort a healthy environment.
     b_ok = [r for r in rows if r['status'] == 'ok' and r['arm'] == 'cadf']
     recon = []
     for k, (i, r) in v0_ok.items():
         recon.append((abs(float(r['delta_val_rmse'])), k, i))
     recon_max = max([x[0] for x in recon], default=0.0)
-    # the prereg exempts the budget-truncated cells from ABORT on their own: they
-    # were cut at the 40-epoch ceiling while still improving, so a shift there is
-    # expected. Read the set from the anchor manifest instead of hard-coding five
-    # names, so the exemption follows the data if the manifest is regenerated.
-    anchor_path = os.path.join(REPO, g['anchor_manifest'])
-    truncated = set()
-    if os.path.exists(anchor_path):
-        for ar in csv.DictReader(io.open(anchor_path, encoding='utf-8')):
-            if int(ar['epochs_run']) >= g['epochs']:
-                truncated.add((ar['model'], ar['subset'], ar['seed']))
-    elif b_ok:
-        aborts.append('11 anchor manifest %s is missing, so the budget-truncated '
-                      'exemption cannot be applied' % g['anchor_manifest'])
-    over = [x for x in recon if x[0] > g['recon_tolerance']]
-    over_hard = [x for x in over if x[1] not in truncated]
-    over_soft = [x for x in over if x[1] in truncated]
+    recon_cfg = g.get('a_segment_reconciliation', {})
     if b_ok:
         missing = [(m, s, sd) for m in g['methods'] for s in g['subsets']
                    for sd in (str(x) for x in g['seeds']) if (m, s, sd) not in v0_ok]
-        if not g.get('a_segment_reconciled'):
-            aborts.append('11 segment B holds %d ok cells but grid.json still has '
-                          'a_segment_reconciled=false' % len(b_ok))
         if missing:
             aborts.append('11 segment B holds results but segment A is missing %d of %d '
                           'cells (first: %s)' % (len(missing),
                                                  len(g['methods']) * len(g['subsets']) * len(g['seeds']),
                                                  missing[0]))
-        if over_hard:
-            worst = max(over_hard)
-            aborts.append('11 segment A did not reconcile: %d of %d non-truncated cells '
-                          'exceed |delta| <= %.2f (worst %.4f at %s, line %d)'
-                          % (len(over_hard), len(recon) - len(truncated),
-                             g['recon_tolerance'], worst[0], '/'.join(worst[1]), worst[2]))
+        verdict = recon_cfg.get('verdict')
+        if verdict != 'pass':
+            aborts.append('11 segment B holds %d ok cells but the segment-A reconciliation '
+                          'verdict is %r' % (len(b_ok), verdict))
+        elif not recon_cfg.get('record'):
+            aborts.append('11 verdict=pass without a record path')
+        else:
+            rec_path = os.path.join(REPO, recon_cfg['record'])
+            if not os.path.exists(rec_path):
+                aborts.append('11 reconciliation record %s is missing' % recon_cfg['record'])
+            else:
+                rec = json.load(io.open(rec_path, encoding='utf-8'))
+                if rec.get('verdict') != 'pass':
+                    aborts.append('11 record %s says verdict=%r, grid says pass'
+                                  % (recon_cfg['record'], rec.get('verdict')))
+                blob = git_show(rec.get('git_sha', ''), rec.get('gate1_path', ''))
+                if blob is None:
+                    aborts.append('11 cannot read %s@%s to verify the judging script'
+                                  % (rec.get('gate1_path'), rec.get('git_sha')))
+                elif hashlib.sha256(blob).hexdigest() != rec.get('gate1_sha256', ''):
+                    aborts.append('11 %s@%s is not the script that produced the record '
+                                  '(hash mismatch)' % (rec.get('gate1_path'), rec.get('git_sha')))
 
     # 12 frozen artifacts unchanged
     fz_path = os.path.join(REPO, g['freeze_hashes'])
@@ -341,12 +346,10 @@ def main(argv=None):
           % (len(rows), len(header), len(qidx), len(done), seg.get('A', 0), seg.get('B', 0),
              len(set(qidx) - done)))
     if v0_ok:
-        print('segment A reconciliation: %d/%d cells, max |delta| = %.4f (tolerance %.2f)'
+        print('segment A: %d/%d cells ok; max |argmin delta| = %.4f (diagnostic only - the '
+              'gate is gate1.py\'s recorded verdict on the curve level)'
               % (len(v0_ok), len(g['methods']) * len(g['subsets']) * len(g['seeds']),
-                 recon_max, g['recon_tolerance']))
-        if over_soft:
-            print('  exempt (budget-truncated, not ABORT on their own per prereg R2): %s'
-                  % ', '.join('%s=%.4f' % ('/'.join(x[1]), x[0]) for x in over_soft))
+                 recon_max))
     if aborts:
         print('ABORT (%d)' % len(aborts))
         for e in aborts:

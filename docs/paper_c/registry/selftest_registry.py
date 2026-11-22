@@ -12,6 +12,7 @@ Nothing here writes to runs.csv or run_queue.csv: every case runs against files
 in a temp directory via check_registry.py --runs/--queue/--grid.
 """
 import csv
+import hashlib
 import io
 import json
 import os
@@ -23,6 +24,7 @@ import tempfile
 import schema_cols
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 COLS = schema_cols.COLS
 
 
@@ -129,12 +131,36 @@ def main():
     g['prereg']['commit'] = '1b82b450'   # a commit where the prereg does not exist
     io.open(grid_drift, 'w', encoding='utf-8', newline='\n').write(json.dumps(g, ensure_ascii=False))
 
-    # segment-B cases run against a grid where A has already been reconciled,
-    # otherwise check 11 masks whatever the case is actually about
-    grid_open = os.path.join(tmp, 'grid_open.json')
-    g = json.load(io.open(grid, encoding='utf-8'))
-    g['a_segment_reconciled'] = True
-    io.open(grid_open, 'w', encoding='utf-8', newline='\n').write(json.dumps(g, ensure_ascii=False))
+    # segment-B cases run against a grid whose segment-A reconciliation is
+    # recorded as PASS, otherwise check 11 masks whatever the case is about.
+    # The record is a real one: it points at the committed gate1.py and carries
+    # that blob's hash, so the hash check is exercised rather than stubbed.
+    head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO,
+                          capture_output=True, text=True).stdout.strip()
+    g1 = subprocess.run(['git', 'show', '%s:paper_c/gate1.py' % head], cwd=REPO,
+                        capture_output=True).stdout
+    if not g1:
+        raise SystemExit('fixture needs paper_c/gate1.py in HEAD')
+    rec = {'batch': 'P2/W1/segment-A', 'verdict': 'pass', 'cells': 30,
+           'gate1_path': 'paper_c/gate1.py', 'git_sha': head,
+           'gate1_sha256': hashlib.sha256(g1).hexdigest()}
+    rec_path = os.path.join(tmp, 'recon_A.json')
+    rec_fail = os.path.join(tmp, 'recon_A_fail.json')
+    rec_bad = os.path.join(tmp, 'recon_A_badhash.json')
+    for p, obj in ((rec_path, rec), (rec_fail, dict(rec, verdict='fail')),
+                   (rec_bad, dict(rec, gate1_sha256='0' * 64))):
+        io.open(p, 'w', encoding='utf-8', newline='\n').write(json.dumps(obj))
+
+    def grid_with(**kw):
+        g = json.load(io.open(grid, encoding='utf-8'))
+        g['a_segment_reconciliation'] = kw
+        p = os.path.join(tmp, 'grid_%d.json' % len(os.listdir(tmp)))
+        io.open(p, 'w', encoding='utf-8', newline='\n').write(json.dumps(g, ensure_ascii=False))
+        return p
+
+    grid_open = grid_with(verdict='pass', record=rec_path)
+    grid_fail = grid_with(verdict='pass', record=rec_fail)
+    grid_bad = grid_with(verdict='pass', record=rec_bad)
 
     cases = []
 
@@ -158,21 +184,21 @@ def main():
     case('30 segment-A cells, no B yet', a_ok, 0)
     case('30 A + 1 B', a_ok + [b_ok], 0, grid_path=grid_open)
 
-    bad = [dict(r) for r in a_ok]
-    bad[0]['val_engine_mean_rmse'] = repr(float(bad[0]['baseline_val_engine_mean_rmse']) - 0.5)
-    bad[0]['delta_val_rmse'] = repr(0.5)
-    case('A cell out of tolerance + a B result', bad + [b_ok], 2, grid_path=grid_open)
+    # argmin jitter is not a gate: a 0.5 shift on the stored argmin value is the
+    # expected size of the jitter (curve sd ~0.9), so the ledger must NOT abort
+    # on it. The 0.2 tolerance is applied by gate1.py to the curve level.
+    jcell = [r for r in a_ok if r['run_id'] == 'pc-v0-two_phase-FD004-s101-W1']
+    if not jcell:
+        raise SystemExit('jitter fixture missing: pc-v0-two_phase-FD004-s101-W1')
+    jitter = replaced(a_ok, jcell[0]['run_id'],
+                      val_engine_mean_rmse=repr(float(jcell[0]['baseline_val_engine_mean_rmse']) - 0.5),
+                      delta_val_rmse=repr(0.5))
+    case('argmin delta 0.5 does not block (verdict is the gate)', jitter + [b_ok], 0, grid_path=grid_open)
     case('A missing one cell + a B result', a_ok[1:] + [b_ok], 2, grid_path=grid_open)
 
-    # prereg R2 exempts the five budget-truncated cells: they were cut at the
-    # ceiling while still improving, so their |delta| alone is not an ABORT
-    tcell = [r for r in a_ok if r['run_id'] == 'pc-v0-two_phase-FD004-s101-W1']
-    if not tcell:
-        raise SystemExit('exemption fixture missing: pc-v0-two_phase-FD004-s101-W1')
-    soft = replaced(a_ok, tcell[0]['run_id'],
-                    val_engine_mean_rmse=repr(float(tcell[0]['baseline_val_engine_mean_rmse']) - 0.5),
-                    delta_val_rmse=repr(0.5))
-    case('only a budget-truncated A cell out of tolerance + B', soft + [b_ok], 0, grid_path=grid_open)
+    case('B with the reconciliation still pending', a_ok + [b_ok], 2)
+    case('B with a record that says fail', a_ok + [b_ok], 2, grid_path=grid_fail)
+    case('B with a judging-script hash mismatch', a_ok + [b_ok], 2, grid_path=grid_bad)
 
     x = dict(b_ok); x['baseline_source'] = 'frozen_ledger'
     x['baseline_ref'] = 'fixed40/aidgn/FD001/s101'

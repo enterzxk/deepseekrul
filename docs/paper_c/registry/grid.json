@@ -85,7 +85,6 @@
   "baseline_ledger": "paper_b/experiments/open_source_matched_20261112/physical_runs.csv",
   "baseline_commit": "d7bd9c17",
   "anchor_manifest": "docs/paper_c/registry/FIXED40_ANCHORS.csv",
-  "recon_tolerance": 0.2,
   "gate_trace": {
     "gate_open_threshold": 0.01,
     "meaning": "gate_open_epoch = first epoch with mean(gate) > threshold, or 'none' if the gate never opened"
@@ -96,6 +95,12 @@
   },
   "freeze_commit": "68551059",
   "freeze_hashes": "docs/paper_c/registry/FREEZE_20261122.json",
-  "a_segment_reconciled": false,
-  "delta_sign": "delta_val_rmse = baseline_val_engine_mean_rmse - val_engine_mean_rmse; positive means the cell is better (lower RMSE). Segment A: baseline = frozen ledger (reconciliation). Segment B: baseline = this batch's segment-A cell (module effect)."
+  "delta_sign": "delta_val_rmse = baseline_val_engine_mean_rmse - val_engine_mean_rmse; positive means the cell is better (lower RMSE). Segment A: baseline = frozen ledger (reconciliation). Segment B: baseline = this batch's segment-A cell (module effect).",
+  "a_segment_reconciliation": {
+    "verdict": "pending",
+    "record": "results/paper_c/recon_A.json",
+    "note": "verdict is copied from paper_c/gate1.py output, never judged here: the 0.2 tolerance lives on the selection curve (level), not on the argmin value. Coverage of the 30 A cells is still a ledger fact and is checked."
+  },
+  "gate1_level_tolerance": 0.2,
+  "gate1_level_tolerance_note": "applied by paper_c/gate1.py to the selection-curve level and the per-engine rank, NOT to the argmin value stored in runs.csv"
 }
