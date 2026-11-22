@@ -1,0 +1,34 @@
+{
+ "run1": {
+  "subset": "FD001",
+  "model": "gru",
+  "L": 50,
+  "fold": 0,
+  "seed": 0,
+  "n_params": 51073,
+  "best_epoch": 4,
+  "engine_mean_rmse": 64.0887914892987,
+  "pooled_rmse": 64.48758961768749,
+  "mae": 52.14082808494568,
+  "nasa": 81807.25786365665,
+  "n_train": 16516,
+  "n_val": 120
+ },
+ "run2": {
+  "subset": "FD001",
+  "model": "gru",
+  "L": 50,
+  "fold": 0,
+  "seed": 0,
+  "n_params": 51073,
+  "best_epoch": 4,
+  "engine_mean_rmse": 64.0887914892987,
+  "pooled_rmse": 64.48758961768749,
+  "mae": 52.14082808494568,
+  "nasa": 81807.25786365665,
+  "n_train": 16516,
+  "n_val": 120
+ },
+ "max_state_diff": 0.0,
+ "A0_2_pass": true
+}
