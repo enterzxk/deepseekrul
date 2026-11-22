@@ -293,12 +293,30 @@ def main(argv=None):
                           'cells (first: %s)' % (len(missing),
                                                  len(g['methods']) * len(g['subsets']) * len(g['seeds']),
                                                  missing[0]))
+        # R2.1 is judged PER BACKBONE: one backbone that fails its protocol
+        # gate must not close the other four. A single global verdict would
+        # implement a different rule than prereg v6 and would turn one
+        # fcstgnn bug into a full stop for all five methods. `per_backbone`
+        # wins when present; the single `verdict` stays for older grids.
+        per_backbone = recon_cfg.get('per_backbone')
         verdict = recon_cfg.get('verdict')
-        if verdict != 'pass':
-            aborts.append('11 segment B holds %d ok cells but the segment-A reconciliation '
-                          'verdict is %r' % (len(b_ok), verdict))
+        gate_ok, gate_why = True, None
+        if per_backbone:
+            want = sorted({r['base_model'] for r in b_ok})
+            bad = [(m, per_backbone.get(m)) for m in want
+                   if per_backbone.get(m) != 'pass']
+            if bad:
+                gate_ok, gate_why = False, ('the per-backbone reconciliation is not pass '
+                                            'for %r' % (bad,))
+        elif verdict != 'pass':
+            gate_ok, gate_why = False, ('the segment-A reconciliation verdict is %r'
+                                        % (verdict,))
+
+        if not gate_ok:
+            aborts.append('11 segment B holds %d ok cells but %s'
+                          % (len(b_ok), gate_why))
         elif not recon_cfg.get('record'):
-            aborts.append('11 verdict=pass without a record path')
+            aborts.append('11 reconciliation passed without a record path')
         else:
             rec_path = os.path.join(REPO, recon_cfg['record'])
             if not os.path.exists(rec_path):

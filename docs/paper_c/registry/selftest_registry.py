@@ -162,6 +162,16 @@ def main():
     grid_fail = grid_with(verdict='pass', record=rec_fail)
     grid_bad = grid_with(verdict='pass', record=rec_bad)
 
+    # R2.1 is judged per backbone (prereg v6): one protocol_failed backbone
+    # must not close the others. b_ok is an aidgn cell, so a grid where aidgn
+    # passed and fcstgnn failed must stay clean, while a grid where aidgn
+    # itself failed must abort.
+    pb = {'aidgn': 'pass', 'two_phase': 'pass', 'dual_mixer': 'pass',
+          'ffve': 'pass', 'fcstgnn': 'protocol_failed'}
+    grid_pb_other_failed = grid_with(verdict='pass', record=rec_path, per_backbone=pb)
+    grid_pb_self_failed = grid_with(verdict='pass', record=rec_path,
+                                    per_backbone=dict(pb, aidgn='protocol_failed'))
+
     cases = []
 
     def case(name, rows, want, queue_path=None, grid_path=None, cols=None):
@@ -198,6 +208,11 @@ def main():
 
     case('B with the reconciliation still pending', a_ok + [b_ok], 2)
     case('B with a record that says fail', a_ok + [b_ok], 2, grid_path=grid_fail)
+    # 经理's rule: a broken backbone must not stop the four that are fine.
+    case('one backbone protocol_failed does not close the others',
+         a_ok + [b_ok], 0, grid_path=grid_pb_other_failed)
+    case('B ok for the backbone that failed its own protocol gate',
+         a_ok + [b_ok], 2, grid_path=grid_pb_self_failed)
     case('B with a judging-script hash mismatch', a_ok + [b_ok], 2, grid_path=grid_bad)
 
     x = dict(b_ok); x['baseline_source'] = 'frozen_ledger'
