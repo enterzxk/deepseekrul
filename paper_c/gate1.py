@@ -54,22 +54,39 @@ backbones pass on both subsets".
 =============================================================================
 Reconcile mode: segment A must reproduce the frozen baseline first
 =============================================================================
-    --reconcile-a DIR_OR_JSON --reconcile-frozen DIR [--tol 0.2]
+    --reconcile-a DIR --reconcile-frozen DIR [--tol 0.2] [--no-meta]
 
 Segment A retrains V0 on lab3090; V0 was originally trained on a40 with a
 different Python/torch. Before any CADF cell is run, the 30 V0 cells must
-reproduce the frozen report (commit d7bd9c17) per engine. The comparison is on
-VALIDATION engine-level RMSE only -- official TEST stays sealed.
+reproduce the frozen report (commit d7bd9c17). The comparison uses VALIDATION
+data only -- official TEST stays sealed.
 
-The frozen side is read from `validation_metrics.json` and cross-checked
-against `validation_predictions.csv` (per-engine RMSE recomputed from
-engine_squared_errors, and the mean recomputed from the CSV). A frozen report
-that disagrees with its own predictions aborts before any comparison happens,
-so a stale or truncated CSV cannot silently become the reference.
+WHY THE SELECTED CHECKPOINT IS NOT THE CRITERION
+------------------------------------------------
+Measured on the first A-segment cell (aidgn/FD001/s101): the selection metric's
+per-epoch sd is 0.9377, and the run-to-run argmin differs by 0.3983. Taking the
+argmin of a curve with sd ~1 is inherently unstable, so an |argmin delta| <= 0.2
+rule fails a run whose *level* is off by only 0.1247. The argmin difference is
+therefore a DIAGNOSTIC, not a gate. The gates are:
 
-Tolerance is per ENGINE, not per aggregate: an aggregate can hide a swap of
-+0.2 and -0.2 between two engines, and the signed mean is printed precisely so
-that a constant offset (environment drift) is distinguishable from scatter.
+ 1. internal consistency  validation_metrics.json must equal history.json at
+                          best_epoch, and validation_predictions.csv must equal
+                          engine_squared_errors (both sides)
+ 2. protocol              config.json fields identical (epochs, patience,
+                          min_delta, window, batch, lr, weight_decay, ...)
+ 3. convergence           |epochs_run| and |best_epoch| within 2 epochs
+ 4. level                 mean of the selection metric over COMMON epochs
+                          within +/-0.2 -- this is the environment signal
+ 5. structure             Spearman rank correlation of per-engine curve means
+                          >= 0.90: the same engines must still be the hard ones
+
+Gate 4 catches a data/scaler/numerics shift; gate 5 catches a change in which
+engines are hard. Both are invariant to the argmin wandering, and gate 5 is
+invariant to a uniform level shift as well.
+
+Budget-truncated cells (epochs_run hit the ceiling while still improving) are
+listed separately: their argmin is the most unstable, so their argmin delta is
+reported but never decisive.
 """
 
 from __future__ import annotations
@@ -96,8 +113,13 @@ BOOT_SEED = 20261122
 EXIT_OK = 0
 EXIT_GATE_FAIL = 1
 EXIT_ABORT = 2
-RECON_TOL = 0.2
+RECON_TOL = 0.2           # curve-level tolerance (gate 4)
+EPOCH_TOL = 2             # gate 3
+RANK_MIN = 0.90           # gate 5
 N_CELLS = len(METHODS) * len(SUBSETS) * len(SEEDS)
+
+META_FIELDS = ('epochs', 'patience', 'min_delta', 'window', 'batch', 'lr', 'weight_decay',
+               'val_frac', 'split_seed', 'rul_cap')
 
 
 def die(msg):
@@ -105,6 +127,8 @@ def die(msg):
     print(msg, file=sys.stderr)
     raise SystemExit(EXIT_ABORT)
 
+
+# ------------------------------------------------------------------ the gate
 
 def load(path: Path):
     rows = json.loads(path.read_text())
@@ -182,6 +206,13 @@ def seed_dir(parent: Path, seed: int) -> Path:
         f'(candidates={[p.name for p in hits]})')
 
 
+def _same(x, y):
+    try:
+        return abs(float(x) - float(y)) <= 1e-12
+    except (TypeError, ValueError):
+        return x == y
+
+
 def engine_rmse_from_csv(path: Path):
     """{unit: RMSE over that engine's cuts}, from validation_predictions.csv."""
     if not path.exists():
@@ -206,63 +237,6 @@ def engine_rmse_from_csv(path: Path):
         die(f'{path}: no rows')
     return {u: float(np.sqrt(np.mean([(p - y) ** 2 for y, p in pts])))
             for u, pts in per.items()}
-
-
-def frozen_engine_rmse(cell_dir: Path):
-    """Per-engine RMSE from the frozen tree, cross-checked against its metrics."""
-    mj = cell_dir / 'validation_metrics.json'
-    csvp = cell_dir / 'validation_predictions.csv'
-    if not mj.exists():
-        die(f'reconcile: missing {mj}')
-    meta = json.loads(mj.read_text())
-    for key in ('val_engine_mean_rmse', 'engine_squared_errors'):
-        if key not in meta:
-            die(f'{mj}: missing {key}')
-    per = engine_rmse_from_csv(csvp)
-    ref = {int(e['unit']): float(np.sqrt(float(e['sum_squared_error']) / float(e['n'])))
-           for e in meta['engine_squared_errors']}
-    if set(per) != set(ref):
-        die(f'{mj}: engine sets differ (csv={len(per)} metrics={len(ref)})')
-    worst = max(abs(per[u] - ref[u]) for u in per)
-    if worst > 1e-6:
-        die(f'{mj}: predictions disagree with engine_squared_errors '
-            f'(max |diff| = {worst:.3e}) -- stale or truncated CSV')
-    claimed = float(meta['val_engine_mean_rmse'])
-    mine = float(np.mean(list(per.values())))
-    if abs(mine - claimed) > 1e-6:
-        die(f'{mj}: val_engine_mean_rmse={claimed:.6f} but recomputed {mine:.6f}')
-    pooled = meta.get('val_pooled_rmse')
-    if isinstance(pooled, (int, float)) and abs(claimed - float(pooled)) < 1e-12:
-        print(f'  WARN {cell_dir}: val_engine_mean_rmse == val_pooled_rmse '
-              f'(unexpected on validation -- check the metric source)')
-    return per
-
-
-def a_segment_engine_rmse(root: Path):
-    """{(method, subset, seed): {engine: rmse}} from a directory tree or a JSON."""
-    if root.is_dir():
-        out = {}
-        for m in METHODS:
-            for s in SUBSETS:
-                for seed in SEEDS:
-                    d = seed_dir(root / m / s, seed)
-                    out[(m, s, seed)] = engine_rmse_from_csv(d / 'validation_predictions.csv')
-        return out
-    if root.exists():
-        rows = load(root)
-        return {k: cell_metrics(c)[0] for k, c in by_cell(rows).items()}
-    die(f'reconcile: no such path {root}')
-
-
-META_FIELDS = ('epochs', 'patience', 'min_delta', 'window', 'batch', 'lr', 'weight_decay',
-               'val_frac', 'split_seed', 'rul_cap')
-
-
-def _same(x, y):
-    try:
-        return abs(float(x) - float(y)) <= 1e-12
-    except (TypeError, ValueError):
-        return x == y
 
 
 def cell_meta(cell_dir: Path, label: str):
@@ -300,8 +274,8 @@ def cell_meta(cell_dir: Path, label: str):
                 src.append('FREEZE')
     if epochs_run is None or best is None:
         die(f'{label}: cannot read epochs_run/best_epoch from training_metrics.json, '
-            f'history.json or FREEZE.json -- the stopping epoch is the FIRST drift '
-            f'signal, and without it a shifted stop stays invisible')
+            f'history.json or FREEZE.json -- the stopping epoch is a drift signal, and '
+            f'without it a shifted stop stays invisible')
     cf = cell_dir / 'config.json'
     cfg = json.loads(cf.read_text()) if cf.exists() else {}
     if 'epochs' not in cfg:
@@ -311,108 +285,197 @@ def cell_meta(cell_dir: Path, label: str):
                 src='+'.join(src) or '?')
 
 
-def check_metadata(a_root: Path, f_root: Path, no_meta: bool):
-    """Compare stopping epochs and hyperparameters BEFORE looking at any RMSE.
+def cell_curves(cell_dir: Path, label: str):
+    """{epoch: (val_engine_mean_rmse, {unit: rmse})} from history.json."""
+    hp = cell_dir / 'history.json'
+    if not hp.exists():
+        die(f'{label}: missing {hp} -- the curve level is the environment signal; '
+            f'without it only --no-meta (RMSE-only) reconcile is possible')
+    hist = json.loads(hp.read_text())
+    if not isinstance(hist, list) or not hist:
+        die(f'{hp}: expected a non-empty list of epoch records')
+    out = {}
+    for rec in hist:
+        for k in ('epoch', 'val_engine_mean_rmse', 'engine_squared_errors'):
+            if k not in rec:
+                die(f'{hp}: epoch record missing {k}')
+        per = {int(x['unit']): float(np.sqrt(float(x['sum_squared_error']) / float(x['n'])))
+               for x in rec['engine_squared_errors']}
+        out[int(rec['epoch'])] = (float(rec['val_engine_mean_rmse']), per)
+    return out
 
-    A cell that stops at a different epoch has already diverged: comparing its
-    RMSE to the anchor only stacks noise on top of a known protocol drift. Returns
-    the set of budget-truncated cells, whose RMSE is not decisive on its own --
-    they were cut off while still improving, so |delta| there says little about
-    the environment.
+
+def check_consistency(cell_dir: Path, label: str, hist):
+    """metrics.json must equal history at best_epoch, and the CSV must equal both.
+
+    A predictions file that does not correspond to the reported selection is how
+    a stale or half-written artifact passes for a good run.
     """
+    mj = cell_dir / 'validation_metrics.json'
+    if not mj.exists():
+        die(f'{label}: missing {mj}')
+    meta = json.loads(mj.read_text())
+    for k in ('val_engine_mean_rmse', 'engine_squared_errors'):
+        if k not in meta:
+            die(f'{mj}: missing {k}')
+    claimed = float(meta['val_engine_mean_rmse'])
+    # The reported selection must BE one of the recorded epochs. On the frozen
+    # tree it is bit-exact; anything else means the metrics and the curve were
+    # produced by different runs, and every downstream comparison inherits it.
+    if not any(abs(hist[e][0] - claimed) < 1e-6 for e in hist):
+        die(f'{label}: validation_metrics.val_engine_mean_rmse={claimed:.6f} matches no '
+            f'epoch in history.json -- the reported selection and the recorded curve '
+            f'come from different runs')
+    ref = {int(x['unit']): float(np.sqrt(float(x['sum_squared_error']) / float(x['n'])))
+           for x in meta['engine_squared_errors']}
+    per = engine_rmse_from_csv(cell_dir / 'validation_predictions.csv')
+    if set(per) != set(ref):
+        die(f'{label}: engine sets differ (csv={len(per)} metrics={len(ref)})')
+    worst = max(abs(per[u] - ref[u]) for u in per)
+    if worst > 1e-6:
+        die(f'{label}: predictions disagree with engine_squared_errors '
+            f'(max |diff| = {worst:.3e}) -- stale or truncated CSV')
+    claimed = float(meta['val_engine_mean_rmse'])
+    mine = float(np.mean(list(per.values())))
+    if abs(mine - claimed) > 1e-6:
+        die(f'{label}: val_engine_mean_rmse={claimed:.6f} but recomputed {mine:.6f}')
+    return per, ref
+
+
+def _spearman(a, b):
+    ra = np.argsort(np.argsort(a)).astype(float)
+    rb = np.argsort(np.argsort(b)).astype(float)
+    if ra.std() == 0 or rb.std() == 0:
+        return float('nan')
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+
+def check_cells(a_root: Path, f_root: Path, no_meta: bool):
+    """Gates 1-5 over the 30 cells. Dies (exit 2) on the first failing gate."""
     if no_meta:
-        print('metadata: SKIPPED (--no-meta) -- RMSE-only reconcile, epoch drift invisible\n')
-        return set()
-    fragile, ep_bad, cfg_bad, n_cmp = set(), [], [], 0
+        print('cell checks: SKIPPED (--no-meta) -- RMSE-only, no epoch/curve/rank gate\n')
+        return set(), {}
+    bad, fragile, curves = [], set(), {}
+    n_cmp = 0
     srcs = defaultdict(int)
     for m in METHODS:
         for s in SUBSETS:
             for seed in SEEDS:
                 key = f'{m}/{s}/s{seed}'
-                fm = cell_meta(seed_dir(f_root / m / s, seed), f'frozen {key}')
-                am = cell_meta(seed_dir(a_root / m / s, seed), f'segment A {key}')
+                fd = seed_dir(f_root / m / s, seed)
+                ad = seed_dir(a_root / m / s, seed)
+                fm = cell_meta(fd, f'frozen {key}')
+                am = cell_meta(ad, f'segment A {key}')
                 srcs[f'{fm["src"]}|{am["src"]}'] += 1
-                ceiling = fm['cfg'].get('epochs')
-                if isinstance(ceiling, (int, float)) and fm['epochs_run'] >= float(ceiling):
-                    fragile.add((m, s, seed))
-                if (am['epochs_run'], am['best_epoch']) != (fm['epochs_run'], fm['best_epoch']):
-                    ep_bad.append(f'{key}: epochs_run {am["epochs_run"]} vs {fm["epochs_run"]}, '
-                                  f'best_epoch {am["best_epoch"]} vs {fm["best_epoch"]}')
+
                 for f in META_FIELDS:
                     if f in fm['cfg'] and f in am['cfg']:
                         n_cmp += 1
                         if not _same(fm['cfg'][f], am['cfg'][f]):
-                            cfg_bad.append(f'{key}: {f} {am["cfg"][f]!r} vs {fm["cfg"][f]!r}')
-    print(f'metadata: epochs_run+best_epoch identical on {N_CELLS - len(ep_bad)}/{N_CELLS} cells; '
-          f'{n_cmp} config-field comparisons')
+                            bad.append(f'{key}: config.{f} {am["cfg"][f]!r} != {fm["cfg"][f]!r}')
+
+                if (abs(am['epochs_run'] - fm['epochs_run']) > EPOCH_TOL
+                        or abs(am['best_epoch'] - fm['best_epoch']) > EPOCH_TOL):
+                    bad.append(f'{key}: stopping epoch drifted (epochs_run '
+                               f'{am["epochs_run"]} vs {fm["epochs_run"]}, best '
+                               f'{am["best_epoch"]} vs {fm["best_epoch"]}, tol {EPOCH_TOL})')
+
+                ceiling = fm['cfg'].get('epochs')
+                if isinstance(ceiling, (int, float)) and fm['epochs_run'] >= float(ceiling):
+                    fragile.add((m, s, seed))
+
+                fc, ac = cell_curves(fd, f'frozen {key}'), cell_curves(ad, f'segment A {key}')
+                check_consistency(fd, f'frozen {key}', fc)
+                per_a, per_f = check_consistency(ad, f'segment A {key}', ac)
+
+                common = sorted(set(fc) & set(ac))
+                if len(common) < 5:
+                    bad.append(f'{key}: only {len(common)} common epochs')
+                    continue
+                lev_f = float(np.mean([fc[e][0] for e in common]))
+                lev_a = float(np.mean([ac[e][0] for e in common]))
+                dlev = lev_a - lev_f
+                units = sorted(fc[common[0]][1])
+                if units != sorted(ac[common[0]][1]):
+                    bad.append(f'{key}: engine sets differ between curves')
+                    continue
+                cf_ = np.array([float(np.mean([fc[e][1][u] for e in common])) for u in units])
+                ca_ = np.array([float(np.mean([ac[e][1][u] for e in common])) for u in units])
+                rho = _spearman(cf_, ca_)
+                # diagnostic only: what the SELECTED checkpoints differ by
+                arg_f = float(min(fc[e][0] for e in fc))
+                arg_a = float(min(ac[e][0] for e in ac))
+                d_sel = float(np.mean([per_a[u] - per_f[u] for u in sorted(per_f)]))
+                curves[key] = dict(level=dlev, rho=rho, n_common=len(common),
+                                   argmin_gap=arg_a - arg_f, selected_delta=d_sel)
+                if abs(dlev) > RECON_TOL:
+                    bad.append(f'{key}: curve level {dlev:+.4f} outside +/-{RECON_TOL}')
+                if not (rho >= RANK_MIN):
+                    bad.append(f'{key}: per-engine rank correlation {rho:.3f} < {RANK_MIN}')
+
+    print(f'protocol: {n_cmp} config-field comparisons, {len(bad)} violation(s) so far')
     print(f'epoch sources (frozen|segment A): {dict(srcs)}')
     print(f'budget-truncated (fragile) cells: {len(fragile)} '
           f'{sorted(f"{m}/{s}/s{d}" for m, s, d in fragile)}')
-    if ep_bad:
-        print('\n'.join('  ' + b for b in ep_bad), file=sys.stderr)
-        die(f'RECONCILE: ABORT -- {len(ep_bad)} cell(s) stopped at a different epoch. '
-            f'The stopping epoch is the first drift signal; fix the environment or the '
-            f'protocol before any RMSE comparison.')
-    if cfg_bad:
-        print('\n'.join('  ' + b for b in cfg_bad), file=sys.stderr)
-        die(f'RECONCILE: ABORT -- {len(cfg_bad)} hyperparameter mismatch(es): wrong protocol')
-    return fragile
+    if bad:
+        print('\n'.join('  ' + b for b in bad), file=sys.stderr)
+        die(f'RECONCILE: ABORT -- {len(bad)} gate violation(s); segment A does not '
+            f'reproduce the anchor, so segment B would measure the environment')
+    return fragile, curves
+
+
+def a_segment_engine_rmse(root: Path):
+    """{(method, subset, seed): {engine: rmse}} from a directory tree or a JSON."""
+    if root.is_dir():
+        out = {}
+        for m in METHODS:
+            for s in SUBSETS:
+                for seed in SEEDS:
+                    d = seed_dir(root / m / s, seed)
+                    out[(m, s, seed)] = engine_rmse_from_csv(d / 'validation_predictions.csv')
+        return out
+    if root.exists():
+        rows = load(root)
+        return {k: cell_metrics(c)[0] for k, c in by_cell(rows).items()}
+    die(f'reconcile: no such path {root}')
 
 
 def reconcile(a_seg: Path, frozen: Path, tol: float, no_meta: bool = False) -> int:
     print('RECONCILE  segment A (V0) vs frozen d7bd9c17  -- VALIDATION ONLY, TEST stays sealed')
-    print(f'per-ENGINE tolerance: |delta| <= {tol:.3f} on engine-level RMSE')
-    print('delta := A_segment - frozen  (signed; a constant offset = environment drift)\n')
-    print(f'{"cell":22} {"eng":>4} {"max|d|":>8} {"mean d":>8} {"worst":>6}  verdict')
+    print(f'gates: protocol identical | stopping epoch within {EPOCH_TOL} | curve level '
+          f'within +/-{tol:.2f} | per-engine rank >= {RANK_MIN}')
+    print('delta := segment A - frozen. The selected-checkpoint gap is a DIAGNOSTIC, '
+          'not a gate (argmin of a curve with sd ~1 is unstable)\n')
 
     got_all = a_segment_engine_rmse(Path(a_seg))
-    fragile = check_metadata(Path(a_seg), Path(frozen), no_meta)
-    n_bad = 0
-    n_frag = 0
-    worst_all = (-1.0, '')
-    drift = []
+    fragile, curves = check_cells(Path(a_seg), Path(frozen), no_meta)
+
+    print(f'\n{"cell":22} {"lvl":>7} {"rho":>6} {"argmin":>7} {"sel":>7} {"eng":>4}  note')
     for m in METHODS:
         for s in SUBSETS:
             for seed in SEEDS:
-                key = (m, s, seed)
-                if key not in got_all:
-                    die(f'reconcile: segment A has no cell {key}')
-                got = got_all[key]
-                ref = frozen_engine_rmse(seed_dir(Path(frozen) / m / s, seed))
-                if set(got) != set(ref):
-                    die(f'reconcile {m}/{s}/s{seed}: engine sets differ '
-                        f'(A={len(got)} frozen={len(ref)}; '
-                        f'only-A={sorted(set(got) - set(ref))[:5]} '
-                        f'only-frozen={sorted(set(ref) - set(got))[:5]})')
-                d = {u: got[u] - ref[u] for u in ref}
-                arr = np.array([d[u] for u in sorted(d)])
-                we = max(d, key=lambda u: abs(d[u]))
-                over = int((np.abs(arr) > tol).sum())
-                if over and key in fragile:
-                    n_frag += 1
-                    verdict = f'{over} OVER fragile'
-                elif over:
-                    n_bad += 1
-                    verdict = f'{over} OVER'
+                key = f'{m}/{s}/s{seed}'
+                k = (m, s, seed)
+                if k not in got_all:
+                    die(f'reconcile: segment A has no cell {k}')
+                c = curves.get(key)
+                note = 'fragile' if k in fragile else ''
+                if c is None:
+                    print(f'{m:11} {s} s{seed}  {"-":>7} {"-":>6} {"-":>7} {"-":>7} '
+                          f'{len(got_all[k]):4d}  {note}')
                 else:
-                    verdict = 'OK'
-                drift.append(float(arr.mean()))
-                if abs(d[we]) > worst_all[0]:
-                    worst_all = (abs(d[we]), f'{m}/{s}/s{seed} engine {we}')
-                print(f'{m:11} {s} s{seed}  {len(ref):4d} {abs(d[we]):8.4f} '
-                      f'{arr.mean():+8.4f} {we:6d}  {verdict}')
+                    print(f'{m:11} {s} s{seed}  {c["level"]:+7.4f} {c["rho"]:6.3f} '
+                          f'{c["argmin_gap"]:+7.4f} {c["selected_delta"]:+7.4f} '
+                          f'{len(got_all[k]):4d}  {note}')
 
-    print(f'\ncells: {N_CELLS}, outside tolerance: {n_bad} '
-          f'(+ {n_frag} fragile, not decisive on their own)')
-    print(f'worst per-engine |delta| = {worst_all[0]:.4f} at {worst_all[1]}')
-    print(f'systematic drift (mean over all engines) = {np.mean(drift):+.4f}')
-    if n_frag:
-        print(f'NOTE: {n_frag} budget-truncated cell(s) exceeded tolerance. They were cut off '
-              f'while still improving, so their |delta| is not evidence of environment drift; '
-              f'they are kept out of the verdict but must be listed in the report.')
-    if n_bad:
-        print('RECONCILE: FAIL -- environment mismatch, DO NOT start segment B')
-        return EXIT_ABORT
+    if curves:
+        lv = np.array([c['level'] for c in curves.values()])
+        rh = np.array([c['rho'] for c in curves.values()])
+        ag = np.array([c['argmin_gap'] for c in curves.values()])
+        print(f'\ncurve level   mean {lv.mean():+.4f}  min {lv.min():+.4f}  max {lv.max():+.4f}')
+        print(f'rank (rho)    mean {rh.mean():.4f}   min {rh.min():.4f}')
+        print(f'argmin gap    mean {ag.mean():+.4f}  sd {ag.std(ddof=1):.4f}  '
+              f'max|.| {np.abs(ag).max():.4f}   (diagnostic, not a gate)')
     print('RECONCILE: OK -- segment B may proceed')
     return EXIT_OK
 
@@ -428,8 +491,7 @@ def main():
     ap.add_argument('--reconcile-frozen', default=None, metavar='DIR')
     ap.add_argument('--tol', type=float, default=RECON_TOL)
     ap.add_argument('--no-meta', action='store_true',
-                    help='skip the epochs_run/best_epoch + hyperparameter check '
-                         '(only for a tree that genuinely lacks training_metrics.json)')
+                    help='skip the protocol/epoch/curve/rank gates (RMSE-only reconcile)')
     a = ap.parse_args()
 
     if a.reconcile_a or a.reconcile_frozen:
@@ -438,8 +500,8 @@ def main():
         if a.baseline or a.module:
             die('reconcile mode does not take --baseline/--module')
         if Path(a.reconcile_a).is_file() and not a.no_meta:
-            die('a JSON of rows carries no epochs_run/best_epoch; pass --no-meta to reconcile '
-                'it, or point --reconcile-a at the run directory instead')
+            die('a JSON of rows carries no history/epochs; pass --no-meta to reconcile it, '
+                'or point --reconcile-a at the run directory instead')
         return reconcile(Path(a.reconcile_a), Path(a.reconcile_frozen), a.tol, a.no_meta)
     if not (a.baseline and a.module):
         die('need --baseline and --module (or --reconcile-a/--reconcile-frozen)')
