@@ -1,0 +1,95 @@
+{
+ "title": "R2.2 per-cell curve-level drift, segment A (v1 artifacts) vs frozen d7bd9c17",
+ "definition": "dlev = mean over COMMON epochs of val_engine_mean_rmse (segment A minus anchor); computed by gate1.level_drift_summary, the same function the gate uses",
+ "source_segment_a": "/home/user/pc_run/out/v0",
+ "source_frozen": "/home/user/pc_anchor/paper_b/experiments/open_source_matched_20261112/physical_runs/fixed40",
+ "gate1_sha256": "e5c87c1161dbd9b5ff9f18c21d3db1ee143f86589255aa00341aa916a2e03fe4",
+ "note": "V1 DIAGNOSTIC -- computed from out/v0 (v1 artifacts). Authoritative values are drift.level and drift.per_backbone in recon_A.json, written by gate1 --record on conforming v5 output; this file is superseded once that record exists",
+ "authoritative_source": "recon_A.json drift.level / drift.per_backbone (gate1 --record on out_v5)",
+ "computed_utc": "2026-11-22T19:45:01Z",
+ "n_cells": 30,
+ "all_30": {
+  "mean": 1.0109026996469337,
+  "mean_abs": 1.2072033730124743,
+  "level_drift": {
+   "n": 30,
+   "n_cells": 30,
+   "mean": 1.0109026996469337,
+   "ci": [
+    0.34954683619302424,
+    1.7915156954956992
+   ],
+   "same_sign_frac": 0.7,
+   "excluded_cells": [],
+   "stops": false
+  }
+ },
+ "excl_9": {
+  "n": 21,
+  "n_cells": 21,
+  "mean": 0.5761087147115906,
+  "ci": [
+   0.05487030900325652,
+   1.2231338881162273
+  ],
+  "same_sign_frac": 0.6666666666666666,
+  "excluded_cells": [
+   "fcstgnn/FD001/s101",
+   "fcstgnn/FD001/s202",
+   "fcstgnn/FD001/s303",
+   "fcstgnn/FD004/s101",
+   "fcstgnn/FD004/s202",
+   "fcstgnn/FD004/s303",
+   "two_phase/FD004/s101",
+   "two_phase/FD004/s202",
+   "two_phase/FD004/s303"
+  ],
+  "stops": false
+ },
+ "excl_all_two_phase": {
+  "n": 24,
+  "n_cells": 24,
+  "mean": 0.05599294647264238,
+  "ci": [
+   -0.09490597750729275,
+   0.19838932412441032
+  ],
+  "same_sign_frac": 0.625,
+  "excluded_cells": [
+   "two_phase/FD001/s101",
+   "two_phase/FD001/s202",
+   "two_phase/FD001/s303",
+   "two_phase/FD004/s101",
+   "two_phase/FD004/s202",
+   "two_phase/FD004/s303"
+  ],
+  "stops": false
+ },
+ "groups": {
+  "two_phase": {
+   "n": 6,
+   "sum": 28.983250274064595,
+   "mean": 4.8305417123440995,
+   "mean_abs": 4.8305417123440995,
+   "max_abs": 6.604438537878131
+  },
+  "other_four": {
+   "n": 24,
+   "sum": 1.343830715343417,
+   "mean": 0.05599294647264238,
+   "mean_abs": 0.3013687881795675,
+   "max_abs": 0.8794961702992499
+  }
+ },
+ "excl9_set_composition": {
+  "n": 21,
+  "two_phase_FD001_sum": 11.406119826924837,
+  "two_phase_FD001_cells": [
+   "FD001/s101 +3.4682",
+   "FD001/s202 +3.6565",
+   "FD001/s303 +4.2814"
+  ],
+  "rest_sum": 0.6921631820185681,
+  "rest_n": 18
+ }
+}
