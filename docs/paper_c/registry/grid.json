@@ -1,0 +1,24 @@
+{
+  "_note": "Paper C Stage 1 cross-architecture grid. One cell = (variant_tag, base_model, subset, seed). Change variant_tags to add or drop a CADF variant; the queue and the checker both read this file.",
+  "experiment": "p2_cross_arch_cadf",
+  "stage": "P2",
+  "wave": "W1",
+  "variant_tags": ["k0a"],
+  "variant_tag_meaning": {
+    "k0a": "CADF v1.2, absolute K0=15 cycles from the first valid (mask==1) cycle",
+    "k0p": "CADF v1.2, proportional K0=ceil(0.2*L)",
+    "eng": "CADF v1.2, engineering mode only (no window baseline)"
+  },
+  "methods": ["aidgn", "two_phase", "dual_mixer", "ffve", "fcstgnn"],
+  "subsets": ["FD001", "FD004"],
+  "seeds": [101, 202, 303],
+  "span": 50,
+  "split_protocol": "80/20 engine-level, split_seed=7",
+  "split_seed": 7,
+  "baseline_version": "open_source_matched_20261112@d7bd9c17",
+  "baseline_source_condition": "fixed40",
+  "baseline_ledger": "paper_b/experiments/open_source_matched_20261112/physical_runs.csv",
+  "baseline_commit": "d7bd9c17",
+  "run_id_pattern": "pc-cadf-<variant_tag>-<base_model>-<subset>-s<seed>-W1",
+  "delta_sign": "delta_val_rmse = baseline_val_engine_mean_rmse - cadf_val_engine_mean_rmse; positive means CADF is better (lower RMSE)"
+}
