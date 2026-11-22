@@ -1,0 +1,215 @@
+{
+  "repository": "https://github.com/LLerDagu/RUL-FFVE",
+  "commit": "dd74264d8bb034e74ed7bc0133325f4e05ecebdf",
+  "commit_date": "2024-05-19T20:22:31+08:00",
+  "tree": [
+    {
+      "path": "Benchmark.md",
+      "sha": "b517836cf449d9dbfaf115a67e6e72dca3481c78",
+      "size": 7218
+    },
+    {
+      "path": "LICENSE",
+      "sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "size": 11357
+    },
+    {
+      "path": "README.md",
+      "sha": "7ed103996b158db83cd11d510e3b875852dfe9c0",
+      "size": 5026
+    },
+    {
+      "path": "bash_4datasets.sh",
+      "sha": "1735aeb4cbbaf7bd8ebf10341ff4a5d13281471c",
+      "size": 638
+    },
+    {
+      "path": "data/RUL_FD001.txt",
+      "sha": "e8dd7cfeee96d2dfd55166f5758227d36c096dd3",
+      "size": 429
+    },
+    {
+      "path": "data/RUL_FD002.txt",
+      "sha": "f0c8ec24dbdc9d981ddec636a7a96d74344a0d2c",
+      "size": 1110
+    },
+    {
+      "path": "data/RUL_FD003.txt",
+      "sha": "221785454fae67554713aa3ee66bb26ba56ef4e1",
+      "size": 428
+    },
+    {
+      "path": "data/RUL_FD004.txt",
+      "sha": "263ab77cfc0ae3a63b20715bd1488b437f9b0f43",
+      "size": 1084
+    },
+    {
+      "path": "data/dataset.py",
+      "sha": "addc713aa7d6552c67d40efcb6e0c0931b670eb8",
+      "size": 508
+    },
+    {
+      "path": "data/test_FD001.txt",
+      "sha": "7844fbf8d6ad32176f92544ad4f4c456481d930d",
+      "size": 2228855
+    },
+    {
+      "path": "data/test_FD002.txt",
+      "sha": "9799aaeb4b4960f28089e8e46cb1565dd1680f55",
+      "size": 5734587
+    },
+    {
+      "path": "data/test_FD003.txt",
+      "sha": "ed4f6f67a44f9962f2f95c6cbfab08f07617bd78",
+      "size": 2826651
+    },
+    {
+      "path": "data/test_FD004.txt",
+      "sha": "228c6ee54591218b3f4e7981d6ff7d77ff3506be",
+      "size": 6957759
+    },
+    {
+      "path": "data/train_FD001.txt",
+      "sha": "d2809918c8b75fa3319714658ae994deb2017a89",
+      "size": 3515356
+    },
+    {
+      "path": "data/train_FD002.txt",
+      "sha": "694e39f99609f098025ef444d6fe89828ca74cbc",
+      "size": 9082480
+    },
+    {
+      "path": "data/train_FD003.txt",
+      "sha": "0f2ef76638aee1e182850e5c4a79b142bbebb7b5",
+      "size": 4213862
+    },
+    {
+      "path": "data/train_FD004.txt",
+      "sha": "a7ab3c7897db150cb061099bce7b426500c90ab8",
+      "size": 10350705
+    },
+    {
+      "path": "main.py",
+      "sha": "54cd6064ea2c0c5e88b81a0f5fb44eb8b13b2ca6",
+      "size": 12015
+    },
+    {
+      "path": "models/model_FFVE.py",
+      "sha": "e1aca8216f8f525b6579eb305442d9f19b19a5a2",
+      "size": 6896
+    },
+    {
+      "path": "pics/3.6_3D_latent_representations.png",
+      "sha": "ba30e9bbe4f4a68efd2011a5e9e493a68c6d1c47",
+      "size": 1328572
+    },
+    {
+      "path": "pics/3_FFVE.png",
+      "sha": "11a9c4bd9cac967aa3ecca02c69ecbf9c1b9c535",
+      "size": 600681
+    },
+    {
+      "path": "pics/5.4.2_Interpretable_RUL_Degradation_Route.png",
+      "sha": "f3058997c0b7a4cc87cb5830a6ca4d0411cedf22",
+      "size": 4096339
+    },
+    {
+      "path": "pics/gif/FD001#34_X1_RULDegradationRoute.gif",
+      "sha": "0e178432d7cad5b51036a879257b80443d248631",
+      "size": 8249267
+    },
+    {
+      "path": "pics/gif/FD002#9_X2_RULDegradationRoute.gif",
+      "sha": "028abe5d04f1331709bd12efef929af60a5bcc75",
+      "size": 5718019
+    },
+    {
+      "path": "pics/gif/FD003#21_X1_RULDegradationRoute.gif",
+      "sha": "7e3096ac1415be2be95c0efecf5fa0ddb622c968",
+      "size": 9086258
+    },
+    {
+      "path": "pics/gif/FD004#134_X2_RULDegradationRoute.gif",
+      "sha": "90039e47a012f3ad492a9c228d5836c8f74391fd",
+      "size": 9895818
+    },
+    {
+      "path": "predict_3D_testLine.py",
+      "sha": "3649ed3ccdeca26c4aedfcd97a5b8f7741366aea",
+      "size": 4666
+    },
+    {
+      "path": "requirements.txt",
+      "sha": "9be2ec863276934c685fd0d6197e3937fa5131c2",
+      "size": 96
+    },
+    {
+      "path": "utils.py",
+      "sha": "687ea8d66b3c69f487e9dc9d306ee9f64ee43db6",
+      "size": 20167
+    }
+  ],
+  "files": [
+    {
+      "path": "Benchmark.md",
+      "git_blob_sha": "b517836cf449d9dbfaf115a67e6e72dca3481c78",
+      "sha256": "5cb68ab54ccb8e1882266b988d531c859529fa9d46ecac02b72ba1bb434c0561",
+      "size": 7218
+    },
+    {
+      "path": "LICENSE",
+      "git_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "size": 11357
+    },
+    {
+      "path": "README.md",
+      "git_blob_sha": "7ed103996b158db83cd11d510e3b875852dfe9c0",
+      "sha256": "fe556232e3e6cf4b6fd35ec4a5b57b50ad14c7bb0e01007da6332e92dde6bb48",
+      "size": 5026
+    },
+    {
+      "path": "bash_4datasets.sh",
+      "git_blob_sha": "1735aeb4cbbaf7bd8ebf10341ff4a5d13281471c",
+      "sha256": "e230b506912e8901a39ec2e9b0f96f92a14fcd6bbbda0f5871cf0c9449375e80",
+      "size": 638
+    },
+    {
+      "path": "data/dataset.py",
+      "git_blob_sha": "addc713aa7d6552c67d40efcb6e0c0931b670eb8",
+      "sha256": "a38414f64914ab5e4b4d5692018b1a3cf4fb04872ba70168fb247ee498ea480b",
+      "size": 508
+    },
+    {
+      "path": "main.py",
+      "git_blob_sha": "54cd6064ea2c0c5e88b81a0f5fb44eb8b13b2ca6",
+      "sha256": "d1955e9ba182d4ae77acab68d1281e8c60a4689929ed4592996134b93bf37408",
+      "size": 12015
+    },
+    {
+      "path": "models/model_FFVE.py",
+      "git_blob_sha": "e1aca8216f8f525b6579eb305442d9f19b19a5a2",
+      "sha256": "a82993950bca300c472069d12f7c31eb38764e17d1fe25ea5b3a2c030c18961f",
+      "size": 6896
+    },
+    {
+      "path": "predict_3D_testLine.py",
+      "git_blob_sha": "3649ed3ccdeca26c4aedfcd97a5b8f7741366aea",
+      "sha256": "b7355004e0a8abbebe805e2060aad7c8e37179a5570f3a5bca74dca1ac3aab7e",
+      "size": 4666
+    },
+    {
+      "path": "requirements.txt",
+      "git_blob_sha": "9be2ec863276934c685fd0d6197e3937fa5131c2",
+      "sha256": "2128345f041cf113fca92baee3243641235159ab1444a57a1ac51e265be8a19a",
+      "size": 96
+    },
+    {
+      "path": "utils.py",
+      "git_blob_sha": "687ea8d66b3c69f487e9dc9d306ee9f64ee43db6",
+      "sha256": "a111052922a7973fc25477c41f9bc7aaec4d16a21c2f7e41cd8323c5178632c3",
+      "size": 20167
+    }
+  ],
+  "policy": "All code/config/notebook/README/license files <=2MB; no datasets/checkpoints/images. Full upstream tree is recorded."
+}
