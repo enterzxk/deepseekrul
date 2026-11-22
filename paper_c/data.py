@@ -125,6 +125,62 @@ def make_train_windows(df, units, scaler, L, return_op=False):
     return out + (np.stack(ops).astype(np.float32),) if return_op else out
 
 
+def _engine_base(arr, cl, K0=15):
+    eb = np.zeros((6, arr.shape[1]), dtype=np.float32)
+    for c in range(6):
+        idx = np.where(cl[:K0] == c)[0]
+        if len(idx):
+            eb[c] = arr[idx].mean(0)
+    return eb
+
+
+def make_train_windows_meta(df, units, scaler, L, K0=15):
+    df = scaler.transform(df)
+    xs, ms, ys, cls, ebs = [], [], [], [], []
+    for u in sorted(units):
+        g = df[df.unit == u]
+        arr = g[SENSOR_COLS].to_numpy(float)
+        cl = g['cluster'].to_numpy(int)
+        eb = _engine_base(arr, cl, K0)
+        n = len(g)
+        for t in range(n):
+            x, m = _window(arr, t, L)
+            start = max(0, t - L + 1)
+            cw = cl[start:t + 1]
+            cwin = np.full(L, -1, dtype=np.int64)
+            cwin[L - len(cw):] = cw
+            xs.append(x); ms.append(m); ys.append(min(n - (t + 1), CAP))
+            cls.append(cwin); ebs.append(eb)
+    return (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
+            np.asarray(ys, np.float32), np.stack(cls), np.stack(ebs))
+
+
+def make_val_windows_meta(df, units, scaler, L, cuts=CUTS, K0=15):
+    df = scaler.transform(df)
+    xs, ms, ys, eng, cutv, cls, ebs = [], [], [], [], [], [], []
+    for u in sorted(units):
+        g = df[df.unit == u]
+        arr = g[SENSOR_COLS].to_numpy(float)
+        cl = g['cluster'].to_numpy(int)
+        eb = _engine_base(arr, cl, K0)
+        n = len(g)
+        for frac in cuts:
+            t = int(round(frac * (n - 1)))
+            t = max(0, min(n - 1, t))
+            x, m = _window(arr, t, L)
+            start = max(0, t - L + 1)
+            cw = cl[start:t + 1]
+            cwin = np.full(L, -1, dtype=np.int64)
+            cwin[L - len(cw):] = cw
+            xs.append(x); ms.append(m)
+            ys.append(min(n - (t + 1), CAP))
+            eng.append(u); cutv.append(frac)
+            cls.append(cwin); ebs.append(eb)
+    return (np.stack(xs).astype(np.float32), np.stack(ms).astype(np.float32),
+            np.asarray(ys, np.float32), np.asarray(eng), np.asarray(cutv),
+            np.stack(cls), np.stack(ebs))
+
+
 def make_val_windows(df, units, scaler, L, cuts=CUTS, return_op=False):
     df = scaler.transform(df)
     xs, ms, ys, eng, cutv, ops = [], [], [], [], [], []

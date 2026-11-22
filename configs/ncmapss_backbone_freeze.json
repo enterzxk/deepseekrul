@@ -1,0 +1,12 @@
+﻿{
+ "backbone": "tcn",
+ "L": 50,
+ "input_dim": 18,
+ "features": "14 X_s + 4 W (alt, Mach, TRA, T2)",
+ "n_params": 51201,
+ "folds": 5,
+ "split_seed": 2026,
+ "cuts": [0.25, 0.40, 0.55, 0.70, 0.85, 0.95],
+ "datasets": ["DS02", "DS05", "DS06", "DS07"],
+ "note": "N-CMAPSS B_min selected by 4-subset 5-fold engine-mean RMSE; test sealed."
+}
