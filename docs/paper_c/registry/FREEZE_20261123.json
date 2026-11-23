@@ -4,17 +4,27 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.4 + addendum #3",
-    "blob_id": "d8cc1b94b3276f04a7b1dab4f381ef327db9fe0e",
-    "blob_sha256": "a575a8c6ffa01c572b65960473800e6ee9948bb90336ffda39390d08da26b4c8",
-    "commit": "6794fe25",
-    "bytes": 90919,
-    "lines": 1139,
+    "version": "v7.4 + addenda #3,#5",
+    "blob_id": "8fe382d445b495c8286bb170be6db9acc0f7f541",
+    "blob_sha256": "2507fc8314ae312ce2389024cfcdccd3e2380c75e4dc1cac3c24ca9d9d93fcbc",
+    "commit": "a5333322",
+    "bytes": 93337,
+    "lines": 1161,
     "role": "current text (frozen v7.0 + post-freeze addenda); the frozen original is kept under frozen_original",
-    "superseded_blob_id": "6e2c19bdf787f918fe45aca57fe0daa476fe0390",
-    "superseded_blob_sha256": "58577a13a82b50a65671fbbd0c7b6d69ed4ad76946b19e2aecca2dcea6123e30",
-    "superseded_commit": "6fcfb0ba",
-    "superseded_note": "the v7.4 text before addendum #3; superseded, never cite it as current"
+    "superseded": [
+      {
+        "blob_id": "6e2c19bdf787f918fe45aca57fe0daa476fe0390",
+        "blob_sha256": "58577a13a82b50a65671fbbd0c7b6d69ed4ad76946b19e2aecca2dcea6123e30",
+        "commit": "6fcfb0ba",
+        "note": "v7.4 before addendum #3"
+      },
+      {
+        "blob_id": "d8cc1b94b3276f04a7b1dab4f381ef327db9fe0e",
+        "blob_sha256": "a575a8c6ffa01c572b65960473800e6ee9948bb90336ffda39390d08da26b4c8",
+        "commit": "6794fe25",
+        "note": "v7.4 + addendum #3 (unreachable branches)"
+      }
+    ]
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -191,6 +201,23 @@
       "superseded": [
         "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7 (28/28) -- never used for a verdict",
         "intermediate versions 5203ab5c / ea54839f / c1f3de13 deliberately NOT recorded here, per the rule that only the final blob enters this file"
+      ]
+    },
+    {
+      "id": 5,
+      "date": "2026-11-23",
+      "prereg_version": "v7.4 + addendum #5",
+      "commit": "a5333322",
+      "blob_id": "8fe382d445b495c8286bb170be6db9acc0f7f541",
+      "blob_sha256": "2507fc8314ae312ce2389024cfcdccd3e2380c75e4dc1cac3c24ca9d9d93fcbc",
+      "bytes": 93337,
+      "lines": 1161,
+      "direction": "reporting rules only; no threshold, condition, branch order or k_min changed",
+      "changes": [
+        "reporting rule 5: inter-backbone ranking of delta_mean must NOT be attributed. The yardstick must be the standard error of the three-seed mean, SE = sd/sqrt(3) = 0.20-0.41 (from the anchor same-machine sd 0.34-0.71); six groups under pure noise span about 2.53*SE = 0.5-1.0, the same order as the observed span 0.64. The sentence 'all six delta_mean lie inside the seed noise band (sd 0.34-0.71)' is forbidden: it compares a single-seed sd with a three-seed mean. The conclusion is unchanged; the sentence would not survive review",
+        "both proxies tried for that ranking are non-monotone and must not be written: absolute parameters (two_phase 12.9k is smaller than B_min 51k yet gains nothing) and CADF relative cost (two_phase 8.58% ranks 4th; dual_mixer 1.86% is one positive and one negative)",
+        "FINAL_DECISION spec: generated field by field from the vote_b.py JSON record, never hand-copied; four sections that must not be merged -- Gate (k_full / k_sc / n_und / k_min plus the s3_branch distribution), unconditional point estimates for all 30 cells with p_null and the 0.16-0.24 winner's-curse inflation, CI (MDE, required_n, ci_detectable_delta), and mechanism plus the no-attribution sentence",
+        "mechanism iteration recorded instead of only its final version: 'preprocessing overlap' falsified by ||b||/||x|| = 0.79-0.93; 'high-pass filter discards the trend' falsified by the architecture (return x + g*proj(z), with x passing through untouched); current reading: 'input-layer re-encoding that adds no information beyond x', verifiable in code because z = [x, delta, e] are all deterministic functions of (x, cluster, mask)"
       ]
     }
   ],
