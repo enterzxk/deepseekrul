@@ -1,0 +1,13 @@
+B input check: 30 landed cell(s) vs pinned A base, 0 problem(s)
+backbone   subset status         dbar    ci_lo    ci_hi    width    MDE80   win
+aidgn      FD001 complete    -0.3623  -1.4579  +0.6371   2.0950   1.5382  0.55  per-seed=-0.023 -0.588 -0.476
+aidgn      FD004 complete    +0.2732  -0.4874  +1.0872   1.5746   1.1236  0.46  per-seed=+0.694 +0.760 -0.635
+dual_mixer FD001 complete    -0.0445  -0.8346  +0.7341   1.5687   1.1658  0.55  per-seed=-0.502 -0.019 +0.387
+dual_mixer FD004 complete    +0.1100  -0.4572  +0.6506   1.1077   0.8017  0.56  per-seed=+0.105 +0.322 -0.097
+fcstgnn    FD001 complete    -0.1660  -1.4053  +1.0056   2.4109   1.7453  0.55  per-seed=-0.395 -0.471 +0.368
+fcstgnn    FD004 complete    +0.2180  -0.5953  +0.9998   1.5951   1.1335  0.50  per-seed=+0.537 +0.162 -0.045
+ffve       FD001 complete    -0.0483  -1.2975  +1.0020   2.2995   1.6534  0.55  per-seed=+0.355 +0.038 -0.538
+ffve       FD004 complete    -0.3159  -0.7604  +0.1517   0.9121   0.6576  0.38  per-seed=-0.523 -0.140 -0.285
+two_phase  FD001 complete    -0.1062  -1.6238  +1.4010   3.0249   2.2025  0.50  per-seed=+0.335 +0.124 -0.777
+two_phase  FD004 complete    +0.7863  +0.1772  +1.5091   1.3319   0.9901  0.60  per-seed=+0.803 +0.709 +0.847
+wrote /home/user/pc_run/out_b/B_REPORT.json

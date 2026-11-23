@@ -1,0 +1,692 @@
+{
+ "verdict": "fail",
+ "claim_scope": "none",
+ "k_full": 0,
+ "k_sc": 0,
+ "k_min": 4,
+ "k_basis": "5 SOTA only -- B_min \u7684 5-fold \u8f93\u5165\u672a\u63a5\u5165\uff1b\u00a74.1 \u7684 \u22654/6 \u9700\u8865 B_min \u4e00\u7968",
+ "k_all": null,
+ "effect_min": 0.45,
+ "harmless_tol": 0.1,
+ "win_rate_min": 0.6,
+ "seeds": [
+  101,
+  202,
+  303
+ ],
+ "boot": {
+  "n": 10000,
+  "seed": 20261123,
+  "alpha": 0.05,
+  "unit": "engine",
+  "pairing": "same engine index, both arms",
+  "per_seed_averaged": true
+ },
+ "eol": {
+  "evaluated": false,
+  "note": "\u00a74.1 \u7b2c 3 \u6761\u672a\u8bc4\u4f30\uff1a\u663e\u5f0f --allow-missing-eol"
+ },
+ "full_pass": false,
+ "sc_pass": false,
+ "k_full_evaluable": 5,
+ "k_sc_evaluable": 5,
+ "n_undetermined": {
+  "full": 0,
+  "sc": 0
+ },
+ "undetermined_reason": null,
+ "deviant": [],
+ "tier_state": {
+  "full": {
+   "aidgn": "fail",
+   "dual_mixer": "fail",
+   "fcstgnn": "fail",
+   "ffve": "fail",
+   "two_phase": "fail"
+  },
+  "sc": {
+   "aidgn": "fail",
+   "dual_mixer": "fail",
+   "fcstgnn": "fail",
+   "ffve": "fail",
+   "two_phase": "fail"
+  }
+ },
+ "power": {
+  "per_unit": [
+   {
+    "backbone": "aidgn",
+    "subset": "FD001",
+    "n_engines": 20,
+    "mde": 1.5037536784662162,
+    "required_n_engines": 234,
+    "ci_detectable_delta": 1.0526275749263514,
+    "p_null": 0.20104253929278848
+   },
+   {
+    "backbone": "aidgn",
+    "subset": "FD004",
+    "n_engines": 50,
+    "mde": 1.126289204177135,
+    "required_n_engines": 312,
+    "ci_detectable_delta": 0.7884024429239946,
+    "p_null": 0.13163023293235254
+   },
+   {
+    "backbone": "dual_mixer",
+    "subset": "FD001",
+    "n_engines": 20,
+    "mde": 1.131417375265361,
+    "required_n_engines": 135,
+    "ci_detectable_delta": 0.7919921626857526,
+    "p_null": 0.1327152450289546
+   },
+   {
+    "backbone": "dual_mixer",
+    "subset": "FD004",
+    "n_engines": 50,
+    "mde": 0.7976459115314641,
+    "required_n_engines": 159,
+    "ci_detectable_delta": 0.5583521380720249,
+    "p_null": 0.05709371693734522
+   },
+   {
+    "backbone": "fcstgnn",
+    "subset": "FD001",
+    "n_engines": 20,
+    "mde": 1.6981218909284879,
+    "required_n_engines": 301,
+    "ci_detectable_delta": 1.1886853236499415,
+    "p_null": 0.2290448172223848
+   },
+   {
+    "backbone": "fcstgnn",
+    "subset": "FD004",
+    "n_engines": 50,
+    "mde": 1.1382016273458022,
+    "required_n_engines": 318,
+    "ci_detectable_delta": 0.7967411391420616,
+    "p_null": 0.1341449132378152
+   },
+   {
+    "backbone": "ffve",
+    "subset": "FD001",
+    "n_engines": 20,
+    "mde": 1.608070715040341,
+    "required_n_engines": 271,
+    "ci_detectable_delta": 1.1256495005282388,
+    "p_null": 0.21665279722773145
+   },
+   {
+    "backbone": "ffve",
+    "subset": "FD004",
+    "n_engines": 50,
+    "mde": 0.651412843505908,
+    "required_n_engines": 107,
+    "ci_detectable_delta": 0.4559889904541356,
+    "p_null": 0.0265407547276848
+   },
+   {
+    "backbone": "two_phase",
+    "subset": "FD001",
+    "n_engines": 20,
+    "mde": 2.1479410071231144,
+    "required_n_engines": 480,
+    "ci_detectable_delta": 1.5035587049861803,
+    "p_null": 0.27873340705581906
+   },
+   {
+    "backbone": "two_phase",
+    "subset": "FD004",
+    "n_engines": 50,
+    "mde": 0.971512059568608,
+    "required_n_engines": 243,
+    "ci_detectable_delta": 0.6800584416980255,
+    "p_null": 0.09732464991349721
+   }
+  ],
+  "effect_min": 0.45,
+  "rule": "MDE = 2.80 x bootstrap SE (80% power); required_n = (2.80 x sd(d) / effect_min)^2; ci_detectable_delta = 1.96 x SE (\u4ec5\u8bf4\u660e\u663e\u8457\u6027\u68c0\u9a8c\u9700\u8981\u591a\u5927\u6548\u5e94\uff0c\u4e0d\u8fdb Gate)",
+  "note": "MDE > effect_min \u53ea\u5728\u8d70\u5230 CI \u5206\u652f\u65f6\u624d\u4f1a\u8ba9\u8be5\u683c\u79bb\u5f00\u5206\u6bcd\uff1b\u8fd9\u91cc\u7684\u6570\u5c31\u662f\u9650\u5236\u8282\u8981\u5199\u7684"
+ },
+ "delta_convention": "delta = V0 - V1 (positive = module better, prereg 4.4.1)",
+ "inputs": {
+  "v0_root": "out_v8/v0",
+  "v1_root": "out_b/cadf_k0p",
+  "seeds": [
+   101,
+   202,
+   303
+  ],
+  "backbones": [
+   "aidgn",
+   "dual_mixer",
+   "fcstgnn",
+   "ffve",
+   "two_phase"
+  ],
+  "subsets": [
+   "FD001",
+   "FD004"
+  ],
+  "arm_semantics": "v0 = baseline arm, v1 = +CADF arm; delta = v0 - v1. \u54ea\u68f5\u6811\u662f\u54ea\u4e00\u81c2\u7531\u547d\u4ee4\u884c --v0/--v1 \u6307\u5b9a\u5e76\u5728\u6b64\u843d\u76d8\uff0c\u4e0d\u9760\u76ee\u5f55\u540d\u63a8\u65ad\uff08\u76ee\u5f55\u540d\u91cc\u7684 v0 \u53ef\u80fd\u662f\u6279\u6b21\u540d\uff09"
+ },
+ "underpowered": [],
+ "mde_rule": "condition 3/4 (v7.4, fixed order): sign_fail -> effect_size_fail -> win_rate_fail are determinate FAIL votes that never reach CI; only a cell passing those three is classified by CI: lo > 0 -> consistent (counts); CI spans 0 and MDE > 0.45 -> underpowered (leaves both numerator and denominator); CI hi < 0 -> determinately_worse (counts as FAIL); CI spans 0 and MDE <= 0.45 -> powered_but_null (counts as FAIL, unreachable after step 2 -- see s3_unreachable_branches). MDE = 2.80 x bootstrap SE (80% power, two-sided 5%)",
+ "two_stage": {
+  "gate_effect_min": 0.45,
+  "terminal_min_detectable": {
+   "FD001": 0.73,
+   "FD004": 0.6
+  },
+  "grey_band": "0.45-0.73: declared OUT of the claim scope",
+  "rule": "Gate 1 \u5224\u56db\u6837\uff08\u540c\u53f7\u3001\u6548\u5e94\u91cf\u3001\u80dc\u7387\u3001CI \u4e0d\u542b 0\uff09\u3002Terminal \u7684 TEST \u6700\u5c0f\u53ef\u68c0\u6d4b\u6548\u5e94\u662f 0.73(FD001,100\u53f0)/0.60(FD004,248\u53f0)\uff0c\u4ecd\u5927\u4e8e 0.45\uff0c\u6240\u4ee5\u4e3b\u5f20\u5fc5\u987b\u5199\u6210\u300cTEST \u4e0a\u786e\u8ba4 >=0.73 \u7684\u6548\u5e94\u300d\uff0c0.45-0.73 \u662f\u7070\u5e26\uff0c\u4e0d\u5728\u4e3b\u5f20\u8303\u56f4\u5185",
+  "pending": "0.73/0.60 \u662f \u7262\u83ab \u6309 TEST \u53f0\u6570\u4e0e A \u6bb5 SD \u53cd\u63a8\u7684\uff0cv7.3 \u51bb\u7ed3\u524d\u9700\u90d1\u603b\u786e\u8ba4",
+  "role": "\u8bb0\u5f55\u5b57\u6bb5\uff0c\u4e0d\u8fdb ok\u3001\u4e0d\u5f71\u54cd\u5206\u5b50\u5206\u6bcd"
+ },
+ "gate_conditions": "v7.4 \u51bb\u7ed3\u53e3\u5f84\uff1a\u4e00\u7968\u8981\u56db\u6837\u540c\u65f6\u6ee1\u8db3\u2014\u20143/3 \u540c\u53f7\u3001\u0394\u0304 >= effect_min\u3001engine \u80dc\u7387 >= win_rate_min\u3001CI \u4e0b\u754c > 0\u3002\u4e0d\u8fc7\u65f6\u6309\u56fa\u5b9a\u987a\u5e8f\u5206\u7c7b\uff1asign_fail / effect_size_fail / win_rate_fail \u662f\u786e\u5b9a\u5931\u8d25\uff08\u7559\u5728\u5206\u6bcd\uff09\uff0c\u53ea\u6709\u4e09\u6837\u90fd\u8fc7\u624d\u770b CI",
+ "significance_role": "\u5224\u636e\u7b2c 4 \u6761\uff08CI \u4e0d\u542b 0\uff09\u8fdb passes\uff1bCI/SE/MDE/required_n/ci_detectable_delta \u540c\u65f6\u7167\u5199\u8fdb\u8bb0\u5f55\u3002MDE \u672c\u8eab\u4e0d\u8fdb passes\uff0c\u53ea\u51b3\u5b9a\u4e00\u683c\u5728 CI \u5206\u652f\u91cc\u662f consistent \u8fd8\u662f underpowered",
+ "classification_order": "sign_fail -> effect_size_fail -> win_rate_fail -> (consistent | underpowered | determinately_worse | powered_but_null)\u3002\u987a\u5e8f\u4e0d\u80fd\u6362\uff1a\u5148\u5224 CI \u4f1a\u628a\u300c\u786e\u5b9a\u5931\u8d25\u300d\u585e\u8fdb\u672a\u5b9a\u6c60",
+ "mde_branches": "fixed order (v7.4): sign_fail / effect_size_fail / win_rate_fail -> determinate FAIL (stays in denominator); then CI: lo > 0 -> consistent (counts); CI spans 0 and MDE > 0.45 -> underpowered (leaves both numerator and denominator); CI hi < 0 -> determinately_worse (counts as FAIL, stays); CI spans 0 and MDE <= 0.45 -> powered_but_null (counts as FAIL, unreachable after step 2)",
+ "s3_unreachable_branches": "powered_but_null\uff1av7.4 \u987a\u5e8f\u4e0b\u4e0d\u53ef\u8fbe\u3002\u8d70\u5230 CI \u5206\u652f\u610f\u5473\u7740 \u0394\u0304 >= 0.45\uff1b\u82e5 MDE <= 0.45 \u5219 SE <= 0.161\u3001CI \u534a\u5bbd <= 0.315\uff0c\u4e8e\u662f lo >= 0.135 > 0\uff0c\u5fc5\u7136\u5148\u547d\u4e2d consistent\u3002\u4fdd\u7559\u8be5\u5206\u652f\u53ea\u4e3a\u4e0e\u51bb\u7ed3\u6587\u672c\u9010\u5b57\u5bf9\u5e94\uff0c\u4ee3\u7801\u91cc\u4e0d\u53ef\u8fbe",
+ "mde_degenerate_note": "\u300cMDE <= 0.45 \u4e14 CI \u8de8 0\u300d\u8fd9\u4e00\u652f\u5728 v7.4 \u56fa\u5b9a\u987a\u5e8f\u4e0b\u4e0d\u53ef\u8fbe\uff1b\u0394\u0304 < 0.45 \u7684\u683c\u65e9\u5728\u7b2c 2 \u6b65\u5c31\u88ab\u5224\u6210 effect_size_fail\uff08\u786e\u5b9a\u8d25\u7968\uff09",
+ "mde_risk": "SE \u7531 bootstrap \u91cd\u91c7\u6837\u5747\u503c\u7ed9\u51fa\uff0c\u5305\u542b\u771f\u5b9e\u7684\u53d1\u52a8\u673a\u95f4\u5f02\u8d28\u6027\uff1b\u300c\u5bbd CI = \u529f\u6548\u4e0d\u8db3\u300d\u4e0e\u300c\u5bbd CI = \u6548\u5e94\u672c\u8eab\u56e0\u53d1\u52a8\u673a\u800c\u5f02\u300d\u5728\u5f53\u524d\u6570\u636e\u4e0b\u4e0d\u53ef\u533a\u5206\uff0c\u56e0\u6b64 underpowered \u6807\u8bb0\u53ea\u80fd\u8fdb\u9650\u5236\u8282\uff0c\u4e0d\u80fd\u5f53\u6210\u6548\u5e94\u5f02\u8d28\u7684\u8bc1\u636e",
+ "s1_note": "3/3 \u540c\u53f7\u662f\u65b9\u5411\u4e00\u81f4\u6027\u8fc7\u6ee4\uff0c\u4e0d\u662f\u7edf\u8ba1\u8bc1\u636e\uff1an=3 \u65f6\u53cc\u4fa7\u7b26\u53f7\u68c0\u9a8c\u7684\u6700\u5c0f p = 2x(1/2)^3 = 0.25\uff0c\u5355\u9760\u5b83\u5047\u9633\u7387 25%\uff1b\u8bba\u6587\u91cc\u987b\u9010\u4e2a\u5217\u51fa\u4e09\u4e2a delta \u5e76\u6ce8\u660e n=3 \u65f6 seed \u7ef4\u5ea6\u65e0\u529f\u6548",
+ "reporting_rules": "1) \u70b9\u4f30\u8ba1\u5fc5\u987b\u62a5\u5168\u90e8 30 \u683c\u7684\u65e0\u6761\u4ef6\u503c\uff08units \u6570\u7ec4\u5c31\u662f\u5168\u8868\uff09\uff0c\u4e0d\u5f97\u53ea\u5f15 passes=True \u7684\u5b50\u96c6\u2014\u2014\u90a3\u662f selection-biased estimate\uff1b2) \u6bcf\u5f20\u8868\u540c\u65f6\u7ed9 MDE \u4e0e p_null\uff1b3) \u4e09\u53e5\u8bdd\u5206\u5f00\u5199\uff1aGate \u8bf4\u300c\u672a\u8fbe\u6807\u300d\u3001\u70b9\u4f30\u8ba1\u8bf4\u300c0 \u9644\u8fd1 + \u7b26\u53f7\u4e0d\u7a33\u300d\u3001CI \u8bf4\u300c\u5bbd\u5230\u6392\u4e0d\u6389\u4e2d\u7b49\u6548\u5e94\u300d",
+ "per_backbone": {
+  "aidgn": {
+   "votes_full": false,
+   "votes_sc": false,
+   "no_damage": false,
+   "protocol_deviant": false,
+   "fd001_pass": false,
+   "other_subsets": [
+    {
+     "subset": "FD004",
+     "passes": false,
+     "delta_mean": 0.273197862198125,
+     "harmless": true
+    }
+   ],
+   "why": "fails the fixed-order gate on at least one subset"
+  },
+  "dual_mixer": {
+   "votes_full": false,
+   "votes_sc": false,
+   "no_damage": true,
+   "protocol_deviant": false,
+   "fd001_pass": false,
+   "other_subsets": [
+    {
+     "subset": "FD004",
+     "passes": false,
+     "delta_mean": 0.11001064759159793,
+     "harmless": true
+    }
+   ],
+   "why": "fails the fixed-order gate on at least one subset"
+  },
+  "fcstgnn": {
+   "votes_full": false,
+   "votes_sc": false,
+   "no_damage": false,
+   "protocol_deviant": false,
+   "fd001_pass": false,
+   "other_subsets": [
+    {
+     "subset": "FD004",
+     "passes": false,
+     "delta_mean": 0.2179854276432301,
+     "harmless": true
+    }
+   ],
+   "why": "fails the fixed-order gate on at least one subset"
+  },
+  "ffve": {
+   "votes_full": false,
+   "votes_sc": false,
+   "no_damage": false,
+   "protocol_deviant": false,
+   "fd001_pass": false,
+   "other_subsets": [
+    {
+     "subset": "FD004",
+     "passes": false,
+     "delta_mean": -0.315945766131626,
+     "harmless": false
+    }
+   ],
+   "why": "fails the fixed-order gate on at least one subset"
+  },
+  "two_phase": {
+   "votes_full": false,
+   "votes_sc": false,
+   "no_damage": false,
+   "protocol_deviant": false,
+   "fd001_pass": false,
+   "other_subsets": [
+    {
+     "subset": "FD004",
+     "passes": true,
+     "delta_mean": 0.7863305878947021,
+     "harmless": true
+    }
+   ],
+   "why": "fails the fixed-order gate on at least one subset"
+  }
+ },
+ "units": [
+  {
+   "backbone": "aidgn",
+   "subset": "FD001",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": -0.02340607108626358
+    },
+    {
+     "seed": 202,
+     "delta": -0.5875854454538967
+    },
+    {
+     "seed": 303,
+     "delta": -0.4757914177978808
+    }
+   ],
+   "delta_mean": -0.362260978112681,
+   "boot_ci": [
+    -1.4579159274881508,
+    0.6371211089537807
+   ],
+   "boot_se": 0.5370548851665058,
+   "mde": 1.5037536784662162,
+   "n_engines": 20,
+   "sd_paired_delta": 2.4567554518485744,
+   "required_n_engines": 234,
+   "ci_detectable_delta": 1.0526275749263514,
+   "p_null": 0.20104253929278848,
+   "engine_win_rate": 0.55,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "aidgn",
+   "subset": "FD004",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.6936229920582466
+    },
+    {
+     "seed": 202,
+     "delta": 0.760492288204329
+    },
+    {
+     "seed": 303,
+     "delta": -0.6345216936681979
+    }
+   ],
+   "delta_mean": 0.273197862198125,
+   "boot_ci": [
+    -0.4993169754706352,
+    1.0885520906169017
+   ],
+   "boot_se": 0.4022461443489769,
+   "mde": 1.126289204177135,
+   "n_engines": 50,
+   "sd_paired_delta": 2.837475685227509,
+   "required_n_engines": 312,
+   "ci_detectable_delta": 0.7884024429239946,
+   "p_null": 0.13163023293235254,
+   "engine_win_rate": 0.46,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "dual_mixer",
+   "subset": "FD001",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": -0.5020462294057548
+    },
+    {
+     "seed": 202,
+     "delta": -0.018853856887886877
+    },
+    {
+     "seed": 303,
+     "delta": 0.387265185133991
+    }
+   ],
+   "delta_mean": -0.04454496705321835,
+   "boot_ci": [
+    -0.8524373044524807,
+    0.7340485990427218
+   ],
+   "boot_se": 0.4040776340233432,
+   "mde": 1.131417375265361,
+   "n_engines": 20,
+   "sd_paired_delta": 1.8619408955544217,
+   "required_n_engines": 135,
+   "ci_detectable_delta": 0.7919921626857526,
+   "p_null": 0.1327152450289546,
+   "engine_win_rate": 0.55,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "dual_mixer",
+   "subset": "FD004",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.10503774882564443
+    },
+    {
+     "seed": 202,
+     "delta": 0.3217380556619407
+    },
+    {
+     "seed": 303,
+     "delta": -0.09674386171278293
+    }
+   ],
+   "delta_mean": 0.11001064759159793,
+   "boot_ci": [
+    -0.4692406215700297,
+    0.6493411316726012
+   ],
+   "boot_se": 0.2848735398326658,
+   "mde": 0.7976459115314641,
+   "n_engines": 50,
+   "sd_paired_delta": 2.024526984285626,
+   "required_n_engines": 159,
+   "ci_detectable_delta": 0.5583521380720249,
+   "p_null": 0.05709371693734522,
+   "engine_win_rate": 0.56,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "fcstgnn",
+   "subset": "FD001",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": -0.3953922861416803
+    },
+    {
+     "seed": 202,
+     "delta": -0.4708845380958788
+    },
+    {
+     "seed": 303,
+     "delta": 0.3682997207630656
+    }
+   ],
+   "delta_mean": -0.16599236782483046,
+   "boot_ci": [
+    -1.3770474114692193,
+    0.9877574005192219
+   ],
+   "boot_se": 0.6064721039030314,
+   "mde": 1.6981218909284879,
+   "n_engines": 20,
+   "sd_paired_delta": 2.7876101811934584,
+   "required_n_engines": 301,
+   "ci_detectable_delta": 1.1886853236499415,
+   "p_null": 0.2290448172223848,
+   "engine_win_rate": 0.55,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "fcstgnn",
+   "subset": "FD004",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.5372667012198136
+    },
+    {
+     "seed": 202,
+     "delta": 0.16174253929233195
+    },
+    {
+     "seed": 303,
+     "delta": -0.04505295758245431
+    }
+   ],
+   "delta_mean": 0.2179854276432301,
+   "boot_ci": [
+    -0.5891247018484737,
+    0.9878994245556778
+   ],
+   "boot_se": 0.4065005811949294,
+   "mde": 1.1382016273458022,
+   "n_engines": 50,
+   "sd_paired_delta": 2.8625575550458673,
+   "required_n_engines": 318,
+   "ci_detectable_delta": 0.7967411391420616,
+   "p_null": 0.1341449132378152,
+   "engine_win_rate": 0.5,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "ffve",
+   "subset": "FD001",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.3547865659199463
+    },
+    {
+     "seed": 202,
+     "delta": 0.038305073431194714
+    },
+    {
+     "seed": 303,
+     "delta": -0.5380294552806717
+    }
+   ],
+   "delta_mean": -0.04831260530984323,
+   "boot_ci": [
+    -1.2668549206955677,
+    0.9787102032973163
+   ],
+   "boot_se": 0.5743109696572647,
+   "mde": 1.608070715040341,
+   "n_engines": 20,
+   "sd_paired_delta": 2.6408241369959615,
+   "required_n_engines": 271,
+   "ci_detectable_delta": 1.1256495005282388,
+   "p_null": 0.21665279722773145,
+   "engine_win_rate": 0.55,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "ffve",
+   "subset": "FD004",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": -0.5229797444613702
+    },
+    {
+     "seed": 202,
+     "delta": -0.13982713194081242
+    },
+    {
+     "seed": 303,
+     "delta": -0.2850304219926958
+    }
+   ],
+   "delta_mean": -0.315945766131626,
+   "boot_ci": [
+    -0.7658846339876664,
+    0.14191044241269615
+   ],
+   "boot_se": 0.23264744410925287,
+   "mde": 0.651412843505908,
+   "n_engines": 50,
+   "sd_paired_delta": 1.6607760207631286,
+   "required_n_engines": 107,
+   "ci_detectable_delta": 0.4559889904541356,
+   "p_null": 0.0265407547276848,
+   "engine_win_rate": 0.38,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "two_phase",
+   "subset": "FD001",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.3349484208294662
+    },
+    {
+     "seed": 202,
+     "delta": 0.12383610371689535
+    },
+    {
+     "seed": 303,
+     "delta": -0.777237588538437
+    }
+   ],
+   "delta_mean": -0.10615102133069265,
+   "boot_ci": [
+    -1.5919289326447572,
+    1.4224242240983092
+   ],
+   "boot_se": 0.7671217882582553,
+   "mde": 2.1479410071231144,
+   "n_engines": 20,
+   "sd_paired_delta": 3.517764953226189,
+   "required_n_engines": 480,
+   "ci_detectable_delta": 1.5035587049861803,
+   "p_null": 0.27873340705581906,
+   "engine_win_rate": 0.5,
+   "s1_same_sign": false,
+   "s2_effect": false,
+   "s3_branch": "sign_fail",
+   "ci_branch": "underpowered",
+   "s4_win_rate": false,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": true,
+   "passes": false,
+   "within_noise": true
+  },
+  {
+   "backbone": "two_phase",
+   "subset": "FD004",
+   "per_seed": [
+    {
+     "seed": 101,
+     "delta": 0.8032445680317544
+    },
+    {
+     "seed": 202,
+     "delta": 0.7087341854903215
+    },
+    {
+     "seed": 303,
+     "delta": 0.8470130101620192
+    }
+   ],
+   "delta_mean": 0.7863305878947021,
+   "boot_ci": [
+    0.16977868272717206,
+    1.5113510909176915
+   ],
+   "boot_se": 0.3469685927030743,
+   "mde": 0.971512059568608,
+   "n_engines": 50,
+   "sd_paired_delta": 2.5002860788507584,
+   "required_n_engines": 243,
+   "ci_detectable_delta": 0.6800584416980255,
+   "p_null": 0.09732464991349721,
+   "engine_win_rate": 0.6,
+   "s1_same_sign": true,
+   "s2_effect": true,
+   "s3_branch": "consistent",
+   "ci_branch": "consistent",
+   "s4_win_rate": true,
+   "underpowered": false,
+   "evaluable": true,
+   "determinate_fail": false,
+   "passes": true,
+   "within_noise": false
+  }
+ ],
+ "forbidden_claims": [],
+ "note": "SC \u6863\u53ea\u5141\u8bb8\u5199\u300c\u5355\u5de5\u51b5\u524d\u7aef\u300d\uff0cFull \u6863\u624d\u662f\u4e3b\u7ed3\u8bba\uff1bSC \u4e0d\u5f97\u88ab\u8868\u8ff0\u6210 Full\uff08\u672c\u8bb0\u5f55 verdict \u5b57\u6bb5\u662f\u552f\u4e00\u5224\u636e\uff09"
+}
