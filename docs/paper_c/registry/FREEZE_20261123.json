@@ -5,11 +5,11 @@
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
     "version": "v7.1",
-    "blob_id": "1b61cc7df04e16ddbcd3d0e668b561ca16d36aba",
-    "blob_sha256": "f54a8d2cc963d737de5e4fb584bb8d52345bd881b3116fa1d8957bf3c7d6261b",
-    "commit": "e2afa1a7",
-    "bytes": 81271,
-    "lines": 1019
+    "blob_id": "6696647e116fab4a10ff256d2193276024998bf6",
+    "blob_sha256": "56faae62b1bd94374a8307460f281d9af9b7c525962aadaaa485f1d9103b0873",
+    "commit": "e72ba46d",
+    "bytes": 81400,
+    "lines": 1020
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -115,7 +115,8 @@
         "new protocol_deviant class (dual_mixer neg_meta_policy=anchor_tiled): excluded from numerator and denominator, must not be attributed to CADF",
         "condition 3: only 'CI crosses 0 AND MDE>0.45' leaves the denominator; determinately_worse (CI entirely below 0) stays in the denominator as a fail -- fixes a decision-flipping bug where a harmful backbone could enter the undetermined pool and help itself pass",
         "MDE defined as 2.8*SE (80% power), explicitly not the 1.96*SE CI half-width",
-        "reporting requirement: record final ||proj|| and ||gate|| per cell, to distinguish 'module not activated' from 'module ineffective'"
+        "reporting requirement: record final ||proj|| and ||gate|| per cell, to distinguish 'module not activated' from 'module ineffective'",
+        "naming alias: record field underpowered_but_counted == prereg term underpowered (same meaning; no criterion change), commit e72ba46d"
       ]
     }
   ]
