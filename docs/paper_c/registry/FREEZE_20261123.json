@@ -4,12 +4,12 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.0",
-    "blob_id": "877a2228607bb5c56ab6d6f0b14a40baf09b4e81",
-    "blob_sha256": "66836b034aaa7f18cf68871f1b28e185d82c734ffce02f64ec19090647e0152b",
-    "commit": "bfbe70c2",
-    "bytes": 76423,
-    "lines": 963
+    "version": "v7.1",
+    "blob_id": "1b61cc7df04e16ddbcd3d0e668b561ca16d36aba",
+    "blob_sha256": "f54a8d2cc963d737de5e4fb584bb8d52345bd881b3116fa1d8957bf3c7d6261b",
+    "commit": "e2afa1a7",
+    "bytes": 81271,
+    "lines": 1019
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -30,11 +30,23 @@
       "blob_id": "a59516a7183eba31f7eb4304bba2fd8f687227d6",
       "blob_sha256": "978ccdbb4800093bee42acdc99a9da112a37ca1466407d27ec646637c58e9f4c",
       "role": "A 段判据（协议保真 + 漂移测量）；不含 B 段逻辑"
+    },
+    "paper_c/vote_b.py": {
+      "blob_id": "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7",
+      "blob_sha256": "0be7491e8a4d05812bec5f286697a6292b204beffc41e276557a14935f11a8b0",
+      "bytes": 17657,
+      "role": "B 段判据（§4.4.1 三条 + §4.5 Full/SC + 统一判定式）；自测 28/28 EXIT=0"
+    },
+    "paper_c/vote_b_selftest.py": {
+      "blob_id": "9c9fe238ae85649b3652190e27d7884d0435be4e",
+      "blob_sha256": "0a1c45df10b334829d5e45a21145f4a0f1e3374265b8de7f99842a3f29c3ea46",
+      "bytes": 14418,
+      "role": "vote_b 自测"
     }
   },
   "frozen_thresholds": {
     "effect_size_min": 0.45,
-    "harmless_tol": -0.10,
+    "harmless_tol": -0.1,
     "k_min": 4,
     "same_sign": "3/3",
     "engine_bootstrap": {
@@ -51,7 +63,10 @@
     "status": "PENDING-L2",
     "reviewer": "none",
     "statement": "§4.4.1 condition 3 and §4.5 tiered gate were decided by the manager on evidence, with NO external Codex review (mcp__codex__codex unavailable: WinError 2). Must NOT be described as reviewed/approved. Re-review when L2 is available; append the conclusion, never overwrite.",
-    "scope": ["4.4.1 condition 3 (MDE four-branch)", "4.5 Full/SC tiered gate"]
+    "scope": [
+      "4.4.1 condition 3 (MDE four-branch)",
+      "4.5 Full/SC tiered gate"
+    ]
   },
   "a_segment_status": {
     "cells": 30,
@@ -65,11 +80,11 @@
       "two_phase pretraining 6/6 (FD001 20 epochs, target 16762, paired 20486; FD004 100 epochs, target 48691, paired 43251; encoder_frozen=true)"
     ],
     "max_abs_darg_per_backbone": {
-      "aidgn": 0.19271241741303591,
+      "aidgn": 0.1927124174130359,
       "dual_mixer": 1.1667847257257336e-06,
-      "fcstgnn": 7.1054273576010019e-15,
-      "ffve": 0.37884853684636788,
-      "two_phase": 0.42310851254400639
+      "fcstgnn": 7.105427357601002e-15,
+      "ffve": 0.3788485368463679,
+      "two_phase": 0.4231085125440064
     },
     "max_abs_darg_note": "All five below 0.45, so max(0.45, floor_b) never binds; floor_b is report-only.",
     "two_phase_six_cells": {
@@ -83,8 +98,25 @@
     "residual_limitation": "Cross-machine is bit-identical on FD004 but NOT on FD001: two_phase/FD001 still shows 0.16-0.42 displacement, aidgn 0.19, ffve 0.38. Cause un-attributed (pretraining / operator nondeterminism not investigated). Must go to the limitations section; must not be written as 'whole batch bit-identical' nor withdrawn as 'all our bug'."
   },
   "b_segment_precondition": {
-    "vote_b_py": "NOT YET COMMITTED as of this freeze",
-    "rule": "B segment must not start until paper_c/vote_b.py is committed and its blob_id + blob_sha256 are appended to this file under companions."
+    "vote_b_py": "COMMITTED (blob 22a0fa2e, sha256 0be7491e); selftest 28/28 EXIT=0 verified locally by 郑总 before commit",
+    "rule": "B segment verdicts may now be produced. Any later fix to vote_b.py requires a new commit plus a new blob entry here, before the affected verdict is read."
   },
-  "hash_naming_rule": "blob_id = git object id (git rev-parse HEAD:<path>, for git cat-file); blob_sha256 = sha256 of the blob content. Never write a bare 'hash'."
+  "hash_naming_rule": "blob_id = git object id (git rev-parse HEAD:<path>, for git cat-file); blob_sha256 = sha256 of the blob content. Never write a bare 'hash'.",
+  "post_freeze_addenda": [
+    {
+      "id": 1,
+      "date": "2026-11-23",
+      "prereg_version": "v7.1",
+      "commit": "e2afa1a7",
+      "direction": "narrowing only; no threshold changed (0.45 / -0.10 / 10000 / 20261123 / k_min=4 all unchanged)",
+      "changes": [
+        "tiered gate judged on the 5 SOTA arms only, k_min=4; 4/5 is STRICTER than 4/6 because 4/6 allowed '3 SOTA + B_min'",
+        "B_min reported on its own row and votes on nothing; PENDING tier deleted",
+        "new protocol_deviant class (dual_mixer neg_meta_policy=anchor_tiled): excluded from numerator and denominator, must not be attributed to CADF",
+        "condition 3: only 'CI crosses 0 AND MDE>0.45' leaves the denominator; determinately_worse (CI entirely below 0) stays in the denominator as a fail -- fixes a decision-flipping bug where a harmful backbone could enter the undetermined pool and help itself pass",
+        "MDE defined as 2.8*SE (80% power), explicitly not the 1.96*SE CI half-width",
+        "reporting requirement: record final ||proj|| and ||gate|| per cell, to distinguish 'module not activated' from 'module ineffective'"
+      ]
+    }
+  ]
 }
