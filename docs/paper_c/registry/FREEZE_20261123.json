@@ -4,13 +4,17 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.4",
-    "blob_id": "6e2c19bdf787f918fe45aca57fe0daa476fe0390",
-    "blob_sha256": "58577a13a82b50a65671fbbd0c7b6d69ed4ad76946b19e2aecca2dcea6123e30",
-    "commit": "6fcfb0ba",
-    "bytes": 87546,
-    "lines": 1106,
-    "role": "current text (frozen v7.0 + post-freeze addenda); the frozen original is kept under frozen_original"
+    "version": "v7.4 + addendum #3",
+    "blob_id": "d8cc1b94b3276f04a7b1dab4f381ef327db9fe0e",
+    "blob_sha256": "a575a8c6ffa01c572b65960473800e6ee9948bb90336ffda39390d08da26b4c8",
+    "commit": "6794fe25",
+    "bytes": 90919,
+    "lines": 1139,
+    "role": "current text (frozen v7.0 + post-freeze addenda); the frozen original is kept under frozen_original",
+    "superseded_blob_id": "6e2c19bdf787f918fe45aca57fe0daa476fe0390",
+    "superseded_blob_sha256": "58577a13a82b50a65671fbbd0c7b6d69ed4ad76946b19e2aecca2dcea6123e30",
+    "superseded_commit": "6fcfb0ba",
+    "superseded_note": "the v7.4 text before addendum #3; superseded, never cite it as current"
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -33,16 +37,24 @@
       "role": "A 段判据（协议保真 + 漂移测量）；不含 B 段逻辑"
     },
     "paper_c/vote_b.py": {
-      "blob_id": "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7",
-      "blob_sha256": "0be7491e8a4d05812bec5f286697a6292b204beffc41e276557a14935f11a8b0",
-      "bytes": 17657,
-      "role": "B 段判据（§4.4.1 三条 + §4.5 Full/SC + 统一判定式）；自测 28/28 EXIT=0"
+      "blob_id": "1234fe5248e6facc4dad0d17d002cbd1ffef409a",
+      "blob_sha256": "52552a1b2ab8f3aaff8c0dd26c3d9c50e8a8d4925b7241c1544cadadc2b4d9db",
+      "bytes": 26336,
+      "lines": 373,
+      "role": "B 段判据（§4.4.1 固定顺序 + §4.5 Full/SC + 统一判定式 + p_null + inputs.v0_root/v1_root）；自测 37/37 EXIT=0",
+      "reviewed_by": "牢莫 2026-11-23 (order, field read/write, inputs, n_und direction) -- all pass",
+      "superseded_blob_id": "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7",
+      "superseded_blob_sha256": "0be7491e8a4d05812bec5f286697a6292b204beffc41e276557a14935f11a8b0",
+      "superseded_note": "28/28 version; superseded before any B-segment verdict was produced, never use it for a verdict"
     },
     "paper_c/vote_b_selftest.py": {
-      "blob_id": "9c9fe238ae85649b3652190e27d7884d0435be4e",
-      "blob_sha256": "0a1c45df10b334829d5e45a21145f4a0f1e3374265b8de7f99842a3f29c3ea46",
-      "bytes": 14418,
-      "role": "vote_b 自测"
+      "blob_id": "d7468c471b3efe26e4cb9cdd20216fe6d3493f94",
+      "blob_sha256": "550e23e7cd9bc65a9ee6b855240d80cb739e9e82ea717918896fb43b7f87e9fa",
+      "bytes": 20491,
+      "lines": 387,
+      "role": "vote_b 自测；37/37 EXIT=0，含 main() 端到端（PASS->EXIT=0 / FAIL->EXIT=1）",
+      "superseded_blob_id": "9c9fe238ae85649b3652190e27d7884d0435be4e",
+      "superseded_blob_sha256": "0a1c45df10b334829d5e45a21145f4a0f1e3374265b8de7f99842a3f29c3ea46"
     }
   },
   "frozen_thresholds": {
@@ -99,7 +111,7 @@
     "residual_limitation": "Cross-machine is bit-identical on FD004 but NOT on FD001: two_phase/FD001 still shows 0.16-0.42 displacement, aidgn 0.19, ffve 0.38. Cause un-attributed (pretraining / operator nondeterminism not investigated). Must go to the limitations section; must not be written as 'whole batch bit-identical' nor withdrawn as 'all our bug'."
   },
   "b_segment_precondition": {
-    "vote_b_py": "COMMITTED (blob 22a0fa2e, sha256 0be7491e); selftest 28/28 EXIT=0 verified locally by 郑总 before commit",
+    "vote_b_py": "COMMITTED (final: blob 1234fe52, sha256 52552a1b); selftest 37/37 EXIT=0; independently reviewed by 牢莫 2026-11-23 (branch order, field read/write, inputs, n_und direction). The superseded 22a0fa2e (28/28) version was never used for a verdict.",
     "rule": "B segment verdicts may now be produced. Any later fix to vote_b.py requires a new commit plus a new blob entry here, before the affected verdict is read."
   },
   "hash_naming_rule": "blob_id = git object id (git rev-parse HEAD:<path>, for git cat-file); blob_sha256 = sha256 of the blob content. Never write a bare 'hash'.",
@@ -134,6 +146,50 @@
         "estimator note: analytic MDE vs bootstrap CI differ by 0.3-3.8%",
         "reporting: every table reports MDE and p_null (report item, not a criterion)",
         "wording: 'underpowered under this protocol' is not 'module invalid'; INCONCLUSIVE may not be rewritten as PASS nor used to relax thresholds"
+      ]
+    },
+    {
+      "id": 3,
+      "date": "2026-11-23",
+      "prereg_version": "v7.4 + addendum #3",
+      "commit": "6794fe25",
+      "blob_id": "d8cc1b94b3276f04a7b1dab4f381ef327db9fe0e",
+      "blob_sha256": "a575a8c6ffa01c572b65960473800e6ee9948bb90336ffda39390d08da26b4c8",
+      "bytes": 90919,
+      "lines": 1139,
+      "direction": "wording only; thresholds, conditions, branch order and k_min unchanged",
+      "changes": [
+        "powered_but_null marked STRUCTURALLY UNREACHABLE with proof: reaching the CI branch implies dbar >= 0.45, and MDE <= 0.45 implies SE <= 0.1607, hence lo >= 0.135 > 0 and consistent always fires first",
+        "determinately_worse marked STRUCTURALLY UNREACHABLE too -- a second branch found by 郑总 while re-deriving the first: it needs hi < 0 while the bootstrap resample mean is dbar >= 0.45",
+        "escape conditions written down because the CI is a percentile bootstrap, not dbar +- 1.96*SE: powered_but_null needs the 2.5th percentile more than 2.8 SD below the mean; determinately_worse needs the 97.5th percentile at least 0.45 below the mean. No instance at n=20/50; if one ever appears it must be reported separately and must NOT be read as the branch being reachable",
+        "consequence recorded: the CI branch has exactly two exits, consistent (vote) or underpowered (leaves numerator and denominator). The protection determinately_worse used to provide (a harmful backbone must stay in the denominator as a fail) is now provided earlier, by effect_size_fail",
+        "two DEAD TEXTS corrected to match v7.4: 'v7.2 already moved significance out of the Gate' and 'bootstrap is report-only since v7.2, not in passes' were both FALSE after the v7.2 withdrawal -- CI is back in passes condition 4",
+        "criterion general rule upgraded to three-way: structurally unreachable (must carry a proof) / no instance in this batch (say so, never call it unreachable) / dead text (delete it)"
+      ]
+    },
+    {
+      "id": 4,
+      "date": "2026-11-23",
+      "artifact": "paper_c/vote_b.py + paper_c/vote_b_selftest.py",
+      "commit": "257686c0",
+      "blob_id": "1234fe5248e6facc4dad0d17d002cbd1ffef409a",
+      "blob_sha256": "52552a1b2ab8f3aaff8c0dd26c3d9c50e8a8d4925b7241c1544cadadc2b4d9db",
+      "selftest_blob_id": "d7468c471b3efe26e4cb9cdd20216fe6d3493f94",
+      "selftest_blob_sha256": "550e23e7cd9bc65a9ee6b855240d80cb739e9e82ea717918896fb43b7f87e9fa",
+      "status": "FINAL for the B-segment verdict; 37/37 EXIT=0; independently reviewed by 牢莫 2026-11-23",
+      "changes": [
+        "fixed order implemented as control flow, not as labels: s3_branch = sign_fail -> effect_size_fail -> win_rate_fail, and only a cell passing all three reaches ci_branch; ok additionally requires s3_branch == 'consistent'",
+        "ci_branch kept as a report-only CI classification (consistent | determinately_worse | powered_but_null | underpowered)",
+        "effective_threshold renamed ci_detectable_delta, with a comment that it does not enter the Gate",
+        "p_null = 1 - Phi(0.45/SE) added to every cell record",
+        "n_und kept and live: FAIL requires k_full + n_und_full < k_min AND k_sc + n_und_sc < k_min, so 3 pass + 1 fail + 1 undetermined is INCONCLUSIVE, not FAIL",
+        "inputs.v0_root / v1_root recorded, so which tree is which arm comes from the command line and never from a directory name (out_b/v0 holds the CADF arm, not V0)",
+        "s3_unreachable_branches declared in the record",
+        "end-to-end main() cases added (PASS -> EXIT=0, FAIL -> EXIT=1) so reading a non-existent field can no longer pass silently"
+      ],
+      "superseded": [
+        "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7 (28/28) -- never used for a verdict",
+        "intermediate versions 5203ab5c / ea54839f / c1f3de13 deliberately NOT recorded here, per the rule that only the final blob enters this file"
       ]
     }
   ],
@@ -193,6 +249,6 @@
     "blob_id": "877a2228607bb5c56ab6d6f0b14a40baf09b4e81",
     "blob_sha256": "66836b034aaa7f18cf68871f1b28e185d82c734ffce02f64ec19090647e0152b",
     "lines": 963,
-    "note": "the text as frozen on 2026-11-23; later post-freeze addenda (v7.1 narrowing, v7.2 partial withdrawal, v7.4 implementation alignment) are recorded separately and never replace this entry"
+    "note": "the text as frozen on 2026-11-23; later post-freeze addenda (v7.1 narrowing, v7.2 partial withdrawal, v7.4 implementation alignment, addendum #3 unreachable-branch wording) are recorded separately and never replace this entry"
   }
 }
