@@ -4,12 +4,12 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.1",
-    "blob_id": "6696647e116fab4a10ff256d2193276024998bf6",
-    "blob_sha256": "56faae62b1bd94374a8307460f281d9af9b7c525962aadaaa485f1d9103b0873",
-    "commit": "e72ba46d",
-    "bytes": 81400,
-    "lines": 1020
+    "version": "v7.3",
+    "blob_id": "efef194d0d928e4b5b3cc5f11a9ea5aed3d7d3cb",
+    "blob_sha256": "8cb1ef84c1f70b185ac4cdedb1e84350c6d2d96318ebda4fc19505b5737042c4",
+    "commit": "6f91e06c",
+    "bytes": 84763,
+    "lines": 1071
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -118,6 +118,32 @@
         "reporting requirement: record final ||proj|| and ||gate|| per cell, to distinguish 'module not activated' from 'module ineffective'",
         "naming alias: record field underpowered_but_counted == prereg term underpowered (same meaning; no criterion change), commit e72ba46d"
       ]
+    },
+    {
+      "id": 2,
+      "date": "2026-11-23",
+      "prereg_version": "v7.3",
+      "status": "PROPOSED THEN WITHDRAWN",
+      "proposal": "Gate 1 as a screening gate (3/3 same sign, delta_mean >= 0.45, engine_win_rate >= 0.60) with significance moved to Terminal TEST",
+      "withdrawn_because": "TEST MDE is 0.73 (FD001, 100 engines) and 0.60 (FD004, 248 engines), still above 0.45 -- moving significance to TEST merely relocates an unreachable condition and burns the single TEST shot",
+      "consequence": "frozen criteria restored, including 'CI excludes 0'; the relaxation is kept only as a record and must not be cited as the live criterion",
+      "still_valid": [
+        "MDE 1.38-2.17 and required engines 250-900 (worst about 900)",
+        "option '5-fold out-of-fold x5 samples' is excluded (5 clusters)",
+        "estimator note: analytic MDE vs bootstrap CI differ by 0.3-3.8%",
+        "reporting: every table reports MDE and p_null (report item, not a criterion)",
+        "wording: 'underpowered under this protocol' is not 'module invalid'; INCONCLUSIVE may not be rewritten as PASS nor used to relax thresholds"
+      ]
     }
-  ]
+  ],
+  "power_ceiling": {
+    "statement": "C-MAPSS 验证集在数学上装不下 0.45 这个效应量；此结论在 B 段开跑前就已可算，属于事前已知的设计限制，不是事后发现。",
+    "mde80_measured": "1.38-2.17 (threshold 0.45 is 3-5x smaller)",
+    "required_engines": "250-900 (worst cell about 900; per-cell SD(d) FD001 2.54-3.35, FD004 3.47-4.82)",
+    "available_engines": "20 (FD001) / 50 (FD004) validation engines",
+    "effective_gate": "CI excluding 0 effectively demands delta_mean about 1.1, i.e. 2.4x the stated 0.45",
+    "test_mde": "0.73 (FD001, 100 engines) / 0.60 (FD004, 248 engines) -- still above 0.45, so moving significance to TEST does not make 0.45 testable",
+    "excluded_option": "5-fold out-of-fold x5 samples: 100 OOF predictions come from 5 models (5 clusters); naive bootstrap under-covers and a 5-cluster bootstrap cannot give a usable 95% CI",
+    "estimator_note": "MDE is analytic 2.8*SD/sqrt(n); the CI is bootstrap percentile; within a cell they differ by 0.3-3.8%"
+  }
 }
