@@ -151,6 +151,11 @@ FD004 的 `MDE` 是 0.65–1.14，分界落在 **0.33–0.57**。三段都必须
 对象：`B_min` + `fcstgnn` × `{FD001, FD004}` × 3 seeds。
 六臂：`Global-Ridge` / `Cluster-Ridge` / `MLP-Imputer` / `MaskAug` / `ST-CCMR` / `ST-CCMR-Permuted`。
 
+**`B_min` 的地位（写死，不留模糊）**：它的 `headroom` **一次都没测过**（A 段只跑了 5 个 SOTA，`out_v8` 里没有它的
+checkpoint），所以**不进 Gate 分母，只作报告**——这与 `P2` v7.1 的先例一致（「`B_min` 单列报告、不投票」）。
+补测（经理 2026-11-23 已批为「补已知缺口」，不算 pilot）之后若要把它放进分母，**必须在本文件冻结前改这一行**，
+不得在跑完 Gate 之后再改。**没有 headroom 的骨干不能有门**——这条对 `B_min` 和其它任何骨干一视同仁。
+
 **Gate 1-Pilot（必须全部满足）**：
 
 1. `FD004 drop40`：`ST-CCMR` 相对**四个基线全部** `3/3` 同号且均值 `Δ ≥ gate_b`
