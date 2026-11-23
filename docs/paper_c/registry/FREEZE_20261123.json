@@ -4,12 +4,12 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.4 + addenda #3,#5",
-    "blob_id": "8fe382d445b495c8286bb170be6db9acc0f7f541",
-    "blob_sha256": "2507fc8314ae312ce2389024cfcdccd3e2380c75e4dc1cac3c24ca9d9d93fcbc",
-    "commit": "a5333322",
-    "bytes": 93337,
-    "lines": 1161,
+    "version": "v7.4 + addenda #3,#5,#6",
+    "blob_id": "2540cb6c690d310bbfc5e56a8e56e6ec5ad397d1",
+    "blob_sha256": "096f9e7fefb13db32a175620dcca0574d601b07230f3f596f9f057f9a89ba96b",
+    "commit": "dbf05df4",
+    "bytes": 94169,
+    "lines": 1168,
     "role": "current text (frozen v7.0 + post-freeze addenda); the frozen original is kept under frozen_original",
     "superseded": [
       {
@@ -23,6 +23,12 @@
         "blob_sha256": "a575a8c6ffa01c572b65960473800e6ee9948bb90336ffda39390d08da26b4c8",
         "commit": "6794fe25",
         "note": "v7.4 + addendum #3 (unreachable branches)"
+      },
+      {
+        "blob_id": "8fe382d445b495c8286bb170be6db9acc0f7f541",
+        "blob_sha256": "2507fc8314ae312ce2389024cfcdccd3e2380c75e4dc1cac3c24ca9d9d93fcbc",
+        "commit": "a5333322",
+        "note": "v7.4 + addenda #3,#5 (no-attribution rule, FINAL_DECISION spec)"
       }
     ]
   },
@@ -219,12 +225,37 @@
         "FINAL_DECISION spec: generated field by field from the vote_b.py JSON record, never hand-copied; four sections that must not be merged -- Gate (k_full / k_sc / n_und / k_min plus the s3_branch distribution), unconditional point estimates for all 30 cells with p_null and the 0.16-0.24 winner's-curse inflation, CI (MDE, required_n, ci_detectable_delta), and mechanism plus the no-attribution sentence",
         "mechanism iteration recorded instead of only its final version: 'preprocessing overlap' falsified by ||b||/||x|| = 0.79-0.93; 'high-pass filter discards the trend' falsified by the architecture (return x + g*proj(z), with x passing through untouched); current reading: 'input-layer re-encoding that adds no information beyond x', verifiable in code because z = [x, delta, e] are all deterministic functions of (x, cluster, mask)"
       ]
+    },
+    {
+      "id": 6,
+      "date": "2026-11-23",
+      "prereg_version": "v7.4 + addenda #3,#5,#6",
+      "commit": "dbf05df4",
+      "blob_id": "2540cb6c690d310bbfc5e56a8e56e6ec5ad397d1",
+      "blob_sha256": "096f9e7fefb13db32a175620dcca0574d601b07230f3f596f9f057f9a89ba96b",
+      "bytes": 94169,
+      "lines": 1168,
+      "direction": "measurement correction only; no threshold, condition, branch order or k_min changed",
+      "changes": [
+        "the limitations paragraph's early power estimates are replaced by the 30-cell measurements: MDE 0.65-2.15 (was 1.38-2.17), required_n 107-480 (was 250-900), ci_detectable_delta 0.456-1.504 (was a single ~1.1, so the '2.4x' factor measures as 1.0-3.3x)",
+        "why they differ: the early estimate used SINGLE-SEED per-engine deltas (seed noise included); the final uses per-engine RMSE averaged over the three seeds, so seed noise is averaged out and SD is smaller. Both versions are kept; power_ceiling.superseded_by_measurement holds the measured values",
+        "the conclusion is unchanged: 0.45 is still far below what this protocol can detect; only the numbers move, and the paper's limitations section must quote the measured ones"
+      ]
     }
   ],
   "power_ceiling": {
     "statement": "C-MAPSS 验证集在数学上装不下 0.45 这个效应量；此结论在 B 段开跑前就已可算，属于事前已知的设计限制，不是事后发现。",
     "mde80_measured": "1.38-2.17 (threshold 0.45 is 3-5x smaller)",
     "required_engines": "250-900 (worst cell about 900; per-cell SD(d) FD001 2.54-3.35, FD004 3.47-4.82)",
+    "superseded_by_measurement": {
+      "date": "2026-11-23",
+      "mde80_measured": "0.65-2.15 (30 cells, final)",
+      "required_engines": "107-480 (worst about 480)",
+      "ci_detectable_delta": "0.456-1.504 (not a single ~1.1, so the '2.4x' factor is 1.0-3.3x in measurement)",
+      "per_cell_sd_d": "FD001 1.86-3.52, FD004 1.66-2.86",
+      "why_different": "the early estimate used SINGLE-SEED per-engine deltas (seed noise included); the final uses per-engine RMSE averaged over the three seeds, so the seed noise is averaged out and SD is smaller",
+      "rule": "the paper limitations section cites the MEASURED values; the 250-900 above is an early estimate and must not be quoted as measured. Both versions are kept."
+    },
     "available_engines": "20 (FD001) / 50 (FD004) validation engines",
     "effective_gate": "CI excluding 0 effectively demands delta_mean about 1.1, i.e. 2.4x the stated 0.45",
     "test_mde": "0.73 (FD001, 100 engines) / 0.60 (FD004, 248 engines) -- still above 0.45, so moving significance to TEST does not make 0.45 testable",
