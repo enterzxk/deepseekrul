@@ -28,8 +28,9 @@
 ## 已知口径坑（引用前必读）
 
 - 判定记录里的 `within_noise` / `not_passes` = `not passes`，**不是噪声检验**。
-  真正的 seed 噪声对照看 `B_CELLS.json` 的 `sd_seed` 与 `|Δ̄|/sd_seed`：
-  9/10 组 ≤ 1.63 倍，唯一例外 `two_phase/FD004` 为 11.12 倍。
+  真正的 seed 噪声对照看 `B_CELLS.json` 的 `sd_seed`，按 `SE(Δ̄)=sd_seed/√3` 折成
+  `t = Δ̄/SE(Δ̄)`（df=2，双侧 5% 临界 4.30）：**9/10 组 |t| ≤ 2.83，唯一显著是
+  `two_phase/FD004` 的 t=19.26**。
 - `Δ̄` 是 3 个 seed 的均值，`SE(Δ̄) = sd/√3`；**不得**拿单 seed 的 sd 直接比 `Δ̄`。
 - `two_phase/FD004` 是 10 个单元里唯一四条全过（`passes=true`，CI [+0.1698,+1.5114]），
   但 `full` 档要求 FD001+FD004 同时、`sc` 档只认 FD001，**两档都放不下它**；
