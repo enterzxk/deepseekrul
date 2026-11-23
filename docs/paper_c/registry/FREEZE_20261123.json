@@ -40,7 +40,7 @@
       "blob_id": "1234fe5248e6facc4dad0d17d002cbd1ffef409a",
       "blob_sha256": "52552a1b2ab8f3aaff8c0dd26c3d9c50e8a8d4925b7241c1544cadadc2b4d9db",
       "bytes": 26336,
-      "lines": 373,
+      "lines": 426,
       "role": "B 段判据（§4.4.1 固定顺序 + §4.5 Full/SC + 统一判定式 + p_null + inputs.v0_root/v1_root）；自测 37/37 EXIT=0",
       "reviewed_by": "牢莫 2026-11-23 (order, field read/write, inputs, n_und direction) -- all pass",
       "superseded_blob_id": "22a0fa2e9e9214dd20cff1c18ba641fc74cf9ba7",
@@ -51,7 +51,7 @@
       "blob_id": "d7468c471b3efe26e4cb9cdd20216fe6d3493f94",
       "blob_sha256": "550e23e7cd9bc65a9ee6b855240d80cb739e9e82ea717918896fb43b7f87e9fa",
       "bytes": 20491,
-      "lines": 387,
+      "lines": 409,
       "role": "vote_b 自测；37/37 EXIT=0，含 main() 端到端（PASS->EXIT=0 / FAIL->EXIT=1）",
       "superseded_blob_id": "9c9fe238ae85649b3652190e27d7884d0435be4e",
       "superseded_blob_sha256": "0a1c45df10b334829d5e45a21145f4a0f1e3374265b8de7f99842a3f29c3ea46"
@@ -115,6 +115,7 @@
     "rule": "B segment verdicts may now be produced. Any later fix to vote_b.py requires a new commit plus a new blob entry here, before the affected verdict is read."
   },
   "hash_naming_rule": "blob_id = git object id (git rev-parse HEAD:<path>, for git cat-file); blob_sha256 = sha256 of the blob content. Never write a bare 'hash'.",
+  "lines_counting_rule": "lines = number of newline bytes in the blob content (git cat-file blob <id>, then d.count(b'\\n')); all recorded files end with a newline, so that is the line count. Never use PowerShell Get-Content .Count on this host: it mis-decodes UTF-8 and undercounts (prereg 606 vs 1139, vote_b.py 373 vs 426, selftest 387 vs 409).",
   "post_freeze_addenda": [
     {
       "id": 1,
@@ -248,7 +249,8 @@
     "commit": "bfbe70c2",
     "blob_id": "877a2228607bb5c56ab6d6f0b14a40baf09b4e81",
     "blob_sha256": "66836b034aaa7f18cf68871f1b28e185d82c734ffce02f64ec19090647e0152b",
-    "lines": 963,
+    "lines": 962,
+    "lines_corrected": "963 -> 962 on 2026-11-23: the 963 came from len(split('\\n')), which counts the empty string after the trailing newline; the other entries in this file use the newline count. blob_id and blob_sha256 were re-verified unchanged.",
     "note": "the text as frozen on 2026-11-23; later post-freeze addenda (v7.1 narrowing, v7.2 partial withdrawal, v7.4 implementation alignment, addendum #3 unreachable-branch wording) are recorded separately and never replace this entry"
   }
 }
