@@ -4,12 +4,12 @@
   "frozen_at_note": "Asia/Shanghai; prereg v7.0",
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
-    "version": "v7.3",
-    "blob_id": "efef194d0d928e4b5b3cc5f11a9ea5aed3d7d3cb",
-    "blob_sha256": "8cb1ef84c1f70b185ac4cdedb1e84350c6d2d96318ebda4fc19505b5737042c4",
-    "commit": "6f91e06c",
-    "bytes": 84763,
-    "lines": 1071
+    "version": "v7.4",
+    "blob_id": "fca0303bab42eb35557f838ae85269198ecc0427",
+    "blob_sha256": "43814e27145748b2ab54cd67025e175f81b9387dd644a2c3288e34bd36a79885",
+    "commit": "71bf51c6",
+    "bytes": 86306,
+    "lines": 1090
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -123,10 +123,10 @@
       "id": 2,
       "date": "2026-11-23",
       "prereg_version": "v7.3",
-      "status": "PROPOSED THEN WITHDRAWN",
+      "status": "PARTIALLY WITHDRAWN -- only the 'move significance out of Gate' clause",
       "proposal": "Gate 1 as a screening gate (3/3 same sign, delta_mean >= 0.45, engine_win_rate >= 0.60) with significance moved to Terminal TEST",
       "withdrawn_because": "TEST MDE is 0.73 (FD001, 100 engines) and 0.60 (FD004, 248 engines), still above 0.45 -- moving significance to TEST merely relocates an unreachable condition and burns the single TEST shot",
-      "consequence": "frozen criteria restored, including 'CI excludes 0'; the relaxation is kept only as a record and must not be cited as the live criterion",
+      "consequence": "frozen criteria restored including 'CI excludes 0'; the rest of the v7.2 material (power ceiling, estimator note, required-n, 5-fold exclusion) remains valid",
       "still_valid": [
         "MDE 1.38-2.17 and required engines 250-900 (worst about 900)",
         "option '5-fold out-of-fold x5 samples' is excluded (5 clusters)",
@@ -145,5 +145,45 @@
     "test_mde": "0.73 (FD001, 100 engines) / 0.60 (FD004, 248 engines) -- still above 0.45, so moving significance to TEST does not make 0.45 testable",
     "excluded_option": "5-fold out-of-fold x5 samples: 100 OOF predictions come from 5 models (5 clusters); naive bootstrap under-covers and a 5-cluster bootstrap cannot give a usable 95% CI",
     "estimator_note": "MDE is analytic 2.8*SD/sqrt(n); the CI is bootstrap percentile; within a cell they differ by 0.3-3.8%"
+  },
+  "two_stage": {
+    "gate_effect_min": 0.45,
+    "terminal_min_detectable": {
+      "FD001": 0.73,
+      "FD004": 0.6
+    },
+    "grey_band": "0.45-0.73 is outside the scope of any claim",
+    "note": "record field only, must never flow back into the Gate verdict"
+  },
+  "reporting_rules": {
+    "unconditional_point_estimates": "all 30 cells, never only passes=True",
+    "winners_curse_inflation": "passing cells are inflated by 0.16-0.24 (mean of passing cells 0.61-0.69 at sigma*lambda, sigma 0.34-0.45)",
+    "p_null": "p(delta_mean >= 0.45 | true effect 0) = 18.1-28.1% single seed, 5.7-15.7% for the three-seed mean",
+    "per_table": "every table reports MDE and p_null = 1 - Phi(0.45/SE)"
+  },
+  "branch_order": {
+    "rule": "determinate failures are classified BEFORE any CI test; only a cell passing all three screening conditions can reach the CI branch",
+    "order": [
+      "sign_fail",
+      "effect_size_fail",
+      "win_rate_fail",
+      "then CI: consistent | underpowered | powered_but_null | determinately_worse"
+    ],
+    "leaves_denominator": "only underpowered (CI crosses 0 AND MDE > 0.45)",
+    "wording": "FAIL is 'not demonstrated'; only genuine underpowered votes may be described as 'not measurable under this protocol'"
+  },
+  "ncmapss_unit_count": {
+    "finding": "N-CMAPSS has FEWER independent units than C-MAPSS, so it cannot buy statistical power",
+    "dev_units_per_subset": {
+      "DS02": 6,
+      "DS05": 6,
+      "DS06": 6,
+      "DS07": 6
+    },
+    "total_units": 24,
+    "c_mapss_reference": "FD001 20 validation engines, FD004 50",
+    "flights_per_subset": "446-491, 63-100 per unit",
+    "implication": "the Stage 2 rationale cannot be 'more units'; the real gain is longer degradation trajectories per unit, and the existing split_units 5-fold protocol on 6 units yields 1-2 unit folds and must be redesigned (leave-one-unit 6-fold is the only non-pseudo-replicated option)",
+    "status": "recorded 2026-11-23 from zxk's pipeline check; protocol decision still open"
   }
 }
