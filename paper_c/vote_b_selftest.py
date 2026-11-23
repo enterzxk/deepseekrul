@@ -6,7 +6,9 @@ RMSE 恰好等于 a。于是「臂 A 的 RMSE = base + δ/2、臂 B = base − �
 """
 from __future__ import annotations
 
+import contextlib
 import csv
+import io
 import json
 import shutil
 import sys
@@ -62,11 +64,13 @@ def build(root, spec):
                 r0, r1 = {}, {}
                 for k in range(N_ENG):
                     base = BASE + 0.5 * (k % 5)          # engine difficulty, same both arms
-                    if sp['mode'] in ('mixed', 'winrate'):
+                    if sp['mode'] in ('mixed', 'winrate', 'null'):
                         if sp['mode'] == 'mixed':
                             off = 2.0 * d if k < 12 else -1.5 * d
-                        else:
+                        elif sp['mode'] == 'winrate':
                             off = 1.5 * d if k < 11 else -0.5 * d
+                        else:
+                            off = 0.5 * d if k < 10 else -0.3 * d
                         r0[k] = base + off / 2 + abs(off) / 2
                         r1[k] = base - off / 2 + abs(off) / 2
                     else:
@@ -118,22 +122,57 @@ def main():
            u['s2_effect'] is False and abs(u['delta_mean'] - 0.44) < 1e-9,
            f's2={u["s2_effect"]} dbar={u["delta_mean"]:.4f}')
 
-    # S3（v7 三分支）：CI 跨 0 但 MDE > 0.45 -> 照计票，标 underpowered 进限制节
+    # 经理点名（v7.4）：**Δ̄ 不达标但 CI 跨 0** -> 确定 FAIL，不是 underpowered。
+    # 这是「CI 先分」那个 bug 的判据性反例：同一格 ci_branch 是 underpowered
+    # （MDE>0.45），但按固定顺序它在第 2 步就被判成 effect_size_fail，**留在分母**。
     s3 = dict(allpass)
-    s3[('two_phase', 'FD001')] = dict(delta=1.0, mode='mixed')
-    rec = run_case('S3 CI crosses 0 + underpowered -> not counted', s3, 'full', 4)
+    s3[('two_phase', 'FD001')] = dict(delta=0.5, mode='mixed')
+    rec = run_case('dbar=0.30 < 0.45 with wide CI -> determinate FAIL', s3, 'full', 4)
     u = [x for x in rec['units'] if x['backbone'] == 'two_phase' and x['subset'] == 'FD001'][0]
-    record('S3 单测：underpowered 不计票，且标 evaluable=False',
-           u['s3_branch'] == 'underpowered_but_counted' and u['passes'] is False
-           and u['underpowered'] is True and u['evaluable'] is False
-           and u['boot_ci'][0] <= 0.0 and u['mde'] > vote_b.EFFECT_MIN,
-           f'branch={u["s3_branch"]} ci_lo={u["boot_ci"][0]:+.3f} '
-           f'mde={u["mde"]:.3f} evaluable={u["evaluable"]}')
-    record('underpowered 骨干进记录的 underpowered 名单',
-           'two_phase' in rec['underpowered'], f'{rec["underpowered"]}')
+    record('S3 单测：同号成立、效应量不足、CI 跨 0 -> effect_size_fail 且留在分母',
+           u['s3_branch'] == 'effect_size_fail' and u['ci_branch'] == 'underpowered'
+           and u['evaluable'] is True and u['determinate_fail'] is True
+           and u['passes'] is False and u['mde'] > vote_b.EFFECT_MIN
+           and u['boot_ci'][0] <= 0.0,
+           f'branch={u["s3_branch"]} ci_branch={u["ci_branch"]} '
+           f'dbar={u["delta_mean"]:+.3f} ci_lo={u["boot_ci"][0]:+.3f} mde={u["mde"]:.3f}')
+    record('CI/MDE 仍写进记录（报告项）',
+           'boot_ci' in u and 'mde' in u and 'required_n_engines' in u
+           and 'ci_detectable_delta' in u and 'effective_threshold' not in u,
+           f'mde={u["mde"]:.3f} required_n={u["required_n_engines"]}')
+    record('p_null 与 MDE 并排写进记录（每表必报）',
+           'p_null' in u and 0.0 <= u['p_null'] < 0.5
+           and 'p_null' in rec['power']['per_unit'][0],
+           f'p_null={u["p_null"]:.4f}')
 
-    # 代数结论：Δ̄ >= 0.45 时「降级不计」分支不可达（MDE<=0.45 => SE<=0.161
-    # => CI 半宽<=0.315 => lo>=0.135>0），所以条件 3 只贴标签、不拦票。
+    # 真实数据形态（aidgn/FD001：三个 Δ 全负、Δ̄ −0.36、CI 跨 0、MDE 1.1）：
+    # 全负 -> same_sign 不成立 -> sign_fail，同样**留在分母**，不是「测不出」。
+    s3b = dict(allpass)
+    s3b[('aidgn', 'FD001')] = dict(delta=-0.5, mode='mixed')
+    rec = run_case('all-negative seeds with wide CI -> sign_fail, stays', s3b, 'full', 4)
+    u = [x for x in rec['units'] if x['backbone'] == 'aidgn' and x['subset'] == 'FD001'][0]
+    record('S3b 单测：全负 + 宽 CI -> sign_fail（不是 underpowered）',
+           u['s3_branch'] == 'sign_fail' and u['ci_branch'] == 'underpowered'
+           and u['evaluable'] is True and u['determinate_fail'] is True,
+           f'branch={u["s3_branch"]} ci_branch={u["ci_branch"]} '
+           f'dbar={u["delta_mean"]:+.3f}')
+
+    # 真正的 underpowered：三样筛条件都过（Δ̄ 0.60、胜率 0.60）但 CI 跨 0、MDE 1.1。
+    # 只有这一支能离开分母，所以 k_full 从 5 掉到 4，而 n_und 记 1。
+    up = dict(allpass)
+    up[('two_phase', 'FD001')] = dict(delta=1.0, mode='mixed')
+    rec = run_case('genuine underpowered -> leaves the denominator', up, 'full', 4)
+    u = [x for x in rec['units'] if x['backbone'] == 'two_phase' and x['subset'] == 'FD001'][0]
+    record('underpowered 是唯一离开分子分母的一支',
+           u['s3_branch'] == 'underpowered' and u['evaluable'] is False
+           and u['determinate_fail'] is False and u['passes'] is False
+           and rec['k_full'] == 4 and rec['n_undetermined']['full'] == 1
+           and rec['k_full_evaluable'] == 4,
+           f'branch={u["s3_branch"]} eval={u["evaluable"]} k_full={rec["k_full"]} '
+           f'n_und={rec["n_undetermined"]["full"]}')
+
+    # 代数结论：走到 CI 分支意味着 Δ̄ >= 0.45；此时 MDE <= 0.45 蕴含 lo >= 0.135 > 0，
+    # 所以 powered_but_null 在 v7.4 顺序下不可达（保留分支只为与冻结文本对应）。
     unreachable, worst = True, 9.9
     for dbar in (0.45, 0.6, 1.0, 2.0, 5.0):
         for sd in (0.01, 0.1, 0.5, 1.0, 2.0, 5.0):
@@ -142,7 +181,7 @@ def main():
             if 2.80 * se <= vote_b.EFFECT_MIN and lo <= 0.0:
                 unreachable = False
                 worst = min(worst, lo)
-    record('powered_but_null 在 Δ̄>=0.45 下不可达', unreachable,
+    record('powered_but_null 在 v7.4 顺序下不可达', unreachable,
            f'min lo over grid={worst if worst < 9 else "n/a"}')
 
     # S4: 胜率 0.55 < 0.60 -> 不计票。这条是牢莫抓出来的死参数：WIN_RATE_MIN 原先
@@ -151,12 +190,13 @@ def main():
     s4[('dual_mixer', 'FD001')] = dict(delta=1.0, mode='winrate')
     rec = run_case('S4 win rate 0.55 < 0.60 -> no vote', s4, 'full', 4)
     u = [x for x in rec['units'] if x['backbone'] == 'dual_mixer' and x['subset'] == 'FD001'][0]
-    record('S4 单测：只有 S4 失败，S1/S2/S3 都过',
+    record('S4 单测：胜率不足先判死，即使 CI 下界 > 0',
            u['s4_win_rate'] is False and abs(u['engine_win_rate'] - 0.55) < 1e-9
-           and u['s1_same_sign'] and u['s2_effect'] and u['s3_branch'] == 'consistent'
-           and not u['passes'],
+           and u['s1_same_sign'] and u['s2_effect']
+           and u['s3_branch'] == 'win_rate_fail' and u['ci_branch'] == 'consistent'
+           and u['determinate_fail'] is True and not u['passes'],
            f'win={u["engine_win_rate"]:.2f} s4={u["s4_win_rate"]} '
-           f's1/s2/s3={int(u["s1_same_sign"])}/{int(u["s2_effect"])}/{u["s3_branch"]}')
+           f'branch={u["s3_branch"]} ci_branch={u["ci_branch"]}')
 
     # ② b_min 没有 k0p 格：显式要求它却没有输入时必须 exit 2，不能静默给绿
     td = Path(tempfile.mkdtemp())
@@ -200,7 +240,23 @@ def main():
            rec['full_pass'] is False and rec['k_full_evaluable'] == 5,
            f'k_full={rec["k_full"]} eval={rec["k_full_evaluable"]}')
 
-    # 牢莫的洞：3 过 + 1 underpowered + 1 败 -> k_pass + n_und = 4 >= 4，不能判 FAIL
+    # `null` 形态（Δ̄=0.10）：在 v7.4 顺序下先卡在效应量，是 effect_size_fail（确定败票），
+    # 不再可能是 powered_but_null——那一支只在「三样筛条件全过」之后才可能被问到，
+    # 而那时 MDE<=0.45 蕴含 lo>0，必然先命中 consistent。
+    pn = dict(allpass)
+    pn[('ffve', 'FD001')] = dict(delta=1.0, mode='null')
+    rec = run_case('null shape -> effect_size_fail (not powered_but_null)', pn, 'full', 4)
+    u = [x for x in rec['units'] if x['backbone'] == 'ffve' and x['subset'] == 'FD001'][0]
+    record('Δ̄=0.10 的格是确定败票，留在分母',
+           u['s3_branch'] == 'effect_size_fail' and u['evaluable'] is True
+           and u['underpowered'] is False and u['determinate_fail'] is True
+           and 'ffve' not in rec['underpowered']
+           and rec['k_full_evaluable'] == 5,
+           f'branch={u["s3_branch"]} dbar={u["delta_mean"]:+.3f} '
+           f'mde={u["mde"]:.3f} eval={rec["k_full_evaluable"]}')
+
+    # 牢莫的洞（回滚后它是活的）：3 过 + 1 underpowered + 1 确定败 -> k_pass + n_und = 4
+    # >= k_min，未定票补上就能过门，所以**不能判 FAIL**，只能是 INCONCLUSIVE。
     hole = {}
     for i, b in enumerate(BACKBONES):
         for u in SUBSETS:
@@ -210,11 +266,13 @@ def main():
                 hole[(b, u)] = dict(delta=1.0, mode='mixed')
             else:
                 hole[(b, u)] = dict(delta=-0.6, mode='uniform')
-    rec = run_case('3 pass + 1 undetermined -> INCONCLUSIVE (not FAIL)', hole,
+    rec = run_case('3 pass + 1 underpowered + 1 fail -> INCONCLUSIVE', hole,
                    'inconclusive', 3)
-    record('未定票可补足门槛时不判 FAIL',
-           rec['k_full'] + rec['n_undetermined']['full'] >= 4,
-           f'k_pass={rec["k_full"]} n_und={rec["n_undetermined"]["full"]}')
+    record('n_und 是活的：未定票补上就能到 4 -> INCONCLUSIVE 而不是 FAIL',
+           rec['k_full'] == 3 and rec['n_undetermined']['full'] == 1
+           and rec['k_full_evaluable'] == 4,
+           f'k_pass={rec["k_full"]} n_und={rec["n_undetermined"]["full"]} '
+           f'eval={rec["k_full_evaluable"]} verdict={rec["verdict"]}')
 
     # dual_mixer 那类协议偏差：既不进分子也不进分母
     dev = {}
@@ -236,20 +294,23 @@ def main():
     finally:
         shutil.rmtree(td2, ignore_errors=True)
 
-    # 经理：underpowered 剔完后可评估票 <4 且不差一票 -> INCONCLUSIVE
+    # v7.2：underpowered 不再影响分母，所以 INCONCLUSIVE 只由 protocol_deviant 触发
     inc = {}
     for i, b in enumerate(BACKBONES):
         for u in SUBSETS:
-            if i < 2:
-                inc[(b, u)] = dict(delta=1.0, mode='uniform')
-            elif i < 4:
-                inc[(b, u)] = dict(delta=1.0, mode='mixed')      # underpowered
-            else:
-                inc[(b, u)] = dict(delta=-0.6, mode='uniform')   # fail
-    rec = run_case('underpowered 剔完可评估<4 -> INCONCLUSIVE', inc, 'inconclusive', 2)
-    record('INCONCLUSIVE 报出可评估票数',
-           rec['k_full_evaluable'] < 4 and rec['k_sc_evaluable'] < 4,
-           f'k_full={rec["k_full"]} eval={rec["k_full_evaluable"]}/{rec["k_sc_evaluable"]}')
+            inc[(b, u)] = (dict(delta=1.0, mode='uniform') if i < 3
+                           else dict(delta=-0.6, mode='uniform'))
+    td3 = Path(tempfile.mkdtemp())
+    try:
+        build(td3, inc)
+        r = vote_b.judge(td3 / 'v0', td3 / 'v1', SEEDS, allow_missing_eol=True,
+                         deviant=('ffve', 'two_phase'))
+        record('可评估票 <4 -> INCONCLUSIVE（只由 protocol_deviant 触发）',
+               r['verdict'] == 'inconclusive' and r['k_full_evaluable'] == 3
+               and r['k_full'] == 3,
+               f'verdict={r["verdict"]} eval={r["k_full_evaluable"]} k_pass={r["k_full"]}')
+    finally:
+        shutil.rmtree(td3, ignore_errors=True)
 
     # SC: 四骨干 FD001 过线、FD004 无害但不过线 -> 只能是 SC
     sc = {}
@@ -294,6 +355,42 @@ def main():
                            eol=dict(evaluated=True, delta_mean=-0.20))
         record('EOL veto -> FAIL', rec['verdict'] == 'fail' and 'veto' in rec['eol'],
                f'verdict={rec["verdict"]}')
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+
+    # 牢莫（第五次「判定写对、记录层/输出层没对齐」）：自测全部走 judge()，main() 一次
+    # 都没被覆盖，所以 s3_boot 这种不存在的字段能一直活到出 verdict 才炸。这里真调 main()：
+    # 断言退出码、stdout 关键字段、--record 落盘。任何字段改名都会在这里红。
+    td = Path(tempfile.mkdtemp())
+    try:
+        build(td, allpass)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = vote_b.main(['--v0', str(td / 'v0'), '--v1', str(td / 'v1'),
+                              '--allow-missing-eol', '--record', str(td / 'rec.json')])
+        out = buf.getvalue()
+        recj = json.loads((td / 'rec.json').read_text(encoding='utf-8'))
+        record('main() 端到端：PASS 时 EXIT=0、打印分支名、记录落盘',
+               rc == vote_b.EXIT_OK and 'S3=consistent' in out
+               and recj['verdict'] == 'full' and recj['k_full'] == 5
+               and 'p_null' in recj['units'][0],
+               f'exit={rc} verdict={recj["verdict"]} k_full={recj["k_full"]}')
+        record('记录里写明读了哪两棵树（不靠目录名推断谁是 V0）',
+               recj['inputs']['v0_root'] == str(td / 'v0')
+               and recj['inputs']['v1_root'] == str(td / 'v1')
+               and str(td / 'v0') in out,
+               f'v0={recj["inputs"]["v0_root"]} v1={recj["inputs"]["v1_root"]}')
+
+        fail_spec = {(b, u): dict(delta=-0.6, mode='uniform')
+                     for b in BACKBONES for u in SUBSETS}
+        build(td, fail_spec)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = vote_b.main(['--v0', str(td / 'v0'), '--v1', str(td / 'v1'),
+                              '--allow-missing-eol'])
+        record('main() 端到端：FAIL 时 EXIT=1（不能一律 0）',
+               rc == vote_b.EXIT_FAIL and 'verdict=FAIL' in buf.getvalue(),
+               f'exit={rc}')
     finally:
         shutil.rmtree(td, ignore_errors=True)
 
