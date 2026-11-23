@@ -5,11 +5,12 @@
   "prereg": {
     "path": "docs/P2_CROSS_ARCH_PREREG.md",
     "version": "v7.4",
-    "blob_id": "fca0303bab42eb35557f838ae85269198ecc0427",
-    "blob_sha256": "43814e27145748b2ab54cd67025e175f81b9387dd644a2c3288e34bd36a79885",
-    "commit": "71bf51c6",
-    "bytes": 86306,
-    "lines": 1090
+    "blob_id": "6e2c19bdf787f918fe45aca57fe0daa476fe0390",
+    "blob_sha256": "58577a13a82b50a65671fbbd0c7b6d69ed4ad76946b19e2aecca2dcea6123e30",
+    "commit": "6fcfb0ba",
+    "bytes": 87546,
+    "lines": 1106,
+    "role": "current text (frozen v7.0 + post-freeze addenda); the frozen original is kept under frozen_original"
   },
   "companions": {
     "paper_c/wrapper.py": {
@@ -185,5 +186,13 @@
     "flights_per_subset": "446-491, 63-100 per unit",
     "implication": "the Stage 2 rationale cannot be 'more units'; the real gain is longer degradation trajectories per unit, and the existing split_units 5-fold protocol on 6 units yields 1-2 unit folds and must be redesigned (leave-one-unit 6-fold is the only non-pseudo-replicated option)",
     "status": "recorded 2026-11-23 from zxk's pipeline check; protocol decision still open"
+  },
+  "frozen_original": {
+    "version": "v7.0",
+    "commit": "bfbe70c2",
+    "blob_id": "877a2228607bb5c56ab6d6f0b14a40baf09b4e81",
+    "blob_sha256": "66836b034aaa7f18cf68871f1b28e185d82c734ffce02f64ec19090647e0152b",
+    "lines": 963,
+    "note": "the text as frozen on 2026-11-23; later post-freeze addenda (v7.1 narrowing, v7.2 partial withdrawal, v7.4 implementation alignment) are recorded separately and never replace this entry"
   }
 }
