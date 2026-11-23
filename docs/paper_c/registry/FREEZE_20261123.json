@@ -1,0 +1,90 @@
+{
+  "schema": "paper_c.prereg_freeze.v1",
+  "frozen_at": "2026-11-23T14:20:00+08:00",
+  "frozen_at_note": "Asia/Shanghai; prereg v7.0",
+  "prereg": {
+    "path": "docs/P2_CROSS_ARCH_PREREG.md",
+    "version": "v7.0",
+    "blob_id": "877a2228607bb5c56ab6d6f0b14a40baf09b4e81",
+    "blob_sha256": "66836b034aaa7f18cf68871f1b28e185d82c734ffce02f64ec19090647e0152b",
+    "commit": "bfbe70c2",
+    "bytes": 76423,
+    "lines": 963
+  },
+  "companions": {
+    "paper_c/wrapper.py": {
+      "blob_id": "a7d031b711ee1f2bd12e6d9c154c1a6a49a11d4d",
+      "blob_sha256": "d3e4dbbcec7587d60cf9ba61d27ae6e0dd63997f7abc33623b053ea48721e3de"
+    },
+    "docs/paper_c/registry/ANCHOR_PROTOCOL_TRUTH.json": {
+      "blob_id": "107069ae9975f5de17288018b1f9a30ff86951d9",
+      "blob_sha256": "9a3523277b6632527bf450f879d2235887a4fe4358b843f62633a40ba4181055",
+      "role": "A 段 30 格协议核对的真值来源"
+    },
+    "docs/paper_c/registry/RECON_BANDS.csv": {
+      "blob_id": "6cbfeb7f3ea3cebec57a1cad3b9fa355435adeb7",
+      "blob_sha256": "05e69e63e7dd117af9a7f48435b318bbbe83c9fd4f38e84ad4f51c42a96bf30d",
+      "role": "R2.2 参照带；A 段重跑期间不得再调"
+    },
+    "paper_c/gate1.py": {
+      "blob_id": "a59516a7183eba31f7eb4304bba2fd8f687227d6",
+      "blob_sha256": "978ccdbb4800093bee42acdc99a9da112a37ca1466407d27ec646637c58e9f4c",
+      "role": "A 段判据（协议保真 + 漂移测量）；不含 B 段逻辑"
+    }
+  },
+  "frozen_thresholds": {
+    "effect_size_min": 0.45,
+    "harmless_tol": -0.10,
+    "k_min": 4,
+    "same_sign": "3/3",
+    "engine_bootstrap": {
+      "n_resamples": 10000,
+      "seed": 20261123,
+      "ci": 0.95,
+      "rule": "MDE<=0.45 and CI excludes 0 -> vote; MDE<=0.45 and CI includes 0 -> no vote; MDE>0.45 -> excluded from numerator AND denominator (underpowered); evaluable arms < k_min -> INCONCLUSIVE"
+    },
+    "win_rate_min": 0.6,
+    "win_rate_unit": "engine-level (engine_win_rate), not seed-level",
+    "grid": "60 cells = 5 SOTA backbones x 2 subsets x 3 seeds x 2 arms; B_min is NOT among the 60 (uses v1.2 5-fold k0a)"
+  },
+  "pending_l2": {
+    "status": "PENDING-L2",
+    "reviewer": "none",
+    "statement": "§4.4.1 condition 3 and §4.5 tiered gate were decided by the manager on evidence, with NO external Codex review (mcp__codex__codex unavailable: WinError 2). Must NOT be described as reviewed/approved. Re-review when L2 is available; append the conclusion, never overwrite.",
+    "scope": ["4.4.1 condition 3 (MDE four-branch)", "4.5 Full/SC tiered gate"]
+  },
+  "a_segment_status": {
+    "cells": 30,
+    "protocol_check": "30/30, 0 violations",
+    "checked_by": "zxk",
+    "checks": [
+      "n_train_windows 16762 (FD001) / 48691 (FD004)",
+      "n_validation_cuts 100 / 250",
+      "tf32_matmul=false, tf32_cudnn=false",
+      "selection=val_engine_mean_rmse, patience=12, ceiling=40, min_delta=1e-4",
+      "two_phase pretraining 6/6 (FD001 20 epochs, target 16762, paired 20486; FD004 100 epochs, target 48691, paired 43251; encoder_frozen=true)"
+    ],
+    "max_abs_darg_per_backbone": {
+      "aidgn": 0.19271241741303591,
+      "dual_mixer": 1.1667847257257336e-06,
+      "fcstgnn": 7.1054273576010019e-15,
+      "ffve": 0.37884853684636788,
+      "two_phase": 0.42310851254400639
+    },
+    "max_abs_darg_note": "All five below 0.45, so max(0.45, floor_b) never binds; floor_b is report-only.",
+    "two_phase_six_cells": {
+      "FD001/s101": -0.4231085125440064,
+      "FD001/s202": 0.1596817179127772,
+      "FD001/s303": -0.20628638120302334,
+      "FD004/s101": 3.552713678800501e-15,
+      "FD004/s202": 7.105427357601002e-15,
+      "FD004/s303": -3.552713678800501e-15
+    },
+    "residual_limitation": "Cross-machine is bit-identical on FD004 but NOT on FD001: two_phase/FD001 still shows 0.16-0.42 displacement, aidgn 0.19, ffve 0.38. Cause un-attributed (pretraining / operator nondeterminism not investigated). Must go to the limitations section; must not be written as 'whole batch bit-identical' nor withdrawn as 'all our bug'."
+  },
+  "b_segment_precondition": {
+    "vote_b_py": "NOT YET COMMITTED as of this freeze",
+    "rule": "B segment must not start until paper_c/vote_b.py is committed and its blob_id + blob_sha256 are appended to this file under companions."
+  },
+  "hash_naming_rule": "blob_id = git object id (git rev-parse HEAD:<path>, for git cat-file); blob_sha256 = sha256 of the blob content. Never write a bare 'hash'."
+}
